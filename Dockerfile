@@ -23,6 +23,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
+# Create uploads directory with proper permissions
+RUN mkdir -p uploads && chmod 777 uploads
+
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos '' myuser
 USER myuser
