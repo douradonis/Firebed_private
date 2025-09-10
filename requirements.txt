@@ -1,0 +1,5 @@
+flask
+mydata
+python-dotenv
+pyzbar
+Pillow
