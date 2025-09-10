@@ -1,6 +1,6 @@
 libzbar0
+poppler-utils
 libgl1
 libsm6
 libxext6
 libxrender-dev
-poppler-utils
