@@ -3,3 +3,4 @@ mydata
 python-dotenv
 pyzbar
 Pillow
+requests
