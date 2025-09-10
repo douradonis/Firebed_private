@@ -1,7 +1,7 @@
-# Use an official Python runtime as a base image
-FROM python:3.9-slim-buster
+# Use a more recent Python base image
+FROM python:3.9-slim-bookworm
 
-# Install system dependencies
+# Update package lists and install system dependencies
 RUN apt-get update && apt-get install -y \
     libzbar0 \
     poppler-utils \
