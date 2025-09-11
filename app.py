@@ -15,7 +15,39 @@ from flask import session
 # Configuration file path
 CONFIG_FILE = os.path.join(app.config["UPLOAD_FOLDER"], "config.json")
 
-
+@app.route('/config', methods=['GET', 'POST'])
+def config():
+    """Configuration page for users to input their AADE credentials"""
+    if request.method == 'POST':
+        # Get form data
+        user_id = request.form.get('aade_user_id')
+        subscription_key = request.form.get('aade_subscription_key')
+        environment = request.form.get('mydata_env', 'sandbox')
+        
+        # Save configuration
+        config_data = {
+            'AADE_USER_ID': user_id,
+            'AADE_SUBSCRIPTION_KEY': subscription_key,
+            'MYDATA_ENV': environment
+        }
+        
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config_data, f)
+            return redirect(url_for('home'))
+        except Exception as e:
+            return f"Error saving configuration: {e}"
+    
+    # Load existing config if available
+    config_data = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        except:
+            pass
+    
+    return render_template_string(CONFIG_HTML, config=config_data)
 
 def load_config():
     """Load configuration from file or environment variables"""
@@ -734,39 +766,7 @@ def viewer():
     ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
     
     # ... rest of your viewer function code
-@app.route('/config', methods=['GET', 'POST'])
-def config():
-    """Configuration page for users to input their AADE credentials"""
-    if request.method == 'POST':
-        # Get form data
-        user_id = request.form.get('aade_user_id')
-        subscription_key = request.form.get('aade_subscription_key')
-        environment = request.form.get('mydata_env', 'sandbox')
-        
-        # Save configuration
-        config_data = {
-            'AADE_USER_ID': user_id,
-            'AADE_SUBSCRIPTION_KEY': subscription_key,
-            'MYDATA_ENV': environment
-        }
-        
-        try:
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(config_data, f)
-            return redirect(url_for('home'))
-        except Exception as e:
-            return f"Error saving configuration: {e}"
-    
-    # Load existing config if available
-    config_data = {}
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                config_data = json.load(f)
-        except:
-            pass
-    
-    return render_template_string(CONFIG_HTML, config=config_data)
+
 
 @app.route("/download", methods=["GET"])
 def download_excel():
