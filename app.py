@@ -8,13 +8,78 @@ from utils import (
     is_mark_transmitted, fetch_by_mark, save_summary_to_excel,
     extract_marks_from_text, EXCEL_FILE
 )
+# Add these imports at the top of app.py
+import json
+from flask import session
 
+# Configuration file path
+CONFIG_FILE = os.path.join(app.config["UPLOAD_FOLDER"], "config.json")
+
+@app.route('/config', methods=['GET', 'POST'])
+def config():
+    """Configuration page for users to input their AADE credentials"""
+    if request.method == 'POST':
+        # Get form data
+        user_id = request.form.get('aade_user_id')
+        subscription_key = request.form.get('aade_subscription_key')
+        environment = request.form.get('mydata_env', 'sandbox')
+        
+        # Save configuration
+        config_data = {
+            'AADE_USER_ID': user_id,
+            'AADE_SUBSCRIPTION_KEY': subscription_key,
+            'MYDATA_ENV': environment
+        }
+        
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config_data, f)
+            return redirect(url_for('home'))
+        except Exception as e:
+            return f"Error saving configuration: {e}"
+    
+    # Load existing config if available
+    config_data = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        except:
+            pass
+    
+    return render_template_string(CONFIG_HTML, config=config_data)
+
+def load_config():
+    """Load configuration from file or environment variables"""
+    config_data = {}
+    
+    # Try to load from file first
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        except:
+            pass
+    
+    # Fall back to environment variables
+    if not config_data.get('AADE_USER_ID'):
+        config_data['AADE_USER_ID'] = os.getenv("AADE_USER_ID", "")
+    if not config_data.get('AADE_SUBSCRIPTION_KEY'):
+        config_data['AADE_SUBSCRIPTION_KEY'] = os.getenv("AADE_SUBSCRIPTION_KEY", "")
+    if not config_data.get('MYDATA_ENV'):
+        config_data['MYDATA_ENV'] = os.getenv("MYDATA_ENV", "sandbox")
+    
+    return config_data
+
+# Replace the current environment variable loading code
 # Load env
 load_dotenv()
 
-AADE_USER = os.getenv("AADE_USER_ID", "")
-AADE_KEY = os.getenv("AADE_SUBSCRIPTION_KEY", "")
-ENV = (os.getenv("MYDATA_ENV", "sandbox") or "sandbox").lower()
+# Load configuration
+config_data = load_config()
+AADE_USER = config_data.get("AADE_USER_ID", "")
+AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
+ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
 
 # Endpoints
 REQUESTDOCS_URL = (
@@ -33,6 +98,7 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # HTML templates (unchanged from your original code)
+# In the NAV_HTML template, add this line to the menu
 NAV_HTML = """<!doctype html>
 <html lang="el">
 <head><meta charset="utf-8"><title>myDATA - Μενού</title>
@@ -48,7 +114,7 @@ body {font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#
 <p>Επέλεξε λειτουργία:</p>
 <div class="menu">
 <a href="{{ url_for('viewer') }}">Εισαγωγή Παραστατικού</a>
-<a href="{{ url_for('options') }}" class="secondary">Επιλογές</a>
+<a href="{{ url_for('config') }}" class="secondary">Ρύθμιση Παραμέτρων</a>
 <a href="{{ url_for('list_invoices') }}">Λίστα Παραστατικών</a>
 </div>
 </div>
@@ -432,6 +498,54 @@ document.addEventListener("DOMContentLoaded", function(){
 </body>
 </html>
 """
+CONFIG_HTML = """
+<!doctype html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>Ρύθμιση Παραμέτρων</title>
+    <style>
+        body {font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px;}
+        .form-group {margin-bottom: 15px;}
+        label {display: block; margin-bottom: 5px; font-weight: bold;}
+        input[type="text"], select {width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;}
+        button {background: #0d6efd; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;}
+        button:hover {background: #0b5ed7;}
+        .card {background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Ρύθμιση Παραμέτρων AADE</h1>
+        <form method="post">
+            <div class="form-group">
+                <label for="aade_user_id">AADE User ID:</label>
+                <input type="text" id="aade_user_id" name="aade_user_id" value="{{ config.get('AADE_USER_ID', '') }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="aade_subscription_key">AADE Subscription Key:</label>
+                <input type="text" id="aade_subscription_key" name="aade_subscription_key" value="{{ config.get('AADE_SUBSCRIPTION_KEY', '') }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="mydata_env">Περιβάλλον:</label>
+                <select id="mydata_env" name="mydata_env">
+                    <option value="sandbox" {% if config.get('MYDATA_ENV') == 'sandbox' %}selected{% endif %}>Sandbox (δοκιμαστικό)</option>
+                    <option value="production" {% if config.get('MYDATA_ENV') == 'production' %}selected{% endif %}>Production (πραγματικό)</option>
+                </select>
+            </div>
+            
+            <button type="submit">Αποθήκευση Ρυθμίσεων</button>
+        </form>
+        
+        <p style="margin-top: 20px;">
+            <a href="{{ url_for('home') }}">Επιστροφή στην αρχική σελίδα</a>
+        </p>
+    </div>
+</body>
+</html>
+"""
 
 # Routes (unchanged from your original code)
 @app.route("/")
@@ -639,6 +753,20 @@ def delete_invoices():
 
     return redirect(url_for("list_invoices"))
 
+@app.route("/viewer", methods=["GET", "POST"])
+def viewer():
+    # Check if we have valid configuration
+    config_data = load_config()
+    if not config_data.get("AADE_USER_ID") or not config_data.get("AADE_SUBSCRIPTION_KEY"):
+        return redirect(url_for('config'))
+    
+    # Use the configuration
+    AADE_USER = config_data.get("AADE_USER_ID", "")
+    AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
+    ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
+    
+    # ... rest of your viewer function code
+
 @app.route("/download", methods=["GET"])
 def download_excel():
     if not os.path.exists(EXCEL_FILE):
@@ -649,6 +777,7 @@ def download_excel():
         download_name="invoices.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
