@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# Create uploads directory with proper permissions
+# Create uploads directory with proper permissions (ONCE, before switching user)
 RUN mkdir -p uploads && chmod 777 uploads
 
 # Create a non-root user and switch to it
@@ -35,9 +35,6 @@ EXPOSE 5000
 
 # Define environment variable
 ENV FLASK_APP=app.py
-
-# In your Dockerfile, ensure the uploads directory is writable
-RUN mkdir -p uploads && chmod 777 uploads
 
 # Run the application
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
