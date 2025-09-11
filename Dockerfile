@@ -36,5 +36,8 @@ EXPOSE 5000
 # Define environment variable
 ENV FLASK_APP=app.py
 
+# In your Dockerfile, ensure the uploads directory is writable
+RUN mkdir -p uploads && chmod 777 uploads
+
 # Run the application
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
