@@ -1,53 +1,28 @@
 # app.py
 import os
+import json
+import re
+from urllib.parse import urlparse
 from dotenv import load_dotenv
-from flask import Flask, request, render_template_string, url_for, send_file, redirect
+from flask import Flask, request, render_template_string, url_for, send_file, redirect, session
+import pandas as pd
 from utils import (
     extract_marks_from_url, extract_mark, decode_qr_from_file, 
     extract_vat_categories, summarize_invoice, format_euro_str,
     is_mark_transmitted, fetch_by_mark, save_summary_to_excel,
     extract_marks_from_text, EXCEL_FILE
 )
-# Add these imports at the top of app.py
-import json
-from flask import session
 
-# Configuration file path
+# First create the Flask app
+app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = "uploads"
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Now define CONFIG_FILE after app is created
 CONFIG_FILE = os.path.join(app.config["UPLOAD_FOLDER"], "config.json")
 
-@app.route('/config', methods=['GET', 'POST'])
-def config():
-    """Configuration page for users to input their AADE credentials"""
-    if request.method == 'POST':
-        # Get form data
-        user_id = request.form.get('aade_user_id')
-        subscription_key = request.form.get('aade_subscription_key')
-        environment = request.form.get('mydata_env', 'sandbox')
-        
-        # Save configuration
-        config_data = {
-            'AADE_USER_ID': user_id,
-            'AADE_SUBSCRIPTION_KEY': subscription_key,
-            'MYDATA_ENV': environment
-        }
-        
-        try:
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(config_data, f)
-            return redirect(url_for('home'))
-        except Exception as e:
-            return f"Error saving configuration: {e}"
-    
-    # Load existing config if available
-    config_data = {}
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                config_data = json.load(f)
-        except:
-            pass
-    
-    return render_template_string(CONFIG_HTML, config=config_data)
+# Load environment variables
+load_dotenv()
 
 def load_config():
     """Load configuration from file or environment variables"""
@@ -71,11 +46,7 @@ def load_config():
     
     return config_data
 
-# Replace the current environment variable loading code
-# Load env
-load_dotenv()
-
-# Load configuration
+# Load initial configuration
 config_data = load_config()
 AADE_USER = config_data.get("AADE_USER_ID", "")
 AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
@@ -92,10 +63,6 @@ TRANSMITTED_URL = (
     if ENV in ("sandbox", "demo", "dev")
     else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
 )
-
-app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # HTML templates (unchanged from your original code)
 # In the NAV_HTML template, add this line to the menu
@@ -547,7 +514,7 @@ CONFIG_HTML = """
 </html>
 """
 
-# Routes (unchanged from your original code)
+# Routes
 @app.route("/")
 def home():
     return render_template_string(NAV_HTML)
@@ -556,8 +523,64 @@ def home():
 def options():
     return render_template_string(PLACEHOLDER_HTML, title="Επιλογές", message="Εδώ θα μπουν μελλοντικές ρυθμίσεις.")
 
+@app.route('/config', methods=['GET', 'POST'])
+def config():
+    """Configuration page for users to input their AADE credentials"""
+    if request.method == 'POST':
+        # Get form data
+        user_id = request.form.get('aade_user_id')
+        subscription_key = request.form.get('aade_subscription_key')
+        environment = request.form.get('mydata_env', 'sandbox')
+        
+        # Save configuration
+        config_data = {
+            'AADE_USER_ID': user_id,
+            'AADE_SUBSCRIPTION_KEY': subscription_key,
+            'MYDATA_ENV': environment
+        }
+        
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config_data, f)
+            return redirect(url_for('home'))
+        except Exception as e:
+            return f"Error saving configuration: {e}"
+    
+    # Load existing config if available
+    config_data = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        except:
+            pass
+    
+    return render_template_string(CONFIG_HTML, config=config_data)
+
 @app.route("/viewer", methods=["GET", "POST"])
 def viewer():
+    # Check if we have valid configuration
+    config_data = load_config()
+    if not config_data.get("AADE_USER_ID") or not config_data.get("AADE_SUBSCRIPTION_KEY"):
+        return redirect(url_for('config'))
+    
+    # Use the configuration
+    AADE_USER = config_data.get("AADE_USER_ID", "")
+    AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
+    ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
+    
+    # Endpoints
+    REQUESTDOCS_URL = (
+        "https://mydataapidev.aade.gr/RequestTransmittedDocs"
+        if ENV in ("sandbox", "demo", "dev")
+        else "https://mydatapi.aade.gr/myDATA/RequestDocs"
+    )
+    TRANSMITTED_URL = (
+        "https://mydataapidev.aade.gr/RequestTransmittedDocs"
+        if ENV in ("sandbox", "demo", "dev")
+        else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
+    )
+    
     error = ""
     payload = None
     raw = None
@@ -753,21 +776,6 @@ def delete_invoices():
 
     return redirect(url_for("list_invoices"))
 
-@app.route("/viewer", methods=["GET", "POST"])
-def viewer():
-    # Check if we have valid configuration
-    config_data = load_config()
-    if not config_data.get("AADE_USER_ID") or not config_data.get("AADE_SUBSCRIPTION_KEY"):
-        return redirect(url_for('config'))
-    
-    # Use the configuration
-    AADE_USER = config_data.get("AADE_USER_ID", "")
-    AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
-    ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
-    
-    # ... rest of your viewer function code
-
-
 @app.route("/download", methods=["GET"])
 def download_excel():
     if not os.path.exists(EXCEL_FILE):
@@ -778,7 +786,6 @@ def download_excel():
         download_name="invoices.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
