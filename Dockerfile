@@ -1,40 +1,36 @@
-# Use a more recent Python base image
-FROM python:3.9-slim-bookworm
+# Dockerfile - production-ready for Render
+FROM python:3.9-slim
 
-# Update package lists and install system dependencies
-RUN apt-get update && apt-get install -y \
-    libzbar0 \
-    poppler-utils \
-    libgl1 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
+# System deps for pdf2image / pyzbar (optional) - safe / small
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential poppler-utils libzbar0 libjpeg-dev libpng-dev gcc \
+  && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash myuser
+
 WORKDIR /app
 
-# Copy the requirements file
-COPY requirements.txt .
+# copy requirements first for layer caching
+COPY requirements.txt /app/requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# install python deps
+RUN pip install --upgrade pip setuptools wheel \
+  && pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the rest of the application code
-COPY . .
+# copy app
+COPY . /app
 
-# Create uploads directory with proper permissions (ONCE, before switching user)
-RUN mkdir -p uploads && chmod 777 uploads
+# make upload / data dirs and set permissions for myuser
+RUN mkdir -p /app/uploads /app/data \
+    && chown -R myuser:myuser /app/uploads /app/data /app
 
-# Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos '' myuser
 USER myuser
 
-# Expose the port the app runs on
-EXPOSE 5000
+# Expose dynamic port (Render injects $PORT env)
+ENV PORT 10000
+EXPOSE ${PORT}
 
-# Define environment variable
-ENV FLASK_APP=app.py
-
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Start command - gunicorn will bind to $PORT
+# Make sure your Flask app object is named "app" and file is app.py
+CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --workers 4 --threads 8 --timeout 120
