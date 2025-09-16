@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="el">
+<head><meta charset="utf-8"><title>Λίστα Παραστατικών</title></head>
+<body>
+<h1>Λίστα Παραστατικών</h1>
+<p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
+
+{% if error %}
+<div style="background:#fff5f5;padding:8px;">{{ error }}</div>
+{% endif %}
+
+{% if table_html %}
+  <form method="post">
+    <div style="overflow:auto;">{{ table_html|safe }}</div>
+    <p><button type="submit">Διαγραφή επιλεγμένων</button></p>
+  </form>
+{% else %}
+  <div>Δεν υπάρχει αρχείο Excel.</div>
+{% endif %}
+</body>
+</html>
