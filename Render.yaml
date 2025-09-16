@@ -1,16 +1,9 @@
 services:
   - type: web
-    name: firebed-app
+    name: mydatatest
     env: docker
-    dockerfilePath: Dockerfile
-    envVars:
-      - key: AADE_USER_ID
-        fromService:
-          type: secret
-          name: aade_user_id
-      - key: AADE_SUBSCRIPTION_KEY
-        fromService:
-          type: secret
-          name: aade_subscription_key
-      - key: MYDATA_ENV
-        value: sandbox
+    repo: https://github.com/yourusername/YourRepo
+    branch: main
+    plan: free
+    buildCommand: docker build -t registry:latest .
+    startCommand: ""  # Render will use Dockerfile CMD
