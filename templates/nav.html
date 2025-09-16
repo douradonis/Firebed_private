@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="el">
+<head><meta charset="utf-8"><title>myDATA - Μενού</title>
+<style>body{font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa}.card{background:#fff;padding:16px;margin:16px 0;border-radius:12px;}</style>
+</head>
+<body>
+<div class="card"><h1>myDATA - Κεντρικό Μενού</h1>
+<p>Επέλεξε λειτουργία:</p>
+<ul>
+  <li><a href="{{ url_for('viewer') }}">Εισαγωγή / Αναζήτηση Παραστατικού (MARK)</a></li>
+  <li><a href="{{ url_for('fetch_route') }}">Λήψη Παραστατικών (Bulk)</a></li>
+  <li><a href="{{ url_for('list_route') }}">Λίστα / Εξαγωγή Παραστατικών</a></li>
+  <li><a href="{{ url_for('download_excel') }}">Κατέβασμα Excel (αν υπάρχει)</a></li>
+</ul>
+</div>
+</body>
+</html>
