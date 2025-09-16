@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="el">
+<head><meta charset="utf-8"><title>Viewer</title></head>
+<body>
+<h1>Αναζήτηση MARK (ακριβής) </h1>
+<p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
+<form method="post" enctype="multipart/form-data">
+  <p><input type="text" name="mark" placeholder="π.χ. 123456789012345"></p>
+  <p><input type="file" name="file"></p>
+  <p><button type="submit">Αναζήτηση</button></p>
+</form>
+{% if message %}
+<div style="background:#e6ffed;padding:10px;">{{ message }}</div>
+{% endif %}
+{% if error %}
+<div style="background:#fff5f5;padding:10px;">{{ error }}</div>
+{% endif %}
+{% if invoice %}
+<div style="background:#fff;padding:12px;"><h3>Παραστατικό</h3>
+<pre>{{ invoice }}</pre>
+<form method="post" action="{{ url_for('save_excel_route') }}">
+  <input type="hidden" name="summ" value='{{ invoice|tojson|safe }}'>
+  <button type="submit">Αποθήκευση περίληψης στο Excel</button>
+</form>
+</div>
+{% endif %}
+</body>
+</html>
