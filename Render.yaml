@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: mydatatest
-    env: docker
-    repo: https://github.com/douradonis/Firebed_private/bulk-fetch-cache
-    branch: main
-    plan: free
-    buildCommand: docker build -t registry:latest .
-    startCommand: ""  # Render will use Dockerfile CMD

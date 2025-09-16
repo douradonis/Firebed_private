@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: mydatatest
+    env: docker
+    repo: https://github.com/yourusername/YourRepo
+    branch: main
+    plan: free
+    # Render θα τρέξει Dockerfile στο repo - δεν απαιτείται buildCommand/startCommand εδώ
