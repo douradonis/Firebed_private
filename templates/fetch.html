@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="el">
+<head><meta charset="utf-8"><title>Λήψη Παραστατικών</title></head>
+<body>
+<h1>Λήψη Παραστατικών (Bulk)</h1>
+<p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
+
+<form method="post">
+  <p>Ημερομηνία από: <input type="date" name="date_from" required value="{{ request.form.date_from or (now|default('') ) }}"></p>
+  <p>Έως: <input type="date" name="date_to" required value="{{ request.form.date_to or '' }}"></p>
+  <p>VAT: <input type="text" name="vat_number" value="{{ default_vat or '' }}"></p>
+  <p>Χρήση stored credential: 
+    <select name="use_credential">
+      <option value="">(ENV / Default)</option>
+      {% for c in credentials %}
+        <option value="{{ c.name }}">{{ c.name }} ({{ c.vat|default('') }})</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p><button type="submit">Λήψη & Αποθήκευση Cache</button></p>
+</form>
+
+{% if message %}
+<div style="background:#e6ffed;padding:8px;">{{ message }}</div>
+{% endif %}
+{% if error %}
+<div style="background:#fff5f5;padding:8px;">{{ error }}</div>
+{% endif %}
+
+<h3>Preview cache (περιορισμένο)</h3>
+{% if preview %}
+  <div style="max-height:400px;overflow:auto;background:#fff;padding:8px;">
+  {% for d in preview %}
+    <pre>{{ d|tojson(indent=2, ensure_ascii=False) }}</pre>
+  {% endfor %}
+  </div>
+{% else %}
+  <div>Δεν υπάρχουν cached παραστατικά.</div>
+{% endif %}
+</body>
+</html>
