@@ -1,21 +1,35 @@
 FROM python:3.9-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-COPY requirements.txt /app/
+# Install system deps needed for pandas/openpyxl and building wheels
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libffi-dev \
+    libssl-dev \
+    default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# install git first (για να μπορεί να κατεβάσει mydatanaut)
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
-# upgrade pip και dependencies (περιλαμβάνει gunicorn)
-RUN pip install --upgrade pip setuptools wheel \
-  && pip install --no-cache-dir -r /app/requirements.txt
-
+# Copy app
 COPY . /app
 
-# φτιάχνουμε φακέλους για uploads & data
-RUN mkdir -p /app/uploads /app/data \
-  && chown -R root:root /app/uploads /app/data /app
+# Ensure vendor path presence (if you vendorized mydatanaut under /app/vendor)
+ENV PYTHONPATH="/app/vendor:${PYTHONPATH}"
 
-# εκκίνηση gunicorn στο port 10000
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "app:app"]
+# Install python deps
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r /app/requirements.txt
+
+# Create runtime dirs
+RUN mkdir -p /app/uploads /app/data
+RUN chmod -R 777 /app/uploads /app/data
+
+# Expose
+EXPOSE 5000
+
+# Use gunicorn in production (Render will set $PORT env)
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app", "--workers", "3", "--threads", "4"]
