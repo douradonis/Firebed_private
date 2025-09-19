@@ -1,13 +1,16 @@
-# app.py
+# app.py - improved debugging & robust rendering for your myDATA app
 import os
 import sys
 import json
 import datetime
 import traceback
-import re
-from typing import Any, Dict, List, Optional, Set
+import logging
+from logging.handlers import RotatingFileHandler
+from typing import Any, Dict, List, Optional
 
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import (
+    Flask, render_template, request, redirect, url_for, send_file, flash, Markup
+)
 import requests
 import xmltodict
 import pandas as pd
@@ -24,13 +27,12 @@ HAS_MYDATANAUT = False
 mydatanaut_pkg = None
 try:
     import importlib
-
     mydatanaut_pkg = importlib.import_module("mydatanaut")
     HAS_MYDATANAUT = True
 except Exception:
     HAS_MYDATANAUT = False
 
-# --- Directories ---
+# Directories
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -40,8 +42,9 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 CACHE_FILE = os.path.join(DATA_DIR, "invoices_cache.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
 EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
+ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 
-# ENV defaults
+# ENV / endpoints
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
 AADE_KEY_ENV = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
@@ -60,39 +63,51 @@ TRANSMITTED_URL = (
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 
-# Basic logger note
-app.logger.info("Starting app - HAS_MYDATANAUT=%s MYDATA_ENV=%s", HAS_MYDATANAUT, MYDATA_ENV)
+# Setup logging: stdout + rotating file
+log = logging.getLogger("mydata_app")
+log.setLevel(logging.INFO)
+if not log.handlers:
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    log.addHandler(sh)
+
+    fh = RotatingFileHandler(ERROR_LOG, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s\n"))
+    log.addHandler(fh)
+
+log.info("App start - HAS_MYDATANAUT=%s MYDATA_ENV=%s", HAS_MYDATANAUT, MYDATA_ENV)
 
 
 # ---------------- Utilities ----------------
-def json_read(path: str) -> Any:
+def json_read(path: str):
     if not os.path.exists(path):
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
-        app.logger.exception("Failed to read JSON %s", path)
+        log.exception("Failed to read JSON: %s", path)
         return []
 
 
-def json_write(path: str, data: Any) -> None:
+def json_write(path: str, data):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp, path)
 
 
-def load_credentials() -> List[Dict[str, Any]]:
+def load_credentials():
     data = json_read(CREDENTIALS_FILE)
     return data if isinstance(data, list) else []
 
 
-def save_credentials(creds: List[Dict[str, Any]]) -> None:
+def save_credentials(creds):
     json_write(CREDENTIALS_FILE, creds)
 
 
-def add_credential(entry: Dict[str, str]) -> (bool, str):
+def add_credential(entry):
     creds = load_credentials()
     for c in creds:
         if c.get("name") == entry.get("name"):
@@ -102,7 +117,7 @@ def add_credential(entry: Dict[str, str]) -> (bool, str):
     return True, ""
 
 
-def update_credential(name: str, new_entry: Dict[str, str]) -> bool:
+def update_credential(name, new_entry):
     creds = load_credentials()
     for i, c in enumerate(creds):
         if c.get("name") == name:
@@ -112,7 +127,7 @@ def update_credential(name: str, new_entry: Dict[str, str]) -> bool:
     return False
 
 
-def delete_credential(name: str) -> bool:
+def delete_credential(name):
     creds = load_credentials()
     new = [c for c in creds if c.get("name") != name]
     save_credentials(new)
@@ -120,17 +135,17 @@ def delete_credential(name: str) -> bool:
 
 
 # Cache helpers
-def load_cache() -> List[Any]:
+def load_cache():
     data = json_read(CACHE_FILE)
     return data if isinstance(data, list) else []
 
 
-def save_cache(docs: List[Any]) -> None:
+def save_cache(docs):
     json_write(CACHE_FILE, docs)
 
 
-def _extract_15digit_marks_from_obj(obj: Any) -> Set[str]:
-    """Recursively find 15-digit numeric strings in a nested structure."""
+def _extract_15digit_marks_from_obj(obj):
+    import re
     marks = set()
     if obj is None:
         return marks
@@ -152,14 +167,8 @@ def _extract_15digit_marks_from_obj(obj: Any) -> Set[str]:
     return marks
 
 
-def append_doc_to_cache(doc: Any, aade_user: Optional[str] = None, aade_key: Optional[str] = None) -> bool:
-    """
-    Append doc to cache if not already present.
-    Deduplicate by exact JSON signature OR by MARK (if present).
-    If aade_user/aade_key provided, skip adding if is_mark_transmitted() is True for any mark found.
-    """
+def append_doc_to_cache(doc, aade_user=None, aade_key=None):
     docs = load_cache()
-    # signature dedupe
     try:
         sig = json.dumps(doc, sort_keys=True, ensure_ascii=False)
     except Exception:
@@ -172,31 +181,27 @@ def append_doc_to_cache(doc: Any, aade_user: Optional[str] = None, aade_key: Opt
             if str(d) == str(doc):
                 return False
 
-    # mark-based dedupe
     marks = _extract_15digit_marks_from_obj(doc)
     if marks:
-        # if any existing doc contains same mark -> duplicate
         for m in marks:
             for d in docs:
-                if _extract_15digit_marks_from_obj(d) and m in _extract_15digit_marks_from_obj(d):
+                if m in _extract_15digit_marks_from_obj(d):
                     return False
-        # check transmitted if credentials provided
         if aade_user and aade_key:
             for m in marks:
                 try:
                     if is_mark_transmitted(m, aade_user, aade_key):
-                        app.logger.info("Skipping cached doc because mark %s is already transmitted", m)
+                        log.info("Skipping doc because mark %s already transmitted", m)
                         return False
                 except Exception:
-                    app.logger.exception("is_mark_transmitted failed for %s", m)
-                    # continue trying others
+                    log.exception("transmitted-check failed for %s", m)
 
     docs.append(doc)
     save_cache(docs)
     return True
 
 
-def doc_contains_mark_exact(doc: Any, mark: str) -> bool:
+def doc_contains_mark_exact(doc, mark):
     if doc is None:
         return False
     if isinstance(doc, str):
@@ -214,7 +219,7 @@ def doc_contains_mark_exact(doc: Any, mark: str) -> bool:
     return False
 
 
-def find_invoice_by_mark_exact(mark: str) -> Optional[Any]:
+def find_invoice_by_mark_exact(mark):
     docs = load_cache()
     for doc in docs:
         if doc_contains_mark_exact(doc, mark):
@@ -222,7 +227,7 @@ def find_invoice_by_mark_exact(mark: str) -> Optional[Any]:
     return None
 
 
-def is_mark_transmitted(mark: str, aade_user: str, aade_key: str) -> bool:
+def is_mark_transmitted(mark, aade_user, aade_key):
     headers = {
         "aade-user-id": aade_user,
         "ocp-apim-subscription-key": aade_key,
@@ -233,21 +238,19 @@ def is_mark_transmitted(mark: str, aade_user: str, aade_key: str) -> bool:
         if r.status_code >= 400:
             return False
         raw = r.text or ""
-        # heuristics to detect presence
         if "invoiceMark" in raw or "invoiceUid" in raw or "<classification" in raw or "E3_" in raw or "VAT_" in raw:
             return True
     except Exception:
-        app.logger.exception("transmitted check failed for mark=%s", mark)
+        log.exception("transmitted-check request failed")
     return False
 
 
 # ---------------- Fetch implementations ----------------
-def fetch_docs_with_mydatanaut(df: str, dt: str, vat: str, aade_user: str, aade_key: str):
+def fetch_docs_with_mydatanaut(df, dt, vat, aade_user, aade_key):
     if not HAS_MYDATANAUT:
         return None
     try:
         client = None
-        # try common constructor patterns used by external libs
         try:
             client = mydatanaut_pkg.Client(user=aade_user, key=aade_key, env=MYDATA_ENV)
         except Exception:
@@ -257,8 +260,6 @@ def fetch_docs_with_mydatanaut(df: str, dt: str, vat: str, aade_user: str, aade_
                 client = None
         if client is None:
             return None
-
-        # try request method patterns
         if hasattr(client, "request_docs"):
             return client.request_docs(df, dt, vat)
         if hasattr(client, "fetch_docs"):
@@ -266,23 +267,17 @@ def fetch_docs_with_mydatanaut(df: str, dt: str, vat: str, aade_user: str, aade_
         if hasattr(client, "docs"):
             return client.docs(df, dt, vat)
     except Exception:
-        app.logger.exception("mydatanaut error")
+        log.exception("mydatanaut error")
     return None
 
 
-def fetch_docs_via_requestdocs(date_from: str, date_to: str, vat: str, aade_user: str, aade_key: str):
-    """
-    Call RequestDocs endpoint and return parsed xml->dict or raw text on fallback.
-    Expects date_from/date_to in ISO 'YYYY-MM-DD' from the UI; will convert to dd/MM/YYYY.
-    """
+def fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key):
     try:
         d1 = datetime.datetime.fromisoformat(date_from).strftime("%d/%m/%Y")
         d2 = datetime.datetime.fromisoformat(date_to).strftime("%d/%m/%Y")
     except Exception:
-        # if input already in dd/mm/YYYY
         d1 = date_from
         d2 = date_to
-
     params = {"dateFrom": d1, "dateTo": d2}
     if vat:
         params["vatNumber"] = vat
@@ -291,16 +286,14 @@ def fetch_docs_via_requestdocs(date_from: str, date_to: str, vat: str, aade_user
         "ocp-apim-subscription-key": aade_key or "",
         "Accept": "application/xml",
     }
-    resp = requests.get(REQUESTDOCS_URL, params=params, headers=headers, timeout=60)
-    if resp.status_code >= 400:
-        raise Exception(f"API error {resp.status_code}: {resp.text[:1000]!s}")
-    text = resp.text or ""
-    # Try to unwrap nested string wrappers and parse XML to dict
+    r = requests.get(REQUESTDOCS_URL, params=params, headers=headers, timeout=60)
+    if r.status_code >= 400:
+        raise Exception(f"API error {r.status_code}: {r.text[:1000]}")
     try:
-        outer = xmltodict.parse(text)
-        # some endpoints wrap the real XML inside <string>..escaped xml..</string>
-        if isinstance(outer, dict) and "string" in outer:
-            s = outer.get("string")
+        parsed_outer = xmltodict.parse(r.text)
+        # unwrap nested <string> wrapper if exists
+        if isinstance(parsed_outer, dict) and "string" in parsed_outer:
+            s = parsed_outer.get("string")
             inner = None
             if isinstance(s, dict) and "#text" in s:
                 inner = s["#text"]
@@ -311,16 +304,34 @@ def fetch_docs_via_requestdocs(date_from: str, date_to: str, vat: str, aade_user
                     return xmltodict.parse(inner)
                 except Exception:
                     return inner
-        return outer
+        return parsed_outer
     except Exception:
-        # return raw text as last resort
-        return text
+        return r.text
+
+
+# ---------------- Robust template rendering ----------------
+def safe_render(template_name: str, **ctx):
+    """
+    Try to render template; if an exception occurs (missing template, Jinja error),
+    log it and return a simple fallback HTML with the error (and stacktrace if debug).
+    """
+    try:
+        return render_template(template_name, **ctx)
+    except Exception as e:
+        tb = traceback.format_exc()
+        log.error("Template rendering failed for %s: %s\n%s", template_name, str(e), tb)
+        debug = os.getenv("FLASK_DEBUG", "0") == "1"
+        body = "<h2>Template error</h2><p>" + str(e) + "</p>"
+        if debug:
+            body += "<pre>" + tb + "</pre>"
+        # keep the app alive with minimal UI
+        return body
 
 
 # ---------------- Routes ----------------
 @app.route("/")
 def home():
-    return render_template("nav.html")
+    return safe_render("nav.html")
 
 
 # Credentials management
@@ -342,7 +353,7 @@ def credentials():
                 flash(err or "Could not save", "error")
         return redirect(url_for("credentials"))
     creds = load_credentials()
-    return render_template("credentials_list.html", credentials=creds)
+    return safe_render("credentials_list.html", credentials=creds)
 
 
 @app.route("/credentials/edit/<name>", methods=["GET", "POST"])
@@ -361,7 +372,7 @@ def credentials_edit(name):
         update_credential(name, new)
         flash("Updated", "success")
         return redirect(url_for("credentials"))
-    return render_template("credentials_edit.html", credential=credential)
+    return safe_render("credentials_edit.html", credential=credential)
 
 
 @app.route("/credentials/delete/<name>", methods=["POST"])
@@ -386,7 +397,6 @@ def fetch():
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
         aade_key = AADE_KEY_ENV
-        # override with selected stored credential
         if selected:
             c = next((x for x in creds if x.get("name") == selected), None)
             if c:
@@ -396,39 +406,31 @@ def fetch():
 
         if not date_from or not date_to:
             error = "Παρακαλώ συμπλήρωσε από-έως ημερομηνίες."
-            return render_template("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
         try:
             res = None
-            # try mydatanaut vendorized client first (if available)
             if HAS_MYDATANAUT:
                 try:
                     res = fetch_docs_with_mydatanaut(date_from, date_to, vat, aade_user, aade_key)
                 except Exception:
-                    app.logger.exception("mydatanaut client failed")
-                    res = None
+                    log.exception("mydatanaut failed")
 
             if res is None:
                 parsed = fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key)
                 docs_list = []
                 if isinstance(parsed, dict):
-                    # many shapes possible; try to find RequestedDoc or docs containers
                     if "RequestedDoc" in parsed:
                         maybe = parsed.get("RequestedDoc")
                         docs_list = maybe if isinstance(maybe, list) else [maybe]
                     elif "docs" in parsed:
                         docs_list = parsed.get("docs") or []
                     else:
-                        # heuristics: search nested dicts for list-like children
+                        # try find list children
                         found = False
                         for k, v in parsed.items():
                             if isinstance(v, list):
                                 docs_list = v
-                                found = True
-                                break
-                            if isinstance(v, dict) and "RequestedDoc" in v:
-                                md = v.get("RequestedDoc")
-                                docs_list = md if isinstance(md, list) else [md]
                                 found = True
                                 break
                         if not found:
@@ -437,7 +439,6 @@ def fetch():
                     docs_list = parsed
                 else:
                     docs_list = []
-
                 added = 0
                 for d in docs_list:
                     if append_doc_to_cache(d, aade_user or None, aade_key or None):
@@ -450,13 +451,12 @@ def fetch():
                     if append_doc_to_cache(d, aade_user or None, aade_key or None):
                         added += 1
                 message = f"Fetched {len(docs)} items via mydatanaut, newly cached: {added}"
-            # refresh preview
             preview = load_cache()[:40]
         except Exception as e:
-            app.logger.exception("Fetch error")
+            log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {e}"
 
-    return render_template("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
 
 # Search by MARK exact
@@ -475,7 +475,7 @@ def search():
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
-    return render_template("search.html", result=result, error=error, mark=mark)
+    return safe_render("search.html", result=result, error=error, mark=mark)
 
 
 # Save summary to Excel (expects JSON string in summary_json)
@@ -492,17 +492,15 @@ def save_excel():
                     df_concat = pd.concat([df_existing, df], ignore_index=True, sort=False)
                     df_concat.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
                 except Exception:
-                    # fallback: append CSV
                     df.to_csv(EXCEL_FILE, mode="a", index=False, header=not os.path.exists(EXCEL_FILE))
             else:
-                # try to write Excel first, fallback to csv
                 try:
                     df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
                 except Exception:
                     df.to_csv(EXCEL_FILE, index=False)
             flash("Saved to Excel", "success")
         except Exception as e:
-            app.logger.exception("Excel save error")
+            log.exception("Excel save error")
             flash(f"Excel save error: {e}", "error")
     return redirect(url_for("search"))
 
@@ -518,11 +516,11 @@ def list_invoices():
             df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
             table = df.to_dict(orient="records")
         except Exception:
-            app.logger.exception("Failed to read Excel, falling back to cache")
+            log.exception("Failed to read Excel - fallback to cache")
             table = load_cache()
     else:
         table = load_cache()
-    return render_template("list.html", table=table)
+    return safe_render("list.html", table=table)
 
 
 # Cron protected
@@ -560,8 +558,32 @@ def cron_fetch():
                 added += 1
         return f"Cron fetch done. New: {added}\n"
     except Exception as e:
-        app.logger.exception("Cron fetch error")
+        log.exception("Cron fetch error")
         return (f"Cron fetch error: {e}", 500)
+
+
+# Diagnostics: return last error log (protected by debug or CRON_SECRET)
+@app.route("/last_error")
+def last_error():
+    if os.getenv("FLASK_DEBUG", "0") == "1":
+        if os.path.exists(ERROR_LOG):
+            try:
+                with open(ERROR_LOG, "r", encoding="utf-8") as f:
+                    data = f.read()[-20000:]
+                return "<pre>" + Markup.escape(data) + "</pre>"
+            except Exception:
+                return "Could not read error log", 500
+        return "No error log", 200
+    # else require secret
+    secret = request.args.get("secret", "")
+    if secret and secret == os.getenv("CRON_SECRET", ""):
+        try:
+            with open(ERROR_LOG, "r", encoding="utf-8") as f:
+                data = f.read()[-20000:]
+            return "<pre>" + Markup.escape(data) + "</pre>"
+        except Exception:
+            return "Could not read error log", 500
+    return ("Forbidden", 403)
 
 
 @app.route("/health")
@@ -569,8 +591,28 @@ def health():
     return "OK"
 
 
+# Global error handler — logs stacktrace and shows friendly page (or traceback if debug)
+@app.errorhandler(Exception)
+def handle_unexpected_error(e):
+    tb = traceback.format_exc()
+    log.error("Unhandled exception: %s\n%s", str(e), tb)
+    # also append to error.log explicitly
+    try:
+        with open(ERROR_LOG, "a", encoding="utf-8") as ef:
+            ef.write(f"\n\n{datetime.datetime.utcnow().isoformat()} - {str(e)}\n{tb}\n")
+    except Exception:
+        log.exception("Could not write to error log")
+
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    if debug:
+        # show full traceback in browser (temporary debug only)
+        return "<h2>Server Error (debug)</h2><pre>{}</pre>".format(Markup.escape(tb)), 500
+    else:
+        # user-friendly generic page
+        return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
+
+
 if __name__ == "__main__":
-    # Use the environment PORT (Render sets it) or default 5000
     port = int(os.getenv("PORT", "5000"))
     debug_flag = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug_flag)
