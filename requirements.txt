@@ -5,6 +5,5 @@ pandas>=2.0
 openpyxl>=3.0
 python-dotenv>=1.0
 gunicorn>=20.1
-# ----------------
-# (αν το mydatanaut έχει επιπλέον απαιτήσεις)
-# <προσθέτεις εδώ τις γραμμές από vendor/mydatanaut/requirements.txt>
+requests==2.32.3
+xsdata==24.11
