@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Search MARK{% endblock %}
+{% block content %}
+<h2>Search MARK (exact)</h2>
+<form method="post" class="mb-3">
+  <div class="input-group">
+    <input name="mark" class="form-control" placeholder="15-digit MARK" value="{{ mark }}">
+    <button class="btn btn-primary">Search</button>
+  </div>
+</form>
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if result %}
+  <h4>Result</h4>
+  <div class="card p-3">
+    <pre style="white-space:pre-wrap">{{ result|tojson(indent=2) }}</pre>
+    <form method="post" action="{{ url_for('save_excel') }}">
+      <input type="hidden" name="summary_json" value='{{ result|tojson }}'>
+      <button class="btn btn-success mt-2">Save summary to Excel</button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}
