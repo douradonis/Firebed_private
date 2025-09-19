@@ -9,7 +9,7 @@ from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, List, Optional
 
 from flask import (
-    Flask, render_template, request, redirect, url_for, send_file, flash, Markup
+    Flask, render_template, request, redirect, url_for, send_file, flash
 )
 import requests
 import xmltodict
