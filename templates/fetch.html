@@ -1,41 +1,45 @@
-<!doctype html>
-<html lang="el">
-<head><meta charset="utf-8"><title>Λήψη Παραστατικών</title></head>
-<body>
-<h1>Λήψη Παραστατικών (Bulk)</h1>
-<p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
+{% extends "base.html" %}
+{% block title %}Bulk Fetch{% endblock %}
+{% block content %}
+<h2>Bulk Fetch Παραστατικών</h2>
+{% if message %}<div class="alert alert-success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-<form method="post">
-  <p>Ημερομηνία από: <input type="date" name="date_from" required value="{{ request.form.date_from or (now|default('') ) }}"></p>
-  <p>Έως: <input type="date" name="date_to" required value="{{ request.form.date_to or '' }}"></p>
-  <p>VAT: <input type="text" name="vat_number" value="{{ default_vat or '' }}"></p>
-  <p>Χρήση stored credential: 
-    <select name="use_credential">
-      <option value="">(ENV / Default)</option>
-      {% for c in credentials %}
-        <option value="{{ c.name }}">{{ c.name }} ({{ c.vat|default('') }})</option>
-      {% endfor %}
-    </select>
-  </p>
-  <p><button type="submit">Λήψη & Αποθήκευση Cache</button></p>
+<form method="post" class="mb-4">
+  <div class="row g-2">
+    <div class="col-md-3">
+      <label>From</label>
+      <input type="date" name="date_from" class="form-control" required value="{{ request.form.date_from or ( (datetime.date.today() - datetime.timedelta(days=30)).isoformat() ) }}">
+    </div>
+    <div class="col-md-3">
+      <label>To</label>
+      <input type="date" name="date_to" class="form-control" required value="{{ request.form.date_to or datetime.date.today().isoformat() }}">
+    </div>
+    <div class="col-md-3">
+      <label>VAT number (optional)</label>
+      <input type="text" name="vat_number" class="form-control" value="{{ request.form.vat_number or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label>Use stored credential</label>
+      <select name="use_credential" class="form-select">
+        <option value="">(Use env/default)</option>
+        {% for c in credentials %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="mt-3">
+    <button class="btn btn-primary">Fetch & Cache</button>
+  </div>
 </form>
 
-{% if message %}
-<div style="background:#e6ffed;padding:8px;">{{ message }}</div>
-{% endif %}
-{% if error %}
-<div style="background:#fff5f5;padding:8px;">{{ error }}</div>
-{% endif %}
-
-<h3>Preview cache (περιορισμένο)</h3>
-{% if preview %}
-  <div style="max-height:400px;overflow:auto;background:#fff;padding:8px;">
-  {% for d in preview %}
-    <pre>{{ d|tojson(indent=2, ensure_ascii=False) }}</pre>
-  {% endfor %}
-  </div>
-{% else %}
-  <div>Δεν υπάρχουν cached παραστατικά.</div>
-{% endif %}
-</body>
-</html>
+<h4>Cache preview (first 40)</h4>
+<div style="max-height:360px; overflow:auto; background:#fff; padding:8px; border-radius:6px;">
+  {% if preview %}
+    {% for p in preview %}
+      <pre style="white-space:pre-wrap; font-size:12px; border-bottom:1px solid #eee">{{ p|tojson(indent=2) }}</pre>
+    {% endfor %}
+  {% else %}
+    <div>No cached docs yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
