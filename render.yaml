@@ -1,8 +1,10 @@
 services:
   - type: web
-    name: mydatatest
+    name: mydata-app
     env: docker
-    repo: https://github.com/yourusername/YourRepo
+    dockerfilePath: Dockerfile
     branch: main
+    region: oregon
     plan: free
-    # Render θα τρέξει Dockerfile στο repo - δεν απαιτείται buildCommand/startCommand εδώ
+    buildCommand: ""
+    startCommand: ""
