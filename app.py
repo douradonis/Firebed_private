@@ -1,636 +1,516 @@
+# app.py
+# Fixed/robust Flask app for Firebed_private (bulk-fetch-cache)
+# - expects a utils.py with helper functions (if absent, app will warn)
+# - uses templates/ if present; otherwise renders inline templates
+# - safe handling for missing Pillow / mydatanaut packages
+# - ensures datetime is available inside Jinja templates
+
 import os
+import sys
 import json
-import re
-from urllib.parse import urlparse
-from dotenv import load_dotenv
-from flask import Flask, request, render_template_string, url_for, send_file, redirect, session
-import pandas as pd
-from utils import (
-    extract_marks_from_url, extract_mark, decode_qr_from_file, 
-    extract_vat_categories, summarize_invoice, format_euro_str,
-    is_mark_transmitted, fetch_by_mark, save_summary_to_excel,
-    extract_marks_from_text, EXCEL_FILE
-)
+import traceback
 import datetime
+from urllib.parse import urlparse
 
+from dotenv import load_dotenv
+from flask import (
+    Flask, request, render_template, render_template_string,
+    url_for, redirect, send_file, flash
+)
+import pandas as pd
 
-app = Flask(__name__, template_folder=TEMPLATES_DIR)
-app.jinja_env.globals['datetime'] = datetime
-app.secret_key = os.getenv("FLASK_SECRET", "change-me")
+# --- base paths ---
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# make datetime available in Jinja templates (fix for 'datetime' is undefined)
-app.jinja_env.globals['datetime'] = datetime
+# config file used by the UI to persist AADE credentials (safe local file)
+CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
+CACHE_FILE = os.path.join(DATA_DIR, "invoices_cache.json")
+CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
+EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
 
-# First create the Flask app
-app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-# Now define CONFIG_FILE after app is created
-CONFIG_FILE = os.path.join(app.config["UPLOAD_FOLDER"], "config.json")
-
-# Load environment variables
+# load .env if present
 load_dotenv()
 
+# add vendor to sys.path (for vendorized mydatanaut)
+VENDOR_DIR = os.path.join(BASE_DIR, "vendor")
+if os.path.isdir(VENDOR_DIR) and VENDOR_DIR not in sys.path:
+    sys.path.insert(0, VENDOR_DIR)
+
+# try import optional 3rd-party helper package mydatanaut (vendorized or from pip)
+HAS_MYDATANAUT = False
+try:
+    import mydatanaut as mydatanaut_pkg  # optional, may be vendorized
+    HAS_MYDATANAUT = True
+except Exception:
+    HAS_MYDATANAUT = False
+
+# try Pillow (PIL) for image handling in utils
+HAS_PIL = True
+try:
+    from PIL import Image  # noqa: F401
+except Exception:
+    HAS_PIL = False
+
+# try import utils.py (should exist in repo)
+try:
+    from utils import (
+        extract_marks_from_url, extract_marks_from_text, decode_qr_from_file,
+        extract_vat_categories, summarize_invoice, format_euro_str,
+        is_mark_transmitted as utils_is_mark_transmitted,
+        fetch_by_mark, save_summary_to_excel, EXCEL_FILE as UTIL_EXCEL_FILE
+    )
+    UTIL_AVAILABLE = True
+except Exception:
+    UTIL_AVAILABLE = False
+
+# If utils defines EXCEL_FILE we prefer to use it (optional)
+if UTIL_AVAILABLE and 'UTIL_EXCEL_FILE' in globals() and UTIL_EXCEL_FILE:
+    # only override if util defines an absolute path or relative; keep our UPLOADS_DIR location
+    try:
+        # prefer the project's EXCEL_FILE if provided
+        EXCEL_FILE = UTIL_EXCEL_FILE
+    except Exception:
+        pass
+
+# --- Flask app setup ---
+app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app.secret_key = os.getenv("FLASK_SECRET", "change-me-secret")
+
+# make datetime available in templates to fix 'datetime is undefined'
+app.jinja_env.globals['datetime'] = datetime
+
+# --- helpers: config / credentials / cache ---
+def load_json_file(path, default=None):
+    if default is None:
+        default = []
+    if not os.path.exists(path):
+        return default
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return default
+
+def save_json_file(path, obj):
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh, ensure_ascii=False, indent=2)
+
 def load_config():
-    """Load configuration from file or environment variables"""
-    config_data = {}
-    
-    # Try to load from file first
+    cfg = {}
+    # from CONFIG_FILE then environment fallback
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r') as f:
-                config_data = json.load(f)
-        except:
-            pass
-    
-    # Fall back to environment variables
-    if not config_data.get('AADE_USER_ID'):
-        config_data['AADE_USER_ID'] = os.getenv("AADE_USER_ID", "")
-    if not config_data.get('AADE_SUBSCRIPTION_KEY'):
-        config_data['AADE_SUBSCRIPTION_KEY'] = os.getenv("AADE_SUBSCRIPTION_KEY", "")
-    if not config_data.get('MYDATA_ENV'):
-        config_data['MYDATA_ENV'] = os.getenv("MYDATA_ENV", "sandbox")
-    
-    return config_data
+            cfg = load_json_file(CONFIG_FILE, {})
+        except Exception:
+            cfg = {}
+    cfg.setdefault("AADE_USER_ID", os.getenv("AADE_USER_ID", ""))
+    cfg.setdefault("AADE_SUBSCRIPTION_KEY", os.getenv("AADE_SUBSCRIPTION_KEY", ""))
+    cfg.setdefault("MYDATA_ENV", os.getenv("MYDATA_ENV", "sandbox"))
+    return cfg
 
-# Load initial configuration
-config_data = load_config()
-AADE_USER = config_data.get("AADE_USER_ID", "")
-AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
-ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
+def save_config(cfg):
+    save_json_file(CONFIG_FILE, cfg)
 
-# Endpoints
-REQUESTDOCS_URL = (
-    "https://mydataapidev.aade.gr/RequestTransmittedDocs"
-    if ENV in ("sandbox", "demo", "dev")
-    else "https://mydatapi.aade.gr/myDATA/RequestDocs"
-)
-TRANSMITTED_URL = (
-    "https://mydataapidev.aade.gr/RequestTransmittedDocs"
-    if ENV in ("sandbox", "demo", "dev")
-    else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
-)
+def load_credentials():
+    creds = load_json_file(CREDENTIALS_FILE, [])
+    return creds if isinstance(creds, list) else []
 
-# HTML templates (unchanged from your original code)
-# In the NAV_HTML template, add this line to the menu
-NAV_HTML = """<!doctype html>
-<html lang="el">
-<head><meta charset="utf-8"><title>myDATA - Μενού</title>
-<style>
-body {font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa;}
-.card {background:white;padding:16px;margin:16px 0;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
-.menu {display:flex;gap:12px;flex-wrap:wrap;}
-.menu a {display:block;padding:12px 18px;background:#0d6efd;color:#fff;border-radius:10px;text-decoration:none;}
-.menu a.secondary {background:#6c757d;}
-</style>
-</head><body>
-<div class="card"><h1>myDATA - Κεντρικό Μενού</h1>
-<p>Επέλεξε λειτουργία:</p>
-<div class="menu">
-<a href="{{ url_for('viewer') }}">Εισαγωγή Παραστατικού</a>
-<a href="{{ url_for('config') }}" class="secondary">Ρύθμιση Παραμέτρων</a>
-<a href="{{ url_for('list_invoices') }}">Λίστα Παραστατικών</a>
-</div>
-</div>
+def save_credentials(creds):
+    save_json_file(CREDENTIALS_FILE, creds)
+
+def append_doc_to_cache(doc):
+    docs = load_json_file(CACHE_FILE, [])
+    # canonical JSON signature to avoid dupes
+    sig = json.dumps(doc, sort_keys=True, ensure_ascii=False)
+    for d in docs:
+        if json.dumps(d, sort_keys=True, ensure_ascii=False) == sig:
+            return False
+    docs.append(doc)
+    save_json_file(CACHE_FILE, docs)
+    return True
+
+def load_cache_preview(limit=50):
+    docs = load_json_file(CACHE_FILE, [])
+    if not isinstance(docs, list):
+        return []
+    return docs[:limit]
+
+# wrapper for transmitted check - adapt to utils if available
+def is_mark_transmitted(mark, aade_user, aade_key, transmitted_url):
+    if UTIL_AVAILABLE and callable(utils_is_mark_transmitted):
+        try:
+            return utils_is_mark_transmitted(mark, aade_user, aade_key, transmitted_url)
+        except Exception:
+            app.logger.exception("utils.is_mark_transmitted failed")
+            return False
+    # fallback: attempt a minimal transmitted check via requests (best-effort)
+    import requests
+    headers = {
+        "aade-user-id": aade_user,
+        "ocp-apim-subscription-key": aade_key,
+        "Accept": "application/xml"
+    }
+    try:
+        r = requests.get(transmitted_url, params={"mark": mark}, headers=headers, timeout=20)
+        if r.status_code >= 400:
+            return False
+        txt = (r.text or "").lower()
+        if "invoicemark" in txt or "invoiceuid" in txt or "classification" in txt or "e3_" in txt:
+            return True
+    except Exception:
+        app.logger.debug("transmitted-check failed", exc_info=True)
+    return False
+
+# --- templates fallback (if templates/ dir missing) ---
+USE_TEMPLATES = os.path.isdir(TEMPLATES_DIR)
+
+# If templates directory missing, define minimal inline templates here (the repository has templates, normally)
+NAV_INLINE = """<!doctype html>
+<html><head><meta charset="utf-8"><title>myDATA - Menu</title></head><body>
+<h1>myDATA</h1>
+<ul>
+<li><a href="{{ url_for('viewer') }}">Viewer</a></li>
+<li><a href="{{ url_for('fetch') }}">Bulk Fetch</a></li>
+<li><a href="{{ url_for('list_invoices') }}">List</a></li>
+<li><a href="{{ url_for('config') }}">Config</a></li>
+</ul>
 </body></html>
 """
 
-VIEWER_HTML = """<!doctype html>
-<html lang="el">
-<head>
-<meta charset="UTF-8">
-<title>myDATA QR Viewer</title>
-<style>
-body {font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa;}
-.card {background:white;padding:16px;margin:16px 0;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
-input, button {width:100%;padding:8px;margin:6px 0;border-radius:8px;}
-button {background:#0d6efd;color:white;border:none;cursor:pointer;}
-button:hover {background:#0b5ed7;}
-pre {white-space:pre-wrap;word-wrap:break-word;background:#f7f7f7;padding:10px;border-radius:8px;}
-.summary-table {width:100%;border-collapse:collapse;}
-.summary-table th {background:#0d6efd;color:white;padding:8px;text-align:left;}
-.summary-table td {border:1px solid #ddd;padding:8px;}
-.summary-table tr:nth-child(even) td{background:#f9f9f9;}
-.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,0.5);}
-.modal-content{background:#fff;margin:8% auto;padding:20px;border-radius:12px;width:80%;max-width:600px;}
-.close{float:right;font-size:24px;font-weight:bold;cursor:pointer;}
-.close:hover{color:#000;}
-</style>
-<script src="https://unpkg.com/html5-qrcode" defer></script>
-</head>
-<body>
-<h1>myDATA QR Viewer</h1>
-<p>Σκάναρε QR, ανέβασε εικόνα/PDF ή γράψε ΜΑΡΚ / URL.</p>
-
-<p><a href="{{ url_for('home') }}">⬅ Επιστροφή στο μενού</a></p>
-
-<div class="card">
-<h3>1) Σάρωση QR</h3>
-<div id="reader"></div>
-<p>Περιβάλλον: {{ env|e }}, Endpoint: {{ endpoint|e }}</p>
-</div>
-
-<div class="card">
-<h3>2) Εισαγωγή ΜΑΡΚ χειροκίνητα (ή URL)</h3>
-<form method="post">
-<input type="text" name="mark" placeholder="π.χ. 123456789012345  - ή -  https://... (URL με mark)" />
-<button type="submit">Ανάκτηση</button>
-</form>
-</div>
-
-<div class="card">
-<h3>3) Upload εικόνας ή PDF</h3>
-<form method="post" enctype="multipart/form-data">
-<input type="file" name="file" />
-<button type="submit">Ανέβασμα & Ανάκτηση</button>
-</form>
-</div>
-
-{% if message %}
-<div class="card" style="background:#e6ffed;border-color:#b7f5c6;">
-<h3>OK</h3><pre>{{ message }}</pre>
-</div>
-{% endif %}
-
-{% if error %}
-<div class="card" style="background:#fff5f5;border-color:#f5c2c7;">
-<h3>Σφάλμα</h3><pre>{{ error }}</pre>
-</div>
-{% endif %}
-
-{% if summary %}
-<div id="summaryModal" class="modal">
-<div class="modal-content">
-<span class="close" onclick="document.getElementById('summaryModal').style.display='none';">&times;</span>
-<h3>Περίληψη Παραστατικού</h3>
-<table class="summary-table">
-<tr><th colspan="2">Εκδότης</th></tr>
-<tr><td>ΑΦΜ</td><td>{{ summary['Εκδότης']['ΑΦΜ'] }}</td></tr>
-<tr><td>Επωνυμία</td><td style="white-space:normal;word-break:break-word;">{{ summary['Εκδότης']['Επωνυμία'] }}</td></tr>
-<tr><th colspan="2">Στοιχεία Παραστατικού</th></tr>
-<tr><td>Σειρά</td><td>{{ summary['Στοιχεία Παραστατικού']['Σειρά'] }}</td></tr>
-<tr><td>Αριθμός</td><td>{{ summary['Στοιχεία Παραστατικού']['Αριθμός'] }}</td></tr>
-<tr><td>Ημερομηνία</td><td>{{ summary['Στοιχεία Παραστατικού']['Ημερομηνία'] }}</td></tr>
-<tr><td>Είδος</td><td>{{ summary['Στοιχεία Παραστατικού']['Είδος'] }}</td></tr>
-<tr><th colspan="2">Σύνολα</th></tr>
-<tr><td>Καθαρή Αξία</td><td>{{ summary['Σύνολα']['Καθαρή Αξία'] }}</td></tr>
-<tr><td>ΦΠΑ</td>
-<td style="color: {% if summary['Σύνολα']['ΦΠΑ']|float > 100 %}red{% else %}green{% endif %};">
-{{ summary['Σύνολα']['ΦΠΑ'] }}
-</td></tr>
-<tr><td>Σύνολο</td>
-<td style="color: {% if summary['Σύνολα']['Σύνολο']|float > 500 %}red{% else %}black{% endif %};">
-{{ summary['Σύνολα']['Σύνολο'] }}
-</td></tr>
-
-</table>
-</div>
-</div>
-{% endif %}
-
-{% if payload %}
-<div class="card">
-<h3>JSON (ολόκληρο)</h3>
-<pre>{{ payload }}</pre>
-</div>
-{% endif %}
-
-{% if raw %}
-<div class="card">
-<h3>XML Απόκριση</h3>
-<pre>{{ raw }}</pre>
-</div>
-{% endif %}
-
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-  if (window.Html5Qrcode) {
-    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps:10, qrbox:240 });
-    html5QrcodeScanner.render((decodedText)=>{
-      const mark = (function(text){
-        try{
-          if(/^\d{15}$/.test(text.trim())) return text.trim();
-          const url=new URL(text);
-          const params=new URLSearchParams(url.search||"");
-          const keys=["mark","MARK","invoiceMark","invMark","ΜΑΡΚ","Μ.Α.Ρ.Κ.","Μ.Αρ.Κ."];
-          for(const k of keys){
-            const v=params.get(k);
-            if(v && /^\d{15}$/.test(v)) return v;
-          }
-        }catch(e){}
-        return null;
-      })(decodedText);
-      if(mark){
-        const form=document.createElement("form");
-        form.method="POST";
-        const input=document.createElement("input");
-        input.type="hidden"; input.name="mark"; input.value=mark;
-        form.appendChild(input); document.body.appendChild(form); form.submit();
-      } else { alert("Το QR διαβάστηκε αλλά δεν βρέθηκε έγκυρος ΜΑΡΚ."); }
-    });
-  }
-
-  {% if summary %}
-    document.getElementById('summaryModal').style.display = 'block';
-  {% endif %}
-});
-</script>
-
-</body>
-</html>
-"""
-
-PLACEHOLDER_HTML = """<!doctype html><html lang="el"><head><meta charset="utf-8"><title>{{ title }}</title>
-<style>body{font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa}.card{background:#fff;padding:16px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.05)}</style></head>
-<body><div class="card"><h1>{{ title }}</h1><p>{{ message }}</p><p><a href='{{ url_for("home") }}'>⬅ Επιστροφή</a></p></div></body></html>
-"""
-
-LIST_HTML = """<!doctype html>
-<html lang="el">
-<head>
-<meta charset="UTF-8">
-<title>Λίστα Παραστατικών</title>
-<style>
-body {font-family:Arial,sans-serif;max-width:1100px;margin:20px auto;background:#fafafa;}
-.card {background:white;padding:16px;margin:16px 0;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.05);}
-.summary-table {width:100%;border-collapse:collapse;table-layout:fixed;}
-.summary-table th, .summary-table td {border:1px solid #ddd;padding:8px;vertical-align:top;position:relative;}
-.summary-table th {background:#0d6efd;color:white;user-select:none; cursor:grab;}
-.summary-table th:active {cursor:grabbing;}
-.summary-table tr:nth-child(even) td{background:#f9f9f9;}
-nav {display:flex;gap:10px;margin-bottom:10px;}
-nav a, nav span {text-decoration:none;padding:8px 12px;border-radius:8px;background:#0d6efd;color:#fff;}
-nav a:hover {background:#0b5ed7;}
-.small-btn {display:inline-block;padding:8px 12px;border-radius:8px;background:#198754;color:#fff;text-decoration:none;}
-.cell-wrap {white-space:pre-wrap; word-break:break-word; max-width:360px; overflow:hidden;}
-.controls {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;}
-.controls input[type="text"] {padding:8px; border-radius:8px; border:1px solid #ddd; min-width:260px;}
-.controls .danger {background:#dc3545;}
-.controls .primary {background:#0d6efd;}
-.controls .secondary {background:#6c757d;}
-/* arrows */
-th.sorted-asc::after { content: " \\2191"; }
-th.sorted-desc::after { content: " \\2193"; }
-/* resize handle */
-th .resize-handle{
-  position:absolute; right:0; top:0; width:6px; height:100%;
-  cursor:col-resize; user-select:none;
-}
-th.drag-over-left { box-shadow: inset 3px 0 0 rgba(0,0,0,0.25); }
-th.drag-over-right{ box-shadow: inset -3px 0 0 rgba(0,0,0,0.25); }
-{{ css_numcols | safe }}
-</style>
-</head>
-<body>
-<nav>
-  <a href="{{ url_for('home') }}">Αρχική</a>
-  <a href="{{ url_for('viewer') }}">Εισαγωγή Παραστατικού</a>
-  <a href="{{ url_for('options') }}">Επιλογές</a>
-  <span style="background:#6c757d">Λίστα Παραστατικών</span>
-</nav>
-
-<div class="card">
-  <h1>Λίστα Παραστατικών</h1>
-
-  <div class="controls">
-    <input type="text" id="globalSearch" placeholder="🔎 Αναζήτηση σε όλες τις στήλες...">
-    {% if file_exists %}
-      <a class="small-btn primary" href="{{ url_for('download_excel') }}">⬇️ Κατέβασμα .xlsx</a>
-    {% endif %}
-    <a class="small-btn secondary" href="{{ url_for('viewer') }}">➕ Εισαγωγή Παραστατικού</a>
-  </div>
-
-  {% if error %}
-    <div style="background:#fff5f5;padding:12px;border-radius:8px;margin-top:12px;">{{ error }}</div>
-  {% endif %}
-
-  {% if table_html %}
-    <form method="POST" action="{{ url_for('delete_invoices') }}">
-      <div style="overflow:auto;margin-top:12px;">
-        {{ table_html | safe }}
-      </div>
-
-      <div class="controls" style="margin-top:12px;">
-        <button type="submit" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
-      </div>
-    </form>
-  {% else %}
-    <div style="color:#666;margin-top:12px;">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
-  {% endif %}
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-  const table = document.querySelector(".summary-table");
-  if (!table) return;
-
-  const thead = table.querySelector("thead");
-  const tbody = table.querySelector("tbody");
-
-  // ===== Global search (μόνο αυτό — αφαιρέθηκε το οριζόντιο φίλτρο) =====
-  const search = document.getElementById("globalSearch");
-  if (search){
-    search.addEventListener("input", function(){
-      const q = (search.value || "").toLowerCase();
-      Array.from(tbody.rows).forEach(row=>{
-        row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
-      });
-    });
-  }
-
-  // ===== Sorting (click-to-sort με ↑/↓) =====
-  let lastSortedIndex = -1;
-  let lastAsc = true;
-
-  function normalizeValue(txt){
-    const t = txt.trim();
-    const euro = t.replace(/\./g,"").replace(",",".").replace(/[^\d\.\-]/g,"");
-    if (!isNaN(parseFloat(euro)) && /[\d]/.test(euro)) return {num:parseFloat(euro), raw:t, isNum:true};
-    const eng = t.replace(/,/g,"").replace(/[^\d\.\-]/g,"");
-    if (!isNaN(parseFloat(eng)) && /[\d]/.test(eng)) return {num:parseFloat(eng), raw:t, isNum:true};
-    return {num:0, raw:t.toLowerCase(), isNum:false};
-  }
-
-  function sortByColumn(colIndex, asc){
-    const rows = Array.from(tbody.rows);
-    rows.sort((a,b)=>{
-      const A = a.cells[colIndex]?.innerText || "";
-      const B = b.cells[colIndex]?.innerText || "";
-      const nA = normalizeValue(A);
-      const nB = normalizeValue(B);
-      if (nA.isNum && nB.isNum) return asc ? (nA.num - nB.num) : (nB.num - nA.num);
-      return asc ? nA.raw.localeCompare(nB.raw, "el", {numeric:true}) : nB.raw.localeCompare(nA.raw, "el", {numeric:true});
-    });
-    rows.forEach(r=>tbody.appendChild(r));
-    thead.querySelectorAll("th").forEach(th=>th.classList.remove("sorted-asc","sorted-desc"));
-    const th = thead.querySelectorAll("th")[colIndex];
-    if (th) th.classList.add(asc ? "sorted-asc" : "sorted-desc");
-    lastSortedIndex = colIndex; lastAsc = asc;
-  }
-
-  // ===== Resize handles & reorder =====
-  thead.querySelectorAll("th").forEach((th, idx) => {
-    // click-to-sort (exclude clicks on resize handle)
-    th.addEventListener("click", function(e){
-      if (e.target.classList.contains("resize-handle")) return;
-      const colIndex = Array.from(thead.rows[0].cells).indexOf(th);
-      const asc = (lastSortedIndex !== colIndex) ? true : !lastAsc;
-      sortByColumn(colIndex, asc);
-    });
-
-    const handle = document.createElement("div");
-    handle.className = "resize-handle";
-    th.appendChild(handle);
-
-    let startX = 0, startW = 0;
-    function mmove(e){
-      const dx = e.pageX - startX;
-      const newW = Math.max(40, startW + dx);
-      th.style.width = newW + "px";
-    }
-    function mup(){
-      document.removeEventListener("mousemove", mmove);
-      document.removeEventListener("mouseup", mup);
-    }
-    handle.addEventListener("mousedown", (e)=>{
-      startX = e.pageX; startW = th.offsetWidth;
-      document.addEventListener("mousemove", mmove);
-      document.addEventListener("mouseup", mup);
-      e.preventDefault(); e.stopPropagation();
-    });
-
-    // Reorder
-    th.setAttribute("draggable","true");
-    th.addEventListener("dragstart", (e)=>{
-      e.dataTransfer.setData("text/plain", idx.toString());
-    });
-    th.addEventListener("dragover", (e)=>{
-      e.preventDefault();
-      const rect = th.getBoundingClientRect();
-      const halfway = rect.left + rect.width / 2;
-      th.classList.toggle("drag-over-left", e.clientX < halfway);
-      th.classList.toggle("drag-over-right", e.clientX >= halfway);
-    });
-    th.addEventListener("dragleave", ()=>{
-      th.classList.remove("drag-over-left","drag-over-right");
-    });
-    th.addEventListener("drop", (e)=>{
-      e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-      const headers = Array.from(thead.rows[0].cells);
-      const toIndex = headers.indexOf(th);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
-        th.classList.remove("drag-over-left","drag-over-right");
-        return;
-      }
-      const dropOnRightHalf = th.classList.contains("drag-over-right");
-      th.classList.remove("drag-over-left","drag-over-right");
-
-      const fromTh = headers[fromIndex];
-      const toTh = headers[toIndex];
-      if (dropOnRightHalf) {
-        toTh.after(fromTh);
-      } else {
-        toTh.before(fromTh);
-      }
-
-      // reorder cells
-      const newHeaders = Array.from(thead.rows[0].cells);
-      const newOrderMap = {};
-      newHeaders.forEach((h, newPos) => {
-        const origPos = headers.indexOf(h);
-        newOrderMap[newPos] = origPos;
-      });
-
-      Array.from(tbody.rows).forEach(tr => {
-        const cells = Array.from(tr.cells);
-        const newCells = new Array(cells.length);
-        for (let newPos=0; newPos<newCells.length; newPos++){
-          const origPos = newOrderMap[newPos];
-          newCells[newPos] = cells[origPos];
+# --- endpoint URLs based on environment ---
+def endpoints_for_env(env):
+    env = (env or "sandbox").lower()
+    if env in ("sandbox", "demo", "dev"):
+        return {
+            "REQUESTDOCS_URL": "https://mydataapidev.aade.gr/RequestDocs",
+            "TRANSMITTED_URL": "https://mydataapidev.aade.gr/RequestTransmittedDocs"
         }
-        newCells.forEach((c, i)=>{
-          if (i === 0) tr.appendChild(c); else newCells[i-1].after(c);
-        });
-      });
+    return {
+        "REQUESTDOCS_URL": "https://mydatapi.aade.gr/myDATA/RequestDocs",
+        "TRANSMITTED_URL": "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
+    }
 
-      thead.querySelectorAll("th").forEach(h=>h.classList.remove("sorted-asc","sorted-desc"));
-      lastSortedIndex = -1;
-    });
-  });
+# ---------------- Routes ----------------
 
-  // ===== Select all / none (checkbox in header if any) =====
-  const headerCheckbox = document.getElementById("selectAll");
-  if (headerCheckbox){
-    headerCheckbox.addEventListener("change", function(){
-      const chks = table.querySelectorAll('input[type="checkbox"][name="delete_mark"]');
-      chks.forEach(c => { c.checked = headerCheckbox.checked; });
-    });
-  }
-});
-</script>
-</body>
-</html>
-"""
-CONFIG_HTML = """
-<!doctype html>
-<html lang="el">
-<head>
-    <meta charset="UTF-8">
-    <title>Ρύθμιση Παραμέτρων</title>
-    <style>
-        body {font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px;}
-        .form-group {margin-bottom: 15px;}
-        label {display: block; margin-bottom: 5px; font-weight: bold;}
-        input[type="text"], select {width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;}
-        button {background: #0d6efd; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;}
-        button:hover {background: #0b5ed7;}
-        .card {background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>Ρύθμιση Παραμέτρων AADE</h1>
-        <form method="post">
-            <div class="form-group">
-                <label for="aade_user_id">AADE User ID:</label>
-                <input type="text" id="aade_user_id" name="aade_user_id" value="{{ config.get('AADE_USER_ID', '') }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="aade_subscription_key">AADE Subscription Key:</label>
-                <input type="text" id="aade_subscription_key" name="aade_subscription_key" value="{{ config.get('AADE_SUBSCRIPTION_KEY', '') }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="mydata_env">Περιβάλλον:</label>
-                <select id="mydata_env" name="mydata_env">
-                    <option value="sandbox" {% if config.get('MYDATA_ENV') == 'sandbox' %}selected{% endif %}>Sandbox (δοκιμαστικό)</option>
-                    <option value="production" {% if config.get('MYDATA_ENV') == 'production' %}selected{% endif %}>Production (πραγματικό)</option>
-                </select>
-            </div>
-            
-            <button type="submit">Αποθήκευση Ρυθμίσεων</button>
-        </form>
-        
-        <p style="margin-top: 20px;">
-            <a href="{{ url_for('home') }}">Επιστροφή στην αρχική σελίδα</a>
-        </p>
-    </div>
-</body>
-</html>
-"""
-
-# Routes
 @app.route("/")
 def home():
-    return render_template_string(NAV_HTML)
+    if USE_TEMPLATES:
+        # if nav.html present, use it; otherwise fallback
+        try:
+            return render_template("nav.html")
+        except Exception:
+            return render_template_string(NAV_INLINE)
+    return render_template_string(NAV_INLINE)
 
-@app.route("/options")
-def options():
-    return render_template_string(PLACEHOLDER_HTML, title="Επιλογές", message="Εδώ θα μπουν μελλοντικές ρυθμίσεις.")
-
-@app.route('/config', methods=['GET', 'POST'])
+# configuration page to input AADE credentials (saved to CONFIG_FILE)
+@app.route("/config", methods=["GET", "POST"])
 def config():
-    """Configuration page for users to input their AADE credentials"""
-    if request.method == 'POST':
-        # Get form data
-        user_id = request.form.get('aade_user_id')
-        subscription_key = request.form.get('aade_subscription_key')
-        environment = request.form.get('mydata_env', 'sandbox')
-        
-        # Save configuration
-        config_data = {
-            'AADE_USER_ID': user_id,
-            'AADE_SUBSCRIPTION_KEY': subscription_key,
-            'MYDATA_ENV': environment
-        }
-        
+    cfg = load_config()
+    if request.method == "POST":
+        cfg["AADE_USER_ID"] = request.form.get("aade_user_id", "").strip()
+        cfg["AADE_SUBSCRIPTION_KEY"] = request.form.get("aade_subscription_key", "").strip()
+        cfg["MYDATA_ENV"] = request.form.get("mydata_env", "sandbox").strip()
+        save_config(cfg)
+        flash("Configuration saved", "success")
+        return redirect(url_for("home"))
+    # render config template if exists
+    if USE_TEMPLATES:
         try:
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(config_data, f)
-            return redirect(url_for('home'))
-        except Exception as e:
-            return f"Error saving configuration: {e}"
-    
-    # Load existing config if available
-    config_data = {}
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                config_data = json.load(f)
-        except:
+            return render_template("config.html", config=cfg)
+        except Exception:
             pass
-    
-    return render_template_string(CONFIG_HTML, config=config_data)
+    # fallback basic form
+    html = """
+    <h1>Config</h1>
+    <form method="post">
+      AADE_USER_ID: <input name="aade_user_id" value="{{config.AADE_USER_ID}}"><br>
+      AADE_SUBSCRIPTION_KEY: <input name="aade_subscription_key" value="{{config.AADE_SUBSCRIPTION_KEY}}"><br>
+      Env: <select name="mydata_env"><option value="sandbox">sandbox</option><option value="production">production</option></select><br>
+      <button>Save</button>
+    </form>
+    """
+    return render_template_string(html, config=cfg)
 
-@app.route("/viewer", methods=["GET", "POST"])
+# credentials management (stored credentials list)
+@app.route("/credentials", methods=["GET","POST"])
+def credentials():
+    msg = None
+    creds = load_credentials()
+    if request.method == "POST":
+        name = request.form.get("name","").strip()
+        user = request.form.get("user","").strip()
+        key = request.form.get("key","").strip()
+        env = request.form.get("env","sandbox").strip()
+        vat = request.form.get("vat","").strip()
+        if not name:
+            flash("Name required", "error")
+        else:
+            # dedupe by name
+            if any(c.get("name")==name for c in creds):
+                flash("Credential name exists", "error")
+            else:
+                creds.append({"name":name,"user":user,"key":key,"env":env,"vat":vat})
+                save_credentials(creds)
+                flash("Saved", "success")
+                return redirect(url_for("credentials"))
+    if USE_TEMPLATES:
+        try:
+            return render_template("credentials_list.html", credentials=creds)
+        except Exception:
+            pass
+    # fallback
+    return render_template_string("<h1>Credentials</h1><pre>{{creds}}</pre><p><a href='{{url_for(\"home\")}}'>Home</a></p>", creds=creds)
+
+# bulk fetch page (date range UI)
+@app.route("/fetch", methods=["GET","POST"])
+def fetch():
+    cfg = load_config()
+    creds = load_credentials()
+    preview = load_cache_preview(40)
+    message = None
+    error = None
+    env = cfg.get("MYDATA_ENV", "sandbox")
+    endpoints = endpoints_for_env(env)
+    if request.method == "POST":
+        date_from = request.form.get("date_from")
+        date_to = request.form.get("date_to")
+        vat = request.form.get("vat_number","").strip()
+        selected_cred = request.form.get("use_credential","").strip()
+        # resolve credentials
+        if selected_cred:
+            sel = next((c for c in creds if c.get("name")==selected_cred), None)
+            if sel:
+                aade_user = sel.get("user","")
+                aade_key = sel.get("key","")
+                vat = vat or sel.get("vat","")
+                env = sel.get("env", env)
+        else:
+            cfg = load_config()
+            aade_user = cfg.get("AADE_USER_ID","")
+            aade_key = cfg.get("AADE_SUBSCRIPTION_KEY","")
+        # set endpoints for selected env (if credential has its own env, use it)
+        endpoints = endpoints_for_env(env)
+        try:
+            # try mydatanaut if available & vendorized
+            if HAS_MYDATANAUT:
+                try:
+                    # attempt to call a generic client pattern
+                    client = None
+                    try:
+                        client = mydatanaut_pkg.Client(user=aade_user, key=aade_key, env=env)
+                    except Exception:
+                        try:
+                            client = mydatanaut_pkg.MyDataClient(user=aade_user, key=aade_key, env=env)
+                        except Exception:
+                            client = None
+                    if client:
+                        # try client.request_docs or client.fetch_docs
+                        if hasattr(client, "request_docs"):
+                            docs = client.request_docs(date_from, date_to, vat)
+                        elif hasattr(client, "fetch_docs"):
+                            docs = client.fetch_docs(date_from, date_to, vat)
+                        else:
+                            docs = None
+                        # normalize docs list
+                        if docs is None:
+                            fetched_list = []
+                        elif isinstance(docs, dict):
+                            fetched_list = docs.get("docs") or ([docs] if docs else [])
+                        elif isinstance(docs, list):
+                            fetched_list = docs
+                        else:
+                            fetched_list = [docs]
+                        added = 0
+                        for d in fetched_list:
+                            if append_doc_to_cache(d):
+                                added += 1
+                        message = f"Fetched {len(fetched_list)} items via mydatanaut, newly cached: {added}"
+                        preview = load_cache_preview(40)
+                        return render_template("fetch.html", credentials=creds, message=message, error=error, preview=preview, env=env, endpoints=endpoints)
+                except Exception:
+                    app.logger.exception("mydatanaut fetch failed; falling back to RequestDocs")
+
+            # fallback: call RequestDocs endpoint via utils.fetch_by_mark? No - we use a generic RequestDocs caller here
+            # If utils provides a helper to call RequestDocs bulk, use it; else, run a minimal request->xml parse
+            import requests, xmltodict  # xmltodict is in requirements
+            # RequestDocs expects dd/MM/YYYY dates
+            try:
+                d1 = datetime.datetime.fromisoformat(date_from).strftime("%d/%m/%Y")
+                d2 = datetime.datetime.fromisoformat(date_to).strftime("%d/%m/%Y")
+            except Exception:
+                d1, d2 = date_from, date_to
+            params = {"dateFrom": d1, "dateTo": d2}
+            if vat:
+                params["vatNumber"] = vat
+            headers = {
+                "aade-user-id": aade_user,
+                "ocp-apim-subscription-key": aade_key,
+                "Accept": "application/xml"
+            }
+            r = requests.get(endpoints["REQUESTDOCS_URL"], params=params, headers=headers, timeout=90)
+            if r.status_code >= 400:
+                raise Exception(f"API error {r.status_code}: {r.text[:500]}")
+            parsed_outer = None
+            try:
+                parsed_outer = xmltodict.parse(r.text)
+            except Exception:
+                # sometimes the response wraps an inner xml string; try to locate "string" node
+                try:
+                    parsed_outer = xmltodict.parse(r.text)
+                except Exception:
+                    parsed_outer = None
+            docs_list = []
+            if isinstance(parsed_outer, dict):
+                # common shapes: {..., 'RequestedDoc': {...}} or {..., 'string': {'#text': '...inner xml...'}}
+                if "RequestedDoc" in parsed_outer:
+                    maybe = parsed_outer.get("RequestedDoc")
+                    docs_list = maybe if isinstance(maybe, list) else [maybe]
+                elif "string" in parsed_outer:
+                    inner = parsed_outer.get("string")
+                    # inner might contain '#text' or be a string with xml; try parse
+                    inner_text = ""
+                    if isinstance(inner, dict) and "#text" in inner:
+                        inner_text = inner["#text"]
+                    elif isinstance(inner, str):
+                        inner_text = inner
+                    if inner_text:
+                        try:
+                            inner_parsed = xmltodict.parse(inner_text)
+                            if "RequestedDoc" in inner_parsed:
+                                maybe = inner_parsed.get("RequestedDoc")
+                                docs_list = maybe if isinstance(maybe, list) else [maybe]
+                            else:
+                                docs_list = [inner_parsed]
+                        except Exception:
+                            docs_list = [inner_text]
+                elif "docs" in parsed_outer:
+                    docs_list = parsed_outer.get("docs") or []
+                else:
+                    # fallback: treat whole response as a single item
+                    docs_list = [parsed_outer]
+            elif isinstance(parsed_outer, list):
+                docs_list = parsed_outer
+            else:
+                docs_list = []
+
+            added = 0
+            for d in docs_list:
+                if append_doc_to_cache(d):
+                    added += 1
+            message = f"Fetched {len(docs_list)} items, newly cached: {added}"
+            preview = load_cache_preview(40)
+        except Exception as e:
+            app.logger.exception("fetch error")
+            error = f"Σφάλμα λήψης: {e}"
+    # render templates if available
+    if USE_TEMPLATES:
+        try:
+            return render_template("fetch.html", credentials=creds, message=message, error=error, preview=preview, env=env, endpoints=endpoints)
+        except Exception:
+            app.logger.exception("render fetch.html failed, falling back")
+    # fallback minimal page
+    fallback_html = """
+    <h1>Bulk Fetch</h1>
+    {% if error %}<div style="color:red">{{error}}</div>{% endif %}
+    {% if message %}<div style="color:green">{{message}}</div>{% endif %}
+    <form method="post">
+      Από: <input type="date" name="date_from" required> Έως: <input type="date" name="date_to" required><br>
+      VAT: <input name="vat_number"><br>
+      <button>Fetch</button>
+    </form>
+    <h3>Preview (first {{preview|length}} cached)</h3>
+    <pre>{{preview|tojson(indent=2)}}</pre>
+    """
+    return render_template_string(fallback_html, credentials=creds, message=message, error=error, preview=preview)
+
+# Viewer (MARK input / file upload)
+@app.route("/viewer", methods=["GET","POST"])
 def viewer():
-    # Check if we have valid configuration
-    config_data = load_config()
-    if not config_data.get("AADE_USER_ID") or not config_data.get("AADE_SUBSCRIPTION_KEY"):
-        return redirect(url_for('config'))
-    
-    # Use the configuration
-    AADE_USER = config_data.get("AADE_USER_ID", "")
-    AADE_KEY = config_data.get("AADE_SUBSCRIPTION_KEY", "")
-    ENV = config_data.get("MYDATA_ENV", "sandbox").lower()
-    
-    # Endpoints
-    REQUESTDOCS_URL = (
-        "https://mydataapidev.aade.gr/RequestTransmittedDocs"
-        if ENV in ("sandbox", "demo", "dev")
-        else "https://mydatapi.aade.gr/myDATA/RequestDocs"
-    )
-    TRANSMITTED_URL = (
-        "https://mydataapidev.aade.gr/RequestTransmittedDocs"
-        if ENV in ("sandbox", "demo", "dev")
-        else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
-    )
-    
-    error = ""
+    cfg = load_config()
+    if not cfg.get("AADE_USER_ID") or not cfg.get("AADE_SUBSCRIPTION_KEY"):
+        flash("Please configure AADE credentials first", "error")
+        return redirect(url_for("config"))
+
     payload = None
     raw = None
     summary = None
     message = None
+    error = None
 
     if request.method == "POST":
-        input_text = request.form.get("mark", "") if "mark" in request.form else ""
+        input_text = request.form.get("mark","").strip()
         marks = []
-
-        # 1) αν ανέβηκε αρχείο, προτεραιότητα στο αρχείο
+        # file upload
         if "file" in request.files:
             f = request.files["file"]
             if f and f.filename:
                 data = f.read()
-                mark_from_file = decode_qr_from_file(data, f.filename)
-                if mark_from_file:
-                    marks = [mark_from_file]
-                else:
-                    error = "Δεν βρέθηκε ΜΑΡΚ στο αρχείο."
+                try:
+                    if UTIL_AVAILABLE and callable(decode_qr_from_file):
+                        detected = decode_qr_from_file(data, f.filename)
+                    else:
+                        detected = None
+                    if detected:
+                        marks = [detected]
+                    else:
+                        # no detection: try to extract marks from text file
+                        text_marks = []
+                        try:
+                            text = data.decode("utf-8", errors="ignore")
+                            from re import findall
+                            text_marks = [m for m in findall(r"\b\d{15}\b", text)]
+                        except Exception:
+                            text_marks = []
+                        if text_marks:
+                            marks = text_marks
+                        else:
+                            error = "Δεν βρέθηκε MARK στο αρχείο."
+                except Exception:
+                    app.logger.exception("file decode error")
+                    error = "Σφάλμα στην επεξεργασία αρχείου."
 
-        # 2) αλλιώς αν υπάρχει input_text (MARK ή URL)
+        # if no file marks, try input_text (could be URL or direct mark or page with marks)
         if not marks and input_text:
-            # αν είναι URL -> κάνουμε webscrape για όλα τα 15-ψήφια MARKs
             try:
                 parsed_url = urlparse(input_text)
                 if parsed_url.scheme in ("http", "https") and parsed_url.netloc:
-                    marks_from_page = extract_marks_from_url(input_text)
-                    if marks_from_page:
-                        marks = marks_from_page
+                    # attempt to fetch marks from page (utils function preferred)
+                    if UTIL_AVAILABLE and callable(extract_marks_from_url):
+                        try:
+                            marks = extract_marks_from_url(input_text) or []
+                        except Exception:
+                            app.logger.exception("extract_marks_from_url failed")
+                            marks = []
                     else:
-                        # αν δεν βρέθηκε, ενημέρωση error (θα δείξουμε popup)
-                        error = "Δεν βρέθηκε ΜΑΡΚ στη σελίδα."
+                        # fallback: simple regex on the page content
+                        import requests, re
+                        try:
+                            r = requests.get(input_text, timeout=20)
+                            marks = re.findall(r"\b\d{15}\b", r.text)
+                        except Exception:
+                            marks = []
                 else:
-                    # απλό text/mark
-                    marks = extract_marks_from_text(input_text)
+                    # treat input_text as plain text / mark
+                    if UTIL_AVAILABLE and callable(extract_marks_from_text):
+                        try:
+                            marks = extract_marks_from_text(input_text)
+                        except Exception:
+                            marks = []
+                    else:
+                        # fallback:
+                        if input_text.isdigit() and len(input_text.strip())==15:
+                            marks = [input_text.strip()]
             except Exception:
-                marks = extract_marks_from_text(input_text)
+                marks = []
 
         if not marks:
             if not error:
-                error = "Δεν βρέθηκε ΜΑΡΚ."
+                error = "Δεν βρέθηκε ΜΑΡΚ (εισάγετε έγκυρο 15-ψήφιο MARK ή URL που περιέχει MARK)."
         else:
             successes = []
             duplicates = []
@@ -638,44 +518,67 @@ def viewer():
             last_summary = None
             last_payload = None
             last_raw = None
-
+            cfg_local = load_config()
+            endpoints = endpoints_for_env(cfg_local.get("MYDATA_ENV","sandbox"))
             for m in marks:
-                # ΠΡΩΤΑ: έλεγχος στο RequestTransmittedDocs
+                # check transmitted
                 try:
-                    if is_mark_transmitted(m, AADE_USER, AADE_KEY, TRANSMITTED_URL):
-                        api_errors.append((m, "το παραστατικο ειναι ηδη καταχωρημενο-χαρακτηρισμενο"))
+                    if is_mark_transmitted(m, cfg_local.get("AADE_USER_ID",""), cfg_local.get("AADE_SUBSCRIPTION_KEY",""), endpoints["TRANSMITTED_URL"]):
+                        api_errors.append((m, "Το παραστατικό είναι ήδη καταχωρημένο / χαρακτηρισμένο (transmitted)."))
                         continue
-                except Exception as e:
-                    # σε περίπτωση σφάλματος στο check, προχωράμε κανονικά (θα καταγραφεί)
-                    print("is_mark_transmitted error:", e)
+                except Exception:
+                    app.logger.exception("transmitted check failed")
 
+                # fetch the doc by mark
                 try:
-                    err, parsed, raw_xml, summ = fetch_by_mark(m, AADE_USER, AADE_KEY, REQUESTDOCS_URL)
+                    if UTIL_AVAILABLE and callable(fetch_by_mark):
+                        err, parsed_obj, raw_xml, summ = fetch_by_mark(m, cfg_local.get("AADE_USER_ID",""), cfg_local.get("AADE_SUBSCRIPTION_KEY",""), endpoints["REQUESTDOCS_URL"])
+                    else:
+                        # no helper: minimal RequestDocs by mark (may not be supported by AADE — prefer utils)
+                        err = "No fetch_by_mark available in utils"
+                        parsed_obj = None; raw_xml = None; summ = None
+                    if err:
+                        api_errors.append((m, err))
+                        continue
+                    if not parsed_obj:
+                        api_errors.append((m, "Empty response or parse error"))
+                        continue
+                    # extract VAT categories (if helper exists)
+                    try:
+                        vat_cats = extract_vat_categories(parsed_obj) if UTIL_AVAILABLE and callable(extract_vat_categories) else {}
+                    except Exception:
+                        vat_cats = {}
+                    # save summary row using helper save_summary_to_excel
+                    try:
+                        saved = False
+                        if UTIL_AVAILABLE and callable(save_summary_to_excel):
+                            saved = save_summary_to_excel(summ, m, vat_categories=vat_cats)  # your util signature
+                        else:
+                            # fallback: simple CSV append to EXCEL_FILE (will be CSV if openpyxl missing)
+                            import csv
+                            headless = not os.path.exists(EXCEL_FILE)
+                            row = summ if isinstance(summ, dict) else {"MARK": m}
+                            with open(EXCEL_FILE, "a", newline="", encoding="utf-8") as fh:
+                                writer = csv.writer(fh)
+                                if headless:
+                                    writer.writerow(list(row.keys()))
+                                writer.writerow([str(v) for v in row.values()])
+                            saved = True
+                        if saved:
+                            successes.append(m)
+                        else:
+                            duplicates.append(m)
+                    except Exception as ee:
+                        api_errors.append((m, f"Σφάλμα αποθήκευσης: {ee}"))
+                        continue
+
+                    last_summary = summ
+                    last_payload = json.dumps(parsed_obj, ensure_ascii=False, indent=2)
+                    last_raw = raw_xml
                 except Exception as e:
+                    app.logger.exception("fetch_by_mark failed")
                     api_errors.append((m, f"Exception: {e}"))
                     continue
-
-                if err:
-                    api_errors.append((m, err))
-                    continue
-                if not parsed or not summ:
-                    api_errors.append((m, "Αποτυχία parse ή κενά δεδομένα."))
-                    continue
-
-                try:
-                    vat_cats = extract_vat_categories(parsed)
-                    saved = save_summary_to_excel(summ, m, vat_categories=vat_cats)
-                    if saved:
-                        successes.append(m)
-                    else:
-                        duplicates.append(m)
-                except Exception as e:
-                    api_errors.append((m, f"Σφάλμα αποθήκευσης: {e}"))
-                    continue
-
-                last_summary = summ
-                last_payload = json.dumps(parsed, ensure_ascii=False, indent=2)
-                last_raw = raw_xml
 
             parts = []
             if successes:
@@ -693,83 +596,67 @@ def viewer():
                 raw = last_raw
 
             if not successes and not duplicates and api_errors and not summary:
-                error = "Απέτυχαν όλες οι προσπάθειες. Δες λεπτομέρειες στο μήνυμα."
+                error = "Απέτυχαν όλες οι προσπάθειες. Δες λεπτομέρειες στα μηνύματα."
 
-    return render_template_string(
-        VIEWER_HTML,
-        error=error,
-        payload=payload,
-        raw=raw,
-        summary=summary,
-        env=ENV,
-        endpoint=REQUESTDOCS_URL,
-        message=message
-    )
+    # render: prefer templates/viewer.html if present
+    if USE_TEMPLATES:
+        try:
+            return render_template("viewer.html", payload=payload, raw=raw, summary=summary, env=load_config().get("MYDATA_ENV","sandbox"), endpoint=endpoints_for_env(load_config().get("MYDATA_ENV","sandbox"))["REQUESTDOCS_URL"], message=message, error=error)
+        except Exception:
+            app.logger.exception("render viewer template failed")
+    # fallback render inline (very basic)
+    inline = "<h1>Viewer</h1>{% if error %}<div style='color:red;'>{{error}}</div>{% endif %}{% if message %}<pre>{{message}}</pre>{% endif %}<form method='post'><input name='mark' placeholder='MARK or URL'><button>Submit</button></form>"
+    return render_template_string(inline, payload=payload, raw=raw, summary=summary, message=message, error=error)
 
+# list / download / delete routes (use EXCEL_FILE or fallback to cache)
 @app.route("/list", methods=["GET"])
 def list_invoices():
-    filepath = EXCEL_FILE
+    file_exists = os.path.exists(EXCEL_FILE)
     table_html = ""
-    error = ""
+    error = None
     css_numcols = ""
-
-    if os.path.exists(filepath):
+    if file_exists:
         try:
-            df = pd.read_excel(filepath, engine="openpyxl", dtype=str).fillna("")
-            df = df.astype(str)
-
-            # Απόκρυψη στήλης ΦΠΑ_ΑΝΑΛΥΣΗ από τη λίστα αν υπάρχει
+            df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
-
-            # Προσθήκη checkbox για διαγραφή (χρησιμοποιούμε το MARK ως id)
             if "MARK" in df.columns:
                 checkboxes = df["MARK"].apply(lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">')
                 df.insert(0, "✓", checkboxes)
-
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
-
-            # Βάλε checkbox "select all" στον header της πρώτης στήλης
-            table_html = table_html.replace(
-                "<th>✓</th>", '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>'
-            )
-
-            table_html = table_html.replace("<td>", '<td><div class="cell-wrap">').replace("</td>", "</div></td>")
-
-            # Δεξιά στοίχιση για αριθμητικές στήλες
-            headers = re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=re.S)
+            table_html = table_html.replace("<th>✓</th>", '<th><input type="checkbox" id="selectAll"></th>')
+            table_html = table_html.replace("<td>", '<td><div style=\"white-space:pre-wrap;word-break:break-word;max-width:360px;\">').replace("</td>", "</div></td>")
+            # compute numeric column css
+            headers = [h.strip() for h in list(df.columns)]
             num_indices = []
-            for i, h in enumerate(headers):
-                text = re.sub(r'<.*?>', '', h).strip()
-                if text in ("Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT") or "ΦΠΑ" in text or "ΠΟΣΟ" in text:
-                    num_indices.append(i+1)  # nth-child 1-based
+            for i,h in enumerate(headers):
+                if any(k in h for k in ("Καθαρή Αξία","ΦΠΑ","Σύνολο","TOTAL","NET","VAT","ΠΟΣΟ")):
+                    num_indices.append(i+1)
             css_rules = []
             for idx in num_indices:
                 css_rules.append(f".summary-table td:nth-child({idx}), .summary-table th:nth-child({idx}) {{ text-align: right; }}")
             css_numcols = "\n".join(css_rules)
-
         except Exception as e:
+            app.logger.exception("read excel error")
             error = f"Σφάλμα ανάγνωσης Excel: {e}"
     else:
-        error = "Δεν βρέθηκε το αρχείο invoices.xlsx."
-
-    return render_template_string(
-        LIST_HTML,
-        table_html=table_html,
-        error=error,
-        file_exists=os.path.exists(filepath),
-        css_numcols=css_numcols
-    )
+        # fallback to cache
+        cached = load_json_file(CACHE_FILE, [])
+        table_html = "<pre>" + json.dumps(cached[:200], ensure_ascii=False, indent=2) + "</pre>" if cached else ""
+    # prefer template if available
+    if USE_TEMPLATES:
+        try:
+            return render_template("list.html", table_html=table_html, error=error, file_exists=file_exists, css_numcols=css_numcols)
+        except Exception:
+            app.logger.exception("render list.html failed")
+    # fallback
+    return render_template_string("<h1>List</h1>{% if error %}<div style='color:red;'>{{error}}</div>{% endif %}{{table_html|safe}}", error=error, table_html=table_html)
 
 @app.route("/delete", methods=["POST"])
 def delete_invoices():
-    """
-    Διαγράφει εγγραφές βάσει MARK από το invoices.xlsx και επιστρέφει στη λίστα.
-    """
     marks_to_delete = request.form.getlist("delete_mark")
     if not marks_to_delete:
         return redirect(url_for("list_invoices"))
-
     if os.path.exists(EXCEL_FILE):
         try:
             df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
@@ -779,22 +666,22 @@ def delete_invoices():
                 after = len(df)
                 if after != before:
                     df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
-        except Exception as e:
-            print("Σφάλμα διαγραφής:", e)
-
+        except Exception:
+            app.logger.exception("delete invoices error")
     return redirect(url_for("list_invoices"))
 
 @app.route("/download", methods=["GET"])
 def download_excel():
     if not os.path.exists(EXCEL_FILE):
         return ("Το αρχείο .xlsx δεν υπάρχει.", 404)
-    return send_file(
-        EXCEL_FILE,
-        as_attachment=True,
-        download_name="invoices.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    return send_file(EXCEL_FILE, as_attachment=True, download_name="invoices.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# health
+@app.route("/health")
+def health():
+    return "OK"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    debug = os.environ.get("FLASK_DEBUG", "0") in ("1", "true", "True")
+    app.run(host="0.0.0.0", port=port, debug=debug)
