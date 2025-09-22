@@ -8,9 +8,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, List, Optional
 
-from flask import (
-    Flask, render_template, request, redirect, url_for, send_file, flash, escape
-)
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from markupsafe import escape
+
 import requests
 import xmltodict
 import pandas as pd
