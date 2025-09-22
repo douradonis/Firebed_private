@@ -1,83 +1,83 @@
-<!DOCTYPE html>
-<html lang="el">
-<head>
-    <meta charset="UTF-8">
-    <title>Bulk Fetch - myDATA</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .error { color: red; }
-        .success { color: green; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-        th { background-color: #f0f0f0; }
-        input, select { padding: 5px; margin: 5px 0; }
-        .flash { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .flash.success { background-color: #e0ffe0; color: #008000; }
-        .flash.error { background-color: #ffe0e0; color: #c00000; }
-    </style>
-</head>
-<body>
-    <h1>Bulk Fetch Παραστατικών</h1>
+{% extends "base.html" %}
+{% block title %}Bulk Fetch{% endblock %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, msg in messages %}
-                <div class="flash {{ category }}">{{ msg }}</div>
-            {% endfor %}
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-3">Λήψη Παραστατικών (Bulk)</h1>
+  <a href="{{ url_for('home') }}" class="btn btn-secondary mb-4">⬅ Επιστροφή</a>
+
+  {% if message %}
+    <div class="alert alert-success">{{ message }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <!-- Bulk Fetch Form -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <h4 class="card-title">Bulk Fetch Παραστατικών</h4>
+      <form method="post">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="date_from" class="form-label">Ημερομηνία από</label>
+            <input type="date" class="form-control" id="date_from" name="date_from" required
+                   value="{{ request.form.date_from or '' }}">
+          </div>
+          <div class="col-md-3">
+            <label for="date_to" class="form-label">Έως</label>
+            <input type="date" class="form-control" id="date_to" name="date_to" required
+                   value="{{ request.form.date_to or '' }}">
+          </div>
+          <div class="col-md-3">
+            <label for="vat_number" class="form-label">VAT (προαιρετικό)</label>
+            <input type="text" class="form-control" id="vat_number" name="vat_number"
+                   value="{{ request.form.vat_number or default_vat or '' }}">
+          </div>
+          <div class="col-md-3">
+            <label for="use_credential" class="form-label">Χρήση stored credential</label>
+            <select class="form-select" id="use_credential" name="use_credential">
+              <option value="">(ENV / Default)</option>
+              {% for c in credentials %}
+                <option value="{{ c.name }}">{{ c.name }} ({{ c.vat|default('') }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Λήψη & Αποθήκευση Cache</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Search MARK Form -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <h4 class="card-title">Αναζήτηση MARK</h4>
+      <form method="post" action="{{ url_for('search') }}">
+        <div class="input-group">
+          <input type="text" class="form-control" name="mark" placeholder="15ψήφιο MARK" required>
+          <button class="btn btn-outline-primary" type="submit">Αναζήτηση</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cache Preview -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="card-title">Preview cache (περιορισμένο)</h4>
+      <div style="max-height:400px; overflow:auto; background:#f8f9fa; padding:8px; border-radius:6px;">
+        {% if preview %}
+          {% for d in preview %}
+            <pre style="white-space:pre-wrap; font-size:12px; border-bottom:1px solid #eee">{{ d|tojson(indent=2, ensure_ascii=False) }}</pre>
+          {% endfor %}
+        {% else %}
+          <div>Δεν υπάρχουν cached παραστατικά.</div>
         {% endif %}
-    {% endwith %}
-
-    {% if message %}
-        <div class="success">{{ message }}</div>
-    {% endif %}
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
-
-    <form method="POST">
-        <label for="use_credential">Χρήση Credential:</label><br>
-        <select name="use_credential" id="use_credential">
-            <option value="">-- Default Env --</option>
-            {% for c in credentials %}
-                <option value="{{ c.name }}">{{ c.name }} ({{ c.vat }})</option>
-            {% endfor %}
-        </select><br>
-
-        <label for="vat_number">VAT (προαιρετικό):</label><br>
-        <input type="text" id="vat_number" name="vat_number"><br>
-
-        <label for="date_from">Από Ημερομηνία:</label><br>
-        <input type="date" id="date_from" name="date_from" required><br>
-
-        <label for="date_to">Έως Ημερομηνία:</label><br>
-        <input type="date" id="date_to" name="date_to" required><br>
-
-        <button type="submit">Fetch</button>
-    </form>
-
-    {% if preview %}
-        <h2>Προεπισκόπηση Cache ({{ preview|length }} τελευταία)</h2>
-        <table>
-            <thead>
-                <tr>
-                    {% for key in preview[0].keys() %}
-                        <th>{{ key }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for doc in preview %}
-                    <tr>
-                        {% for value in doc.values() %}
-                            <td>{{ value }}</td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>Δεν υπάρχουν δεδομένα στην cache.</p>
-    {% endif %}
-</body>
-</html>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
