@@ -61,6 +61,7 @@ TRANSMITTED_URL = (
 )
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app.jinja_env.globals['datetime'] = datetime
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 
 # Setup logging: stdout + rotating file
