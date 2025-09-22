@@ -323,6 +323,24 @@ def safe_render(template_name: str, **ctx):
 def home():
     return safe_render("nav.html")
 
+@app.route("/search", methods=["GET", "POST"])
+def search():
+    result = None
+    error = None
+    mark = ""
+    if request.method == "POST":
+        mark = request.form.get("mark", "").strip()
+        if not mark or not mark.isdigit() or len(mark) != 15:
+            error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
+        else:
+            doc = find_invoice_by_mark_exact(mark)
+            if not doc:
+                error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
+            else:
+                result = doc
+    return safe_render("fetch.html", result=result, error=error, mark=mark, credentials=load_credentials(), preview=load_cache()[:40])
+
+
 
 @app.route("/fetch", methods=["GET", "POST"])
 def fetch():
