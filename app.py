@@ -12,11 +12,10 @@ from utils import (
     extract_marks_from_text, EXCEL_FILE
 )
 import datetime
-import datetime
-# μετά το app = Flask(...)
-app.jinja_env.globals['datetime'] = datetime
+
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app.jinja_env.globals['datetime'] = datetime
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 
 # make datetime available in Jinja templates (fix for 'datetime' is undefined)
