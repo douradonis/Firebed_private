@@ -12,6 +12,13 @@ from utils import (
     is_mark_transmitted, fetch_by_mark, save_summary_to_excel,
     extract_marks_from_text, EXCEL_FILE
 )
+import datetime
+
+app = Flask(__name__, template_folder=TEMPLATES_DIR)
+app.secret_key = os.getenv("FLASK_SECRET", "change-me")
+
+# make datetime available in Jinja templates (fix for 'datetime' is undefined)
+app.jinja_env.globals['datetime'] = datetime
 
 # First create the Flask app
 app = Flask(__name__)
