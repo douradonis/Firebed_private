@@ -1,4 +1,5 @@
-# app.py - updated to use vendored mydatanaut + dd/mm/yyyy handling + robust logging
+# app.py
+# Unified app with robust mydatanaut vendor support and fixes for modern Flask
 import os
 import sys
 import json
@@ -6,13 +7,15 @@ import datetime
 import traceback
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import Any
+from typing import Any, Dict, List, Optional
 
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from markupsafe import escape, Markup  # use markupsafe (Flask no longer exports these)
+from flask import (
+    Flask, render_template, request, redirect, url_for, send_file, flash
+)
 import requests
 import xmltodict
 import pandas as pd
-from markupsafe import Markup, escape  # use markupsafe, not flask.Markup (Flask 3+)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -43,7 +46,7 @@ CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
 EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
 ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 
-# ENV / endpoints default (can be overridden by credential entries)
+# ENV / endpoints
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
 AADE_KEY_ENV = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
@@ -60,7 +63,9 @@ TRANSMITTED_URL = (
 )
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
-app.jinja_env.globals['datetime'] = datetime  # make datetime available in templates
+# make datetime available in templates (fix for 'datetime' is undefined)
+app.jinja_env.globals['datetime'] = datetime
+
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 
 # Setup logging: stdout + rotating file
@@ -245,90 +250,138 @@ def is_mark_transmitted(mark, aade_user, aade_key):
     return False
 
 
-# ---------------- Fetch implementations ----------------
-def fetch_docs_with_mydatanaut(date_from_str, date_to_str, vat, aade_user, aade_key):
-    """Use vendored mydatanaut client if available. Return list/dict or None."""
+# ---------------- Fetch implementations (mydatanaut aware) ----------------
+def _to_ddmmyyyy(date_str: str) -> str:
+    """
+    Convert various incoming date formats (ISO yyyy-mm-dd or dd/mm/yyyy) to dd/mm/YYYY
+    The UI will send ISO (date input) but the API expects dd/mm/YYYY.
+    """
+    if not date_str:
+        return date_str
+    # if already dd/mm/YYYY
+    try:
+        if "/" in date_str and len(date_str.split("/")[0]) == 2:
+            # assume dd/mm/YYYY
+            return date_str
+        # try ISO
+        d = datetime.date.fromisoformat(date_str)
+        return d.strftime("%d/%m/%Y")
+    except Exception:
+        # fallback try parse dd-mm-yyyy etc
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                d = datetime.datetime.strptime(date_str, fmt).date()
+                return d.strftime("%d/%m/%Y")
+            except Exception:
+                continue
+    return date_str
+
+
+def fetch_docs_with_mydatanaut(date_from: str, date_to: str, vat: str, aade_user: str, aade_key: str):
+    """
+    Try to call the vendorized mydatanaut in a few common ways.
+    Returns either: list-of-docs, dict, or None if not available.
+    """
     if not HAS_MYDATANAUT:
         return None
     try:
-        # instantiate client using common constructors
+        df = _to_ddmmyyyy(date_from)
+        dt = _to_ddmmyyyy(date_to)
+        vat_arg = vat or ""
+        # Try common client types/constructors
         client = None
-        try:
-            client = mydatanaut_pkg.Client(user=aade_user, key=aade_key, env=MYDATA_ENV)
-        except Exception:
+        # 1) Client(user=..., key=..., env=...)
+        for ctor_name in ("Client", "MyDataClient", "MyDataAPI", "MyData"):
             try:
-                client = mydatanaut_pkg.MyDataClient(user=aade_user, key=aade_key, env=MYDATA_ENV)
+                ctor = getattr(mydatanaut_pkg, ctor_name, None)
+                if ctor:
+                    try:
+                        client = ctor(user=aade_user, key=aade_key, env=MYDATA_ENV)
+                        break
+                    except TypeError:
+                        try:
+                            # some constructors use (aade_user, aade_key, env)
+                            client = ctor(aade_user, aade_key, MYDATA_ENV)
+                            break
+                        except Exception:
+                            client = None
             except Exception:
                 client = None
+        # 2) fallback: perhaps module exposes a factory
         if client is None:
-            return None
+            for name in ("create_client", "get_client"):
+                f = getattr(mydatanaut_pkg, name, None)
+                if callable(f):
+                    try:
+                        client = f(user=aade_user, key=aade_key, env=MYDATA_ENV)
+                        break
+                    except Exception:
+                        try:
+                            client = f(aade_user, aade_key, MYDATA_ENV)
+                            break
+                        except Exception:
+                            client = None
+        # 3) if none, maybe the package directly exposes a request_docs function
+        if client is None:
+            if hasattr(mydatanaut_pkg, "request_docs"):
+                try:
+                    return mydatanaut_pkg.request_docs(df, dt, vat_arg, user=aade_user, key=aade_key, env=MYDATA_ENV)
+                except Exception:
+                    try:
+                        return mydatanaut_pkg.request_docs(df, dt, vat_arg)
+                    except Exception:
+                        pass
+            if hasattr(mydatanaut_pkg, "fetch_docs"):
+                try:
+                    return mydatanaut_pkg.fetch_docs(df, dt, vat_arg, user=aade_user, key=aade_key, env=MYDATA_ENV)
+                except Exception:
+                    try:
+                        return mydatanaut_pkg.fetch_docs(df, dt, vat_arg)
+                    except Exception:
+                        pass
 
-        # mydatanaut API variants: try common call names
-        if hasattr(client, "request_docs"):
-            return client.request_docs(date_from_str, date_to_str, vat)
-        if hasattr(client, "fetch_docs"):
-            return client.fetch_docs(date_from_str, date_to_str, vat)
-        if hasattr(client, "docs"):
-            return client.docs(date_from_str, date_to_str, vat)
+        # If we constructed a client, try known methods
+        if client:
+            for method in ("request_docs", "fetch_docs", "docs", "get_docs", "requestDocs"):
+                fn = getattr(client, method, None)
+                if callable(fn):
+                    try:
+                        return fn(df, dt, vat_arg)
+                    except TypeError:
+                        try:
+                            # some implement (date_from, date_to, vat)
+                            return fn(date_from=df, date_to=dt, vat=vat_arg)
+                        except Exception:
+                            try:
+                                return fn(df, dt)
+                            except Exception:
+                                pass
+            # fallback: maybe client has `.request` or `.call`
+            if hasattr(client, "request"):
+                try:
+                    return client.request("RequestDocs", dateFrom=df, dateTo=dt, vatNumber=vat_arg)
+                except Exception:
+                    pass
     except Exception:
-        log.exception("mydatanaut error")
+        log.exception("mydatanaut integration failed")
     return None
 
 
-def _normalize_date_for_api(d):
-    """
-    Accepts either YYYY-MM-DD (iso) or DD/MM/YYYY. Returns DD/MM/YYYY string.
-    If d is empty/None -> returns None
-    """
-    if not d:
-        return None
-    d = d.strip()
-    # if iso-like
-    try:
-        if "-" in d:
-            dt = datetime.datetime.fromisoformat(d)
-            return dt.strftime("%d/%m/%Y")
-        # maybe already dd/mm/yyyy
-        if "/" in d and len(d.split("/")[0]) <= 2:
-            # simple validation
-            parts = d.split("/")
-            if len(parts) == 3:
-                dd, mm, yy = parts
-                if len(yy) == 4:
-                    return f"{int(dd):02d}/{int(mm):02d}/{int(yy):04d}"
-    except Exception:
-        pass
-    # fallback: return provided string (dangerous but per user's request)
-    return d
-
-
 def fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key):
-    """
-    date_from/date_to can be ISO (YYYY-MM-DD) or DD/MM/YYYY; _normalize_date_for_api will return DD/MM/YYYY
-    """
-    d1 = _normalize_date_for_api(date_from) or ""
-    d2 = _normalize_date_for_api(date_to) or ""
+    # convert to dd/mm/YYYY if needed
+    d1 = _to_ddmmyyyy(date_from)
+    d2 = _to_ddmmyyyy(date_to)
     params = {"dateFrom": d1, "dateTo": d2}
     if vat:
         params["vatNumber"] = vat
-
     headers = {
         "aade-user-id": aade_user or "",
         "ocp-apim-subscription-key": aade_key or "",
         "Accept": "application/xml",
     }
-
-    # Log the outgoing request for debugging reasons (especially on 403)
-    log.info("RequestDocs -> URL=%s params=%s headers=(aade_user=%s, key=%s ...)",
-             REQUESTDOCS_URL, params, aade_user[:8] if aade_user else "", ("SET" if aade_key else ""))
     r = requests.get(REQUESTDOCS_URL, params=params, headers=headers, timeout=60)
-
     if r.status_code >= 400:
-        # include the response body in the exception for debugging
-        resp_text = (r.text or "")[:2000]
-        log.warning("RequestDocs failed status=%s body=%s", r.status_code, resp_text)
-        raise Exception(f"API error {r.status_code}: {resp_text}")
-
+        raise Exception(f"API error {r.status_code}: {r.text[:1000]}")
     try:
         parsed_outer = xmltodict.parse(r.text)
         # unwrap nested <string> wrapper if exists
@@ -425,14 +478,9 @@ def fetch():
     creds = load_credentials()
     preview = load_cache()[:40]
 
-    # default date placeholders for form (show DD/MM/YYYY by default)
-    default_from = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
-    default_to = datetime.date.today().isoformat()
-
     if request.method == "POST":
-        # The form may pass dates in either ISO (YYYY-MM-DD) or dd/mm/yyyy
-        date_from = request.form.get("date_from", "").strip()
-        date_to = request.form.get("date_to", "").strip()
+        date_from = request.form.get("date_from")
+        date_to = request.form.get("date_to")
         selected = request.form.get("use_credential") or ""
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
@@ -446,14 +494,12 @@ def fetch():
 
         if not date_from or not date_to:
             error = "Παρακαλώ συμπλήρωσε από-έως ημερομηνίες."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview,
-                               default_from=default_from, default_to=default_to)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
         try:
             res = None
             if HAS_MYDATANAUT:
                 try:
-                    # pass raw strings — mydatanaut client should expect dd/mm/yyyy or ISO depending on implementation
                     res = fetch_docs_with_mydatanaut(date_from, date_to, vat, aade_user, aade_key)
                 except Exception:
                     log.exception("mydatanaut failed")
@@ -468,7 +514,6 @@ def fetch():
                     elif "docs" in parsed:
                         docs_list = parsed.get("docs") or []
                     else:
-                        # try find list children
                         found = False
                         for k, v in parsed.items():
                             if isinstance(v, list):
@@ -496,11 +541,9 @@ def fetch():
             preview = load_cache()[:40]
         except Exception as e:
             log.exception("Fetch error")
-            # If it's an API error with status logged earlier, include friendly text
             error = f"Σφάλμα λήψης: {e}"
-    # GET: render page with defaults
-    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview,
-                       default_from=default_from, default_to=default_to)
+
+    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
 
 # Search by MARK exact
