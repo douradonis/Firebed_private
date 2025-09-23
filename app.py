@@ -1,5 +1,4 @@
 # app.py
-# Unified app with robust mydatanaut vendor support and fixes for modern Flask
 import os
 import sys
 import json
@@ -9,19 +8,19 @@ import logging
 from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, List, Optional
 
-from markupsafe import escape, Markup  # use markupsafe (Flask no longer exports these)
 from flask import (
     Flask, render_template, request, redirect, url_for, send_file, flash
 )
 import requests
 import xmltodict
 import pandas as pd
+from markupsafe import Markup, escape
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # vendor path for vendorized dependencies (eg. vendor/mydatanaut)
 VENDOR_DIR = os.path.join(BASE_DIR, "vendor")
-if os.path.isdir(VENDOR_DIR) and VENDOR_DIR not in sys.path:
+if VENDOR_DIR not in sys.path:
     sys.path.insert(0, VENDOR_DIR)
 
 # Try import mydatanaut if vendorized
@@ -29,8 +28,16 @@ HAS_MYDATANAUT = False
 mydatanaut_pkg = None
 try:
     import importlib
-    mydatanaut_pkg = importlib.import_module("mydatanaut")
-    HAS_MYDATANAUT = True
+    # try common import names
+    try:
+        mydatanaut_pkg = importlib.import_module("mydatanaut")
+    except Exception:
+        try:
+            mydatanaut_pkg = importlib.import_module("mydata")
+        except Exception:
+            mydatanaut_pkg = None
+    if mydatanaut_pkg is not None:
+        HAS_MYDATANAUT = True
 except Exception:
     HAS_MYDATANAUT = False
 
@@ -63,9 +70,8 @@ TRANSMITTED_URL = (
 )
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
-# make datetime available in templates (fix for 'datetime' is undefined)
+# make datetime available in jinja templates
 app.jinja_env.globals['datetime'] = datetime
-
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 
 # Setup logging: stdout + rotating file
@@ -250,127 +256,133 @@ def is_mark_transmitted(mark, aade_user, aade_key):
     return False
 
 
-# ---------------- Fetch implementations (mydatanaut aware) ----------------
-def _to_ddmmyyyy(date_str: str) -> str:
+# ---------------- Fetch implementations ----------------
+def _format_date_for_api(dt_iso_or_yyyy_mm_dd):
     """
-    Convert various incoming date formats (ISO yyyy-mm-dd or dd/mm/yyyy) to dd/mm/YYYY
-    The UI will send ISO (date input) but the API expects dd/mm/YYYY.
+    Accept either ISO (YYYY-MM-DD) or already DD/MM/YYYY and return DD/MM/YYYY.
     """
-    if not date_str:
-        return date_str
-    # if already dd/mm/YYYY
+    if not dt_iso_or_yyyy_mm_dd:
+        return dt_iso_or_yyyy_mm_dd
+    # if already dd/mm/yyyy
+    if "/" in dt_iso_or_yyyy_mm_dd:
+        parts = dt_iso_or_yyyy_mm_dd.split("/")
+        if len(parts) == 3 and len(parts[2]) == 4:
+            return dt_iso_or_yyyy_mm_dd
+    # try ISO
     try:
-        if "/" in date_str and len(date_str.split("/")[0]) == 2:
-            # assume dd/mm/YYYY
-            return date_str
-        # try ISO
-        d = datetime.date.fromisoformat(date_str)
+        d = datetime.datetime.fromisoformat(dt_iso_or_yyyy_mm_dd)
         return d.strftime("%d/%m/%Y")
     except Exception:
-        # fallback try parse dd-mm-yyyy etc
-        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+        # try parsing common formats
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d"):
             try:
-                d = datetime.datetime.strptime(date_str, fmt).date()
+                d = datetime.datetime.strptime(dt_iso_or_yyyy_mm_dd, fmt)
                 return d.strftime("%d/%m/%Y")
             except Exception:
-                continue
-    return date_str
+                pass
+    # fallback: return unchanged
+    return dt_iso_or_yyyy_mm_dd
 
 
-def fetch_docs_with_mydatanaut(date_from: str, date_to: str, vat: str, aade_user: str, aade_key: str):
+def fetch_docs_with_mydatanaut(df, dt, vat, aade_user, aade_key):
     """
-    Try to call the vendorized mydatanaut in a few common ways.
-    Returns either: list-of-docs, dict, or None if not available.
+    Robust wrapper for vendorized mydatanaut packages.
+    Tries several common client constructors and method names.
+    If successful returns list/dict of docs (whatever the package returns).
     """
-    if not HAS_MYDATANAUT:
+    if not HAS_MYDATANAUT or mydatanaut_pkg is None:
         return None
-    try:
-        df = _to_ddmmyyyy(date_from)
-        dt = _to_ddmmyyyy(date_to)
-        vat_arg = vat or ""
-        # Try common client types/constructors
-        client = None
-        # 1) Client(user=..., key=..., env=...)
-        for ctor_name in ("Client", "MyDataClient", "MyDataAPI", "MyData"):
-            try:
-                ctor = getattr(mydatanaut_pkg, ctor_name, None)
-                if ctor:
-                    try:
-                        client = ctor(user=aade_user, key=aade_key, env=MYDATA_ENV)
-                        break
-                    except TypeError:
-                        try:
-                            # some constructors use (aade_user, aade_key, env)
-                            client = ctor(aade_user, aade_key, MYDATA_ENV)
-                            break
-                        except Exception:
-                            client = None
-            except Exception:
-                client = None
-        # 2) fallback: perhaps module exposes a factory
-        if client is None:
-            for name in ("create_client", "get_client"):
-                f = getattr(mydatanaut_pkg, name, None)
-                if callable(f):
-                    try:
-                        client = f(user=aade_user, key=aade_key, env=MYDATA_ENV)
-                        break
-                    except Exception:
-                        try:
-                            client = f(aade_user, aade_key, MYDATA_ENV)
-                            break
-                        except Exception:
-                            client = None
-        # 3) if none, maybe the package directly exposes a request_docs function
-        if client is None:
-            if hasattr(mydatanaut_pkg, "request_docs"):
-                try:
-                    return mydatanaut_pkg.request_docs(df, dt, vat_arg, user=aade_user, key=aade_key, env=MYDATA_ENV)
-                except Exception:
-                    try:
-                        return mydatanaut_pkg.request_docs(df, dt, vat_arg)
-                    except Exception:
-                        pass
-            if hasattr(mydatanaut_pkg, "fetch_docs"):
-                try:
-                    return mydatanaut_pkg.fetch_docs(df, dt, vat_arg, user=aade_user, key=aade_key, env=MYDATA_ENV)
-                except Exception:
-                    try:
-                        return mydatanaut_pkg.fetch_docs(df, dt, vat_arg)
-                    except Exception:
-                        pass
 
-        # If we constructed a client, try known methods
-        if client:
-            for method in ("request_docs", "fetch_docs", "docs", "get_docs", "requestDocs"):
-                fn = getattr(client, method, None)
-                if callable(fn):
-                    try:
-                        return fn(df, dt, vat_arg)
-                    except TypeError:
-                        try:
-                            # some implement (date_from, date_to, vat)
-                            return fn(date_from=df, date_to=dt, vat=vat_arg)
-                        except Exception:
-                            try:
-                                return fn(df, dt)
-                            except Exception:
-                                pass
-            # fallback: maybe client has `.request` or `.call`
-            if hasattr(client, "request"):
-                try:
-                    return client.request("RequestDocs", dateFrom=df, dateTo=dt, vatNumber=vat_arg)
-                except Exception:
-                    pass
+    d1 = _format_date_for_api(df)
+    d2 = _format_date_for_api(dt)
+
+    # Try client constructors/locations commonly used by that repo
+    constructors = []
+    try:
+        # try direct Client / MyDataClient
+        constructors.append(("mydatanaut.Client", getattr(mydatanaut_pkg, "Client", None)))
+        constructors.append(("mydatanaut.MyDataClient", getattr(mydatanaut_pkg, "MyDataClient", None)))
     except Exception:
-        log.exception("mydatanaut integration failed")
+        pass
+    # also try nested mydata module
+    try:
+        nested = getattr(mydatanaut_pkg, "mydata", None)
+        if nested:
+            constructors.append(("mydatanaut.mydata.Client", getattr(nested, "Client", None)))
+            constructors.append(("mydatanaut.mydata.MyDataClient", getattr(nested, "MyDataClient", None)))
+    except Exception:
+        pass
+
+    # try to instantiate any constructor we found
+    client = None
+    for name, ctor in constructors:
+        if not ctor:
+            continue
+        try:
+            # many clients accept (user=..., key=..., env=...) or (aade_user, aade_key)
+            try:
+                client = ctor(user=aade_user, key=aade_key, env=MYDATA_ENV)
+            except TypeError:
+                try:
+                    client = ctor(aade_user, aade_key, MYDATA_ENV)
+                except Exception:
+                    client = None
+            if client:
+                log.info("mydatanaut: instantiated client via %s", name)
+                break
+        except Exception:
+            log.exception("mydatanaut ctor %s failed", name)
+
+    # fallback: maybe the package exposes a top-level helper function
+    if client is None:
+        # try top-level helper names
+        helpers = ["request_docs", "fetch_docs", "requestDocuments", "fetch_documents"]
+        for h in helpers:
+            fn = getattr(mydatanaut_pkg, h, None)
+            if callable(fn):
+                try:
+                    log.info("mydatanaut: calling top-level helper %s", h)
+                    return fn(d1, d2, vat, user=aade_user, key=aade_key, env=MYDATA_ENV)
+                except TypeError:
+                    try:
+                        return fn(d1, d2, vat, aade_user, aade_key)
+                    except Exception:
+                        log.exception("mydatanaut helper %s failed", h)
+                except Exception:
+                    log.exception("mydatanaut helper %s failed", h)
+
+    if client is None:
+        log.info("mydatanaut: no usable client/func found")
+        return None
+
+    # If we have a client try common method names
+    method_names = [
+        "request_docs", "requestDocs", "fetch_docs", "fetchDocs",
+        "request_documents", "fetch_documents", "docs", "get_docs", "requestDocuments"
+    ]
+    for mn in method_names:
+        fn = getattr(client, mn, None)
+        if callable(fn):
+            try:
+                # try multiple calling conventions
+                try:
+                    return fn(d1, d2, vat)
+                except TypeError:
+                    try:
+                        return fn(date_from=d1, date_to=d2, vat=vat, user=aade_user, key=aade_key, env=MYDATA_ENV)
+                    except TypeError:
+                        # last resort: pass only dates
+                        return fn(d1, d2)
+            except Exception:
+                log.exception("client.%s failed", mn)
+    log.info("mydatanaut: client present but no callable method succeeded")
     return None
 
 
 def fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key):
-    # convert to dd/mm/YYYY if needed
-    d1 = _to_ddmmyyyy(date_from)
-    d2 = _to_ddmmyyyy(date_to)
+    # ensure dd/mm/YYYY
+    d1 = _format_date_for_api(date_from)
+    d2 = _format_date_for_api(date_to)
     params = {"dateFrom": d1, "dateTo": d2}
     if vat:
         params["vatNumber"] = vat
@@ -381,7 +393,9 @@ def fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key):
     }
     r = requests.get(REQUESTDOCS_URL, params=params, headers=headers, timeout=60)
     if r.status_code >= 400:
-        raise Exception(f"API error {r.status_code}: {r.text[:1000]}")
+        # include body for debugging but limit size
+        text = (r.text or "")[:1200]
+        raise Exception(f"API error {r.status_code}: {text}")
     try:
         parsed_outer = xmltodict.parse(r.text)
         # unwrap nested <string> wrapper if exists
@@ -488,6 +502,7 @@ def fetch():
         if selected:
             c = next((x for x in creds if x.get("name") == selected), None)
             if c:
+                # ensure selection persists
                 aade_user = c.get("user", "") or aade_user
                 aade_key = c.get("key", "") or aade_key
                 vat = vat or c.get("vat", "")
@@ -496,16 +511,20 @@ def fetch():
             error = "Παρακαλώ συμπλήρωσε από-έως ημερομηνίες."
             return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
+        # Ensure dates are in DD/MM/YYYY for API
+        d1 = _format_date_for_api(date_from)
+        d2 = _format_date_for_api(date_to)
+
         try:
             res = None
             if HAS_MYDATANAUT:
                 try:
-                    res = fetch_docs_with_mydatanaut(date_from, date_to, vat, aade_user, aade_key)
+                    res = fetch_docs_with_mydatanaut(d1, d2, vat, aade_user, aade_key)
                 except Exception:
                     log.exception("mydatanaut failed")
 
             if res is None:
-                parsed = fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key)
+                parsed = fetch_docs_via_requestdocs(d1, d2, vat, aade_user, aade_key)
                 docs_list = []
                 if isinstance(parsed, dict):
                     if "RequestedDoc" in parsed:
@@ -514,6 +533,7 @@ def fetch():
                     elif "docs" in parsed:
                         docs_list = parsed.get("docs") or []
                     else:
+                        # try find list children
                         found = False
                         for k, v in parsed.items():
                             if isinstance(v, list):
