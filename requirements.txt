@@ -1,11 +1,10 @@
-Flask>=2.2
+Flask
 requests
 xmltodict
 pandas
 openpyxl
-gunicorn
 python-dotenv
 markupsafe
-Pillow
-xsdata
-# mydatanaut -> vendored under vendor/mydatanaut, do NOT include as pip dependency
+gunicorn
+pillow
+pdf2image
