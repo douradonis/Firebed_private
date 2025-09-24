@@ -9,11 +9,14 @@ from logging.handlers import RotatingFileHandler
 from typing import Any
 
 from markupsafe import Markup, escape
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, g
 
 import requests
 import xmltodict
 import pandas as pd
+
+# import local mydata helper (το αρχείο mydata.py που έφτιαξες στο root)
+import mydata
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -303,18 +306,16 @@ def fetch_docs_with_mydatanaut(date_from, date_to, vat, aade_user, aade_key):
         log.exception("fetch_docs_with_mydatanaut failed")
         return None
 
-# ---------------- direct RequestDocs fallback ----------------
+# ---------------- direct RequestDocs fallback (legacy kept) ----------------
 def fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key):
     """
-    Calls RequestDocs endpoint; date_from/date_to are expected in ISO (YYYY-MM-DD) or DD/MM/YYYY.
-    API expects DD/MM/YYYY, so convert.
+    Legacy helper kept for backward compatibility. We keep it, but prefer using mydata.request_docs().
     """
     # Normalize: if ISO string, convert to DD/MM/YYYY
     try:
         d1 = datetime.datetime.fromisoformat(date_from).strftime("%d/%m/%Y")
         d2 = datetime.datetime.fromisoformat(date_to).strftime("%d/%m/%Y")
     except Exception:
-        # maybe already dd/mm/YYYY or other; try to pass as-is
         d1 = date_from
         d2 = date_to
 
@@ -374,7 +375,8 @@ def credentials():
         name = request.form.get("name", "").strip()
         user = request.form.get("user", "").strip()
         key = request.form.get("key", "").strip()
-        env = request.form.get("env", MYDATA_ENV).strip()
+        # IMPORTANT: on CREATE we do NOT allow choosing env -> force server-side default MYDATA_ENV
+        env = MYDATA_ENV
         vat = request.form.get("vat", "").strip()
         if not name:
             flash("Name required", "error")
@@ -398,6 +400,7 @@ def credentials_edit(name):
     if request.method == "POST":
         user = request.form.get("user", "").strip()
         key = request.form.get("key", "").strip()
+        # On edit we DO accept env selection from the form
         env = request.form.get("env", MYDATA_ENV).strip()
         vat = request.form.get("vat", "").strip()
         new = {"name": name, "user": user, "key": key, "env": env, "vat": vat}
@@ -468,28 +471,14 @@ def fetch():
                     log.exception("mydatanaut wrapper failed")
 
             if res is None:
-                parsed = fetch_docs_via_requestdocs(date_from, date_to, vat, aade_user, aade_key)
-                docs_list = []
-                if isinstance(parsed, dict):
-                    if "RequestedDoc" in parsed:
-                        maybe = parsed.get("RequestedDoc")
-                        docs_list = maybe if isinstance(maybe, list) else [maybe]
-                    elif "docs" in parsed:
-                        docs_list = parsed.get("docs") or []
-                    else:
-                        # try detect lists in returned dict
-                        found = False
-                        for k, v in parsed.items():
-                            if isinstance(v, list):
-                                docs_list = v
-                                found = True
-                                break
-                        if not found:
-                            docs_list = [parsed]
-                elif isinstance(parsed, list):
-                    docs_list = parsed
-                else:
-                    docs_list = []
+                # Use the custom mydata.py helper (preferred) which expects ISO dates
+                # Set the module-level headers using the user's stored credentials (server-side only)
+                mydata.HEADERS["aade-user-id"] = aade_user or ""
+                mydata.HEADERS["ocp-apim-subscription-key"] = aade_key or ""
+                # call mydata.request_docs: it returns a list of parsed dicts
+                parsed_list = mydata.request_docs(date_from, date_to, counter_vat=vat)
+                # parsed_list is expected to be a list of dicts
+                docs_list = parsed_list if isinstance(parsed_list, list) else (parsed_list if parsed_list else [])
                 added = 0
                 for d in docs_list:
                     if append_doc_to_cache(d, aade_user or None, aade_key or None):
@@ -572,7 +561,7 @@ def list_invoices():
         table = load_cache()
     return safe_render("list.html", table=table)
 
-# cron_fetch same as before
+# cron_fetch same as before, but calling mydata.request_docs when needed
 @app.route("/cron_fetch")
 def cron_fetch():
     secret = request.args.get("secret", "")
@@ -591,7 +580,15 @@ def cron_fetch():
     d1 = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
     d2 = datetime.date.today().isoformat()
     try:
-        parsed = fetch_docs_via_requestdocs(d1, d2, vat, aade_user, aade_key)
+        # prefer mydata.request_docs
+        try:
+            mydata.HEADERS["aade-user-id"] = aade_user or ""
+            mydata.HEADERS["ocp-apim-subscription-key"] = aade_key or ""
+            parsed = mydata.request_docs(d1, d2, counter_vat=vat)
+        except Exception:
+            # fallback to legacy requestdocs
+            parsed = fetch_docs_via_requestdocs(d1, d2, vat, aade_user, aade_key)
+
         docs_list = []
         if isinstance(parsed, dict):
             if "RequestedDoc" in parsed:
