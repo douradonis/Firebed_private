@@ -535,7 +535,7 @@ def bulk_fetch():
             _dt.strptime(date_to, date_format)
         except Exception:
             error = "Error: Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
-            return render_template_string(BULK_FETCH_HTML,
+            return render_template_string('bulk_fetch.html',
                                           default_user=user,
                                           default_key="",
                                           default_from=date_from,
@@ -554,7 +554,7 @@ def bulk_fetch():
         fetch_py = os.path.join(app.root_path, "fetch.py")
         if not os.path.exists(fetch_py):
             error = f"Το fetch.py δεν βρέθηκε στο path: {fetch_py}"
-            return render_template_string(BULK_FETCH_HTML,
+            return render_template_string('bulk_fetch.html',
                                           default_user=user,
                                           default_key="",
                                           default_from=date_from,
@@ -600,7 +600,7 @@ def bulk_fetch():
             # show stderr too
             output = (output + "\n\n[stderr]\n" + stderr) if output else ("[stderr]\n" + stderr)
 
-    return render_template_string(BULK_FETCH_HTML,
+    return render_template_string('bulk_fetch.html',
                                   default_user=default_user,
                                   default_key=default_key,
                                   default_from=default_from,
