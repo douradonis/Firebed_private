@@ -287,13 +287,7 @@ def fetch():
     if request.method == "POST":
         # normalize input dates (UI can send dd/mm/YYYY or ISO)
         def normalize_input_date_to_iso(s: str) -> Optional[str]:
-    """
-    Δέχεται string σε μορφή:
-      - dd/mm/YYYY  (π.χ. 01/08/2025)
-      - dd/mm/YY    (π.χ. 01/08/25)
-      - ISO YYYY-MM-DD  (π.χ. 2025-08-01)
-    Επιστρέφει ISO date (YYYY-MM-DD) ή None αν αποτύχει.
-    """
+    
     if not s:
         return None
     s = s.strip()
