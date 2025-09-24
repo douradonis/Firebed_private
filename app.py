@@ -2,11 +2,13 @@
 import os
 import sys
 import json
-import datetime
 import traceback
 import logging
 from logging.handlers import RotatingFileHandler
 from typing import Any, Optional
+import time
+from datetime import datetime as _dt
+from werkzeug.utils import secure_filename
 
 from markupsafe import escape
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, g, jsonify
@@ -500,6 +502,118 @@ def handle_unexpected_error(e):
         return "<h2>Server Error (debug)</h2><pre>{}</pre>".format(escape(tb)), 500
     else:
         return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
+
+
+@app.route("/bulk_fetch", methods=["GET", "POST"])
+def bulk_fetch():
+    # προεπιλογές για το template
+    default_to = _dt.now().strftime("%d/%m/%Y")
+    default_from = ""  # άδειο — ο χρήστης το συμπληρώνει
+    default_user = os.getenv("AADE_USER_ID", "")
+    default_key = os.getenv("AADE_SUBSCRIPTION_KEY", "")
+
+    output = None
+    error = None
+    download_url = None
+
+    if request.method == "POST":
+        user = (request.form.get("user") or "").strip()
+        key = (request.form.get("key") or "").strip()
+        date_from = (request.form.get("date_from") or "").strip()
+        date_to = (request.form.get("date_to") or "").strip()
+
+        # fallback σε env vars αν ο χρήστης δεν έδωσε credentials
+        if not user:
+            user = os.getenv("AADE_USER_ID") or os.getenv("AADE_USER") or ""
+        if not key:
+            key = os.getenv("AADE_SUBSCRIPTION_KEY") or os.getenv("AADE_KEY") or ""
+
+        # απλή validation ημερομηνίας
+        date_format = "%d/%m/%Y"
+        try:
+            _dt.strptime(date_from, date_format)
+            _dt.strptime(date_to, date_format)
+        except Exception:
+            error = "Error: Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
+            return render_template_string(BULK_FETCH_HTML,
+                                          default_user=user,
+                                          default_key="",
+                                          default_from=date_from,
+                                          default_to=date_to,
+                                          output=output,
+                                          error=error,
+                                          download_url=download_url)
+
+        # prepare output path
+        ts = int(time.time())
+        out_fname = f"fetch_{ts}.xlsx"
+        out_path = os.path.join(app.config.get("UPLOAD_FOLDER", "uploads"), secure_filename(out_fname))
+        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+
+        # path to fetch.py (assumes fetch.py in project root)
+        fetch_py = os.path.join(app.root_path, "fetch.py")
+        if not os.path.exists(fetch_py):
+            error = f"Το fetch.py δεν βρέθηκε στο path: {fetch_py}"
+            return render_template_string(BULK_FETCH_HTML,
+                                          default_user=user,
+                                          default_key="",
+                                          default_from=date_from,
+                                          default_to=date_to,
+                                          output=output,
+                                          error=error,
+                                          download_url=download_url)
+
+        # build command
+        cmd = [
+            sys.executable, fetch_py,
+            "--date-from", date_from,
+            "--date-to", date_to,
+            "--out", out_path
+        ]
+        if user:
+            cmd += ["--user", user]
+        if key:
+            cmd += ["--key", key]
+
+        # εκτέλεση subprocess (συγχρονικά)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)  # timeout 15 λεπτά
+            output = proc.stdout.strip()
+            stderr = proc.stderr.strip()
+            if proc.returncode != 0:
+                error = f"exit code {proc.returncode}\n{stderr}"
+            else:
+                # αν δημιουργήθηκε το αρχείο - δώσε σύνδεσμο για download
+                if os.path.exists(out_path):
+                    download_url = url_for("download_generated", filename=os.path.basename(out_path))
+                else:
+                    error = "Το fetch τερμάτισε χωρίς να δημιουργήσει αρχείο .xlsx. Δες logs."
+        except subprocess.TimeoutExpired:
+            output = ""
+            error = "Η εκτέλεση του fetch.py ξεπέρασε το timeout."
+        except Exception as e:
+            output = ""
+            error = f"Σφάλμα κατά την εκτέλεση: {e}"
+
+        # append stderr to output for visibility
+        if error is None and stderr:
+            # show stderr too
+            output = (output + "\n\n[stderr]\n" + stderr) if output else ("[stderr]\n" + stderr)
+
+    return render_template_string(BULK_FETCH_HTML,
+                                  default_user=default_user,
+                                  default_key=default_key,
+                                  default_from=default_from,
+                                  default_to=default_to,
+                                  output=output,
+                                  error=error,
+                                  download_url=download_url)
+@app.route("/download_generated/<path:filename>")
+def download_generated(filename):
+    filepath = os.path.join(app.config.get("UPLOAD_FOLDER", "uploads"), secure_filename(filename))
+    if not os.path.exists(filepath):
+        return ("Το αρχείο δεν βρέθηκε.", 404)
+    return send_file(filepath, as_attachment=True, download_name=filename)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
