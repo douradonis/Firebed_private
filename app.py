@@ -473,11 +473,13 @@ def fetch():
             if res is None:
                 # Use the custom mydata.py helper (preferred) which expects ISO dates
                 # Set the module-level headers using the user's stored credentials (server-side only)
-                mydata.HEADERS["aade-user-id"] = aade_user or ""
-                mydata.HEADERS["ocp-apim-subscription-key"] = aade_key or ""
-                # call mydata.request_docs: it returns a list of parsed dicts
-                parsed_list = mydata.request_docs(date_from, date_to, counter_vat=vat)
-                # parsed_list is expected to be a list of dicts
+                parsed_list = mydata.request_docs(
+                date_from,
+                date_to,
+                counter_vat=vat,
+                aade_user=(aade_user or None),
+                subscription_key=(aade_key or None),
+                )
                 docs_list = parsed_list if isinstance(parsed_list, list) else (parsed_list if parsed_list else [])
                 added = 0
                 for d in docs_list:
@@ -582,9 +584,13 @@ def cron_fetch():
     try:
         # prefer mydata.request_docs
         try:
-            mydata.HEADERS["aade-user-id"] = aade_user or ""
-            mydata.HEADERS["ocp-apim-subscription-key"] = aade_key or ""
-            parsed = mydata.request_docs(d1, d2, counter_vat=vat)
+            parsed = mydata.request_docs(
+            d1,
+            d2,
+            counter_vat=vat,
+            aade_user=(aade_user or None),
+            subscription_key=(aade_key or None),
+                )
         except Exception:
             # fallback to legacy requestdocs
             parsed = fetch_docs_via_requestdocs(d1, d2, vat, aade_user, aade_key)
