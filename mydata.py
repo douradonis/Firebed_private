@@ -1,6 +1,20 @@
-
+# mydata.py
 """
+Lightweight myDATA helper module for Firebed_private.
 
+Provides:
+  - request_docs(date_from, date_to, dummy_mark=None, counter_vat=None, throttle=0.2,
+                 aade_user: Optional[str]=None, subscription_key: Optional[str]=None)
+    -> returns List[dict] parsed from the myDATA RequestDocs response (xml -> python dict).
+
+Configuration (env) still supported for defaults (but not required):
+  - AADE_USER_ID, AADE_SUBSCRIPTION_KEY, MYDATA_BASE_URL
+
+Notes:
+  - Uses requests and xmltodict. Install: pip install requests xmltodict
+  - The AADE myDATA API documentation (v1.0.9) defines RequestDocs and required headers.
+    See official doc for details (pagination keys: nextPartitionKey / nextRowKey).
+"""
 from typing import List, Dict, Any, Optional
 import os
 import time
@@ -11,17 +25,17 @@ import xmltodict
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
-    # basic fallback handler if app doesn't configure logging
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     logger.addHandler(handler)
 logger.setLevel(os.getenv("MYDATA_LOG_LEVEL", "INFO"))
 
-# Configuration from environment
+# Module-level defaults (kept for backward compatibility)
 AADE_USER = os.getenv("AADE_USER_ID", os.getenv("AADE_USER", ""))
 SUBSCRIPTION_KEY = os.getenv("AADE_SUBSCRIPTION_KEY", os.getenv("AADE_SUBSCRIPTION", ""))
 MYDATA_BASE = os.getenv("MYDATA_BASE_URL", "https://mydataapidev.aade.gr")  # default dev endpoint
 
+# Default header map (used only when explicit creds not passed)
 HEADERS = {
     "aade-user-id": AADE_USER,
     "ocp-apim-subscription-key": SUBSCRIPTION_KEY,
@@ -44,6 +58,8 @@ def request_docs(
     dummy_mark: Optional[str] = None,
     counter_vat: Optional[str] = None,
     throttle: float = 0.2,
+    aade_user: Optional[str] = None,
+    subscription_key: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Fetch documents from myDATA RequestDocs for [date_from, date_to].
@@ -54,14 +70,23 @@ def request_docs(
       dummy_mark: optional 15-digit mark (e.g. '000000000000000')
       counter_vat: optional counterVatNumber (ΑΦΜ) to filter
       throttle: seconds to sleep between paginated requests
+      aade_user: optional per-call aade user id (overrides module default)
+      subscription_key: optional per-call subscription key (overrides module default)
 
     Returns:
       list of parsed document dicts (xmltodict -> python dict).
     Raises:
       RuntimeError on non-200 HTTP or other unrecoverable errors (exception includes response text).
     """
-    if not HEADERS["aade-user-id"] or not HEADERS["ocp-apim-subscription-key"]:
-        logger.warning("AADE headers appear empty. Ensure AADE_USER_ID and AADE_SUBSCRIPTION_KEY env vars are set.")
+    # Prepare headers for this call (prefer explicit credentials passed to function)
+    headers = HEADERS.copy()
+    if aade_user:
+        headers["aade-user-id"] = aade_user
+    if subscription_key:
+        headers["ocp-apim-subscription-key"] = subscription_key
+
+    if not headers.get("aade-user-id") or not headers.get("ocp-apim-subscription-key"):
+        logger.warning("mydata.request_docs called without AADE credentials; the request will likely fail with 401.")
 
     # Build URL and params
     url = f"{MYDATA_BASE.rstrip('/')}/RequestDocs"
@@ -77,10 +102,10 @@ def request_docs(
     while True:
         attempt += 1
         logger.debug("RequestDocs attempt %s, url=%s params=%s", attempt, url, params)
-        resp = requests.get(url, headers=HEADERS, params=params, timeout=90)
+        resp = requests.get(url, headers=headers, params=params, timeout=90)
         if resp.status_code != 200:
-            logger.error("RequestDocs HTTP %s: %s", resp.status_code, resp.text)
-            raise RuntimeError(f"RequestDocs HTTP {resp.status_code}: {resp.text}")
+            logger.error("RequestDocs HTTP %s: %s", resp.status_code, resp.text[:1000])
+            raise RuntimeError(f"RequestDocs HTTP {resp.status_code}: {resp.text[:1000]}")
 
         parsed = xmltodict.parse(resp.text)
 
@@ -147,7 +172,7 @@ def request_docs(
         if next_partition and next_row:
             params["nextPartitionKey"] = next_partition
             params["nextRowKey"] = next_row
-            logger.debug("Pagination detected. Continuing with nextPartitionKey=%s nextRowKey=%s", next_partition, next_row)
+            logger.debug("Pagination keys found; continuing with nextPartitionKey=%s nextRowKey=%s", next_partition, next_row)
             time.sleep(throttle)
             continue
         else:
@@ -156,15 +181,12 @@ def request_docs(
     return results
 
 
-# Small helper if you want to flatten the first doc for inspection
 def first_doc_preview(date_from: str, date_to: str, **kwargs) -> Optional[Dict[str, Any]]:
     docs = request_docs(date_from, date_to, **kwargs)
     return docs[0] if docs else None
 
 
 if __name__ == "__main__":
-    # Quick local test (run: python mydata.py)
-    # Make sure env vars AADE_USER_ID & AADE_SUBSCRIPTION_KEY are set before running.
     import json
     import sys
 
@@ -172,7 +194,6 @@ if __name__ == "__main__":
         df = sys.argv[1]
         dt = sys.argv[2]
     else:
-        # example short interval — change to a range that exists in your data
         df = "2025-09-01"
         dt = "2025-09-05"
 
