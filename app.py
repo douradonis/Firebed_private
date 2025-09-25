@@ -468,7 +468,7 @@ def save_summary():
             "issueDate": row["Ημερομηνία"],
             "AFM_issuer": row["ΑΦΜ"],
             "Name_issuer": row["Επωνυμία"],
-            "classification": "αποθηκευμενο_με_χειροκινητη_αποθηκευση"
+            "classification": summary.get("classification", "")  # κρατάμε το αρχικό χαρακτηριστικό
         }
         append_doc_to_cache(cached)
     except Exception:
@@ -476,6 +476,7 @@ def save_summary():
 
     flash("Saved summary to Excel and cache", "success")
     return redirect(url_for("list_invoices"))
+
 
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
