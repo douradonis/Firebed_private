@@ -29,6 +29,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 CACHE_FILE = os.path.join(DATA_DIR, "invoices_cache.json")
+SUMMARY_FILE = os.path.join(DATA_DIR, "summary.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
 EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
 ERROR_LOG = os.path.join(DATA_DIR, "error.log")
@@ -128,6 +129,66 @@ def append_doc_to_cache(doc, aade_user=None, aade_key=None):
     save_cache(docs)
     return True
 
+# ---------------- Summary helpers ----------------
+def load_summary():
+    data = json_read(SUMMARY_FILE)
+    return data if isinstance(data, list) else []
+
+def save_summary(summary_list):
+    """
+    Save/merge summary_list into SUMMARY_FILE.
+    Avoid duplicate summaries by 'mark' field (if present).
+    If summary_list is not a list, try to wrap it.
+    """
+    if summary_list is None:
+        return
+    if not isinstance(summary_list, list):
+        try:
+            summary_list = list(summary_list)
+        except Exception:
+            summary_list = [summary_list]
+
+    existing = load_summary()
+    # build index by mark if possible
+    existing_by_mark = {}
+    for e in existing:
+        try:
+            mk = str(e.get("mark")).strip()
+        except Exception:
+            mk = ""
+        if mk:
+            existing_by_mark[mk] = e
+
+    changed = False
+    for s in summary_list:
+        if not isinstance(s, dict):
+            continue
+        mk = str(s.get("mark") or s.get("MARK") or "").strip()
+        if mk:
+            if mk not in existing_by_mark:
+                existing.append(s)
+                existing_by_mark[mk] = s
+                changed = True
+            else:
+                # if mark exists, consider updating the existing entry (optional)
+                # keep existing as-is to avoid overwriting
+                pass
+        else:
+            # no mark -> try to avoid exact duplicate
+            try:
+                if s not in existing:
+                    existing.append(s)
+                    changed = True
+            except Exception:
+                existing.append(s)
+                changed = True
+
+    if changed:
+        try:
+            json_write(SUMMARY_FILE, existing)
+        except Exception:
+            log.exception("Could not write summary file")
+
 # ---------------- Validation helper ----------------
 def normalize_input_date_to_iso(s: str):
     """
@@ -206,7 +267,7 @@ def credentials_delete(name):
     flash("Deleted", "success")
     return redirect(url_for("credentials"))
 
-# ---------------- Bulk fetch ----------------
+# ---------------- Bulk fetch (/fetch) ----------------
 @app.route("/fetch", methods=["GET", "POST"])
 def fetch():
     message = None
@@ -264,6 +325,12 @@ def fetch():
                 if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
+            # ΑΠΟΘΗΚΕΥΣΗ summary_list στο data/summary.json
+            try:
+                save_summary(summary_list)
+            except Exception:
+                log.exception("Saving summary_list failed")
+
             message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
 
@@ -272,7 +339,7 @@ def fetch():
 
     return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
-# ---------------- Bulk fetch route ----------------
+# ---------------- Bulk fetch page (bulk_fetch) ----------------
 @app.route("/bulk_fetch", methods=["GET", "POST"])
 def bulk_fetch():
     creds = load_credentials()
@@ -302,8 +369,8 @@ def bulk_fetch():
 
         def validate_ddmmyyyy(s):
             try:
-                return datetime.strptime(s, "%d/%m/%Y")
-            except ValueError:
+                return _dt.strptime(s, "%d/%m/%Y")
+            except Exception:
                 return None
 
         d_from = validate_ddmmyyyy(date_from_raw)
@@ -334,6 +401,12 @@ def bulk_fetch():
                 if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
+            # ΑΠΟΘΗΚΕΥΣΗ summary_list στο data/summary.json
+            try:
+                save_summary(summary_list)
+            except Exception:
+                log.exception("Saving summary_list failed (bulk_fetch)")
+
             message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
 
@@ -348,7 +421,6 @@ def bulk_fetch():
                        error=error,
                        preview=preview,
                        default_vat="")
-
 
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
@@ -427,4 +499,3 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug_flag = True  # πάντα debug στο dev
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
-
