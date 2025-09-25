@@ -418,10 +418,6 @@ def search():
 # ---------------- Save summary from modal to Excel & cache ----------------
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
-    """
-    Receives JSON (summary) from modal (form) and appends to invoices.xlsx (one row).
-    Also appends to cache file.
-    """
     try:
         payload = request.form.get("summary_json") or request.get_data(as_text=True)
         if not payload:
@@ -432,7 +428,6 @@ def save_summary():
         flash(f"Invalid summary data: {e}", "error")
         return redirect(url_for("search"))
 
-    # prepare DataFrame row (mirror columns used elsewhere)
     row = {
         "MARK": str(summary.get("mark", "")),
         "ΑΦΜ": summary.get("AFM", ""),
@@ -447,6 +442,7 @@ def save_summary():
         "Σύνολο": summary.get("totalValue", "")
     }
 
+    # Αποθήκευση στο Excel
     try:
         df_new = pd.DataFrame([row]).astype(str).fillna("")
         if os.path.exists(EXCEL_FILE):
@@ -457,25 +453,20 @@ def save_summary():
             os.makedirs(os.path.dirname(EXCEL_FILE) or ".", exist_ok=True)
             df_new.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
     except Exception as e:
-        log.exception("save_summary: excel write failed")
+        log.exception("save_summary: Excel write failed")
         flash(f"Excel save failed: {e}", "error")
         return redirect(url_for("search"))
 
-    # also append to cache as a simple record (if not duplicate)
+    # Προσθήκη στο cache με τα σωστά πεδία
     try:
-        cached = {
-            "mark": row["MARK"],
-            "issueDate": row["Ημερομηνία"],
-            "AFM_issuer": row["ΑΦΜ"],
-            "Name_issuer": row["Επωνυμία"],
-            "classification": summary.get("classification", "")  # κρατάμε το αρχικό χαρακτηριστικό
-        }
+        cached = row.copy()  # χρησιμοποιούμε ακριβώς τα ίδια πεδία με το Excel
         append_doc_to_cache(cached)
     except Exception:
         log.exception("save_summary: append cache failed")
 
     flash("Saved summary to Excel and cache", "success")
     return redirect(url_for("list_invoices"))
+
 
 
 # ---------------- List / download ----------------

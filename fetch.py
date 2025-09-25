@@ -86,6 +86,11 @@ def request_docs(
             series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header else ""
             aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header else ""
 
+            # --- τύπος παραστατικού ---
+            invoice_type = _safe_strip(header.findtext("ns:invoiceType", default="", namespaces=ns)) if header else ""
+            if not invoice_type:
+                invoice_type = find_in_element_by_localnames(invoice, ["invoiceType", "invoiceCategory", "type", "documentType"])
+
             vatissuer, Name_issuer = extract_issuer_info(invoice, ns)
 
             vat_groups = defaultdict(lambda: {"netValue": 0.0, "vatAmount": 0.0})
@@ -118,6 +123,7 @@ def request_docs(
                     "issueDate": issueDate,
                     "series": series,
                     "aa": aa,
+                    "type": invoice_type,                 # προσθήκη τύπου παραστατικού
                     "vatCategory": vat_cat,
                     "totalNetValue": round(totals["netValue"], 2),
                     "totalVatAmount": round(totals["vatAmount"], 2),
@@ -166,6 +172,9 @@ def request_docs(
                 summary_rows[mark_val]["classification"] = "χαρακτηρισμενο"
             summary_rows[mark_val]["totalNetValue"] += row["totalNetValue"]
             summary_rows[mark_val]["totalVatAmount"] += row["totalVatAmount"]
+            # κρατάμε τον πρώτο τύπο παραστατικού
+            if not summary_rows[mark_val].get("type"):
+                summary_rows[mark_val]["type"] = row.get("type", "")
 
     for s in summary_rows.values():
         s["totalValue"] = round(s["totalNetValue"] + s["totalVatAmount"], 2)
