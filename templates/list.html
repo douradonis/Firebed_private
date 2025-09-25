@@ -1,34 +1,99 @@
 {% extends "base.html" %}
-{% block title %}List{% endblock %}
-{% block content %}
-<h2>List of invoices / Excel</h2>
-<div class="mb-3">
-  <a class="btn btn-success" href="{{ url_for('list_invoices') }}?download=1">Download Excel</a>
-  <a class="btn btn-secondary" href="{{ url_for('fetch') }}">Back to Fetch</a>
-</div>
+{% block title %}Λίστα Παραστατικών{% endblock %}
 
-{% if table %}
-  <div style="max-height:600px; overflow:auto; background:#fff; padding:8px; border-radius:6px;">
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          {% for k in table[0].keys() %}
-            <th>{{ k }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in table %}
-          <tr>
-            {% for v in row.values() %}
-              <td style="white-space:pre-wrap">{{ v }}</td>
-            {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+{% block head_extra %}
+<style>
+.table-wrapper { width:100%; overflow:auto; max-height:70vh; border-radius:8px; background:#fff; padding:8px; }
+.summary-table { width:100%; border-collapse:collapse; min-width:900px; }
+.summary-table th, .summary-table td { border:1px solid #e6e6e6; padding:8px; vertical-align:top; }
+.summary-table th { background:#0d6efd; color:white; position: sticky; top:0; z-index:2; }
+.cell-wrap { white-space:pre-wrap; word-break:break-word; max-width:360px; overflow:hidden; }
+.small-btn { padding:8px 12px; border-radius:8px; color:#fff; background:#0d6efd; text-decoration:none; display:inline-block; }
+.small-btn.secondary { background:#6c757d; }
+.small-btn.danger { background:#dc3545; }
+{{ css_numcols | safe }}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-semibold">Λίστα Παραστατικών</h2>
+    <div class="flex gap-2">
+      {% if file_exists %}
+        <a class="small-btn" href="{{ url_for('list_invoices') }}?download=1">⬇️ Κατέβασμα .xlsx</a>
+      {% endif %}
+      <a class="small-btn secondary" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
+    </div>
   </div>
-{% else %}
-  <div>No rows</div>
-{% endif %}
+
+  <div class="mb-3 flex gap-2">
+    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border rounded w-64">
+    <button id="deleteBtn" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
+  </div>
+
+  {% if error %}
+    <div class="p-3 mb-3 rounded bg-red-50 text-red-800">{{ error }}</div>
+  {% endif %}
+
+  <div class="table-wrapper">
+    {% if table_html %}
+      {{ table_html | safe }}
+    {% else %}
+      <div class="p-3 text-gray-600">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+  // DataTables usage if available
+  try {
+    const dt = $('.summary-table').DataTable({
+      paging: true,
+      scrollY: '55vh',
+      scrollX: true,
+      scrollCollapse: true,
+      fixedHeader: true,
+      columnDefs: [{ orderable: false, targets: 0 }] // first col = checkbox
+    });
+
+    $('#globalSearch').on('input', function(){
+      dt.search(this.value).draw();
+    });
+  } catch(e){
+    console.warn("DataTables not initialized:", e);
+    // fallback: simple search
+    $('#globalSearch').on('input', function(){
+      const q = this.value.toLowerCase();
+      $('.summary-table tbody tr').each(function(){
+        $(this).toggle($(this).text().toLowerCase().indexOf(q) !== -1);
+      });
+    });
+  }
+
+  // select-all checkbox
+  $('#selectAll').on('change', function(){
+    const checked = this.checked;
+    $('input[type="checkbox"][name="delete_mark"]').prop('checked', checked);
+  });
+
+  $('#deleteBtn').on('click', function(){
+    const selected = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
+    if(!selected.length){
+      alert('Επίλεξε πρώτα γραμμές για διαγραφή.');
+      return;
+    }
+    if(!confirm(`Θες σίγουρα να διαγράψεις ${selected.length} εγγραφή(ες);`)) return;
+    const form = $('<form method="POST" action="{{ url_for("delete_invoices") }}"></form>');
+    selected.forEach(function(s){
+      form.append($('<input>').attr('type','hidden').attr('name','delete_mark').val(s));
+    });
+    $('body').append(form);
+    form.submit();
+  });
+});
+</script>
 {% endblock %}

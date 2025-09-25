@@ -1,70 +1,76 @@
-<!-- templates/fetch.html -->
 {% extends "base.html" %}
+{% block title %}Bulk Fetch{% endblock %}
+
 {% block content %}
-<div class="card p-4">
-  <h4>Bulk Fetch Παραστατικών</h4>
-  <p class="text-muted">Επιλέξτε διάστημα (μόνο μορφή <strong>dd/mm/YYYY</strong>) και credential set.</p>
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold text-sky-700 mb-2">Λήψη Παραστατικών (Bulk)</h2>
+  <p class="text-sm text-gray-600 mb-4">Επίλεξε διάστημα (μόνο dd/mm/YYYY) και το σετ credentials που θες.</p>
 
   {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
+    <div class="mb-3 p-3 rounded bg-green-50 text-green-800">{{ message }}</div>
   {% endif %}
   {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
+    <div class="mb-3 p-3 rounded bg-red-50 text-red-800">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="row g-3">
-    <div class="col-md-3">
-      <label class="form-label">Ημερομηνία από (dd/mm/YYYY)</label>
-      <input id="date_from" name="date_from" class="form-control" placeholder="π.χ. 01/09/2025" value="{{ request.form.date_from or '' }}" required>
+  <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    <div>
+      <label class="block text-sm text-gray-700">Ημερομηνία Από (dd/mm/YYYY)</label>
+      <input name="date_from" id="date_from" type="text" placeholder="dd/mm/YYYY"
+             class="mt-1 block w-full border rounded p-2" value="">
     </div>
-    <div class="col-md-3">
-      <label class="form-label">Ημερομηνία έως (dd/mm/YYYY)</label>
-      <input id="date_to" name="date_to" class="form-control" placeholder="π.χ. 07/09/2025" value="{{ request.form.date_to or '' }}" required>
+
+    <div>
+      <label class="block text-sm text-gray-700">Έως (dd/mm/YYYY)</label>
+      <input name="date_to" id="date_to" type="text" placeholder="dd/mm/YYYY"
+             class="mt-1 block w-full border rounded p-2" value="">
     </div>
-    <div class="col-md-3">
-      <label class="form-label">Use credential set</label>
-      <select name="use_credential" class="form-select">
+
+    <div>
+      <label class="block text-sm text-gray-700">Χρησιμοποίησε Credential</label>
+      <select name="use_credential" class="mt-1 block w-full border rounded p-2">
         <option value="">(ENV / Default)</option>
         {% for c in credentials %}
           <option value="{{ c.name }}">{{ c.name }} {% if c.vat %}({{ c.vat }}){% endif %}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <button class="btn btn-primary w-100" type="submit">Λήψη & Αποθήκευση Cache</button>
+
+    <div class="col-span-1 md:col-span-3">
+      <button type="submit" class="bg-sky-600 text-white px-4 py-2 rounded">Λήψη & Αποθήκευση Cache</button>
     </div>
   </form>
+</div>
 
-  <hr>
-
-  <h6>Preview cache (περιορισμένο)</h6>
-  <div style="max-height:360px; overflow:auto; background:#fbfdff; padding:10px; border-radius:8px;">
+<!-- Preview cache -->
+<div class="mt-6">
+  <h3 class="text-lg font-medium text-gray-800 mb-2">Preview cache (περιορισμένο)</h3>
+  <div class="bg-white rounded shadow p-3 max-h-96 overflow-auto">
     {% if preview %}
       {% for d in preview %}
-        <pre class="small">{{ d | tojson(indent=2) }}</pre>
+        <pre class="text-xs mb-2">{{ d | tojson(indent=2) }}</pre>
       {% endfor %}
     {% else %}
-      <div class="text-muted">Δεν υπάρχουν cached παραστατικά.</div>
+      <div class="text-gray-600">Δεν υπάρχουν cached παραστατικά.</div>
     {% endif %}
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-  // small client helper: enforce dd/mm/YYYY format on blur
-  function valid_ddmmyyyy(s){
-    return /^([0-2]\d|3[01])\/(0\d|1[0-2])\/\d{4}$/.test(s);
-  }
-  document.addEventListener('DOMContentLoaded', function(){
-    ["date_from","date_to"].forEach(function(id){
-      const el = document.getElementById(id);
-      el && el.addEventListener('blur', function(){
-        if (!valid_ddmmyyyy(this.value)) {
-          this.classList.add('is-invalid');
-        } else {
-          this.classList.remove('is-invalid');
-        }
-      });
+  // simple date mask for dd/mm/YYYY
+  function setupDateInput(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', function(e){
+      let v = el.value.replace(/[^\d]/g,'').slice(0,8);
+      if(v.length>=5) el.value = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4,8);
+      else if(v.length>=3) el.value = v.slice(0,2) + '/' + v.slice(2,4);
+      else el.value = v;
     });
-  });
+  }
+  setupDateInput('date_from');
+  setupDateInput('date_to');
 </script>
 {% endblock %}

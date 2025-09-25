@@ -7707,3 +7707,73 @@ TypeError: do_tojson() got an unexpected keyword argument 'ensure_ascii'
 
 2025-09-25 11:26:20,470 INFO Starting app - MYDATA_ENV=production
 
+2025-09-25 12:12:08,942 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-25 12:12:09,374 INFO Starting app - MYDATA_ENV=production
+
+2025-09-25 12:12:26,769 ERROR Failed to read Excel for list
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 447, in list_invoices
+    headers = pd.io.formats.style._maybe_convert_index(df.columns).tolist() if hasattr(pd.io.formats.style, "_maybe_convert_index") else [str(c) for c in df.columns]
+                                                                                       ^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'pandas.io.formats' has no attribute 'style'
+2025-09-25 12:13:17,068 ERROR Failed to read Excel for list
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 447, in list_invoices
+    headers = pd.io.formats.style._maybe_convert_index(df.columns).tolist() if hasattr(pd.io.formats.style, "_maybe_convert_index") else [str(c) for c in df.columns]
+                                                                                       ^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'pandas.io.formats' has no attribute 'style'
+2025-09-25 12:13:19,639 ERROR Failed to read Excel for list
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 447, in list_invoices
+    headers = pd.io.formats.style._maybe_convert_index(df.columns).tolist() if hasattr(pd.io.formats.style, "_maybe_convert_index") else [str(c) for c in df.columns]
+                                                                                       ^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'pandas.io.formats' has no attribute 'style'
+2025-09-25 12:16:47,671 INFO Starting app - MYDATA_ENV=production
+
+2025-09-25 12:17:13,827 ERROR Unhandled exception: name 'Markup' is not defined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 462, in list_invoices
+    table_html=Markup(table_html),
+               ^^^^^^
+NameError: name 'Markup' is not defined
+
+
+2025-09-25 12:17:20,853 ERROR Unhandled exception: name 'Markup' is not defined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 462, in list_invoices
+    table_html=Markup(table_html),
+               ^^^^^^
+NameError: name 'Markup' is not defined
+
+
+2025-09-25 12:17:29,735 ERROR Unhandled exception: name 'Markup' is not defined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 462, in list_invoices
+    table_html=Markup(table_html),
+               ^^^^^^
+NameError: name 'Markup' is not defined
+
+
+2025-09-25 12:21:36,680 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-25 12:21:37,124 INFO Starting app - MYDATA_ENV=production
+
