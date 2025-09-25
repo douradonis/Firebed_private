@@ -1,15 +1,12 @@
-# app.py (διορθωμένο πλήρες αρχείο)
-from livereload import Server
+# app.py (διορθωμένο, πλήρες)
+
 import os
 import sys
 import json
 import traceback
 import logging
-import subprocess
 from logging.handlers import RotatingFileHandler
-from typing import Any, Optional
-import time
-import re
+from typing import Any
 import datetime
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
@@ -18,15 +15,13 @@ from markupsafe import escape
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 
 import requests
-import xmltodict
 import pandas as pd
 
-# local mydata helper (must be the file you added at repo root)
+# local mydata helper
 from fetch import request_docs
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Directories & files
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -38,14 +33,12 @@ CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
 EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
 ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 
-# ENV / defaults
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
 AADE_KEY_ENV = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
-# Ensure uploads path in app config
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 
 # Logging
@@ -118,27 +111,6 @@ def load_cache():
 def save_cache(docs):
     json_write(CACHE_FILE, docs)
 
-def _extract_15digit_marks_from_obj(obj):
-    marks = set()
-    if obj is None:
-        return marks
-    if isinstance(obj, str):
-        for m in re.findall(r"\b(\d{15})\b", obj):
-            marks.add(m)
-        return marks
-    if isinstance(obj, (int, float)):
-        s = str(int(obj)) if isinstance(obj, int) else str(obj)
-        if re.fullmatch(r"\d{15}", s):
-            marks.add(s)
-        return marks
-    if isinstance(obj, dict):
-        for v in obj.values():
-            marks.update(_extract_15digit_marks_from_obj(v))
-    if isinstance(obj, list):
-        for v in obj:
-            marks.update(_extract_15digit_marks_from_obj(v))
-    return marks
-
 def append_doc_to_cache(doc, aade_user=None, aade_key=None):
     docs = load_cache()
     try:
@@ -152,71 +124,24 @@ def append_doc_to_cache(doc, aade_user=None, aade_key=None):
         except Exception:
             if str(d) == str(doc):
                 return False
-
-    marks = _extract_15digit_marks_from_obj(doc)
-    if marks:
-        # avoid duplicates by MARK
-        for m in marks:
-            for d in docs:
-                if m in _extract_15digit_marks_from_obj(d):
-                    return False
-        # optionally skip if already transmitted
-        if aade_user and aade_key:
-            for m in marks:
-                try:
-                    if is_mark_transmitted(m, aade_user, aade_key):
-                        log.info("Skipping doc because mark %s already transmitted", m)
-                        return False
-                except Exception:
-                    log.exception("transmitted-check failed for %s", m)
-
     docs.append(doc)
     save_cache(docs)
     return True
 
-def doc_contains_mark_exact(doc, mark):
-    if doc is None:
-        return False
-    if isinstance(doc, str):
-        return doc.strip() == str(mark).strip()
-    if isinstance(doc, (int, float)):
-        return str(doc) == str(mark).strip()
-    if isinstance(doc, dict):
-        for v in doc.values():
-            if doc_contains_mark_exact(v, mark):
-                return True
-    if isinstance(doc, list):
-        for v in doc:
-            if doc_contains_mark_exact(v, mark):
-                return True
-    return False
-
-def find_invoice_by_mark_exact(mark):
-    docs = load_cache()
-    for doc in docs:
-        if doc_contains_mark_exact(doc, mark):
-            return doc
-    return None
-
-def is_mark_transmitted(mark, aade_user, aade_key):
-    headers = {
-        "aade-user-id": aade_user,
-        "ocp-apim-subscription-key": aade_key,
-        "Accept": "application/xml",
-    }
+# ---------------- Validation helper ----------------
+def normalize_input_date_to_iso(s: str):
+    """
+    Δέχεται ημερομηνίες μόνο στη μορφή dd/mm/YYYY
+    Επιστρέφει ISO μορφή YYYY-MM-DD ή None αν αποτύχει.
+    """
+    if not s:
+        return None
+    s = s.strip()
     try:
-        # TRANSMITTED URL - choose sandbox/prod via env if needed
-        url = "https://mydataapidev.aade.gr/RequestTransmittedDocs" if MYDATA_ENV in ("sandbox","dev","demo") else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
-        r = requests.get(url, params={"mark": mark}, headers=headers, timeout=30)
-        if r.status_code >= 400:
-            return False
-        raw = r.text or ""
-        # crude detection if transmitted
-        if "invoiceMark" in raw or "invoiceUid" in raw or "<classification" in raw or "E3_" in raw or "VAT_" in raw:
-            return True
-    except Exception:
-        log.exception("transmitted-check request failed")
-    return False
+        dt = datetime.datetime.strptime(s, "%d/%m/%Y")
+        return dt.date().isoformat()
+    except ValueError:
+        return None
 
 # ---------------- safe render ----------------
 def safe_render(template_name, **ctx):
@@ -236,14 +161,14 @@ def safe_render(template_name, **ctx):
 def home():
     return safe_render("nav.html")
 
-# credentials CRUD pages (create: no env selection; edit: allows env)
+# credentials CRUD
 @app.route("/credentials", methods=["GET", "POST"])
 def credentials():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         user = request.form.get("user", "").strip()
         key = request.form.get("key", "").strip()
-        env = MYDATA_ENV  # force server default on create
+        env = MYDATA_ENV
         vat = request.form.get("vat", "").strip()
         if not name:
             flash("Name required", "error")
@@ -281,7 +206,7 @@ def credentials_delete(name):
     flash("Deleted", "success")
     return redirect(url_for("credentials"))
 
-# Bulk fetch page
+# ---------------- Bulk fetch ----------------
 @app.route("/fetch", methods=["GET", "POST"])
 def fetch():
     message = None
@@ -290,36 +215,24 @@ def fetch():
     preview = load_cache()[:40]
 
     if request.method == "POST":
-        # normalize input dates (UI can send dd/mm/YYYY or ISO)
-        def normalize_input_date_to_iso(s: str) -> Optional[str]:
-            s = (s or "").strip()
-            if not s:
-                return None
-            try:
-                if "/" in s:
-                    d = datetime.datetime.strptime(s, "%d/%m/%Y")
-                    return d.date().isoformat()
-                d = datetime.datetime.fromisoformat(s)
-                return d.date().isoformat()
-            except Exception:
-                return None
-
         date_from_raw = request.form.get("date_from", "").strip()
         date_to_raw = request.form.get("date_to", "").strip()
+
         date_from_iso = normalize_input_date_to_iso(date_from_raw)
         date_to_iso = normalize_input_date_to_iso(date_to_raw)
 
         if not date_from_iso or not date_to_iso:
-            error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY ή ISO)."
+            error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY)."
             return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
-        # convert ISO to API-expected DD/MM/YYYY for RequestDocs (proven safe)
+        # μετατροπή ISO -> dd/mm/YYYY για fetch.py
         def iso_to_ddmmyyyy(iso_s: str) -> str:
             return datetime.datetime.fromisoformat(iso_s).strftime("%d/%m/%Y")
 
         d1 = iso_to_ddmmyyyy(date_from_iso)
         d2 = iso_to_ddmmyyyy(date_to_iso)
 
+        # Επιλεγμένο credential
         selected = request.form.get("use_credential") or ""
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
@@ -332,32 +245,97 @@ def fetch():
                 vat = vat or c.get("vat", "")
 
         if not aade_user or not aade_key:
-            error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση. Πρόσθεσε ένα credential πρώτα."
+            error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
             return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
         try:
-            # Call mydata.request_docs with per-call credentials and dates in DD/MM/YYYY
-            parsed_list = request_docs(
+            all_rows, summary_list = request_docs(
                 date_from=d1,
                 date_to=d2,
-                
+                mark="000000000000000",
                 aade_user=aade_user,
-                subscription_key=aade_key,
+                aade_key=aade_key,
+                debug=True,
+                save_excel=False
             )
-            # parsed_list expected to be list of dicts (xml parsed)
-            docs_list = parsed_list if isinstance(parsed_list, list) else (parsed_list if parsed_list else [])
+
             added = 0
-            for d in docs_list:
-                if append_doc_to_cache(d, aade_user or None, aade_key or None):
+            for d in all_rows:
+                if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
-            message = f"Fetched {len(docs_list)} items, newly cached: {added}"
+
+            message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
+
         except Exception as e:
-            log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
+
     return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
-# Search by MARK exact
+# ---------------- Bulk fetch route ----------------
+@app.route("/bulk_fetch", methods=["GET", "POST"])
+def bulk_fetch():
+    default_to = _dt.now().strftime("%d/%m/%Y")
+    default_from = ""
+    default_user = AADE_USER_ENV
+    default_key = AADE_KEY_ENV
+
+    output = None
+    error = None
+    preview = load_cache()[:40]
+
+    if request.method == "POST":
+        user = (request.form.get("user") or "").strip() or default_user
+        key = (request.form.get("key") or "").strip() or default_key
+        date_from = (request.form.get("date_from") or "").strip()
+        date_to = (request.form.get("date_to") or "").strip()
+
+        # Validate dd/mm/YYYY
+        if not normalize_input_date_to_iso(date_from) or not normalize_input_date_to_iso(date_to):
+            error = "Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
+            return render_template_string('bulk_fetch.html',
+                                          default_user=user,
+                                          default_key=key,
+                                          default_from=date_from,
+                                          default_to=date_to,
+                                          output=output,
+                                          error=error,
+                                          preview=preview)
+
+        try:
+            all_rows, summary_list = request_docs(
+                date_from=date_from,
+                date_to=date_to,
+                mark="000000000000000",
+                aade_user=user,
+                aade_key=key,
+                debug=True,
+                save_excel=False
+            )
+
+            added = 0
+            for d in all_rows:
+                if append_doc_to_cache(d, user, key):
+                    added += 1
+
+            output = f"Fetched {len(all_rows)} items, newly cached: {added}"
+            preview = load_cache()[:40]
+
+        except Exception as e:
+            import traceback
+            log.exception("Bulk fetch error")
+            error = f"Σφάλμα λήψης: {str(e)[:400]}"
+
+    return render_template_string('bulk_fetch.html',
+                                  default_user=default_user,
+                                  default_key=default_key,
+                                  default_from=default_from,
+                                  default_to=default_to,
+                                  output=output,
+                                  error=error,
+                                  preview=preview)
+
+# ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
 def search():
     result = None
@@ -368,14 +346,14 @@ def search():
         if not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            doc = find_invoice_by_mark_exact(mark)
+            doc = next((d for d in load_cache() if d.get("mark") == mark), None)
             if not doc:
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
     return safe_render("search.html", result=result, error=error, mark=mark)
 
-# Save summary to Excel
+# ---------------- Save Excel ----------------
 @app.route("/save_excel", methods=["POST"])
 def save_excel():
     summ_json = request.form.get("summary_json")
@@ -384,25 +362,18 @@ def save_excel():
             row = json.loads(summ_json)
             df = pd.DataFrame([row])
             if os.path.exists(EXCEL_FILE):
-                try:
-                    df_existing = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str)
-                    df_concat = pd.concat([df_existing, df], ignore_index=True, sort=False)
-                    df_concat.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
-                except Exception:
-                    # fallback to csv append
-                    df.to_csv(EXCEL_FILE, mode="a", index=False, header=not os.path.exists(EXCEL_FILE))
+                df_existing = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str)
+                df_concat = pd.concat([df_existing, df], ignore_index=True, sort=False)
+                df_concat.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
             else:
-                try:
-                    df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
-                except Exception:
-                    df.to_csv(EXCEL_FILE, index=False)
+                df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
             flash("Saved to Excel", "success")
         except Exception as e:
             log.exception("Excel save error")
             flash(f"Excel save error: {e}", "error")
     return redirect(url_for("search"))
 
-# List / download
+# ---------------- List / download ----------------
 @app.route("/list")
 def list_invoices():
     if request.args.get("download") and os.path.exists(EXCEL_FILE):
@@ -413,284 +384,27 @@ def list_invoices():
             df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
             table = df.to_dict(orient="records")
         except Exception:
-            log.exception("Failed to read Excel - fallback to cache")
             table = load_cache()
     else:
         table = load_cache()
     return safe_render("list.html", table=table)
 
-# cron_fetch - use mydata.request_docs (per-call creds)
-@app.route("/cron_fetch")
-def cron_fetch():
-    secret = request.args.get("secret", "")
-    CRON_SECRET = os.getenv("CRON_SECRET", "")
-    if not CRON_SECRET or secret != CRON_SECRET:
-        return ("Forbidden", 403)
-    creds = load_credentials()
-    if creds:
-        aade_user = creds[0].get("user", "")
-        aade_key = creds[0].get("key", "")
-        vat = creds[0].get("vat", "")
-    else:
-        aade_user = AADE_USER_ENV
-        aade_key = AADE_KEY_ENV
-        vat = os.getenv("ENTITY_VAT", "")
-    d1 = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
-    d2 = datetime.date.today().isoformat()
-    # convert to dd/mm/YYYY
-    dd1 = datetime.datetime.fromisoformat(d1).strftime("%d/%m/%Y")
-    dd2 = datetime.datetime.fromisoformat(d2).strftime("%d/%m/%Y")
-    try:
-        parsed = request_docs(
-            date_from=dd1,
-            date_to=dd2,
-            
-            aade_user=aade_user or None,
-            subscription_key=aade_key or None,
-        )
-        docs_list = []
-        if isinstance(parsed, dict):
-            if "RequestedDoc" in parsed:
-                maybe = parsed["RequestedDoc"]
-                docs_list = maybe if isinstance(maybe, list) else [maybe]
-            else:
-                docs_list = [parsed]
-        elif isinstance(parsed, list):
-            docs_list = parsed
-        added = 0
-        for d in docs_list:
-            if append_doc_to_cache(d, aade_user or None, aade_key or None):
-                added += 1
-        return f"Cron fetch done. New: {added}\n"
-    except Exception as e:
-        log.exception("Cron fetch error")
-        return (f"Cron fetch error: {e}", 500)
-
-@app.route("/last_error")
-def last_error():
-    if os.getenv("FLASK_DEBUG", "0") == "1":
-        if os.path.exists(ERROR_LOG):
-            try:
-                with open(ERROR_LOG, "r", encoding="utf-8") as f:
-                    data = f.read()[-20000:]
-                return "<pre>" + escape(data) + "</pre>"
-            except Exception:
-                return "Could not read error log", 500
-        return "No error log", 200
-    secret = request.args.get("secret", "")
-    if secret and secret == os.getenv("CRON_SECRET", ""):
-        try:
-            with open(ERROR_LOG, "r", encoding="utf-8") as f:
-                data = f.read()[-20000:]
-            return "<pre>" + escape(data) + "</pre>"
-        except Exception:
-            return "Could not read error log", 500
-    return ("Forbidden", 403)
-
+# ---------------- Health ----------------
 @app.route("/health")
 def health():
     return "OK"
 
-# ----------------------
-# Bulk Fetch page and handler for running fetch.py (corrected and robust)
-def normalize_input_date_to_iso(s: str) -> Optional[str]:
-    """
-    Accepts strings in:
-      - dd/mm/YYYY  (eg. 01/08/2025)
-      - dd/mm/YY    (eg. 01/08/25)
-      - ISO YYYY-MM-DD (eg. 2025-08-01)
-    Returns ISO date (YYYY-MM-DD) or None on parse failure.
-    """
-    if not s:
-        return None
-    s = s.strip()
-    # dd/mm/YYYY or dd/mm/YY
-    try:
-        if "/" in s:
-            parts = s.split("/")
-            if len(parts) == 3:
-                day, month, year = parts
-                day = day.zfill(2); month = month.zfill(2); year = year.strip()
-                if len(year) == 2:
-                    year = "20" + year
-                dt = _dt.strptime(f"{day}/{month}/{year}", "%d/%m/%Y")
-                return dt.date().isoformat()
-        # try ISO-like
-        try:
-            dt = _dt.fromisoformat(s)
-            return dt.date().isoformat()
-        except Exception:
-            pass
-        # try dd-mm-YYYY or dd-mm-YY
-        if "-" in s and re.match(r"^\d{1,2}-\d{1,2}-\d{2,4}$", s):
-            day, month, year = s.split("-")
-            if len(year) == 2:
-                year = "20" + year
-            dt = _dt.strptime(f"{day.zfill(2)}/{month.zfill(2)}/{year}", "%d/%m/%Y")
-            return dt.date().isoformat()
-    except Exception:
-        return None
-    return None
-
-@app.route("/bulk_fetch", methods=["GET", "POST"])
-def bulk_fetch():
-    # προεπιλογές για το template
-    default_to = _dt.now().strftime("%d/%m/%Y")
-    default_from = ""  # άδειο — ο χρήστης το συμπληρώνει
-    default_user = os.getenv("AADE_USER_ID", "")
-    default_key = os.getenv("AADE_SUBSCRIPTION_KEY", "")
-
-    output = None
-    error = None
-    download_url = None
-    preview = []
-
-    # Προ-προβολή: προσπάθησε να πάρεις πρώτες 40 γραμμές από υπάρχον EXCEL_FILE
-    try:
-        if os.path.exists(EXCEL_FILE):
-            df_prev = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
-            preview = df_prev.head(40).to_dict(orient="records")
-    except Exception:
-        # fallback: preview από cache
-        preview = load_cache()[:40]
-
-    if request.method == "POST":
-        user = (request.form.get("user") or "").strip()
-        key = (request.form.get("key") or "").strip()
-        date_from = (request.form.get("date_from") or "").strip()
-        date_to = (request.form.get("date_to") or "").strip()
-
-        # fallback σε env vars αν ο χρήστης δεν έδωσε credentials
-        if not user:
-            user = os.getenv("AADE_USER_ID") or os.getenv("AADE_USER") or ""
-        if not key:
-            key = os.getenv("AADE_SUBSCRIPTION_KEY") or os.getenv("AADE_KEY") or ""
-
-        # απλή validation ημερομηνίας
-        date_format = "%d/%m/%Y"
-        try:
-            _dt.strptime(date_from, date_format)
-            _dt.strptime(date_to, date_format)
-        except Exception:
-            error = "Error: Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
-            return render_template_string('bulk_fetch.html',
-                                          default_user=user,
-                                          default_key="",
-                                          default_from=date_from,
-                                          default_to=date_to,
-                                          output=output,
-                                          error=error,
-                                          download_url=download_url,
-                                          preview=preview)
-
-        # prepare output path
-        ts = int(time.time())
-        out_fname = f"fetch_{ts}.xlsx"
-        out_dir = app.config.get("UPLOAD_FOLDER", "uploads")
-        os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, secure_filename(out_fname))
-
-        # path to fetch.py (assumes fetch.py in project root)
-        fetch_py = os.path.join(app.root_path, "fetch.py")
-        if not os.path.exists(fetch_py):
-            error = f"Το fetch.py δεν βρέθηκε στο path: {fetch_py}"
-            return render_template_string('bulk_fetch.html',
-                                          default_user=user,
-                                          default_key="",
-                                          default_from=date_from,
-                                          default_to=date_to,
-                                          output=output,
-                                          error=error,
-                                          download_url=download_url,
-                                          preview=preview)
-
-        # build command
-        cmd = [
-            sys.executable, fetch_py,
-            "--date-from", date_from,
-            "--date-to", date_to,
-            "--out", out_path
-        ]
-        if user:
-            cmd += ["--user", user]
-        if key:
-            cmd += ["--key", key]
-
-        # εκτέλεση subprocess (συγχρονικά)
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)  # timeout 15 λεπτά
-            output = proc.stdout.strip()
-            stderr = proc.stderr.strip()
-            if proc.returncode != 0:
-                error = f"exit code {proc.returncode}\n{stderr}"
-            else:
-                # αν δημιουργήθηκε το αρχείο - δώσε σύνδεσμο για download
-                if os.path.exists(out_path):
-                    download_url = url_for("download_generated", filename=os.path.basename(out_path))
-                    # --- NEW: διάβασε πρώτες 40 γραμμές από το καινούριο αρχείο για preview ---
-                    try:
-                        df_new = pd.read_excel(out_path, engine="openpyxl", dtype=str).fillna("")
-                        preview = df_new.head(40).to_dict(orient="records")
-                    except Exception as e:
-                        # αν αποτύχει το διάβασμα του Excel, κράτα logs στο output και fallback σε cache
-                        preview = load_cache()[:40]
-                        output = (output or "") + f"\n\n[warning] failed to read generated xlsx for preview: {e}"
-                else:
-                    error = "Το fetch τερμάτισε χωρίς να δημιουργήσει αρχείο .xlsx. Δες logs."
-        except subprocess.TimeoutExpired:
-            output = ""
-            error = "Η εκτέλεση του fetch.py ξεπέρασε το timeout."
-        except Exception as e:
-            output = ""
-            error = f"Σφάλμα κατά την εκτέλεση: {e}"
-
-        # append stderr to output for visibility
-        if error is None and stderr:
-            output = (output + "\n\n[stderr]\n" + stderr) if output else ("[stderr]\n" + stderr)
-
-    return render_template_string('bulk_fetch.html',
-                                  default_user=default_user,
-                                  default_key=default_key,
-                                  default_from=default_from,
-                                  default_to=default_to,
-                                  output=output,
-                                  error=error,
-                                  download_url=download_url,
-                                  preview=preview)
-
-
-@app.route("/download_generated/<path:filename>")
-def download_generated(filename):
-    filepath = os.path.join(app.config.get("UPLOAD_FOLDER", UPLOADS_DIR), secure_filename(filename))
-    if not os.path.exists(filepath):
-        return ("Το αρχείο δεν βρέθηκε.", 404)
-    return send_file(filepath, as_attachment=True, download_name=filename)
-
-# Global error handler
+# ---------------- Global error handler ----------------
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
     tb = traceback.format_exc()
     log.error("Unhandled exception: %s\n%s", str(e), tb)
-    try:
-        with open(ERROR_LOG, "a", encoding="utf-8") as ef:
-            ef.write(f"\n\n{datetime.datetime.utcnow().isoformat()} - {str(e)}\n{tb}\n")
-    except Exception:
-        log.exception("Could not write to error log")
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
     if debug:
-        return "<h2>Server Error (debug)</h2><pre>{}</pre>".format(escape(tb)), 500
-    else:
-        return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
-
+        return "<pre>{}</pre>".format(escape(tb)), 500
+    return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug_flag = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug_flag)
-
-if __name__ == "__main__":
-    server = Server(app.wsgi_app)
-    server.watch('templates/*')  # παρακολουθεί όλα τα templates
-    server.watch('static/*')     # παρακολουθεί CSS / JS
-    server.watch('*.py')         # παρακολουθεί Python αρχεία
-    server.serve(port=port, host='0.0.0.0', debug=True)

@@ -1,83 +1,86 @@
-{% extends "base.html" %}
-{% block title %}Bulk Fetch{% endblock %}
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<title>Bulk Fetch MYDATA</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+label { display: inline-block; width: 100px; margin-bottom: 6px; }
+input, select { padding: 5px; width: 200px; margin-bottom: 10px; }
+button { padding: 6px 12px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
+th { background-color: #eee; }
+.error { color: red; margin-bottom: 10px; }
+.message { color: green; margin-bottom: 10px; }
+</style>
+</head>
+<body>
 
-{% block content %}
-<div class="container mt-4">
-  <h1 class="mb-3">Λήψη Παραστατικών (Bulk)</h1>
-  <a href="{{ url_for('home') }}" class="btn btn-secondary mb-4">⬅ Επιστροφή</a>
+<h2>Bulk Fetch MYDATA</h2>
 
-  {% if message %}
-    <div class="alert alert-success">{{ message }}</div>
-  {% endif %}
-  {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
-  {% endif %}
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="message">{{ message }}</div>
+{% endif %}
 
-  <!-- Bulk Fetch Form -->
-  <div class="card mb-4 shadow-sm">
-    <div class="card-body">
-      <h4 class="card-title">Bulk Fetch Παραστατικών</h4>
-      <form method="post">
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label for="date_from" class="form-label">Ημερομηνία από</label>
-            <input type="date" class="form-control" id="date_from" name="date_from" required
-                   value="{{ request.form.date_from or '' }}">
-          </div>
-          <div class="col-md-3">
-            <label for="date_to" class="form-label">Έως</label>
-            <input type="date" class="form-control" id="date_to" name="date_to" required
-                   value="{{ request.form.date_to or '' }}">
-          </div>
-          <div class="col-md-3">
-            <label for="vat_number" class="form-label">VAT (προαιρετικό)</label>
-            <input type="text" class="form-control" id="vat_number" name="vat_number"
-                   value="{{ request.form.vat_number or default_vat or '' }}">
-          </div>
-          <div class="col-md-3">
-            <label for="use_credential" class="form-label">Χρήση stored credential</label>
-            <select class="form-select" id="use_credential" name="use_credential">
-              <option value="">(ENV / Default)</option>
-              {% for c in credentials %}
-                <option value="{{ c.name }}">{{ c.name }} ({{ c.vat|default('') }})</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="mt-3">
-          <button type="submit" class="btn btn-primary">Λήψη & Αποθήκευση Cache</button>
-        </div>
-      </form>
-    </div>
-  </div>
+<form method="POST">
+    <label for="use_credential">Χρήση Credential:</label>
+    <select id="use_credential" name="use_credential">
+        <option value="">--Επιλέξτε--</option>
+        {% for c in credentials %}
+        <option value="{{ c.name }}">{{ c.name }}</option>
+        {% endfor %}
+    </select><br>
 
-  <!-- Search MARK Form -->
-  <div class="card mb-4 shadow-sm">
-    <div class="card-body">
-      <h4 class="card-title">Αναζήτηση MARK</h4>
-      <form method="post" action="{{ url_for('search') }}">
-        <div class="input-group">
-          <input type="text" class="form-control" name="mark" placeholder="15ψήφιο MARK" required>
-          <button class="btn btn-outline-primary" type="submit">Αναζήτηση</button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <label for="vat_number">ΑΦΜ:</label>
+    <input type="text" id="vat_number" name="vat_number" value="" placeholder="προαιρετικό"><br>
 
-  <!-- Cache Preview -->
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h4 class="card-title">Preview cache (περιορισμένο)</h4>
-      <div style="max-height:400px; overflow:auto; background:#f8f9fa; padding:8px; border-radius:6px;">
+    <label for="date_from">Από:</label>
+    <input type="text" id="date_from" name="date_from" placeholder="dd/mm/YYYY" value="{{ default_from }}" required><br>
+
+    <label for="date_to">Έως:</label>
+    <input type="text" id="date_to" name="date_to" placeholder="dd/mm/YYYY" value="{{ default_to }}" required><br>
+
+    <button type="submit">Fetch</button>
+</form>
+
+<h3>Preview (πρώτες 40 γραμμές)</h3>
+<table>
+    <thead>
         {% if preview %}
-          {% for d in preview %}
-            <pre style="white-space:pre-wrap; font-size:12px; border-bottom:1px solid #eee">{{ d|tojson(indent=2, ensure_ascii=False) }}</pre>
-          {% endfor %}
-        {% else %}
-          <div>Δεν υπάρχουν cached παραστατικά.</div>
+        <tr>
+        {% for key in preview[0].keys() %}
+            <th>{{ key }}</th>
+        {% endfor %}
+        </tr>
         {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock %}
+    </thead>
+    <tbody>
+        {% for row in preview %}
+        <tr>
+            {% for v in row.values() %}
+            <td>{{ v }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    function formatDateInput(e) {
+        let v = e.target.value.replace(/\D/g, '').slice(0,8);
+        if(v.length>=4) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+        else if(v.length>=2) v=v.slice(0,2)+'/'+v.slice(2);
+        e.target.value = v;
+    }
+    document.getElementById('date_from').addEventListener('input', formatDateInput);
+    document.getElementById('date_to').addEventListener('input', formatDateInput);
+});
+</script>
+
+</body>
+</html>

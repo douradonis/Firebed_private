@@ -1,125 +1,86 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
-<meta charset="utf-8">
-<title>Bulk fetch myDATA</title>
+<meta charset="UTF-8">
+<title>Bulk Fetch MYDATA</title>
 <style>
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    max-width: 900px;
-    margin: 20px auto;
-    background: #fafafa;
-}
-.card {
-    background: #fff;
-    padding: 16px;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    margin-bottom: 20px;
-}
-input, button, select {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
-}
-label {
-    font-weight: 600;
-}
-small {
-    display: block;
-    margin-top: 4px;
-    color: #555;
-}
-pre {
-    background: #f7f7f7;
-    padding: 10px;
-    border-radius: 8px;
-    white-space: pre-wrap;
-    max-height: 300px;
-    overflow: auto;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 14px;
-}
-table th, table td {
-    border: 1px solid #ddd;
-    padding: 6px;
-    text-align: left;
-}
-table th {
-    background: #f0f0f0;
-}
+body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+label { display: inline-block; width: 100px; margin-bottom: 6px; }
+input, select { padding: 5px; width: 200px; margin-bottom: 10px; }
+button { padding: 6px 12px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 5px; text-align: left; }
+th { background-color: #eee; }
+.error { color: red; margin-bottom: 10px; }
+.message { color: green; margin-bottom: 10px; }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Bulk fetch παραστατικών (myDATA)</h2>
-  <form method="post">
-    <label>AADE User ID (προαιρετικό — αν κενό θα χρησιμοποιήσει env)</label>
-    <input name="user" placeholder="tester97" value="{{ default_user|e }}">
-    
-    <label>AADE Subscription Key (προαιρετικό — αν κενό θα χρησιμοποιήσει env)</label>
-    <input name="key" placeholder="614aa..." value="{{ default_key|e }}">
-    
-    <label>Ημερομηνία από (dateFrom, dd/mm/YYYY)</label>
-    <input name="date_from" placeholder="π.χ. 01/08/2025" value="{{ default_from|e }}" required>
-    
-    <label>Ημερομηνία έως (dateTo, dd/mm/YYYY)</label>
-    <input name="date_to" placeholder="π.χ. 31/08/2025" value="{{ default_to|e }}" required>
-    
-    <small>Το MARK στο script είναι σταθερό: 000000000000000</small>
-    <br/><br/>
-    <button type="submit">Τρέξε Bulk Fetch</button>
-  </form>
-</div>
+<h2>Bulk Fetch MYDATA</h2>
 
-{% if output or error or download_url %}
-<div class="card">
-  <h3>Αποτέλεσμα Fetch</h3>
-  {% if download_url %}
-    <p>Το αρχείο δημιουργήθηκε: <a href="{{ download_url }}">Κατέβασε το Excel</a></p>
-  {% endif %}
-  {% if output %}
-    <h4>Logs / stdout</h4>
-    <pre>{{ output }}</pre>
-  {% endif %}
-  {% if error %}
-    <h4 style="color:red">Σφάλμα / stderr</h4>
-    <pre>{{ error }}</pre>
-  {% endif %}
-</div>
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="message">{{ message }}</div>
 {% endif %}
 
-{% if preview %}
-<div class="card">
-  <h3>Preview πρώτων 40 γραμμών</h3>
-  <table>
-    <thead>
-      <tr>
-        {% for key in preview[0].keys() %}
-          <th>{{ key }}</th>
+<form method="POST">
+    <label for="use_credential">Χρήση Credential:</label>
+    <select id="use_credential" name="use_credential">
+        <option value="">--Επιλέξτε--</option>
+        {% for c in credentials %}
+        <option value="{{ c.name }}">{{ c.name }}</option>
         {% endfor %}
-      </tr>
+    </select><br>
+
+    <label for="vat_number">ΑΦΜ:</label>
+    <input type="text" id="vat_number" name="vat_number" value="" placeholder="προαιρετικό"><br>
+
+    <label for="date_from">Από:</label>
+    <input type="text" id="date_from" name="date_from" placeholder="dd/mm/YYYY" value="{{ default_from }}" required><br>
+
+    <label for="date_to">Έως:</label>
+    <input type="text" id="date_to" name="date_to" placeholder="dd/mm/YYYY" value="{{ default_to }}" required><br>
+
+    <button type="submit">Fetch</button>
+</form>
+
+<h3>Preview (πρώτες 40 γραμμές)</h3>
+<table>
+    <thead>
+        {% if preview %}
+        <tr>
+        {% for key in preview[0].keys() %}
+            <th>{{ key }}</th>
+        {% endfor %}
+        </tr>
+        {% endif %}
     </thead>
     <tbody>
-      {% for row in preview %}
-      <tr>
-        {% for val in row.values() %}
-          <td>{{ val }}</td>
+        {% for row in preview %}
+        <tr>
+            {% for v in row.values() %}
+            <td>{{ v }}</td>
+            {% endfor %}
+        </tr>
         {% endfor %}
-      </tr>
-      {% endfor %}
     </tbody>
-  </table>
-</div>
-{% endif %}
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    function formatDateInput(e) {
+        let v = e.target.value.replace(/\D/g, '').slice(0,8);
+        if(v.length>=4) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+        else if(v.length>=2) v=v.slice(0,2)+'/'+v.slice(2);
+        e.target.value = v;
+    }
+    document.getElementById('date_from').addEventListener('input', formatDateInput);
+    document.getElementById('date_to').addEventListener('input', formatDateInput);
+});
+</script>
 
 </body>
 </html>
