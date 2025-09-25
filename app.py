@@ -275,65 +275,80 @@ def fetch():
 # ---------------- Bulk fetch route ----------------
 @app.route("/bulk_fetch", methods=["GET", "POST"])
 def bulk_fetch():
-    default_to = _dt.now().strftime("%d/%m/%Y")
-    default_from = ""
-    default_user = AADE_USER_ENV
-    default_key = AADE_KEY_ENV
-
-    output = None
-    error = None
+    creds = load_credentials()
     preview = load_cache()[:40]
+    message = None
+    error = None
 
+    default_vat = ""
     if request.method == "POST":
-        user = (request.form.get("user") or "").strip() or default_user
-        key = (request.form.get("key") or "").strip() or default_key
-        date_from = (request.form.get("date_from") or "").strip()
-        date_to = (request.form.get("date_to") or "").strip()
+        user = (request.form.get("use_credential") or "").strip()
+        vat_input = request.form.get("vat_number", "").strip()
 
-        # Validate dd/mm/YYYY
-        if not normalize_input_date_to_iso(date_from) or not normalize_input_date_to_iso(date_to):
-            error = "Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
-            return render_template_string('bulk_fetch.html',
-                                          default_user=user,
-                                          default_key=key,
-                                          default_from=date_from,
-                                          default_to=date_to,
-                                          output=output,
-                                          error=error,
-                                          preview=preview)
+        # Επιλογή credential
+        aade_user = AADE_USER_ENV
+        aade_key = AADE_KEY_ENV
+        vat = vat_input
+        if user:
+            c = next((x for x in creds if x.get("name") == user), None)
+            if c:
+                aade_user = c.get("user") or aade_user
+                aade_key = c.get("key") or aade_key
+                vat = vat or c.get("vat", "")
+
+        # Dates
+        date_from_raw = request.form.get("date_from", "").strip()
+        date_to_raw = request.form.get("date_to", "").strip()
+
+        def validate_ddmmyyyy(s):
+            try:
+                return datetime.strptime(s, "%d/%m/%Y")
+            except ValueError:
+                return None
+
+        d_from = validate_ddmmyyyy(date_from_raw)
+        d_to = validate_ddmmyyyy(date_to_raw)
+
+        if not d_from or not d_to:
+            error = "Παρακαλώ συμπλήρωσε έγκυρες ημερομηνίες (dd/mm/YYYY)."
+            return safe_render("bulk_fetch.html",
+                               credentials=creds,
+                               message=message,
+                               error=error,
+                               preview=preview,
+                               default_vat=vat)
 
         try:
             all_rows, summary_list = request_docs(
-                date_from=date_from,
-                date_to=date_to,
+                date_from=date_from_raw,
+                date_to=date_to_raw,
                 mark="000000000000000",
-                aade_user=user,
-                aade_key=key,
+                aade_user=aade_user,
+                aade_key=aade_key,
                 debug=True,
                 save_excel=False
             )
 
             added = 0
             for d in all_rows:
-                if append_doc_to_cache(d, user, key):
+                if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
-            output = f"Fetched {len(all_rows)} items, newly cached: {added}"
+            message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
 
         except Exception as e:
             import traceback
             log.exception("Bulk fetch error")
-            error = f"Σφάλμα λήψης: {str(e)[:400]}"
+            error = f"Σφάλμα λήψης: {str(e)[:400]}\n{traceback.format_exc()[:1000]}"
 
-    return render_template_string('bulk_fetch.html',
-                                  default_user=default_user,
-                                  default_key=default_key,
-                                  default_from=default_from,
-                                  default_to=default_to,
-                                  output=output,
-                                  error=error,
-                                  preview=preview)
+    return safe_render("bulk_fetch.html",
+                       credentials=creds,
+                       message=message,
+                       error=error,
+                       preview=preview,
+                       default_vat="")
+
 
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
