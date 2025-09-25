@@ -51,8 +51,8 @@ def request_docs(
     date_from: str,
     date_to: str,
     mark: str,
-    user_id: str,
-    subs_key: str,
+    aade_user: str,
+    aade_key: str,
     debug: bool = False,
     save_excel: bool = True,
     out_filename: str = "invoices_vat_summary_classified.xlsx"
@@ -64,7 +64,7 @@ def request_docs(
     URL_REQUEST_DOCS = "https://mydatapi.aade.gr/myDATA/RequestDocs"
     URL_REQUEST_TRANSMITTED = "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
 
-    headers = {"aade-user-id": user_id, "Ocp-Apim-Subscription-Key": subs_key}
+    headers = {"aade-user-id": aade_user, "Ocp-Apim-Subscription-Key": aade_key}
 
     all_rows = []
     params_docs = {"mark": mark, "dateFrom": date_from, "dateTo": date_to}
