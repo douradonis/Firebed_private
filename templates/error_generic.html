@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Σφάλμα{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="text-danger">Συνέβη σφάλμα στον server</h1>
+  {% if message %}
+    <div class="alert alert-danger">{{ message }}</div>
+  {% endif %}
+  <a href="{{ url_for('home') }}" class="btn btn-secondary mt-3">Επιστροφή στην αρχική</a>
+</div>
+{% endblock %}

@@ -419,7 +419,12 @@ def handle_unexpected_error(e):
         return "<pre>{}</pre>".format(escape(tb)), 500
     return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    debug_flag = os.getenv("FLASK_DEBUG", "0") == "1"
-    app.run(host="0.0.0.0", port=port, debug=debug_flag)
+    debug_flag = True  # πάντα debug στο dev
+    app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
+
