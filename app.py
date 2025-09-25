@@ -542,6 +542,16 @@ def bulk_fetch():
     output = None
     error = None
     download_url = None
+    preview = []
+
+    # Προ-προβολή: προσπάθησε να πάρεις πρώτες 40 γραμμές από υπάρχον EXCEL_FILE
+    try:
+        if os.path.exists(EXCEL_FILE):
+            df_prev = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+            preview = df_prev.head(40).to_dict(orient="records")
+    except Exception:
+        # fallback: preview από cache
+        preview = load_cache()[:40]
 
     if request.method == "POST":
         user = (request.form.get("user") or "").strip()
@@ -549,71 +559,57 @@ def bulk_fetch():
         date_from = (request.form.get("date_from") or "").strip()
         date_to = (request.form.get("date_to") or "").strip()
 
-        # normalize and validate
-        date_from_iso = normalize_input_date_to_iso(date_from)
-        date_to_iso = normalize_input_date_to_iso(date_to)
-
-        if not date_from_iso or not date_to_iso:
-            error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY ή ISO)."
-            return render_template('bulk_fetch.html',
-                                   default_user=user or default_user,
-                                   default_key=default_key,
-                                   default_from=date_from,
-                                   default_to=date_to or default_to,
-                                   output=output,
-                                   error=error,
-                                   download_url=download_url)
-
-        # convert to dd/mm/YYYY for API (if needed by fetch.py)
-        def iso_to_ddmmyyyy(iso_s: str) -> str:
-            try:
-                d = _dt.fromisoformat(iso_s).date()
-                return d.strftime("%d/%m/%Y")
-            except Exception:
-                return iso_s
-
-        d1 = iso_to_ddmmyyyy(date_from_iso)
-        d2 = iso_to_ddmmyyyy(date_to_iso)
-
         # fallback σε env vars αν ο χρήστης δεν έδωσε credentials
         if not user:
             user = os.getenv("AADE_USER_ID") or os.getenv("AADE_USER") or ""
         if not key:
             key = os.getenv("AADE_SUBSCRIPTION_KEY") or os.getenv("AADE_KEY") or ""
 
-        if not user or not key:
-            error = "Δεν υπάρχουν credentials. Δώσε credentials ή αποθήκευσέ τα."
-            return render_template('bulk_fetch.html',
-                                   default_user=user,
-                                   default_key=default_key,
-                                   default_from=date_from,
-                                   default_to=date_to or default_to,
-                                   output=output,
-                                   error=error,
-                                   download_url=download_url)
+        # απλή validation ημερομηνίας
+        date_format = "%d/%m/%Y"
+        try:
+            _dt.strptime(date_from, date_format)
+            _dt.strptime(date_to, date_format)
+        except Exception:
+            error = "Error: Οι ημερομηνίες πρέπει να είναι στη μορφή dd/mm/YYYY"
+            return render_template_string('bulk_fetch.html',
+                                          default_user=user,
+                                          default_key="",
+                                          default_from=date_from,
+                                          default_to=date_to,
+                                          output=output,
+                                          error=error,
+                                          download_url=download_url,
+                                          preview=preview)
 
         # prepare output path
         ts = int(time.time())
         out_fname = f"fetch_{ts}.xlsx"
-        upload_folder = app.config.get("UPLOAD_FOLDER", UPLOADS_DIR)
-        os.makedirs(upload_folder, exist_ok=True)
-        out_path = os.path.join(upload_folder, secure_filename(out_fname))
+        out_dir = app.config.get("UPLOAD_FOLDER", "uploads")
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, secure_filename(out_fname))
 
         # path to fetch.py (assumes fetch.py in project root)
         fetch_py = os.path.join(app.root_path, "fetch.py")
         if not os.path.exists(fetch_py):
             error = f"Το fetch.py δεν βρέθηκε στο path: {fetch_py}"
-            return render_template('bulk_fetch.html',
-                                   default_user=user,
-                                   default_key="",
-                                   default_from=date_from,
-                                   default_to=date_to or default_to,
-                                   output=output,
-                                   error=error,
-                                   download_url=download_url)
+            return render_template_string('bulk_fetch.html',
+                                          default_user=user,
+                                          default_key="",
+                                          default_from=date_from,
+                                          default_to=date_to,
+                                          output=output,
+                                          error=error,
+                                          download_url=download_url,
+                                          preview=preview)
 
         # build command
-        cmd = [sys.executable, fetch_py, "--date-from", d1, "--date-to", d2, "--out", out_path]
+        cmd = [
+            sys.executable, fetch_py,
+            "--date-from", date_from,
+            "--date-to", date_to,
+            "--out", out_path
+        ]
         if user:
             cmd += ["--user", user]
         if key:
@@ -630,6 +626,14 @@ def bulk_fetch():
                 # αν δημιουργήθηκε το αρχείο - δώσε σύνδεσμο για download
                 if os.path.exists(out_path):
                     download_url = url_for("download_generated", filename=os.path.basename(out_path))
+                    # --- NEW: διάβασε πρώτες 40 γραμμές από το καινούριο αρχείο για preview ---
+                    try:
+                        df_new = pd.read_excel(out_path, engine="openpyxl", dtype=str).fillna("")
+                        preview = df_new.head(40).to_dict(orient="records")
+                    except Exception as e:
+                        # αν αποτύχει το διάβασμα του Excel, κράτα logs στο output και fallback σε cache
+                        preview = load_cache()[:40]
+                        output = (output or "") + f"\n\n[warning] failed to read generated xlsx for preview: {e}"
                 else:
                     error = "Το fetch τερμάτισε χωρίς να δημιουργήσει αρχείο .xlsx. Δες logs."
         except subprocess.TimeoutExpired:
@@ -640,19 +644,19 @@ def bulk_fetch():
             error = f"Σφάλμα κατά την εκτέλεση: {e}"
 
         # append stderr to output for visibility
-        if output and stderr:
-            output = output + "\n\n[stderr]\n" + stderr
-        elif stderr and not output:
-            output = "[stderr]\n" + stderr
+        if error is None and stderr:
+            output = (output + "\n\n[stderr]\n" + stderr) if output else ("[stderr]\n" + stderr)
 
-    return render_template('bulk_fetch.html',
-                           default_user=default_user,
-                           default_key=default_key,
-                           default_from=default_from,
-                           default_to=default_to,
-                           output=output,
-                           error=error,
-                           download_url=download_url)
+    return render_template_string('bulk_fetch.html',
+                                  default_user=default_user,
+                                  default_key=default_key,
+                                  default_from=default_from,
+                                  default_to=default_to,
+                                  output=output,
+                                  error=error,
+                                  download_url=download_url,
+                                  preview=preview)
+
 
 @app.route("/download_generated/<path:filename>")
 def download_generated(filename):
