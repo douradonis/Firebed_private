@@ -1,4 +1,5 @@
 # app.py (διορθωμένο πλήρες αρχείο)
+from livereload import Server
 import os
 import sys
 import json
@@ -21,7 +22,7 @@ import xmltodict
 import pandas as pd
 
 # local mydata helper (must be the file you added at repo root)
-import fetch
+from fetch import request_docs
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -336,10 +337,10 @@ def fetch():
 
         try:
             # Call mydata.request_docs with per-call credentials and dates in DD/MM/YYYY
-            parsed_list = mydata.request_docs(
+            parsed_list = request_docs(
                 date_from=d1,
                 date_to=d2,
-                counter_vat=vat or None,
+                
                 aade_user=aade_user,
                 subscription_key=aade_key,
             )
@@ -440,10 +441,10 @@ def cron_fetch():
     dd1 = datetime.datetime.fromisoformat(d1).strftime("%d/%m/%Y")
     dd2 = datetime.datetime.fromisoformat(d2).strftime("%d/%m/%Y")
     try:
-        parsed = mydata.request_docs(
+        parsed = request_docs(
             date_from=dd1,
             date_to=dd2,
-            counter_vat=vat or None,
+            
             aade_user=aade_user or None,
             subscription_key=aade_key or None,
         )
@@ -686,3 +687,10 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug_flag = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug_flag)
+
+if __name__ == "__main__":
+    server = Server(app.wsgi_app)
+    server.watch('templates/*')  # παρακολουθεί όλα τα templates
+    server.watch('static/*')     # παρακολουθεί CSS / JS
+    server.watch('*.py')         # παρακολουθεί Python αρχεία
+    server.serve(port=port, host='0.0.0.0', debug=True)
