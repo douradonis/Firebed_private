@@ -1,17 +1,20 @@
-# app.py
+# app.py (διορθωμένο πλήρες αρχείο)
 import os
 import sys
 import json
 import traceback
 import logging
+import subprocess
 from logging.handlers import RotatingFileHandler
 from typing import Any, Optional
 import time
+import re
+import datetime
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 
 from markupsafe import escape
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, g, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 
 import requests
 import xmltodict
@@ -41,6 +44,8 @@ MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
+# Ensure uploads path in app config
+app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 
 # Logging
 log = logging.getLogger("mydata_app")
@@ -50,7 +55,7 @@ if not log.handlers:
     sh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     log.addHandler(sh)
 
-    fh = RotatingFileHandler(ERROR_LOG, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
+    fh = RotatingFileHandler(ERROR_LOG, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
     fh.setLevel(logging.INFO)
     fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s\n"))
     log.addHandler(fh)
@@ -113,7 +118,6 @@ def save_cache(docs):
     json_write(CACHE_FILE, docs)
 
 def _extract_15digit_marks_from_obj(obj):
-    import re
     marks = set()
     if obj is None:
         return marks
@@ -287,39 +291,28 @@ def fetch():
     if request.method == "POST":
         # normalize input dates (UI can send dd/mm/YYYY or ISO)
         def normalize_input_date_to_iso(s: str) -> Optional[str]:
-    
-    if not s:
-        return None
-    s = s.strip()
-    # try dd/mm/YYYY or dd/mm/YY
-    try:
-        if "/" in s:
-            # υποστηρίζουμε τόσο 2ψήφια όσο και 4ψήφια έτη
-            parts = s.split("/")
-            if len(parts) == 3:
-                day, month, year = parts
-                day = day.zfill(2); month = month.zfill(2); year = year.strip()
-                if len(year) == 2:
-                    # assume 20xx for 2-digit years (adjust if χρειάζεται)
-                    year = "20" + year
-                dt = _dt.strptime(f"{day}/{month}/{year}", "%d/%m/%Y")
-                return dt.date().isoformat()
-        # try ISO-like
-        try:
-            dt = _dt.fromisoformat(s)
-            return dt.date().isoformat()
-        except Exception:
-            pass
-        # try other common separators: '-' as dd-mm-YYYY
-        if "-" in s and re.match(r"^\d{1,2}-\d{1,2}-\d{2,4}$", s):
-            day, month, year = s.split("-")
-            if len(year) == 2:
-                year = "20" + year
-            dt = _dt.strptime(f"{day.zfill(2)}/{month.zfill(2)}/{year}", "%d/%m/%Y")
-            return dt.date().isoformat()
-    except Exception:
-        return None
-    return None
+            s = (s or "").strip()
+            if not s:
+                return None
+            try:
+                if "/" in s:
+                    d = datetime.datetime.strptime(s, "%d/%m/%Y")
+                    return d.date().isoformat()
+                d = datetime.datetime.fromisoformat(s)
+                return d.date().isoformat()
+            except Exception:
+                return None
+
+        date_from_raw = request.form.get("date_from", "").strip()
+        date_to_raw = request.form.get("date_to", "").strip()
+        date_from_iso = normalize_input_date_to_iso(date_from_raw)
+        date_to_iso = normalize_input_date_to_iso(date_to_raw)
+
+        if not date_from_iso or not date_to_iso:
+            error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY ή ISO)."
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+
+        # convert ISO to API-expected DD/MM/YYYY for RequestDocs (proven safe)
         def iso_to_ddmmyyyy(iso_s: str) -> str:
             return datetime.datetime.fromisoformat(iso_s).strftime("%d/%m/%Y")
 
@@ -360,7 +353,6 @@ def fetch():
             preview = load_cache()[:40]
         except Exception as e:
             log.exception("Fetch error")
-            # show user-friendly message; include snippet of error for debugging but not keys
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
     return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
 
@@ -498,28 +490,52 @@ def last_error():
 def health():
     return "OK"
 
-# Global error handler
-@app.errorhandler(Exception)
-def handle_unexpected_error(e):
-    tb = traceback.format_exc()
-    log.error("Unhandled exception: %s\n%s", str(e), tb)
+# ----------------------
+# Bulk Fetch page and handler for running fetch.py (corrected and robust)
+def normalize_input_date_to_iso(s: str) -> Optional[str]:
+    """
+    Accepts strings in:
+      - dd/mm/YYYY  (eg. 01/08/2025)
+      - dd/mm/YY    (eg. 01/08/25)
+      - ISO YYYY-MM-DD (eg. 2025-08-01)
+    Returns ISO date (YYYY-MM-DD) or None on parse failure.
+    """
+    if not s:
+        return None
+    s = s.strip()
+    # dd/mm/YYYY or dd/mm/YY
     try:
-        with open(ERROR_LOG, "a", encoding="utf-8") as ef:
-            ef.write(f"\n\n{datetime.datetime.utcnow().isoformat()} - {str(e)}\n{tb}\n")
+        if "/" in s:
+            parts = s.split("/")
+            if len(parts) == 3:
+                day, month, year = parts
+                day = day.zfill(2); month = month.zfill(2); year = year.strip()
+                if len(year) == 2:
+                    year = "20" + year
+                dt = _dt.strptime(f"{day}/{month}/{year}", "%d/%m/%Y")
+                return dt.date().isoformat()
+        # try ISO-like
+        try:
+            dt = _dt.fromisoformat(s)
+            return dt.date().isoformat()
+        except Exception:
+            pass
+        # try dd-mm-YYYY or dd-mm-YY
+        if "-" in s and re.match(r"^\d{1,2}-\d{1,2}-\d{2,4}$", s):
+            day, month, year = s.split("-")
+            if len(year) == 2:
+                year = "20" + year
+            dt = _dt.strptime(f"{day.zfill(2)}/{month.zfill(2)}/{year}", "%d/%m/%Y")
+            return dt.date().isoformat()
     except Exception:
-        log.exception("Could not write to error log")
-    debug = os.getenv("FLASK_DEBUG", "0") == "1"
-    if debug:
-        return "<h2>Server Error (debug)</h2><pre>{}</pre>".format(escape(tb)), 500
-    else:
-        return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
-
+        return None
+    return None
 
 @app.route("/bulk_fetch", methods=["GET", "POST"])
 def bulk_fetch():
-    # defaults for template
+    # προεπιλογές για το template
     default_to = _dt.now().strftime("%d/%m/%Y")
-    default_from = ""  # keep empty so user fills it
+    default_from = ""  # άδειο — ο χρήστης το συμπληρώνει
     default_user = os.getenv("AADE_USER_ID", "")
     default_key = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 
@@ -530,25 +546,25 @@ def bulk_fetch():
     if request.method == "POST":
         user = (request.form.get("user") or "").strip()
         key = (request.form.get("key") or "").strip()
-        date_from_raw = (request.form.get("date_from") or "").strip()
-        date_to_raw = (request.form.get("date_to") or "").strip()
+        date_from = (request.form.get("date_from") or "").strip()
+        date_to = (request.form.get("date_to") or "").strip()
 
-        # normalize
-        date_from_iso = normalize_input_date_to_iso(date_from_raw)
-        date_to_iso = normalize_input_date_to_iso(date_to_raw)
+        # normalize and validate
+        date_from_iso = normalize_input_date_to_iso(date_from)
+        date_to_iso = normalize_input_date_to_iso(date_to)
 
         if not date_from_iso or not date_to_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY ή ISO)."
             return render_template('bulk_fetch.html',
                                    default_user=user or default_user,
                                    default_key=default_key,
-                                   default_from=date_from_raw,
-                                   default_to=date_to_raw or default_to,
+                                   default_from=date_from,
+                                   default_to=date_to or default_to,
                                    output=output,
                                    error=error,
                                    download_url=download_url)
 
-        # convert to dd/mm/YYYY for the API call (if your fetch expects that)
+        # convert to dd/mm/YYYY for API (if needed by fetch.py)
         def iso_to_ddmmyyyy(iso_s: str) -> str:
             try:
                 d = _dt.fromisoformat(iso_s).date()
@@ -559,19 +575,19 @@ def bulk_fetch():
         d1 = iso_to_ddmmyyyy(date_from_iso)
         d2 = iso_to_ddmmyyyy(date_to_iso)
 
-        # credentials fallback to env
+        # fallback σε env vars αν ο χρήστης δεν έδωσε credentials
         if not user:
             user = os.getenv("AADE_USER_ID") or os.getenv("AADE_USER") or ""
         if not key:
             key = os.getenv("AADE_SUBSCRIPTION_KEY") or os.getenv("AADE_KEY") or ""
 
         if not user or not key:
-            error = "Δεν υπάρχουν credentials (περιέβαλερ/φόρμα)."
+            error = "Δεν υπάρχουν credentials. Δώσε credentials ή αποθήκευσέ τα."
             return render_template('bulk_fetch.html',
                                    default_user=user,
                                    default_key=default_key,
-                                   default_from=date_from_raw,
-                                   default_to=date_to_raw or default_to,
+                                   default_from=date_from,
+                                   default_to=date_to or default_to,
                                    output=output,
                                    error=error,
                                    download_url=download_url)
@@ -579,35 +595,39 @@ def bulk_fetch():
         # prepare output path
         ts = int(time.time())
         out_fname = f"fetch_{ts}.xlsx"
-        out_path = os.path.join(app.config.get("UPLOAD_FOLDER", "uploads"), secure_filename(out_fname))
-        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+        upload_folder = app.config.get("UPLOAD_FOLDER", UPLOADS_DIR)
+        os.makedirs(upload_folder, exist_ok=True)
+        out_path = os.path.join(upload_folder, secure_filename(out_fname))
 
-        # path to fetch.py
+        # path to fetch.py (assumes fetch.py in project root)
         fetch_py = os.path.join(app.root_path, "fetch.py")
         if not os.path.exists(fetch_py):
             error = f"Το fetch.py δεν βρέθηκε στο path: {fetch_py}"
             return render_template('bulk_fetch.html',
                                    default_user=user,
                                    default_key="",
-                                   default_from=date_from_raw,
-                                   default_to=date_to_raw or default_to,
+                                   default_from=date_from,
+                                   default_to=date_to or default_to,
                                    output=output,
                                    error=error,
                                    download_url=download_url)
 
+        # build command
         cmd = [sys.executable, fetch_py, "--date-from", d1, "--date-to", d2, "--out", out_path]
         if user:
             cmd += ["--user", user]
         if key:
             cmd += ["--key", key]
 
+        # εκτέλεση subprocess (συγχρονικά)
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)  # timeout 15 λεπτά
             output = proc.stdout.strip()
             stderr = proc.stderr.strip()
             if proc.returncode != 0:
                 error = f"exit code {proc.returncode}\n{stderr}"
             else:
+                # αν δημιουργήθηκε το αρχείο - δώσε σύνδεσμο για download
                 if os.path.exists(out_path):
                     download_url = url_for("download_generated", filename=os.path.basename(out_path))
                 else:
@@ -619,7 +639,7 @@ def bulk_fetch():
             output = ""
             error = f"Σφάλμα κατά την εκτέλεση: {e}"
 
-        # show stderr if any
+        # append stderr to output for visibility
         if output and stderr:
             output = output + "\n\n[stderr]\n" + stderr
         elif stderr and not output:
@@ -636,10 +656,27 @@ def bulk_fetch():
 
 @app.route("/download_generated/<path:filename>")
 def download_generated(filename):
-    filepath = os.path.join(app.config.get("UPLOAD_FOLDER", "uploads"), secure_filename(filename))
+    filepath = os.path.join(app.config.get("UPLOAD_FOLDER", UPLOADS_DIR), secure_filename(filename))
     if not os.path.exists(filepath):
         return ("Το αρχείο δεν βρέθηκε.", 404)
     return send_file(filepath, as_attachment=True, download_name=filename)
+
+# Global error handler
+@app.errorhandler(Exception)
+def handle_unexpected_error(e):
+    tb = traceback.format_exc()
+    log.error("Unhandled exception: %s\n%s", str(e), tb)
+    try:
+        with open(ERROR_LOG, "a", encoding="utf-8") as ef:
+            ef.write(f"\n\n{datetime.datetime.utcnow().isoformat()} - {str(e)}\n{tb}\n")
+    except Exception:
+        log.exception("Could not write to error log")
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    if debug:
+        return "<h2>Server Error (debug)</h2><pre>{}</pre>".format(escape(tb)), 500
+    else:
+        return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
