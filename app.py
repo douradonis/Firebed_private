@@ -21,7 +21,7 @@ import xmltodict
 import pandas as pd
 
 # local mydata helper (must be the file you added at repo root)
-import mydata
+import fetch
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
