@@ -11,6 +11,11 @@ def _safe_strip(s):
     return str(s).strip() if s else ""
 
 def find_in_element_by_localnames(elem, localnames):
+    """
+    Διάσχιση του element (και υπο-στοιχείων) και επιστροφή
+    του πρώτου μη-κενό κειμένου όταν το localname του tag
+    ταιριάζει σε μία από τις localnames.
+    """
     if elem is None:
         return ""
     for sub in elem.iter():
@@ -27,6 +32,7 @@ def extract_issuer_info(invoice_elem, ns):
     name = ""
     issuer = invoice_elem.find("ns:issuer", ns)
     if issuer is not None:
+        # Προσπαθούμε με namespaced tags πρώτα
         vat = _safe_strip(issuer.findtext("ns:vatNumber", default="", namespaces=ns))
         if not vat:
             vat = find_in_element_by_localnames(issuer, ["vatNumber", "VATNumber", "vatnumber"])
@@ -34,6 +40,7 @@ def extract_issuer_info(invoice_elem, ns):
         if not name:
             name = find_in_element_by_localnames(issuer, ["name", "Name", "companyName", "partyName", "partyType", "party"])
     else:
+        # fallback: ψάξε οπουδήποτε μέσα στο invoice element
         vat = find_in_element_by_localnames(invoice_elem, ["vatNumber", "VATNumber", "vatnumber"])
         name = find_in_element_by_localnames(invoice_elem, ["name", "Name", "companyName", "partyName", "partyType", "party"])
     return _safe_strip(vat), _safe_strip(name)
@@ -82,20 +89,31 @@ def request_docs(
         for invoice in root.findall(".//ns:invoice", ns):
             mark_val = _safe_strip(invoice.findtext("ns:mark", default="", namespaces=ns))
             header = invoice.find("ns:invoiceHeader", ns)
-            issueDate = _safe_strip(header.findtext("ns:issueDate", default="", namespaces=ns)) if header else ""
-            series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header else ""
-            aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header else ""
+            issueDate = _safe_strip(header.findtext("ns:issueDate", default="", namespaces=ns)) if header is not None else ""
+            series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header is not None else ""
+            aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header is not None else ""
 
-            # --- τύπος παραστατικού ---
-            invoice_type = _safe_strip(header.findtext("ns:invoiceType", default="", namespaces=ns)) if header else ""
+            # --- τύπος παραστατικού (προσπαθούμε με διάφορες ονομασίες) ---
+            invoice_type = ""
+            if header is not None:
+                invoice_type = _safe_strip(header.findtext("ns:invoiceType", default="", namespaces=ns))
+                if not invoice_type:
+                    # ψάξε και μέσα στο header και στο invoice για πιθανές παραλλαγές
+                    invoice_type = find_in_element_by_localnames(header, ["invoiceType", "InvoiceType", "invoiceCategory", "type", "documentType"])
             if not invoice_type:
-                invoice_type = find_in_element_by_localnames(invoice, ["invoiceType", "invoiceCategory", "type", "documentType"])
+                # fallback: αναζήτηση οπουδήποτε μέσα στο invoice element
+                invoice_type = find_in_element_by_localnames(invoice, ["invoiceType", "InvoiceType", "invoiceCategory", "type", "documentType"])
 
             vatissuer, Name_issuer = extract_issuer_info(invoice, ns)
 
             vat_groups = defaultdict(lambda: {"netValue": 0.0, "vatAmount": 0.0})
+            # try multiple possible detail tag names (namespaced ή όχι)
             details_nodes = invoice.findall(".//ns:invoiceDetails", ns)
-            if not details_nodes: details_nodes = invoice.findall(".//ns:invoiceDetail", ns)
+            if not details_nodes:
+                details_nodes = invoice.findall(".//ns:invoiceDetail", ns)
+            if not details_nodes:
+                # fallback to non-namespaced tags
+                details_nodes = invoice.findall(".//invoiceDetails") or invoice.findall(".//invoiceDetail")
 
             for detail in details_nodes:
                 net_text = detail.findtext("ns:netValue", default=None, namespaces=ns) or \
@@ -109,11 +127,15 @@ def request_docs(
                 vat_groups[cat]["netValue"] += net
                 vat_groups[cat]["vatAmount"] += vat
 
+            # fallback αν δεν βρέθηκαν λεπτομέρειες
             if not vat_groups:
                 summary_node = invoice.find("ns:invoiceSummary", ns)
-                if summary_node:
-                    net = to_float_safe(summary_node.findtext("ns:totalNetValue", default="0", namespaces=ns))
-                    vat = to_float_safe(summary_node.findtext("ns:totalVatAmount", default="0", namespaces=ns))
+                if summary_node is None:
+                    # try non-namespaced summary
+                    summary_node = invoice.find("invoiceSummary")
+                if summary_node is not None:
+                    net = to_float_safe(summary_node.findtext("ns:totalNetValue", default="0", namespaces=ns) or summary_node.findtext("totalNetValue") or "0")
+                    vat = to_float_safe(summary_node.findtext("ns:totalVatAmount", default="0", namespaces=ns) or summary_node.findtext("totalVatAmount") or "0")
                     vat_groups["1"]["netValue"] += net
                     vat_groups["1"]["vatAmount"] += vat
 
@@ -161,26 +183,33 @@ def request_docs(
         if row["mark"].strip() in transmitted_marks:
             row["classification"] = "χαρακτηρισμενο"
 
-    # --- Step 4: Summary ---
+    # --- Step 4: Summary aggregation ---
     summary_rows = {}
     for row in all_rows:
         mark_val = row["mark"]
         if mark_val not in summary_rows:
-            summary_rows[mark_val] = {**row}
+            # copy full row as starting aggregate
+            summary_rows[mark_val] = dict(row)
         else:
-            if row["classification"] == "χαρακτηρισμενο":
+            # accumulate numeric totals
+            summary_rows[mark_val]["totalNetValue"] += row.get("totalNetValue", 0)
+            summary_rows[mark_val]["totalVatAmount"] += row.get("totalVatAmount", 0)
+            # preserve classification 'χαρακτηρισμενο' if any row has it
+            if row.get("classification") == "χαρακτηρισμενο":
                 summary_rows[mark_val]["classification"] = "χαρακτηρισμενο"
-            summary_rows[mark_val]["totalNetValue"] += row["totalNetValue"]
-            summary_rows[mark_val]["totalVatAmount"] += row["totalVatAmount"]
-            # κρατάμε τον πρώτο τύπο παραστατικού
-            if not summary_rows[mark_val].get("type"):
-                summary_rows[mark_val]["type"] = row.get("type", "")
+            # keep first non-empty type (αν summary δεν έχει type)
+            if not summary_rows[mark_val].get("type") and row.get("type"):
+                summary_rows[mark_val]["type"] = row.get("type")
 
+    # finalize totals and normalize fields
     for s in summary_rows.values():
-        s["totalValue"] = round(s["totalNetValue"] + s["totalVatAmount"], 2)
+        s["totalNetValue"] = round(s.get("totalNetValue", 0), 2)
+        s["totalVatAmount"] = round(s.get("totalVatAmount", 0), 2)
+        s["totalValue"] = round(s.get("totalNetValue", 0) + s.get("totalVatAmount", 0), 2)
+
     summary_list = list(summary_rows.values())
 
-    # --- Step 5: Save Excel ---
+    # --- Step 5: Save Excel (αν ζητηθεί) ---
     if save_excel:
         with pd.ExcelWriter(out_filename, engine="openpyxl") as writer:
             pd.DataFrame(all_rows).to_excel(writer, sheet_name="detailed", index=False)
