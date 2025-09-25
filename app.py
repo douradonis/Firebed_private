@@ -162,6 +162,9 @@ def safe_render(template_name, **ctx):
             body += "<pre>" + escape(tb) + "</pre>"
         return body
 
+    
+
+
 # ---------------- Routes ----------------
 @app.route("/")
 def home():
@@ -362,58 +365,89 @@ def bulk_fetch():
                        error=error,
                        preview=preview)
 
+    
+
+
+# ---------------- MARK search ----------------
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
 def search():
     """
-    When POST with mark: if found in cache -> shows modal with summary
-    The modal in template uses the saved summary.json (if available) or generated from cached item.
+    When POST with mark: if found in cache -> shows modal with summary.
+    The modal uses the saved summary.json (if available) or generates from cached item.
     """
     result = None
     error = None
     mark = ""
     modal_summary = None
 
+    def map_invoice_type(code):
+        INVOICE_TYPE_MAP = {
+            "1.1": "Τιμολόγιο Πώλησης",
+            "1.2": "Τιμολόγιο Πώλησης / Ενδοκοινοτικές Παραδόσεις",
+            "1.3": "Τιμολόγιο Πώλησης / Παραδόσεις Τρίτων Χωρών",
+            "1.4": "Τιμολόγιο Πώλησης / Πώληση για Λογαριασμό Τρίτων",
+            "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
+            "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
+            "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
+            # ... υπόλοιπα όπως χρειάζεται
+        }
+        return INVOICE_TYPE_MAP.get(str(code), str(code) or "")
+
     if request.method == "POST":
         mark = request.form.get("mark", "").strip()
         if not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            # try to find in cache
             cache = load_cache()
             doc = next((d for d in cache if str(d.get("mark", "")).strip() == mark), None)
             if not doc:
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
-                # try to find the summary in SUMMARY_FILE (match by mark), else produce a basic summary
                 summaries = json_read(SUMMARY_FILE)
                 if isinstance(summaries, list):
-                    # summary entries from request_docs have 'mark' field
                     found = next((s for s in summaries if str(s.get("mark","")).strip() == mark), None)
                     if found:
-                        modal_summary = found
-                    else:
-                        # fallback: produce summary from cached doc (pick first totals)
                         modal_summary = {
                             "mark": mark,
-                            "AFM": doc.get("AFM_issuer") or doc.get("AFM") or "",
-                            "Name": doc.get("Name_issuer") or doc.get("Name") or "",
-                            "issueDate": doc.get("issueDate") or "",
-                            "totalNetValue": doc.get("totalNetValue") or 0,
-                            "totalVatAmount": doc.get("totalVatAmount") or 0,
+                            "AA": found.get("AA", doc.get("AA","")),
+                            "AFM": found.get("AFM", doc.get("AFM_issuer", doc.get("AFM",""))),
+                            "Name": found.get("Name", doc.get("Name_issuer", doc.get("Name",""))),
+                            "issueDate": found.get("issueDate", doc.get("issueDate","")),
+                            "type_name": found.get("type_name", map_invoice_type(doc.get("type"))),
+                            "totalNetValue": found.get("totalNetValue", doc.get("totalNetValue", 0)),
+                            "totalVatAmount": found.get("totalVatAmount", doc.get("totalVatAmount", 0)),
+                            "totalValue": found.get("totalValue", doc.get("totalValue", 0))
+                        }
+                    else:
+                        modal_summary = {
+                            "mark": mark,
+                            "AA": doc.get("AA",""),
+                            "AFM": doc.get("AFM_issuer", doc.get("AFM","")),
+                            "Name": doc.get("Name_issuer", doc.get("Name","")),
+                            "issueDate": doc.get("issueDate",""),
+                            "type_name": map_invoice_type(doc.get("type")),
+                            "totalNetValue": doc.get("totalNetValue",0),
+                            "totalVatAmount": doc.get("totalVatAmount",0),
+                            "totalValue": doc.get("totalValue",0)
                         }
                 else:
                     modal_summary = {
                         "mark": mark,
-                        "AFM": doc.get("AFM_issuer") or doc.get("AFM") or "",
-                        "Name": doc.get("Name_issuer") or doc.get("Name") or "",
-                        "issueDate": doc.get("issueDate") or "",
-                        "totalNetValue": doc.get("totalNetValue") or 0,
-                        "totalVatAmount": doc.get("totalVatAmount") or 0,
+                        "AA": doc.get("AA",""),
+                        "AFM": doc.get("AFM_issuer", doc.get("AFM","")),
+                        "Name": doc.get("Name_issuer", doc.get("Name","")),
+                        "issueDate": doc.get("issueDate",""),
+                        "type_name": map_invoice_type(doc.get("type")),
+                        "totalNetValue": doc.get("totalNetValue",0),
+                        "totalVatAmount": doc.get("totalVatAmount",0),
+                        "totalValue": doc.get("totalValue",0)
                     }
 
     return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary)
+
+
 
 # ---------------- Save summary from modal to Excel & cache ----------------
 @app.route("/save_summary", methods=["POST"])
