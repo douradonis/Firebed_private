@@ -1,497 +1,221 @@
 #!/usr/bin/env python3
 # fetch.py
 """
-Bulk fetch παραστατικών από myDATA (RequestDocs) και δημιουργία Excel
-Χρήση:
-  python fetch.py --date-from 01/08/2025 --date-to 31/08/2025 --out out.xlsx [--user AADE_USER] [--key AADE_KEY]
-  python fetch.py --dump-creds   # debug: δείχνει credentials που βρέθηκαν
-"""
+CLI wrapper that calls mydata.request_docs and writes results to an Excel file.
 
-import os
-import sys
-import json
+Usage:
+  python fetch.py --date-from 01/09/2025 --date-to 30/09/2025 --out out.xlsx --user tester97 --key SUBS_KEY
+
+The frontend can call this script (subprocess) and then serve the produced XLSX.
+"""
+from typing import Any, Dict, List, Optional
 import argparse
-import time
-import re
+import sys
+import os
+import json
+import logging
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
-import requests
-import xml.etree.ElementTree as ET
-from collections import defaultdict
 import pandas as pd
 
-# ---------- CONFIG ----------
-MARK = "000000000000000"
-# default endpoints (sandbox vs prod selection can be done via env MYDATA_ENV)
-MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
-REQUESTDOCS_URL = (
-    "https://mydataapidev.aade.gr/RequestDocs"
-    if MYDATA_ENV in ("sandbox", "dev", "demo")
-    else "https://mydatapi.aade.gr/myDATA/RequestDocs"
-)
-REQUEST_TRANSMITTED_URL = (
-    "https://mydataapidev.aade.gr/RequestTransmittedDocs"
-    if MYDATA_ENV in ("sandbox", "dev", "demo")
-    else "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
-)
+# import the mydata module (must be in project root)
+import mydata
 
-# candidate credential locations (checked by load_credentials_for_fetch)
-CANDIDATE_CRED_PATHS = [
-    os.getenv("CREDENTIALS_FILE", "") or "",
-    os.path.join(os.getcwd(), "data", "credentials.json"),
-    os.path.join(os.getcwd(), "credentials.json"),
-    os.path.join(os.path.dirname(__file__), "data", "credentials.json"),
-    os.path.join(os.path.dirname(__file__), "..", "data", "credentials.json"),
-    "/app/data/credentials.json",
-    "/data/credentials.json",
-]
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+log = logging.getLogger("fetch")
 
-# ---------- helpers ----------
-def _safe_strip(x):
-    if x is None:
-        return ""
-    return str(x).strip()
-
-def _read_json_file(path):
+def parse_date_input(s: str) -> Optional[str]:
+    """Accept dd/mm/YYYY or ISO (YYYY-MM-DD or full iso) and return YYYY-MM-DD or None."""
+    if not s:
+        return None
+    s = s.strip()
+    # try dd/mm/YYYY
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        if os.environ.get("DEBUG_FETCH"):
-            print(f"[fetch] read_json_file failed for {path}: {e}", file=sys.stderr)
+        if "/" in s:
+            d = datetime.strptime(s, "%d/%m/%Y")
+            return d.date().isoformat()
+        # try ISO date (YYYY-MM-DD)
+        d = datetime.fromisoformat(s)
+        return d.date().isoformat()
+    except Exception:
         return None
 
-def load_credentials_for_fetch(pre_user=None, pre_key=None):
+def extract_mark_from_obj(o: Any) -> Optional[str]:
+    """Recursively search object (dict/list/str) for a 15-digit MARK and return first found."""
+    import re
+    if o is None:
+        return None
+    if isinstance(o, str):
+        m = re.search(r"\b(\d{15})\b", o)
+        if m:
+            return m.group(1)
+        return None
+    if isinstance(o, (int, float)):
+        s = str(int(o)) if isinstance(o, int) else str(o)
+        if len(s) == 15 and s.isdigit():
+            return s
+        return None
+    if isinstance(o, dict):
+        for k, v in o.items():
+            mm = extract_mark_from_obj(v)
+            if mm:
+                return mm
+    if isinstance(o, list):
+        for v in o:
+            mm = extract_mark_from_obj(v)
+            if mm:
+                return mm
+    return None
+
+def find_issuer_fields(doc: Dict[str, Any]) -> (str, str):
     """
-    Προσπαθεί να βρει credentials με την εξής προτεραιότητα:
-    1) pre_user & pre_key (CLI overrides)
-    2) data/credentials.json κ.ά. candidate paths
-    3) env vars AADE_USER_ID / AADE_SUBSCRIPTION_KEY
-    Επιστρέφει λίστα credential dicts.
+    Try to extract AFM (vatNumber) and issuer name from parsed xml->dict.
+    Search common keys under invoice/issuer and recursively for vatNumber/name/partyType/name etc.
     """
-    if pre_user and pre_key:
-        return [{"name":"cli", "user": pre_user, "key": pre_key, "source": "cli"}]
-
-    creds = None
-    found_path = None
-    for p in CANDIDATE_CRED_PATHS:
-        if not p:
-            continue
-        if os.path.exists(p):
-            maybe = _read_json_file(p)
-            if maybe:
-                if isinstance(maybe, list):
-                    creds = maybe
-                elif isinstance(maybe, dict):
-                    creds = [maybe]
-                if creds:
-                    found_path = p
-                    break
-
-    if not creds:
-        aade_user = os.getenv("AADE_USER_ID") or os.getenv("AADE_USER") or None
-        aade_key = os.getenv("AADE_SUBSCRIPTION_KEY") or os.getenv("AADE_KEY") or None
-        if aade_user and aade_key:
-            creds = [{"name":"env", "user": aade_user, "key": aade_key, "source": "env"}]
-            found_path = "env"
-
-    if not creds:
-        return []
-
-    # ensure metadata
-    for c in creds:
-        if "source" not in c:
-            c["source"] = found_path or "unknown"
-    return creds
-
-def dump_creds(pre_user=None, pre_key=None):
-    creds = load_credentials_for_fetch(pre_user, pre_key)
-    if not creds:
-        print("NO_CREDENTIALS_FOUND")
-        return 2
-    print("CREDENTIALS_FOUND:", len(creds))
-    for i, c in enumerate(creds):
-        print(f"--- credential[{i}] (source={c.get('source')}) ---")
-        print(json.dumps({k:v for k,v in c.items() if k != "key"}, ensure_ascii=False, indent=2))
-    return 0
-
-# XML helpers to robustly find elements by localname
-def find_in_element_by_localnames(elem, localnames):
-    """Ψάχνει μέσα στο elem (και σε όλο το δέντρο του) για υπο-στοιχεία με localname στη λίστα."""
-    if elem is None:
-        return ""
-    for sub in elem.iter():
-        tag = sub.tag
-        if isinstance(tag, str) and "}" in tag:
-            lname = tag.split("}", 1)[1]
-        else:
-            lname = tag
-        if lname in localnames:
-            txt = _safe_strip(sub.text)
-            if txt:
-                return txt
-    return ""
-
-def extract_issuer_info(invoice_elem, ns):
-    """
-    Επιστρέφει (vatissuer, issuer_name) προσπαθώντας πολλές πιθανές θέσεις.
-    - τυπική: invoice/issuer/vatNumber , invoice/issuer/name
-    - αλλιώς: ψάχνει οποιοδήποτε descendant με localname vatNumber/name/companyName/partyName/partyType
-    """
-    vat = ""
+    afm = ""
     name = ""
-    issuer = invoice_elem.find("ns:issuer", ns)
-    if issuer is not None:
-        vat = _safe_strip(issuer.findtext("ns:vatNumber", default="", namespaces=ns))
-        if not vat:
-            vat = find_in_element_by_localnames(issuer, ["vatNumber", "VATNumber", "vatnumber"])
-        # try issuer/name or descendants
-        name = _safe_strip(issuer.findtext("ns:name", default="", namespaces=ns))
-        if not name:
-            # sometimes the structure uses party/partyName/name or partyType/name etc.
-            name = find_in_element_by_localnames(issuer, ["name", "Name", "companyName", "partyName", "partyType"])
-    else:
-        # fallback searching whole invoice
-        vat = find_in_element_by_localnames(invoice_elem, ["vatNumber", "VATNumber", "vatnumber"])
-        name = find_in_element_by_localnames(invoice_elem, ["name", "Name", "companyName", "partyName", "partyType"])
-    return _safe_strip(vat), _safe_strip(name)
 
-def to_float_safe(x):
-    try:
+    def walk(o):
+        nonlocal afm, name
+        if isinstance(o, dict):
+            for k, v in o.items():
+                kl = str(k).lower()
+                if not afm and kl.endswith("vatnumber") or kl == "vatnumber" or kl == "vat_number" or "vat" in kl and "number" in kl:
+                    afm_try = _to_str(v)
+                    if afm_try and len(''.join(filter(str.isdigit, afm_try))) >= 7:
+                        afm = afm_try.strip()
+                if not name and (kl in ("name", "companyname", "partyname", "partytype", "issuername")):
+                    name_try = _to_str(v)
+                    if name_try:
+                        name = name_try.strip()
+                # recurse
+                if isinstance(v, (dict, list)):
+                    walk(v)
+        elif isinstance(o, list):
+            for i in o:
+                walk(i)
+
+    def _to_str(x):
         if x is None:
-            return 0.0
-        s = str(x).strip()
-        if s == "":
-            return 0.0
-        # remove currency characters, keep digits , . and -
-        s2 = re.sub(r"[^\d\-,\.]", "", s)
-        if "," in s2 and "." not in s2:
-            s2 = s2.replace(".", "").replace(",", ".")
-        else:
-            s2 = s2.replace(",", "")
-        return float(s2)
-    except Exception:
+            return ""
+        if isinstance(x, str):
+            return x
         try:
-            return float(re.sub(r"[^\d\.]", "", str(x)))
+            return str(x)
         except Exception:
-            return 0.0
+            return ""
 
-# ---------- main fetch logic ----------
-def request_docs_loop(aade_user, subscription_key, date_from_ddmmyyyy, date_to_ddmmyyyy, mark=MARK, debug=False):
-    """
-    Καλεί RequestDocs με σελιδοποίηση (nextPartitionToken). Επιστρέφει λίστα xml invoice elements (as ET.Element)
-    """
-    headers = {
-        "aade-user-id": aade_user,
-        "Ocp-Apim-Subscription-Key": subscription_key,
-        "Accept": "application/xml",
-    }
-    params = {"mark": mark, "dateFrom": date_from_ddmmyyyy, "dateTo": date_to_ddmmyyyy}
-    invoices = []
-    attempt = 0
-    while True:
-        attempt += 1
-        if debug: print(f"[RequestDocs] GET {REQUESTDOCS_URL} params={params}", file=sys.stderr)
-        r = requests.get(REQUESTDOCS_URL, params=params, headers=headers, timeout=60)
-        if debug: print(f"[RequestDocs] status {r.status_code}", file=sys.stderr)
-        if r.status_code != 200:
-            raise RuntimeError(f"RequestDocs failed status={r.status_code} body={r.text[:500]}")
-        try:
-            root = ET.fromstring(r.content)
-        except Exception as e:
-            raise RuntimeError(f"Failed parse RequestDocs XML: {e}")
-        ns = {'ns': 'http://www.aade.gr/myDATA/invoice/v1.0'}
-        found = root.findall(".//ns:invoice", ns)
-        if debug: print(f"[RequestDocs] found {len(found)} invoices on page {attempt}", file=sys.stderr)
-        invoices.extend(found)
-        # next token?
-        next_token_elem = root.find(".//ns:nextPartitionToken", ns)
-        if next_token_elem is not None and _safe_strip(next_token_elem.text):
-            params["nextPartitionToken"] = _safe_strip(next_token_elem.text)
-            # continue loop
-            time.sleep(0.15)
-            continue
-        break
-    return invoices
+    # Common entrypoints
+    candidates = []
+    if isinstance(doc, dict):
+        # sometimes response root is RequestedDoc -> invoicesDoc -> invoice (single or list)
+        # collect potential invoice nodes
+        def collect_invoices(obj):
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k.lower() in ("invoice", "invoices", "invoicesdoc", "invoicesdoc"):
+                        if isinstance(v, list):
+                            candidates.extend(v)
+                        else:
+                            candidates.append(v)
+                    else:
+                        collect_invoices(v)
+            elif isinstance(obj, list):
+                for it in obj:
+                    collect_invoices(it)
+        collect_invoices(doc)
 
-def request_transmitted_marks(aade_user, subscription_key, date_from_ddmmyyyy, date_to_ddmmyyyy_plus3, mark=MARK, debug=False):
-    """
-    Καλεί RequestTransmittedDocs για περίοδο date_from..date_to_plus3 και επιστρέφει set of marks που είναι χαρακτηρισμένα.
-    Χρησιμοποιεί απλή αναζήτηση invoiceMark tags και όλα τα 15-digit numbers στο XML.
-    """
-    headers = {
-        "aade-user-id": aade_user,
-        "Ocp-Apim-Subscription-Key": subscription_key,
-        "Accept": "application/xml",
-    }
-    params = {"mark": mark, "dateFrom": date_from_ddmmyyyy, "dateTo": date_to_ddmmyyyy_plus3}
-    if debug: print(f"[RequestTransmittedDocs] GET {REQUEST_TRANSMITTED_URL} params={params}", file=sys.stderr)
-    r = requests.get(REQUEST_TRANSMITTED_URL, params=params, headers=headers, timeout=60)
-    if r.status_code != 200:
-        if debug:
-            print(f"[RequestTransmittedDocs] status {r.status_code} body: {r.text[:400]}", file=sys.stderr)
-        # return empty set on non-200 (so we don't fail everything)
-        return set()
-    txt = r.text or ""
-    marks = set()
-    # try parse XML
+    # If none found, just walk whole doc
+    if not candidates:
+        walk(doc)
+    else:
+        # examine first candidate invoice node (most responses are per-invoice)
+        for inv in candidates:
+            walk(inv)
+            if afm or name:
+                break
+
+    # last resort: walk entire doc
+    if not afm and not name:
+        walk(doc)
+
+    return (afm or "", name or "")
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="fetch.py", description="Bulk fetch myDATA docs and write to XLSX")
+    parser.add_argument("--date-from", required=True, help="dateFrom (dd/mm/YYYY or ISO)")
+    parser.add_argument("--date-to", required=True, help="dateTo (dd/mm/YYYY or ISO)")
+    parser.add_argument("--user", required=False, help="AADE user id (overrides env)")
+    parser.add_argument("--key", required=False, help="AADE subscription key (overrides env)")
+    parser.add_argument("--out", required=True, help="Output xlsx path")
+    parser.add_argument("--dummy-mark", required=False, default="000000000000000", help="dummy MARK to pass")
+    parser.add_argument("--throttle", type=float, default=0.2, help="throttle between paginated requests")
+    args = parser.parse_args(argv)
+
+    d1_iso = parse_date_input(args.date_from)
+    d2_iso = parse_date_input(args.date_to)
+    if not d1_iso or not d2_iso:
+        log.error("Invalid dates. Provide dd/mm/YYYY or ISO. Got: %s / %s", args.date_from, args.date_to)
+        return 2
+
+    # mydata.request_docs expects YYYY-MM-DD strings
+    date_from_arg = d1_iso
+    date_to_arg = d2_iso
+
+    log.info("RequestDocs dateFrom=%s dateTo=%s (dummy_mark=%s)", date_from_arg, date_to_arg, args.dummy_mark)
+
     try:
-        root = ET.fromstring(r.content)
-        for elem in root.iter():
-            tag = elem.tag
-            local = tag.split("}", 1)[-1] if "}" in tag else tag
-            if local.lower() in ("invoicemark", "invoiceMark".lower()) and (elem.text or "").strip():
-                marks.add(_safe_strip(elem.text))
-            # also if any element text looks like 15-digit number
-            if elem.text:
-                t = _safe_strip(elem.text)
-                if t.isdigit() and len(t) == 15:
-                    marks.add(t)
-    except Exception:
-        # fallback: regex find 15-digit numbers in raw text
-        for m in re.findall(r"\b(\d{15})\b", txt):
-            marks.add(m)
-    # save raw xml for debugging
-    try:
-        with open("requesttransmitted_raw.xml", "wb") as f:
-            f.write(r.content)
-    except Exception:
-        pass
-    if debug:
-        print(f"[RequestTransmittedDocs] found {len(marks)} marks", file=sys.stderr)
-    return marks
+        docs = mydata.request_docs(
+            date_from=date_from_arg,
+            date_to=date_to_arg,
+            dummy_mark=args.dummy_mark,
+            throttle=args.throttle,
+            aade_user=args.user,
+            subscription_key=args.key,
+        )
+    except Exception as e:
+        log.exception("RequestDocs failed: %s", e)
+        print(f"ERROR RequestDocs failed: {e}", file=sys.stderr)
+        return 3
 
-def build_rows_from_invoices(invoice_elements, transmitted_marks_set, debug=False):
-    """
-    Δεχόμαστε λίστα ET invoice elements. Επιστρέφουμε all_rows (list of dicts) με πεδία:
-      mark, issueDate, series, aa, vatCategory, totalNetValue, totalVatAmount, classification, AFM_issuer, Name_issuer
-    """
-    ns = {'ns': 'http://www.aade.gr/myDATA/invoice/v1.0'}
-    all_rows = []
-    for inv in invoice_elements:
-        mark = _safe_strip(inv.findtext("ns:mark", default="", namespaces=ns))
-        header = inv.find("ns:invoiceHeader", ns)
-        issueDate = _safe_strip(header.findtext("ns:issueDate", default="", namespaces=ns)) if header is not None else ""
-        series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header is not None else ""
-        aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header is not None else ""
+    log.info("Fetched %d documents", len(docs) if docs else 0)
 
-        # issuer info
-        afm_issuer, name_issuer = extract_issuer_info(inv, ns)
+    rows = []
+    summary_rows = []
+    for doc in docs:
+        # doc is already a Python dict from xmltodict
+        mark = extract_mark_from_obj(doc) or ""
+        afm, issuer_name = find_issuer_fields(doc)
+        raw_json = json.dumps(doc, ensure_ascii=False)
+        rows.append({
+            "MARK": mark,
+            "AFM_issuer": afm,
+            "Name_issuer": issuer_name,
+            "raw_json": raw_json
+        })
+        summary_rows.append({
+            "MARK": mark,
+            "AFM_issuer": afm,
+            "Name_issuer": issuer_name
+        })
 
-        # collect invoiceDetails - attempt several tag names
-        vat_groups = defaultdict(lambda: {"netValue": 0.0, "vatAmount": 0.0})
-        details_nodes = inv.findall(".//ns:invoiceDetails", ns)
-        if not details_nodes:
-            # sometimes invoiceDetails appears multiple times as individual nodes
-            # find all nodes whose localname is invoiceDetails or invoiceDetail
-            details_nodes = []
-            for e in inv.iter():
-                tag = e.tag
-                local = tag.split("}", 1)[-1] if "}" in tag else tag
-                if local.lower() in ("invoicedetails", "invoicedetail", "invoiceDetails".lower(), "invoiceDetail".lower()):
-                    details_nodes.append(e)
-        # parse details
-        if details_nodes:
-            for detail in details_nodes:
-                # try namespaced first
-                net_text = detail.findtext("ns:netValue", default=None, namespaces=ns)
-                if net_text is None:
-                    net_text = detail.findtext("netValue") or detail.findtext("NetValue") or "0"
-                vat_text = detail.findtext("ns:vatAmount", default=None, namespaces=ns)
-                if vat_text is None:
-                    vat_text = detail.findtext("vatAmount") or detail.findtext("VatAmount") or "0"
-                vat_cat = detail.findtext("ns:vatCategory", default=None, namespaces=ns)
-                if vat_cat is None:
-                    vat_cat = detail.findtext("vatCategory") or detail.findtext("VatCategory") or ""
-                net = to_float_safe(net_text)
-                vat = to_float_safe(vat_text)
-                cat = _safe_strip(vat_cat) or "1"
-                vat_groups[cat]["netValue"] += net
-                vat_groups[cat]["vatAmount"] += vat
-        else:
-            # fallback to invoiceSummary totals
-            summary_node = inv.find("ns:invoiceSummary", ns)
-            if summary_node is not None:
-                net = to_float_safe(summary_node.findtext("ns:totalNetValue", default="0", namespaces=ns))
-                vat = to_float_safe(summary_node.findtext("ns:totalVatAmount", default="0", namespaces=ns))
-                vat_groups["1"]["netValue"] += net
-                vat_groups["1"]["vatAmount"] += vat
-
-        # if still empty, ensure at least one group
-        if not vat_groups:
-            vat_groups["1"]["netValue"] += 0.0
-            vat_groups["1"]["vatAmount"] += 0.0
-
-        classification = "αχαρακτηριστο"
-        if mark and mark in transmitted_marks_set:
-            classification = "χαρακτηρισμενο"
-
-        for vat_cat, totals in vat_groups.items():
-            row = {
-                "mark": mark,
-                "issueDate": issueDate,
-                "series": series,
-                "aa": aa,
-                "vatCategory": vat_cat,
-                "totalNetValue": round(totals["netValue"], 2),
-                "totalVatAmount": round(totals["vatAmount"], 2),
-                "classification": classification,
-                "AFM_issuer": afm_issuer,
-                "Name_issuer": name_issuer
-            }
-            all_rows.append(row)
-    return all_rows
-
-def build_summary_from_rows(all_rows):
-    """
-    Δημιουργεί μία γραμμή ανά MARK με συνολικά ποσά και κρατάει AFM/Name εκδότη.
-    """
-    summary_rows = {}
-    for row in all_rows:
-        mark = row.get("mark", "")
-        if mark not in summary_rows:
-            summary_rows[mark] = {
-                "mark": mark,
-                "issueDate": row.get("issueDate", ""),
-                "series": row.get("series", ""),
-                "aa": row.get("aa", ""),
-                "classification": row.get("classification", ""),
-                "totalNetValue": row.get("totalNetValue", 0.0),
-                "totalVatAmount": row.get("totalVatAmount", 0.0),
-                "AFM_issuer": row.get("AFM_issuer", ""),
-                "Name_issuer": row.get("Name_issuer", "")
-            }
-        else:
-            if row.get("classification") == "χαρακτηρισμενο":
-                summary_rows[mark]["classification"] = "χαρακτηρισμενο"
-            summary_rows[mark]["totalNetValue"] += row.get("totalNetValue", 0.0)
-            summary_rows[mark]["totalVatAmount"] += row.get("totalVatAmount", 0.0)
-            if not summary_rows[mark]["AFM_issuer"] and row.get("AFM_issuer"):
-                summary_rows[mark]["AFM_issuer"] = row.get("AFM_issuer")
-            if not summary_rows[mark]["Name_issuer"] and row.get("Name_issuer"):
-                summary_rows[mark]["Name_issuer"] = row.get("Name_issuer")
-    # add totalValue
-    for s in summary_rows.values():
-        s["totalValue"] = round(s["totalNetValue"] + s["totalVatAmount"], 2)
-    return list(summary_rows.values())
-
-def write_excel(out_path, all_rows, summary_list, debug=False):
-    # convert to dataframes and write two sheets
-    df_detail = pd.DataFrame(all_rows)
-    df_summary = pd.DataFrame(summary_list)
-
-    # ensure columns present
-    for col in ("AFM_issuer", "Name_issuer"):
-        if col not in df_detail.columns:
-            df_detail[col] = ""
-        if col not in df_summary.columns:
-            df_summary[col] = ""
-
-    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
-        df_detail.to_excel(writer, sheet_name="invoices_vat_summary_classified", index=False)
-        df_summary.to_excel(writer, sheet_name="invoices_summary", index=False)
-    if debug:
-        print(f"[fetch] Wrote Excel: {out_path}", file=sys.stderr)
-
-# ---------- CLI ----------
-def parse_args():
-    p = argparse.ArgumentParser(description="Bulk fetch myDATA RequestDocs -> Excel")
-    p.add_argument("--date-from", required=False, help="dateFrom dd/mm/YYYY (required unless --dump-creds)")
-    p.add_argument("--date-to", required=False, help="dateTo dd/mm/YYYY (required unless --dump-creds)")
-    p.add_argument("--out", required=False, help="output xlsx path (required unless --dump-creds)")
-    p.add_argument("--user", required=False, help="AADE user id (optional override)")
-    p.add_argument("--key", required=False, help="AADE subscription key (optional override)")
-    p.add_argument("--dump-creds", action="store_true", help="print credentials found and exit (debug)")
-    p.add_argument("--debug", action="store_true", help="enable debug prints")
-    return p.parse_args()
-
-def validate_ddmmyyyy(s):
-    try:
-        return datetime.strptime(s, "%d/%m/%Y")
-    except Exception:
-        return None
-
-def main():
-    args = parse_args()
-    debug = bool(args.debug) or bool(os.environ.get("DEBUG_FETCH"))
-
-    if args.dump_creds:
-        rc = dump_creds(pre_user=args.user, pre_key=args.key)
-        sys.exit(rc)
-
-    if not args.date_from or not args.date_to or not args.out:
-        print("Error: --date-from, --date-to and --out are required (or use --dump-creds).", file=sys.stderr)
-        sys.exit(4)
-
-    d1 = validate_ddmmyyyy(args.date_from)
-    d2 = validate_ddmmyyyy(args.date_to)
-    if not d1 or not d2:
-        print("Error: Dates must be in dd/mm/YYYY format.", file=sys.stderr)
-        sys.exit(5)
-    if d1 > d2:
-        print("Error: date-from must be <= date-to.", file=sys.stderr)
-        sys.exit(6)
-
-    out_path = args.out
+    # Ensure out dir exists
+    out_path = os.path.abspath(args.out)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
 
-    # load credentials
-    creds = load_credentials_for_fetch(pre_user=args.user, pre_key=args.key)
-    if not creds:
-        print("ERROR: No credentials found. Provide --user/--key or create data/credentials.json or set env vars.", file=sys.stderr)
-        sys.exit(7)
-    cred = creds[0]
-    aade_user = cred.get("user")
-    aade_key = cred.get("key")
-    if debug:
-        print(f"[fetch] Using credential source={cred.get('source')} user={aade_user}", file=sys.stderr)
-
-    # Step1: RequestDocs loop
+    # Write Excel with two sheets
     try:
-        invoice_elems = request_docs_loop(aade_user, aade_key, args.date_from, args.date_to, mark=MARK, debug=debug)
+        df_raw = pd.DataFrame(rows)
+        df_summary = pd.DataFrame(summary_rows)
+        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+            df_raw.to_excel(writer, sheet_name="raw_docs", index=False)
+            df_summary.to_excel(writer, sheet_name="summary_marks", index=False)
+        log.info("Wrote %s (rows: %d)", out_path, len(rows))
+        print(f"OK: wrote {out_path} with {len(rows)} docs")
+        return 0
     except Exception as e:
-        print(f"Error fetching RequestDocs: {e}", file=sys.stderr)
-        sys.exit(8)
-
-    if debug:
-        print(f"[fetch] Total invoices fetched: {len(invoice_elems)}", file=sys.stderr)
-
-    # Step2: RequestTransmittedDocs with dateTo + 3 months (API expects dd/mm/YYYY strings)
-    try:
-        date_to_dt = validate_ddmmyyyy(args.date_to)
-        date_to_plus3 = (date_to_dt + relativedelta(months=3)).strftime("%d/%m/%Y")
-        transmitted_marks = request_transmitted_marks(aade_user, aade_key, args.date_from, date_to_plus3, mark=MARK, debug=debug)
-    except Exception as e:
-        print(f"Error fetching RequestTransmittedDocs: {e}", file=sys.stderr)
-        transmitted_marks = set()
-
-    if debug:
-        print(f"[fetch] Transmitted marks count: {len(transmitted_marks)}", file=sys.stderr)
-
-    # Step3: build rows
-    try:
-        all_rows = build_rows_from_invoices(invoice_elems, transmitted_marks, debug=debug)
-    except Exception as e:
-        print(f"Error building rows: {e}", file=sys.stderr)
-        sys.exit(9)
-
-    # Step4: summary per invoice
-    try:
-        summary_list = build_summary_from_rows(all_rows)
-    except Exception as e:
-        print(f"Error building summary: {e}", file=sys.stderr)
-        sys.exit(10)
-
-    # Step5: write excel
-    try:
-        write_excel(out_path, all_rows, summary_list, debug=debug)
-    except Exception as e:
-        print(f"Error writing Excel: {e}", file=sys.stderr)
-        sys.exit(11)
-
-    # success
-    print(f"OK: wrote {len(all_rows)} detailed rows and {len(summary_list)} summary rows to {out_path}")
-    sys.exit(0)
+        log.exception("Failed to write excel: %s", e)
+        print(f"ERROR: failed to write excel: {e}", file=sys.stderr)
+        return 4
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
