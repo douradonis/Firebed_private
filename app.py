@@ -1,23 +1,23 @@
-# app.py (διορθωμένο, πλήρες)
-
+# app.py  (πλήρες, αντικατάστησε το παλιό app.py με αυτό)
 import os
 import sys
 import json
 import traceback
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import Any
+from typing import Any, Optional
 import datetime
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 
 from markupsafe import escape
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify
 
 import requests
 import pandas as pd
+import re
 
-# local mydata helper
+# local mydata helper (your fetch.py)
 from fetch import request_docs
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -27,13 +27,15 @@ UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 CACHE_FILE = os.path.join(DATA_DIR, "invoices_cache.json")
-SUMMARY_FILE = os.path.join(DATA_DIR, "summary.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
 EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
+SUMMARY_FILE = os.path.join(DATA_DIR, "summary.json")
 ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 
+# ENV / defaults
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
 AADE_KEY_ENV = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
@@ -81,30 +83,6 @@ def load_credentials():
 def save_credentials(creds):
     json_write(CREDENTIALS_FILE, creds)
 
-def add_credential(entry):
-    creds = load_credentials()
-    for c in creds:
-        if c.get("name") == entry.get("name"):
-            return False, "Credential with that name exists"
-    creds.append(entry)
-    save_credentials(creds)
-    return True, ""
-
-def update_credential(name, new_entry):
-    creds = load_credentials()
-    for i, c in enumerate(creds):
-        if c.get("name") == name:
-            creds[i] = new_entry
-            save_credentials(creds)
-            return True
-    return False
-
-def delete_credential(name):
-    creds = load_credentials()
-    new = [c for c in creds if c.get("name") != name]
-    save_credentials(new)
-    return True
-
 def load_cache():
     data = json_read(CACHE_FILE)
     return data if isinstance(data, list) else []
@@ -129,80 +107,50 @@ def append_doc_to_cache(doc, aade_user=None, aade_key=None):
     save_cache(docs)
     return True
 
-# ---------------- Summary helpers ----------------
-def load_summary():
-    data = json_read(SUMMARY_FILE)
-    return data if isinstance(data, list) else []
-
-def save_summary(summary_list):
-    """
-    Save/merge summary_list into SUMMARY_FILE.
-    Avoid duplicate summaries by 'mark' field (if present).
-    If summary_list is not a list, try to wrap it.
-    """
-    if summary_list is None:
-        return
-    if not isinstance(summary_list, list):
-        try:
-            summary_list = list(summary_list)
-        except Exception:
-            summary_list = [summary_list]
-
-    existing = load_summary()
-    # build index by mark if possible
-    existing_by_mark = {}
-    for e in existing:
-        try:
-            mk = str(e.get("mark")).strip()
-        except Exception:
-            mk = ""
-        if mk:
-            existing_by_mark[mk] = e
-
-    changed = False
-    for s in summary_list:
-        if not isinstance(s, dict):
-            continue
-        mk = str(s.get("mark") or s.get("MARK") or "").strip()
-        if mk:
-            if mk not in existing_by_mark:
-                existing.append(s)
-                existing_by_mark[mk] = s
-                changed = True
-            else:
-                # if mark exists, consider updating the existing entry (optional)
-                # keep existing as-is to avoid overwriting
-                pass
-        else:
-            # no mark -> try to avoid exact duplicate
-            try:
-                if s not in existing:
-                    existing.append(s)
-                    changed = True
-            except Exception:
-                existing.append(s)
-                changed = True
-
-    if changed:
-        try:
-            json_write(SUMMARY_FILE, existing)
-        except Exception:
-            log.exception("Could not write summary file")
-
-# ---------------- Validation helper ----------------
-def normalize_input_date_to_iso(s: str):
-    """
-    Δέχεται ημερομηνίες μόνο στη μορφή dd/mm/YYYY
-    Επιστρέφει ISO μορφή YYYY-MM-DD ή None αν αποτύχει.
-    """
+# parse dd/mm/YYYY -> ISO; strict
+def parse_ddmmyyyy_to_iso(s: str) -> Optional[str]:
     if not s:
         return None
     s = s.strip()
     try:
-        dt = datetime.datetime.strptime(s, "%d/%m/%Y")
+        dt = _dt.strptime(s, "%d/%m/%Y")
         return dt.date().isoformat()
-    except ValueError:
+    except Exception:
         return None
+
+# euro parsing helpers (for display/aggregation)
+def parse_euro_to_float(s):
+    try:
+        if s is None:
+            return 0.0
+        t = str(s).strip()
+        if t == "":
+            return 0.0
+        t = re.sub(r"[^\d\-,\.]", "", t)
+        if "," in t and "." in t:
+            if t.rfind(",") > t.rfind("."):
+                t = t.replace(".", "").replace(",", ".")
+            else:
+                t = t.replace(",", "")
+        elif "," in t and "." not in t:
+            t = t.replace(".", "").replace(",", ".")
+        else:
+            t = t.replace(",", "")
+        return float(t)
+    except Exception:
+        try:
+            return float(re.sub(r"[^\d\.]", "", str(s)))
+        except Exception:
+            return 0.0
+
+def format_number_for_display(v):
+    try:
+        f = float(v)
+        out = "{:,.2f}".format(f)  # "1,234.56"
+        out = out.replace(",", "X").replace(".", ",").replace("X", ".")
+        return out
+    except Exception:
+        return str(v)
 
 # ---------------- safe render ----------------
 def safe_render(template_name, **ctx):
@@ -220,9 +168,9 @@ def safe_render(template_name, **ctx):
 # ---------------- Routes ----------------
 @app.route("/")
 def home():
-    return safe_render("nav.html")
+    return safe_render("base.html")
 
-# credentials CRUD
+# credentials CRUD pages (kept minimal)
 @app.route("/credentials", methods=["GET", "POST"])
 def credentials():
     if request.method == "POST":
@@ -234,66 +182,46 @@ def credentials():
         if not name:
             flash("Name required", "error")
         else:
-            ok, err = add_credential({"name": name, "user": user, "key": key, "env": env, "vat": vat})
-            if ok:
-                flash("Saved", "success")
+            creds = load_credentials()
+            if any(c.get("name")==name for c in creds):
+                flash("Credential with that name exists", "error")
             else:
-                flash(err or "Could not save", "error")
+                creds.append({"name": name, "user": user, "key": key, "env": env, "vat": vat})
+                save_credentials(creds)
+                flash("Saved", "success")
         return redirect(url_for("credentials"))
     creds = load_credentials()
     return safe_render("credentials_list.html", credentials=creds)
 
-@app.route("/credentials/edit/<name>", methods=["GET", "POST"])
-def credentials_edit(name):
-    creds = load_credentials()
-    credential = next((c for c in creds if c.get("name") == name), None)
-    if not credential:
-        flash("Credential not found", "error")
-        return redirect(url_for("credentials"))
-    if request.method == "POST":
-        user = request.form.get("user", "").strip()
-        key = request.form.get("key", "").strip()
-        env = request.form.get("env", MYDATA_ENV).strip()
-        vat = request.form.get("vat", "").strip()
-        new = {"name": name, "user": user, "key": key, "env": env, "vat": vat}
-        update_credential(name, new)
-        flash("Updated", "success")
-        return redirect(url_for("credentials"))
-    return safe_render("credentials_edit.html", credential=credential)
-
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
-    delete_credential(name)
+    creds = load_credentials()
+    new = [c for c in creds if c.get("name") != name]
+    save_credentials(new)
     flash("Deleted", "success")
     return redirect(url_for("credentials"))
 
-# ---------------- Bulk fetch (/fetch) ----------------
+# ---------------- Fetch (single) ----------------
 @app.route("/fetch", methods=["GET", "POST"])
 def fetch():
     message = None
     error = None
     creds = load_credentials()
     preview = load_cache()[:40]
+    default_vat = ""
 
     if request.method == "POST":
         date_from_raw = request.form.get("date_from", "").strip()
         date_to_raw = request.form.get("date_to", "").strip()
 
-        date_from_iso = normalize_input_date_to_iso(date_from_raw)
-        date_to_iso = normalize_input_date_to_iso(date_to_raw)
-
-        if not date_from_iso or not date_to_iso:
+        # server-side strict validation dd/mm/YYYY
+        d1_iso = parse_ddmmyyyy_to_iso(date_from_raw)
+        d2_iso = parse_ddmmyyyy_to_iso(date_to_raw)
+        if not d1_iso or not d2_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, default_vat=default_vat)
 
-        # μετατροπή ISO -> dd/mm/YYYY για fetch.py
-        def iso_to_ddmmyyyy(iso_s: str) -> str:
-            return datetime.datetime.fromisoformat(iso_s).strftime("%d/%m/%Y")
-
-        d1 = iso_to_ddmmyyyy(date_from_iso)
-        d2 = iso_to_ddmmyyyy(date_to_iso)
-
-        # Επιλεγμένο credential
+        # selected credential
         selected = request.form.get("use_credential") or ""
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
@@ -307,52 +235,55 @@ def fetch():
 
         if not aade_user or not aade_key:
             error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, default_vat=default_vat)
 
+        # call request_docs -> d1,d2 in dd/mm/YYYY as fetch.request expects
         try:
+            d1 = date_from_raw
+            d2 = date_to_raw
             all_rows, summary_list = request_docs(
                 date_from=d1,
                 date_to=d2,
                 mark="000000000000000",
                 aade_user=aade_user,
                 aade_key=aade_key,
-                debug=True,
+                debug=False,
                 save_excel=False
             )
+
+            # save summary_list to SUMMARY_FILE
+            try:
+                if summary_list is not None:
+                    json_write(SUMMARY_FILE, summary_list)
+            except Exception:
+                log.exception("Could not save summary_list to %s", SUMMARY_FILE)
 
             added = 0
             for d in all_rows:
                 if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
-            # ΑΠΟΘΗΚΕΥΣΗ summary_list στο data/summary.json
-            try:
-                save_summary(summary_list)
-            except Exception:
-                log.exception("Saving summary_list failed")
-
             message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
-
         except Exception as e:
+            log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, default_vat=default_vat)
 
-# ---------------- Bulk fetch page (bulk_fetch) ----------------
+# ---------------- Bulk fetch (runs via form; similar to fetch but different UI)
 @app.route("/bulk_fetch", methods=["GET", "POST"])
 def bulk_fetch():
     creds = load_credentials()
     preview = load_cache()[:40]
     message = None
     error = None
-
     default_vat = ""
+
     if request.method == "POST":
         user = (request.form.get("use_credential") or "").strip()
         vat_input = request.form.get("vat_number", "").strip()
 
-        # Επιλογή credential
         aade_user = AADE_USER_ENV
         aade_key = AADE_KEY_ENV
         vat = vat_input
@@ -363,27 +294,15 @@ def bulk_fetch():
                 aade_key = c.get("key") or aade_key
                 vat = vat or c.get("vat", "")
 
-        # Dates
         date_from_raw = request.form.get("date_from", "").strip()
         date_to_raw = request.form.get("date_to", "").strip()
 
-        def validate_ddmmyyyy(s):
-            try:
-                return _dt.strptime(s, "%d/%m/%Y")
-            except Exception:
-                return None
+        d_from_iso = parse_ddmmyyyy_to_iso(date_from_raw)
+        d_to_iso = parse_ddmmyyyy_to_iso(date_to_raw)
 
-        d_from = validate_ddmmyyyy(date_from_raw)
-        d_to = validate_ddmmyyyy(date_to_raw)
-
-        if not d_from or not d_to:
+        if not d_from_iso or not d_to_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("bulk_fetch.html",
-                               credentials=creds,
-                               message=message,
-                               error=error,
-                               preview=preview,
-                               default_vat=vat)
+            return safe_render("bulk_fetch.html", credentials=creds, message=message, error=error, preview=preview, default_vat=default_vat)
 
         try:
             all_rows, summary_list = request_docs(
@@ -392,96 +311,266 @@ def bulk_fetch():
                 mark="000000000000000",
                 aade_user=aade_user,
                 aade_key=aade_key,
-                debug=True,
+                debug=False,
                 save_excel=False
             )
+
+            # save summary_list
+            try:
+                if summary_list is not None:
+                    json_write(SUMMARY_FILE, summary_list)
+            except Exception:
+                log.exception("Could not save summary_list to %s", SUMMARY_FILE)
 
             added = 0
             for d in all_rows:
                 if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
-            # ΑΠΟΘΗΚΕΥΣΗ summary_list στο data/summary.json
-            try:
-                save_summary(summary_list)
-            except Exception:
-                log.exception("Saving summary_list failed (bulk_fetch)")
-
             message = f"Fetched {len(all_rows)} items, newly cached: {added}"
             preview = load_cache()[:40]
-
         except Exception as e:
-            import traceback
             log.exception("Bulk fetch error")
-            error = f"Σφάλμα λήψης: {str(e)[:400]}\n{traceback.format_exc()[:1000]}"
+            error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render("bulk_fetch.html",
-                       credentials=creds,
-                       message=message,
-                       error=error,
-                       preview=preview,
-                       default_vat="")
+    return safe_render("bulk_fetch.html", credentials=creds, message=message, error=error, preview=preview, default_vat=default_vat)
 
-# ---------------- MARK search ----------------
+# ---------------- Search MARK (popup summary)
 @app.route("/search", methods=["GET", "POST"])
 def search():
     result = None
     error = None
     mark = ""
+    summary_for_mark = None
     if request.method == "POST":
         mark = request.form.get("mark", "").strip()
         if not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            doc = next((d for d in load_cache() if d.get("mark") == mark), None)
+            # try cache
+            doc = next((d for d in load_cache() if (isinstance(d, dict) and d.get("mark")==mark)), None)
             if not doc:
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
-    return safe_render("search.html", result=result, error=error, mark=mark)
+                # try load summary.json and pick first summary matching mark (if any)
+                try:
+                    sums = json_read(SUMMARY_FILE)
+                    if isinstance(sums, list):
+                        # summary entries may have mark field or key 'mark' or 'mark' inside structure
+                        for s in sums:
+                            s_mark = None
+                            if isinstance(s, dict):
+                                s_mark = s.get("mark") or s.get("MARK") or s.get("invoiceMark")
+                                # also search nested
+                                if not s_mark:
+                                    for v in s.values():
+                                        if isinstance(v, str) and v.strip()==mark:
+                                            s_mark = mark
+                                            break
+                            if s_mark and str(s_mark).strip()==mark:
+                                summary_for_mark = s
+                                break
+                        # fallback: if no explicit mark, but only one summary present and not empty, show it
+                        if not summary_for_mark and len(sums)==1:
+                            summary_for_mark = sums[0]
+                except Exception:
+                    log.exception("Failed to read summary file")
 
-# ---------------- Save Excel ----------------
-@app.route("/save_excel", methods=["POST"])
-def save_excel():
-    summ_json = request.form.get("summary_json")
-    if summ_json:
-        try:
-            row = json.loads(summ_json)
-            df = pd.DataFrame([row])
-            if os.path.exists(EXCEL_FILE):
-                df_existing = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str)
-                df_concat = pd.concat([df_existing, df], ignore_index=True, sort=False)
+    return safe_render("search.html", result=result, error=error, mark=mark, summary=summary_for_mark)
+
+# ---------------- Save summary to Excel (from modal save)
+@app.route("/save_summary", methods=["POST"])
+def save_summary():
+    """
+    Expects JSON-like form field 'summary_json' with a summary dict and optional vat_categories.
+    We'll append rows to EXCEL_FILE similar to your previous logic (one row per VAT category if needed).
+    """
+    try:
+        raw = request.form.get("summary_json")
+        if not raw:
+            flash("No summary provided", "error")
+            return redirect(url_for("search"))
+        summary = json.loads(raw)
+        vat_cats = summary.get("vat_categories") if isinstance(summary, dict) else None
+
+        # Build rows (reuse the logic from earlier program)
+        rows_to_add = []
+        def get_safe(d,k):
+            return (d.get(k) or d.get(k.lower()) or "") if isinstance(d, dict) else ""
+
+        if vat_cats and any(str(vc.get("category"))!="1" for vc in vat_cats):
+            for vc in vat_cats:
+                row = {
+                    "MARK": str(summary.get("MARK") or summary.get("mark") or ""),
+                    "ΑΦΜ": get_safe(summary.get("Εκδότης", {}), "ΑΦΜ"),
+                    "Επωνυμία": get_safe(summary.get("Εκδότης", {}), "Επωνυμία"),
+                    "Σειρά": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Σειρά"),
+                    "Αριθμός": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Αριθμός"),
+                    "Ημερομηνία": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Ημερομηνία"),
+                    "Είδος": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Είδος"),
+                    "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": str(vc.get("category") or ""),
+                    "Καθαρή Αξία": vc.get("net", 0.0),
+                    "ΦΠΑ": vc.get("vat", 0.0),
+                    "Σύνολο": vc.get("gross", 0.0)
+                }
+                rows_to_add.append(row)
+        else:
+            row = {
+                "MARK": str(summary.get("MARK") or summary.get("mark") or ""),
+                "ΑΦΜ": get_safe(summary.get("Εκδότης", {}), "ΑΦΜ"),
+                "Επωνυμία": get_safe(summary.get("Εκδότης", {}), "Επωνυμία"),
+                "Σειρά": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Σειρά"),
+                "Αριθμός": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Αριθμός"),
+                "Ημερομηνία": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Ημερομηνία"),
+                "Είδος": get_safe(summary.get("Στοιχεία Παραστατικού", {}), "Είδος"),
+                "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": "",
+                "Καθαρή Αξία": summary.get("Σύνολα", {}).get("Καθαρή Αξία") or "",
+                "ΦΠΑ": summary.get("Σύνολα", {}).get("ΦΠΑ") or "",
+                "Σύνολο": summary.get("Σύνολα", {}).get("Σύνολο") or ""
+            }
+            rows_to_add.append(row)
+
+        df_new = pd.DataFrame(rows_to_add)
+        # format numeric columns
+        for col in ("Καθαρή Αξία","ΦΠΑ","Σύνολο"):
+            if col in df_new.columns:
+                df_new[col] = df_new[col].apply(lambda v: format_number_for_display(v) if v not in (None,"") else "")
+
+        # append to EXCEL_FILE with duplicate handling: if MARK present and exact duplicate skip
+        if os.path.exists(EXCEL_FILE):
+            try:
+                df_existing = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+                # simple duplicate check: if single-row and MARK present, skip
+                if len(df_new)==1 and "MARK" in df_existing.columns:
+                    if str(df_new.at[0,"MARK"]).strip() in df_existing["MARK"].astype(str).str.strip().tolist():
+                        flash("Already present (duplicate).", "warning")
+                        return redirect(url_for("list_invoices"))
+                df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
                 df_concat.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
-            else:
-                df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
-            flash("Saved to Excel", "success")
-        except Exception as e:
-            log.exception("Excel save error")
-            flash(f"Excel save error: {e}", "error")
-    return redirect(url_for("search"))
+            except Exception:
+                # fallback: create new
+                df_new.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
+        else:
+            df_new.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
 
-# ---------------- List / download ----------------
+        flash("Saved to Excel", "success")
+    except Exception as e:
+        log.exception("save_summary error")
+        flash(f"Save error: {e}", "error")
+    return redirect(url_for("list_invoices"))
+
+# ---------------- List / DataTables using pandas ----------------
 @app.route("/list")
 def list_invoices():
-    if request.args.get("download") and os.path.exists(EXCEL_FILE):
-        return send_file(EXCEL_FILE, as_attachment=True, download_name="invoices.xlsx")
-    table = []
-    if os.path.exists(EXCEL_FILE):
-        try:
+    # render a template that includes the HTML table generated by pandas
+    file_exists = os.path.exists(EXCEL_FILE)
+    table_html = ""
+    error = ""
+    try:
+        if file_exists:
             df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
-            table = df.to_dict(orient="records")
-        except Exception:
-            table = load_cache()
-    else:
-        table = load_cache()
-    return safe_render("list.html", table=table)
+        else:
+            # fallback to cache list-of-dicts; convert to df for HTML
+            cache = load_cache()
+            if cache and isinstance(cache, list):
+                df = pd.DataFrame(cache)
+            else:
+                df = pd.DataFrame()
+        if not df.empty:
+            # ensure MARK column exists as first column (if present)
+            cols = list(df.columns)
+            if "MARK" in cols:
+                cols.remove("MARK")
+                cols = ["MARK"] + cols
+                df = df[cols]
+            # Insert checkbox column html (first col)
+            if "MARK" in df.columns:
+                checkboxes = df["MARK"].apply(lambda v: f'<input type="checkbox" class="row-select" value="{escape(str(v))}">')
+                df.insert(0, "✓", checkboxes)
+            # convert certain numeric headers to right aligned (we'll add CSS)
+            table_html = df.to_html(classes="pandas-table table table-sm", index=False, escape=False)
+    except Exception as e:
+        log.exception("list_invoices error")
+        error = f"Could not read invoices: {e}"
 
-# ---------------- Health ----------------
+    return safe_render("list_pandas.html", table_html=table_html, file_exists=file_exists, error=error)
+
+# ---------------- API for DataTables-like interaction ----------------
+@app.route("/api/invoices", methods=["GET"])
+def api_invoices():
+    try:
+        if os.path.exists(EXCEL_FILE):
+            df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+        else:
+            cache = load_cache()
+            df = pd.DataFrame(cache)
+        if df.empty:
+            return jsonify([])
+
+        if "MARK" in df.columns:
+            possible_num_cols = ["Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT"]
+            numeric_cols = [c for c in df.columns if c in possible_num_cols]
+            agg_dict = {}
+            for c in numeric_cols:
+                agg_dict[c] = lambda s, c=c: sum(parse_euro_to_float(v) for v in s)
+            for c in df.columns:
+                if c not in numeric_cols and c != "MARK":
+                    agg_dict[c] = "first"
+            df_summary = df.groupby("MARK", as_index=False).agg(agg_dict)
+            for c in numeric_cols:
+                if c in df_summary.columns:
+                    df_summary[c] = df_summary[c].apply(format_number_for_display)
+            records = df_summary.to_dict(orient="records")
+            return jsonify(records)
+        else:
+            return jsonify(df.to_dict(orient="records"))
+    except Exception as e:
+        log.exception("api_invoices error")
+        return jsonify({"error": str(e)}), 500
+
+# ---------------- Delete AJAX (deletes by MARKs) ----------------
+@app.route("/delete_ajax", methods=["POST"])
+def delete_ajax():
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        marks = payload.get("marks") or []
+        if not marks:
+            return jsonify({"deleted": 0})
+        if not os.path.exists(EXCEL_FILE):
+            return jsonify({"deleted": 0})
+        df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+        if "MARK" not in df.columns:
+            return jsonify({"deleted": 0})
+        before = len(df)
+        df_filtered = df[~df["MARK"].astype(str).isin([str(m).strip() for m in marks])]
+        after = len(df_filtered)
+        deleted = before - after
+        if deleted > 0:
+            df_filtered.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
+        # update cache as well
+        try:
+            cache = load_cache()
+            new_cache = [d for d in cache if not (isinstance(d, dict) and d.get("mark") in marks)]
+            if len(new_cache) != len(cache):
+                save_cache(new_cache)
+        except Exception:
+            log.exception("delete_ajax: cache update failed")
+        return jsonify({"deleted": deleted})
+    except Exception as e:
+        log.exception("delete_ajax failed")
+        return jsonify({"error": str(e)}), 500
+
+# Health / favicon
 @app.route("/health")
 def health():
     return "OK"
 
-# ---------------- Global error handler ----------------
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+# Global error handler
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
     tb = traceback.format_exc()
@@ -491,11 +580,31 @@ def handle_unexpected_error(e):
         return "<pre>{}</pre>".format(escape(tb)), 500
     return safe_render("error_generic.html", message="Συνέβη σφάλμα στον server. Δες logs."), 500
 
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
+@app.route("/download_excel")
+def download_excel():
+    # use the same EXCEL_FILE variable you have defined at top of app.py
+    if not os.path.exists(EXCEL_FILE):
+        # επιστρέφουμε 404 με φιλικό μήνυμα
+        return ("Το αρχείο invoices.xlsx δεν βρέθηκε.", 404)
+    # send_file με download_name (Flask >= 2.2). Αν έχεις παλαιότερη Flask, δοκίμασε attachment_filename
+    try:
+        return send_file(
+            EXCEL_FILE,
+            as_attachment=True,
+            download_name="invoices.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except TypeError:
+        # fallback για παλαιότερες Flask εκδόσεις που δεν καταλαβαίνουν download_name
+        return send_file(
+            EXCEL_FILE,
+            as_attachment=True,
+            attachment_filename="invoices.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    debug_flag = True  # πάντα debug στο dev
+    debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)

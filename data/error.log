@@ -7649,3 +7649,61 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 
 2025-09-25 10:47:49,039 INFO Starting app - MYDATA_ENV=production
 
+2025-09-25 11:19:48,103 INFO Starting app - MYDATA_ENV=production
+
+2025-09-25 11:19:52,734 ERROR Template rendering failed for fetch.html: do_tojson() got an unexpected keyword argument 'ensure_ascii'
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 158, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/fetch.html", line 2, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 46, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/fetch.html", line 44, in block 'content'
+    <pre class="small">{{ d | tojson(indent=2, ensure_ascii=False) }}</pre>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: do_tojson() got an unexpected keyword argument 'ensure_ascii'
+
+
+2025-09-25 11:20:56,042 ERROR Template rendering failed for fetch.html: do_tojson() got an unexpected keyword argument 'ensure_ascii'
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 158, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/fetch.html", line 2, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 46, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/fetch.html", line 44, in block 'content'
+    <pre class="small">{{ d | tojson(indent=2, ensure_ascii=False) }}</pre>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: do_tojson() got an unexpected keyword argument 'ensure_ascii'
+
+
+2025-09-25 11:26:19,955 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-25 11:26:20,470 INFO Starting app - MYDATA_ENV=production
+
