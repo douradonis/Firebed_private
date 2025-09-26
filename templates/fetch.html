@@ -1,66 +1,159 @@
 {% extends "base.html" %}
+{% block title %}Bulk Fetch MYDATA{% endblock %}
+
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Λήψη Παραστατικών</h2>
+<div class="max-w-14xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-800">Bulk Fetch MYDATA</h1>
+      <p class="text-sm text-gray-500">Κάνε fetch παραστατικών για διάστημα — preview των πρώτων 40 εγγραφών.</p>
+    </div>
+    
+  </div>
 
-<form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-  <div>
-    <label>Ημερομηνία Από</label>
-    <input type="text" name="date_from" placeholder="dd/mm/yyyy" class="w-full border rounded p-2" required>
-  </div>
-  <div>
-    <label>Ημερομηνία Έως</label>
-    <input type="text" name="date_to" placeholder="dd/mm/yyyy" class="w-full border rounded p-2" required>
-  </div>
-  <div>
-    <label>Χρήση Credential</label>
-    <select name="use_credential" class="w-full border rounded p-2">
-      <option value="">Default</option>
-      {% for c in credentials %}
-        <option value="{{ c.name }}">{{ c.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-span-3 mt-2">
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Fetch</button>
-  </div>
-</form>
+  {% if error %}
+    <div class="mb-3 p-3 rounded bg-red-50 text-red-800 border border-red-100">{{ error }}</div>
+  {% endif %}
+  {% if message %}
+    <div class="mb-3 p-3 rounded bg-green-50 text-green-800 border border-green-100">{{ message }}</div>
+  {% endif %}
 
-{% if error %}
-  <div class="p-2 bg-red-100 text-red-800 rounded mb-2">{{ error }}</div>
-{% endif %}
-{% if message %}
-  <div class="p-2 bg-green-100 text-green-800 rounded mb-2">{{ message }}</div>
-{% endif %}
-
-<div class="overflow-auto">
-  <table id="previewTable" class="min-w-full border border-gray-200 table-auto">
-    <thead class="bg-gray-100">
-      <tr>
-        {% if preview %}
-          {% for k in preview[0].keys() %}
-            <th class="border px-2 py-1">{{ k }}</th>
+  <div class="bg-white rounded-2xl shadow p-6 mb-6">
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end" autocomplete="off" novalidate>
+      <div class="flex flex-col">
+        <label for="use_credential" class="text-sm font-medium text-gray-700 mb-2">Χρήση Credential</label>
+        <select id="use_credential" name="use_credential" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
+          <option value="">-- Επιλογή --</option>
+          {% for c in credentials %}
+            <option value="{{ c.name }}">{{ c.name }}</option>
           {% endfor %}
-        {% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for d in preview %}
-      <tr class="hover:bg-gray-50">
-        {% for v in d.values() %}
-          <td class="border px-2 py-1">{{ v }}</td>
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </select>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/YYYY)</label>
+        <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/YYYY" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/YYYY)</label>
+        <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/YYYY" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="vat_number" class="text-sm font-medium text-gray-700 mb-2">ΑΦΜ (προαιρετικό)</label>
+        <input id="vat_number" name="vat_number" type="text" value="" placeholder="π.χ. 123456789" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
+      </div>
+
+      <div class="flex items-center gap-2 md:col-span-2">
+        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Fetch</button>
+        <button type="button" id="togglePreviewBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-3 rounded-lg border">Εμφάνιση Preview</button>
+        <div class="text-sm text-gray-500 ml-2">Preview: πρώτες 40 εγγραφές</div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Preview area -->
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-lg font-medium text-gray-800">Preview (πρώτες 40 γραμμές)</h2>
+      <div class="text-sm text-gray-500">Οριζόντιο & κατακόρυφο scroll διαθέσιμο</div>
+    </div>
+
+    <!-- Wrapper που δίνει horizontal + vertical scroll -->
+    <div id="previewArea" class="w-full overflow-auto border border-gray-100 rounded p-2" style="max-height:520px; display: none;">
+      {% if preview and preview|length > 0 %}
+        <div class="min-w-full overflow-x-auto">
+          <table class="min-w-full text-sm divide-y divide-gray-200">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                {% for key in preview[0].keys() %}
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ key }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              {% for row in preview %}
+                <tr class="hover:bg-gray-50">
+                  {% for v in row.values() %}
+                    <td class="px-3 py-2 align-top whitespace-nowrap">{{ v }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-sm text-gray-500 p-4">Χωρίς preview δεδομένα.</div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function(){
-  new simpleDatatables.DataTable("#previewTable", {
-    searchable: true,
-    fixedHeight: true,
+document.addEventListener("DOMContentLoaded", function() {
+  // date formatting helper: dd/mm/YYYY
+  function formatDateInput(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0,8);
+    if (v.length >= 5) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
+    else if (v.length >= 3) v = v.slice(0,2) + '/' + v.slice(2);
+    e.target.value = v;
+  }
+  const df = document.getElementById('date_from');
+  const dt = document.getElementById('date_to');
+  if (df) df.addEventListener('input', formatDateInput);
+  if (dt) dt.addEventListener('input', formatDateInput);
+
+  // preview toggle with localStorage memory (default minimized=true)
+  const PREVIEW_KEY = 'bulk_fetch_preview_minimized';
+  const btn = document.getElementById('togglePreviewBtn');
+  const preview = document.getElementById('previewArea');
+
+  // server-side hint (if backend passed preview_minimized variable)
+  let serverHint = false;
+  try {
+    serverHint = {{ 'true' if preview_minimized else 'false' }};
+  } catch(e) {
+    serverHint = false;
+  }
+
+  function storedMinimized() {
+    try {
+      const v = localStorage.getItem(PREVIEW_KEY);
+      if (v === null) return null;
+      return v === 'true';
+    } catch(e) {
+      return null;
+    }
+  }
+
+  let minimized = true;
+  const stored = storedMinimized();
+  if (stored === null) {
+    minimized = !!serverHint; // default: server hint (if not present default minimized=true)
+  } else {
+    minimized = !!stored;
+  }
+
+  function render() {
+    if (minimized) {
+      preview.style.display = 'none';
+      btn.textContent = 'Εμφάνιση Preview';
+      btn.classList.remove('bg-gray-200');
+    } else {
+      preview.style.display = 'block';
+      btn.textContent = 'Απόκρυψη Preview';
+      btn.classList.add('bg-gray-200');
+    }
+  }
+
+  btn.addEventListener('click', function() {
+    minimized = !minimized;
+    try { localStorage.setItem(PREVIEW_KEY, minimized ? 'true' : 'false'); } catch(e){}
+    render();
   });
+
+  render();
 });
 </script>
 {% endblock %}

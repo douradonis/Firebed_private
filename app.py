@@ -330,7 +330,8 @@ def bulk_fetch():
                                credentials=creds,
                                message=message,
                                error=error,
-                               preview=preview)
+                               preview=preview,
+                               preview_minimized=True)
 
         try:
             all_rows, summary_list = request_docs(
