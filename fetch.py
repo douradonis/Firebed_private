@@ -140,19 +140,22 @@ def request_docs(
                     vat_groups["1"]["vatAmount"] += vat
 
             for vat_cat, totals in vat_groups.items():
-                all_rows.append({
+                # προσθέτουμε και το "AA" πεδίο (με κεφαλαία) για να το βρει το modal/template
+                row = {
                     "mark": mark_val,
                     "issueDate": issueDate,
                     "series": series,
                     "aa": aa,
-                    "type": invoice_type,                 # προσθήκη τύπου παραστατικού
+                    "AA": aa,                          # <<-- προσθήκη για συμβατότητα templates
+                    "type": invoice_type,
                     "vatCategory": vat_cat,
                     "totalNetValue": round(totals["netValue"], 2),
                     "totalVatAmount": round(totals["vatAmount"], 2),
                     "classification": "αχαρακτηριστο",
                     "AFM_issuer": vatissuer,
                     "Name_issuer": Name_issuer
-                })
+                }
+                all_rows.append(row)
 
         next_token_elem = root.find(".//ns:nextPartitionToken", ns)
         if next_token_elem is not None and next_token_elem.text:
@@ -188,7 +191,7 @@ def request_docs(
     for row in all_rows:
         mark_val = row["mark"]
         if mark_val not in summary_rows:
-            # copy full row as starting aggregate
+            # copy full row as starting aggregate (θα περιλαμβάνει και 'AA')
             summary_rows[mark_val] = dict(row)
         else:
             # accumulate numeric totals
@@ -200,6 +203,11 @@ def request_docs(
             # keep first non-empty type (αν summary δεν έχει type)
             if not summary_rows[mark_val].get("type") and row.get("type"):
                 summary_rows[mark_val]["type"] = row.get("type")
+            # ensure AA exists on summary (αν δεν υπάρχει)
+            if not summary_rows[mark_val].get("AA") and row.get("AA"):
+                summary_rows[mark_val]["AA"] = row.get("AA")
+            if not summary_rows[mark_val].get("aa") and row.get("aa"):
+                summary_rows[mark_val]["aa"] = row.get("aa")
 
     # finalize totals and normalize fields
     for s in summary_rows.values():

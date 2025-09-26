@@ -365,9 +365,6 @@ def bulk_fetch():
                        error=error,
                        preview=preview)
 
-    
-
-
 # ---------------- MARK search ----------------
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
@@ -375,13 +372,16 @@ def search():
     """
     When POST with mark: if found in cache -> shows modal with summary.
     The modal uses the saved summary.json (if available) or generates from cached item.
+    This version ensures modal_summary contains AA, AFM, Name, issueDate, type_name, totals.
     """
     result = None
     error = None
     mark = ""
     modal_summary = None
 
-    def map_invoice_type(code):
+    # local mapper (if you already have a global map_invoice_type above, it will still be used;
+    # keeping local fallback to be safe)
+    def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
             "1.1": "Τιμολόγιο Πώλησης",
             "1.2": "Τιμολόγιο Πώλησης / Ενδοκοινοτικές Παραδόσεις",
@@ -390,62 +390,71 @@ def search():
             "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
             "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
             "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
-            # ... υπόλοιπα όπως χρειάζεται
+            # (πρόσθεσε υπόλοιπα αν χρειάζεται)
         }
         return INVOICE_TYPE_MAP.get(str(code), str(code) or "")
+
+    # use global map_invoice_type if exists, else fallback to local
+    mapper = globals().get("map_invoice_type", None) or _map_invoice_type_local
 
     if request.method == "POST":
         mark = request.form.get("mark", "").strip()
         if not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
+            # find in cache
             cache = load_cache()
             doc = next((d for d in cache if str(d.get("mark", "")).strip() == mark), None)
             if not doc:
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
+
+                # helper to pick first available key from candidates
+                def pick(src: dict, *keys, default=""):
+                    for k in keys:
+                        if k in src and src.get(k) is not None and str(src.get(k)).strip() != "":
+                            return src.get(k)
+                    return default
+
+                # try summaries file first
                 summaries = json_read(SUMMARY_FILE)
+                found = None
                 if isinstance(summaries, list):
-                    found = next((s for s in summaries if str(s.get("mark","")).strip() == mark), None)
-                    if found:
-                        modal_summary = {
-                            "mark": mark,
-                            "AA": found.get("AA", doc.get("AA","")),
-                            "AFM": found.get("AFM", doc.get("AFM_issuer", doc.get("AFM",""))),
-                            "Name": found.get("Name", doc.get("Name_issuer", doc.get("Name",""))),
-                            "issueDate": found.get("issueDate", doc.get("issueDate","")),
-                            "type_name": found.get("type_name", map_invoice_type(doc.get("type"))),
-                            "totalNetValue": found.get("totalNetValue", doc.get("totalNetValue", 0)),
-                            "totalVatAmount": found.get("totalVatAmount", doc.get("totalVatAmount", 0)),
-                            "totalValue": found.get("totalValue", doc.get("totalValue", 0))
-                        }
-                    else:
-                        modal_summary = {
-                            "mark": mark,
-                            "AA": doc.get("AA",""),
-                            "AFM": doc.get("AFM_issuer", doc.get("AFM","")),
-                            "Name": doc.get("Name_issuer", doc.get("Name","")),
-                            "issueDate": doc.get("issueDate",""),
-                            "type_name": map_invoice_type(doc.get("type")),
-                            "totalNetValue": doc.get("totalNetValue",0),
-                            "totalVatAmount": doc.get("totalVatAmount",0),
-                            "totalValue": doc.get("totalValue",0)
-                        }
-                else:
-                    modal_summary = {
-                        "mark": mark,
-                        "AA": doc.get("AA",""),
-                        "AFM": doc.get("AFM_issuer", doc.get("AFM","")),
-                        "Name": doc.get("Name_issuer", doc.get("Name","")),
-                        "issueDate": doc.get("issueDate",""),
-                        "type_name": map_invoice_type(doc.get("type")),
-                        "totalNetValue": doc.get("totalNetValue",0),
-                        "totalVatAmount": doc.get("totalVatAmount",0),
-                        "totalValue": doc.get("totalValue",0)
-                    }
+                    found = next((s for s in summaries if str(s.get("mark", "")).strip() == mark), None)
+
+                source = found if found else doc
+
+                # Build canonical fields expected by the template (don't change UI)
+                aa_val = pick(source, "AA", "aa", "AA_issuer", "aaNumber", default=pick(doc, "aa", "AA", "aa"))
+                afm_val = pick(source, "AFM", "AFM_issuer", "AFMissuer", default=pick(doc, "AFM_issuer", "AFM", "AFM"))
+                name_val = pick(source, "Name", "Name_issuer", "NameIssuer", "name", default=pick(doc, "Name_issuer", "Name", "Name"))
+                series_val = pick(source, "series", "Series", "serie", default=pick(doc, "series", "Series", "serie"))
+                number_val = pick(source, "number", "aa", "AA", default=aa_val)
+                issue_date = pick(source, "issueDate", "issue_date", "issue", default=pick(doc, "issueDate", "issue_date", default=""))
+                total_net = pick(source, "totalNetValue", "totalNet", "net", default=pick(doc, "totalNetValue", "totalNet", 0))
+                total_vat = pick(source, "totalVatAmount", "totalVat", "vat", default=pick(doc, "totalVatAmount", "totalVat", 0))
+                total_value = pick(source, "totalValue", "total", default=round(float(total_net or 0) + float(total_vat or 0), 2))
+                type_code = pick(source, "type", "invoiceType", "documentType", default=pick(doc, "type", ""))
+
+                modal_summary = {
+                    "mark": mark,
+                    "AA": aa_val,
+                    "aa": aa_val,
+                    "AFM": afm_val,
+                    "Name": name_val,
+                    "series": series_val,
+                    "number": number_val,
+                    "issueDate": issue_date,
+                    "totalNetValue": total_net,
+                    "totalVatAmount": total_vat,
+                    "totalValue": total_value,
+                    "type": type_code,
+                    "type_name": mapper(type_code) if type_code else ""
+                }
 
     return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary)
+
 
 
 
