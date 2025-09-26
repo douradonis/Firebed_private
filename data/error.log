@@ -12,3 +12,17 @@
 
 2025-09-26 12:12:41,767 INFO Starting app - MYDATA_ENV=production
 
+2025-09-26 12:34:32,781 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-26 12:34:33,250 INFO Starting app - MYDATA_ENV=production
+
+2025-09-26 12:35:12,285 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-26 12:35:41,952 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-26 12:36:32,878 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-26 12:36:51,853 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-26 12:36:52,361 INFO Starting app - MYDATA_ENV=production
+

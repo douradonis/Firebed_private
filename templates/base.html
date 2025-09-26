@@ -53,14 +53,16 @@
              Bulk Fetch
           </a>
 
-          <a href="{{ url_for('list_invoices') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'list_invoices') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Λίστα
-          </a>
+          
 
           <a href="{{ url_for('search') }}"
              class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'search') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
              Αναζήτηση MARK
+          </a>
+
+          <a href="{{ url_for('list_invoices') }}"
+             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'list_invoices') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
+             Λίστα
           </a>
 
           <a href="{{ url_for('credentials') }}"
