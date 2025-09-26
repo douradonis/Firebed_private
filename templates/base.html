@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}myDATA{% endblock %}</title>
+  <title>{% block title %}myDATA-Scan{% endblock %}</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -36,7 +36,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
-          <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
+          <p class="text-sm text-gray-600">myDATA Scan Tools</p>
         </div>
 
         <!-- NAVBAR: τα active strings πρέπει να ταιριάζουν ακριβώς
@@ -50,7 +50,7 @@
           <!-- Bulk Fetch → δείχνει στο fetch endpoint (fetch.html) -->
           <a href="{{ url_for('fetch') }}"
              class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'fetch') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Bulk Fetch
+             Λήψη Παραστατικών
           </a>
 
           
@@ -67,7 +67,7 @@
 
           <a href="{{ url_for('credentials') }}"
              class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'credentials') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Credentials
+             Κωδικοί - Πελάτες
           </a>
         </nav>
       </div>
