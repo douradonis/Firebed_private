@@ -2,13 +2,12 @@
 {% block title %}Bulk Fetch MYDATA{% endblock %}
 
 {% block content %}
-<div class="max-w-14xl mx-auto p-4">
+<div class="max-w-6xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
     <div>
       <h1 class="text-2xl font-semibold text-gray-800">Bulk Fetch MYDATA</h1>
       <p class="text-sm text-gray-500">Κάνε fetch παραστατικών για διάστημα — preview των πρώτων 40 εγγραφών.</p>
     </div>
-    
   </div>
 
   {% if error %}
@@ -19,7 +18,7 @@
   {% endif %}
 
   <div class="bg-white rounded-2xl shadow p-6 mb-6">
-    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end" autocomplete="off" novalidate>
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end" autocomplete="off" novalidate>
       <div class="flex flex-col">
         <label for="use_credential" class="text-sm font-medium text-gray-700 mb-2">Χρήση Credential</label>
         <select id="use_credential" name="use_credential" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
@@ -31,13 +30,13 @@
       </div>
 
       <div class="flex flex-col">
-        <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/YYYY)</label>
-        <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/YYYY" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+        <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/yyyy)</label>
+        <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
       </div>
 
       <div class="flex flex-col">
-        <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/YYYY)</label>
-        <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/YYYY" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+        <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/yyyy)</label>
+        <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
       </div>
 
       <div class="flex flex-col">
@@ -45,7 +44,7 @@
         <input id="vat_number" name="vat_number" type="text" value="" placeholder="π.χ. 123456789" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
       </div>
 
-      <div class="flex items-center gap-2 md:col-span-2">
+      <div class="flex items-center gap-2 md:col-span-4">
         <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Fetch</button>
         <button type="button" id="togglePreviewBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-3 rounded-lg border">Εμφάνιση Preview</button>
         <div class="text-sm text-gray-500 ml-2">Preview: πρώτες 40 εγγραφές</div>
@@ -60,7 +59,6 @@
       <div class="text-sm text-gray-500">Οριζόντιο & κατακόρυφο scroll διαθέσιμο</div>
     </div>
 
-    <!-- Wrapper που δίνει horizontal + vertical scroll -->
     <div id="previewArea" class="w-full overflow-auto border border-gray-100 rounded p-2" style="max-height:520px; display: none;">
       {% if preview and preview|length > 0 %}
         <div class="min-w-full overflow-x-auto">
@@ -90,66 +88,41 @@
   </div>
 </div>
 
+<!-- Flatpickr scripts -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/el.js"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // date formatting helper: dd/mm/YYYY
-  function formatDateInput(e) {
-    let v = e.target.value.replace(/\D/g, '').slice(0,8);
-    if (v.length >= 5) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
-    else if (v.length >= 3) v = v.slice(0,2) + '/' + v.slice(2);
-    e.target.value = v;
-  }
-  const df = document.getElementById('date_from');
-  const dt = document.getElementById('date_to');
-  if (df) df.addEventListener('input', formatDateInput);
-  if (dt) dt.addEventListener('input', formatDateInput);
+  // Initialize Flatpickr with Greek locale
+  flatpickr("#date_from", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
+  flatpickr("#date_to", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
 
   // preview toggle with localStorage memory (default minimized=true)
   const PREVIEW_KEY = 'bulk_fetch_preview_minimized';
   const btn = document.getElementById('togglePreviewBtn');
   const preview = document.getElementById('previewArea');
 
-  // server-side hint (if backend passed preview_minimized variable)
-  let serverHint = false;
-  try {
-    serverHint = {{ 'true' if preview_minimized else 'false' }};
-  } catch(e) {
-    serverHint = false;
-  }
-
-  function storedMinimized() {
-    try {
-      const v = localStorage.getItem(PREVIEW_KEY);
-      if (v === null) return null;
-      return v === 'true';
-    } catch(e) {
-      return null;
-    }
-  }
-
   let minimized = true;
-  const stored = storedMinimized();
-  if (stored === null) {
-    minimized = !!serverHint; // default: server hint (if not present default minimized=true)
-  } else {
-    minimized = !!stored;
-  }
+  try {
+    const stored = localStorage.getItem(PREVIEW_KEY);
+    minimized = stored === null ? true : stored === 'true';
+  } catch(e) {}
 
   function render() {
-    if (minimized) {
+    if(minimized) {
       preview.style.display = 'none';
       btn.textContent = 'Εμφάνιση Preview';
-      btn.classList.remove('bg-gray-200');
     } else {
       preview.style.display = 'block';
       btn.textContent = 'Απόκρυψη Preview';
-      btn.classList.add('bg-gray-200');
     }
   }
 
   btn.addEventListener('click', function() {
     minimized = !minimized;
-    try { localStorage.setItem(PREVIEW_KEY, minimized ? 'true' : 'false'); } catch(e){}
+    try { localStorage.setItem(PREVIEW_KEY, minimized ? 'true' : 'false'); } catch(e) {}
     render();
   });
 
