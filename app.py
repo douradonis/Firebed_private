@@ -193,21 +193,50 @@ def credentials():
 
 @app.route("/credentials/edit/<name>", methods=["GET", "POST"])
 def credentials_edit(name):
+    # load current credentials
     creds = load_credentials()
     credential = next((c for c in creds if c.get("name") == name), None)
     if not credential:
         flash("Credential not found", "error")
         return redirect(url_for("credentials"))
+
     if request.method == "POST":
-        user = request.form.get("user", "").strip()
-        key = request.form.get("key", "").strip()
-        env = request.form.get("env", MYDATA_ENV).strip()
-        vat = request.form.get("vat", "").strip()
-        new = {"name": name, "user": user, "key": key, "env": env, "vat": vat}
-        update_credential(name, new)
+        # read new values (including name)
+        new_name = (request.form.get("name") or "").strip()
+        user = (request.form.get("user") or "").strip()
+        key = (request.form.get("key") or "").strip()
+        env = (request.form.get("env") or MYDATA_ENV).strip()
+        vat = (request.form.get("vat") or "").strip()
+
+        if not new_name:
+            flash("Name required", "error")
+            return redirect(url_for("credentials_edit", name=name))
+
+        # if name changed, prevent duplicates
+        if new_name != name and any(c.get("name") == new_name for c in creds):
+            flash("Another credential with that name already exists", "error")
+            return redirect(url_for("credentials_edit", name=name))
+
+        # update entry in list
+        new_entry = {"name": new_name, "user": user, "key": key, "env": env, "vat": vat}
+        updated = False
+        for i, c in enumerate(creds):
+            if c.get("name") == name:
+                creds[i] = new_entry
+                updated = True
+                break
+        if not updated:
+            creds.append(new_entry)
+
+        save_credentials(creds)
         flash("Updated", "success")
         return redirect(url_for("credentials"))
-    return safe_render("credentials_edit.html", credential=credential)
+
+    # GET: render form. include active_page so navbar highlights
+    # DEBUG flash so you can see what credential was loaded
+    flash(f"Editing credential: {credential.get('name')}", "success")
+    return safe_render("credentials_edit.html", credential=credential, active_page="credentials")
+
 
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):

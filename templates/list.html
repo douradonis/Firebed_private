@@ -4,15 +4,20 @@
 {% block head_extra %}
 <style>
 .table-wrapper { width:100%; overflow:auto; max-height:70vh; border-radius:8px; background:#fff; padding:8px; }
-.summary-table { width:100%; border-collapse:collapse; min-width:900px; }
+.summary-table { width:100%; border-collapse:collapse; min-width:900px; table-layout: fixed; }
 .summary-table th, .summary-table td { border:1px solid #e6e6e6; padding:8px; vertical-align:top; }
-.summary-table th { background:#0d6efd; color:white; position: sticky; top:0; z-index:2; }
+.summary-table th { background:#0d6efd; color:white; cursor: move; position: sticky; top:0; z-index:3; }
 .cell-wrap { white-space:pre-wrap; word-break:break-word; max-width:360px; overflow:hidden; }
 .small-btn { padding:8px 12px; border-radius:8px; color:#fff; background:#0d6efd; text-decoration:none; display:inline-block; }
 .small-btn.secondary { background:#6c757d; }
 .small-btn.danger { background:#dc3545; }
 {{ css_numcols | safe }}
 </style>
+
+<!-- DataTables + ColReorder + ColResize -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/colreorder/1.6.2/css/colReorder.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables-colresize@1.0.0/dist/dataTables.colResize.min.css">
 {% endblock %}
 
 {% block content %}
@@ -47,9 +52,13 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/colreorder/1.6.2/js/dataTables.colReorder.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables-colresize@1.0.0/dist/dataTables.colResize.min.js"></script>
+
 <script>
 $(document).ready(function(){
-  // DataTables usage if available
   try {
     const dt = $('.summary-table').DataTable({
       paging: true,
@@ -57,15 +66,19 @@ $(document).ready(function(){
       scrollX: true,
       scrollCollapse: true,
       fixedHeader: true,
-      columnDefs: [{ orderable: false, targets: 0 }] // first col = checkbox
+      colReorder: true,
+      autoWidth: false,
+      columnDefs: [{ orderable: false, targets: 0 }] // checkbox column
     });
+
+    // Resizable columns with sticky headers
+    dt.colResize({ resizeMode: 'flex' });
 
     $('#globalSearch').on('input', function(){
       dt.search(this.value).draw();
     });
   } catch(e){
     console.warn("DataTables not initialized:", e);
-    // fallback: simple search
     $('#globalSearch').on('input', function(){
       const q = this.value.toLowerCase();
       $('.summary-table tbody tr').each(function(){
