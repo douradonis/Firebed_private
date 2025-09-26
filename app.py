@@ -168,7 +168,7 @@ def safe_render(template_name, **ctx):
 # ---------------- Routes ----------------
 @app.route("/")
 def home():
-    return safe_render("nav.html")
+    return safe_render("nav.html", active_page="home")
 
 # credentials CRUD
 @app.route("/credentials", methods=["GET", "POST"])
@@ -189,7 +189,7 @@ def credentials():
                 flash(err or "Could not save", "error")
         return redirect(url_for("credentials"))
     creds = load_credentials()
-    return safe_render("credentials_list.html", credentials=creds)
+    return safe_render("credentials_list.html", credentials=creds, active_page="credentials")
 
 @app.route("/credentials/edit/<name>", methods=["GET", "POST"])
 def credentials_edit(name):
@@ -233,7 +233,7 @@ def fetch():
 
         if not date_from_iso or not date_to_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
 
         # convert iso -> dd/mm/YYYY (fetch.request_docs expects dd/mm/YYYY)
         def iso_to_ddmmyyyy(iso_s: str) -> str:
@@ -256,7 +256,7 @@ def fetch():
 
         if not aade_user or not aade_key:
             error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
 
         try:
             all_rows, summary_list = request_docs(
@@ -286,87 +286,9 @@ def fetch():
             log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview)
+    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
 
-# ---------------- Bulk fetch (kept for backward) ----------------
-@app.route("/bulk_fetch", methods=["GET", "POST"])
-def bulk_fetch():
-    creds = load_credentials()
-    preview = load_cache()[:40]
-    message = None
-    error = None
 
-    if request.method == "POST":
-        user = (request.form.get("use_credential") or "").strip()
-        vat_input = request.form.get("vat_number", "").strip()
-
-        # credential selection
-        aade_user = AADE_USER_ENV
-        aade_key = AADE_KEY_ENV
-        vat = vat_input
-        if user:
-            c = next((x for x in creds if x.get("name") == user), None)
-            if c:
-                aade_user = c.get("user") or aade_user
-                aade_key = c.get("key") or aade_key
-                vat = vat or c.get("vat", "")
-
-        # Dates dd/mm/YYYY expected
-        date_from_raw = request.form.get("date_from", "").strip()
-        date_to_raw = request.form.get("date_to", "").strip()
-
-        def validate_ddmmyyyy(s):
-            try:
-                return _dt.strptime(s, "%d/%m/%Y")
-            except Exception:
-                return None
-
-        d_from = validate_ddmmyyyy(date_from_raw)
-        d_to = validate_ddmmyyyy(date_to_raw)
-
-        if not d_from or not d_to:
-            error = "Παρακαλώ συμπλήρωσε έγκυρες ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("bulk_fetch.html",
-                               credentials=creds,
-                               message=message,
-                               error=error,
-                               preview=preview,
-                               preview_minimized=True)
-
-        try:
-            all_rows, summary_list = request_docs(
-                date_from=date_from_raw,
-                date_to=date_to_raw,
-                mark="000000000000000",
-                aade_user=aade_user,
-                aade_key=aade_key,
-                debug=True,
-                save_excel=False
-            )
-
-            added = 0
-            for d in all_rows:
-                if append_doc_to_cache(d, aade_user, aade_key):
-                    added += 1
-
-            # save summary_list
-            if isinstance(summary_list, list):
-                save_summary_list(summary_list)
-
-            message = f"Fetched {len(all_rows)} items, newly cached: {added}"
-            preview = load_cache()[:40]
-
-        except Exception as e:
-            log.exception("Bulk fetch error")
-            error = f"Σφάλμα λήψης: {str(e)[:400]}\n{traceback.format_exc()[:1000]}"
-
-    return safe_render("bulk_fetch.html",
-                       credentials=creds,
-                       message=message,
-                       error=error,
-                       preview=preview)
-
-# ---------------- MARK search ----------------
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
 def search():
@@ -454,7 +376,7 @@ def search():
                     "type_name": mapper(type_code) if type_code else ""
                 }
 
-    return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary)
+    return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary, active_page="search")
 
 
 
@@ -569,7 +491,8 @@ def list_invoices():
                        table_html=Markup(table_html),
                        error=error,
                        file_exists=os.path.exists(EXCEL_FILE),
-                       css_numcols=css_numcols)
+                       css_numcols=css_numcols,
+                       active_page="list_invoices")
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
@@ -599,6 +522,8 @@ def delete_invoices():
 def health():
     return "OK"
 
+
+
 # ---------------- Global error handler ----------------
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
@@ -612,6 +537,7 @@ def handle_unexpected_error(e):
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
