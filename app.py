@@ -55,6 +55,43 @@ if not log.handlers:
     log.addHandler(fh)
 
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
+GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
+SETTINGS_FILE = 'credentials_settings.json'
+
+def get_global_accounts_from_credentials() -> Dict:
+    """
+    Διαβάζει το credentials.json και επιστρέφει το αντικείμενο accounts
+    αν υπάρχει ως credential με name == GLOBAL_ACCOUNTS_NAME.
+    """
+    creds = load_credentials()
+    for c in creds:
+        if c.get("name") == GLOBAL_ACCOUNTS_NAME:
+            return c.get("accounts", {})
+    return {}
+
+def save_global_accounts_to_credentials(accounts: Dict) -> None:
+    """
+    Αποθηκεύει/ενημερώνει την εγγραφή GLOBAL_ACCOUNTS_NAME στο credentials.json
+    με τα παρεχόμενα accounts mapping.
+    """
+    creds = load_credentials()
+    found = False
+    for i, c in enumerate(creds):
+        if c.get("name") == GLOBAL_ACCOUNTS_NAME:
+            creds[i]["accounts"] = accounts
+            found = True
+            break
+    if not found:
+        # προσθέτουμε ένα ειδικό credential αντικείμενο κρατώντας μόνο το accounts πεδίο
+        creds.append({
+            "name": GLOBAL_ACCOUNTS_NAME,
+            "user": "",
+            "key": "",
+            "vat": "",
+            "env": MYDATA_ENV,
+            "accounts": accounts
+        })
+    save_credentials(creds)
 
 # ---------------- Helpers ---------------- (most unchanged)
 def json_read(path: str):
@@ -74,14 +111,31 @@ def json_write(path: str, data: Any):
     os.replace(tmp, path)
 
 def load_credentials():
-    if not os.path.exists(CREDENTIALS_FILE):
-        return []
-    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    if os.path.exists(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE,'r',encoding='utf-8') as f:
+            return json.load(f)
+    return []
 
-def save_credentials(creds):
-    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
-        json.dump(creds, f, ensure_ascii=False, indent=2)
+def save_credentials(credentials):
+    with open(CREDENTIALS_FILE,'w',encoding='utf-8') as f:
+        json.dump(credentials, f, ensure_ascii=False, indent=2)
+
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE,'r',encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_settings(settings):
+    with open(SETTINGS_FILE,'w',encoding='utf-8') as f:
+        json.dump(settings, f, ensure_ascii=False, indent=2)
+
+def get_active_credential():
+    creds = load_credentials()
+    for c in creds:
+        if c.get('active'):
+            return c
+    return None
 
 def add_credential(entry):
     creds = load_credentials()
@@ -203,6 +257,71 @@ def safe_render(template_name, **ctx):
 @app.route("/")
 def home():
     return safe_render("nav.html", active_page="home")
+
+
+@app.route('/credentials/add', methods=['POST'])
+def credentials_add():
+    credentials = load_credentials()
+    name = request.form.get('name')
+    vat = request.form.get('vat')
+    user = request.form.get('user')
+    key = request.form.get('key')
+    book_category = request.form.get('book_category','Β')
+    fpa_applicable = bool(request.form.get('fpa_applicable'))
+    expense_tags = request.form.getlist('expense_tags')
+    new_cred = {
+        'name': name,
+        'vat': vat,
+        'user': user,
+        'key': key,
+        'book_category': book_category,
+        'fpa_applicable': fpa_applicable,
+        'expense_tags': expense_tags,
+        'active': False
+    }
+    credentials.append(new_cred)
+    save_credentials(credentials)
+    return redirect(url_for('credentials'))
+
+@app.route('/credentials/edit/<orig_name>', methods=['POST'])
+def credentials_edit_post(orig_name):
+    credentials = load_credentials()
+    for c in credentials:
+        if c['name'] == orig_name:
+            c['name'] = request.form.get('name')
+            c['vat'] = request.form.get('vat')
+            c['user'] = request.form.get('user')
+            c['key'] = request.form.get('key')
+            c['book_category'] = request.form.get('book_category','Β')
+            c['fpa_applicable'] = bool(request.form.get('fpa_applicable'))
+            c['expense_tags'] = request.form.getlist('expense_tags')
+            break
+    save_credentials(credentials)
+    return redirect(url_for('credentials'))
+
+@app.route('/credentials/delete/<name>', methods=['POST'])
+def credentials_delete_post(name):
+    credentials = load_credentials()
+    credentials = [c for c in credentials if c['name'] != name]
+    save_credentials(credentials)
+    return redirect(url_for('credentials'))
+
+@app.route('/credentials/set_active', methods=['POST'])
+def credentials_set_active():
+    active_name = request.form.get('active_name')
+    credentials = load_credentials()
+    for c in credentials:
+        c['active'] = (c['name'] == active_name)
+    save_credentials(credentials)
+    return redirect(url_for('credentials'))
+
+@app.route('/credentials/save_settings', methods=['POST'])
+def credentials_save_settings():
+    data = request.get_json()
+    if data:
+        save_settings(data)
+        return jsonify({'status':'ok'})
+    return jsonify({'status':'error'}), 400
 
 # credentials CRUD (unchanged behaviour) but pass active credential to template
 @app.route("/credentials", methods=["GET", "POST"])
@@ -600,11 +719,47 @@ def search():
         modal_summary=modal_summary,
         active_page="search"
     )
-
-
-
-
-# ---------------- Save summary from modal to Excel & cache ----------------
+@app.route("/save_accounts", methods=["POST"])
+def save_accounts():
+    """
+    Αναμένει POST με πεδία:
+      - account_<vat>__<expense_tag> = account_code
+    Παράδειγμα πεδίου: account_24__γενικες_δαπανες = "70.02"
+    Επιπλέον μπορεί να στέλνεται JSON payload.
+    """
+    try:
+        # αν JSON payload
+        if request.is_json:
+            payload = request.get_json()
+            accounts = payload.get("accounts", {})
+            save_global_accounts_to_credentials(accounts)
+            flash("Global accounts saved", "success")
+            return redirect(url_for("credentials"))
+        # αλλιώς form fields
+        form = request.form
+        # Δομή: accounts[vat][expense_tag] = code
+        accounts = {}
+        # αναζητούμε πεδία που ξεκινούν με "account_"
+        for key in form:
+            if not key.startswith("account_"):
+                continue
+            # key format: account_{vat}__{expense_tag}
+            rest = key[len("account_"):]
+            if "__" not in rest:
+                continue
+            vat_part, expense_tag = rest.split("__", 1)
+            vat_key = vat_part.strip()
+            code = form.get(key, "").strip()
+            if vat_key not in accounts:
+                accounts[vat_key] = {}
+            accounts[vat_key][expense_tag] = code
+        # αποθηκεύουμε
+        save_global_accounts_to_credentials(accounts)
+        flash("Global accounts saved", "success")
+    except Exception as e:
+        log.exception("save_accounts failed")
+        flash(f"Could not save accounts: {e}", "error")
+    return redirect(url_for("credentials"))
 # ---------------- Save summary from modal to Excel & per-customer JSON ----------------
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
@@ -777,6 +932,8 @@ def delete_invoices():
 
     flash(f"Deleted {len(marks_to_delete)} rows (if existed)", "success")
     return redirect(url_for("list_invoices"))
+
+
 
 # ---------------- Health ----------------
 @app.route("/health")
