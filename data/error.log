@@ -1,76 +1,8 @@
-2025-09-26 11:57:04,152 INFO Starting app - MYDATA_ENV=sandbox
+2025-09-27 12:17:03,879 INFO Starting app - MYDATA_ENV=production
 
-2025-09-26 11:57:04,624 INFO Starting app - MYDATA_ENV=production
+2025-09-27 12:20:10,820 INFO Starting app - MYDATA_ENV=production
 
-2025-09-26 12:01:25,234 INFO Starting app - MYDATA_ENV=production
+2025-09-27 12:22:54,672 INFO Starting app - MYDATA_ENV=production
 
-2025-09-26 12:03:14,858 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 12:12:05,821 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 12:12:07,660 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 12:12:41,767 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 12:34:32,781 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-26 12:34:33,250 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 12:35:12,285 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-26 12:35:41,952 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-26 12:36:32,878 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-26 12:36:51,853 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-26 12:36:52,361 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 13:03:09,409 INFO Starting app - MYDATA_ENV=production
-
-2025-09-26 13:03:31,604 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 11:27:44,428 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-27 11:27:44,958 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 11:38:36,568 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 11:40:08,228 ERROR Template rendering failed for credentials_list.html: Could not build url for endpoint 'set_active'. Did you mean 'set_active_credential' instead?
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 176, in safe_render
-    return render_template(template_name, **ctx)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/workspaces/Firebed_private/templates/credentials_list.html", line 1, in top-level template code
-    {% extends "base.html" %}
-  File "/workspaces/Firebed_private/templates/base.html", line 89, in top-level template code
-    {% block content %}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/Firebed_private/templates/credentials_list.html", line 13, in block 'content'
-    <form method="POST" action="{{ url_for('set_active') }}">
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 1121, in url_for
-    return self.handle_url_build_error(error, endpoint, values)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 1110, in url_for
-    rv = url_adapter.build(  # type: ignore[union-attr]
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/werkzeug/routing/map.py", line 924, in build
-    raise BuildError(endpoint, values, method, self)
-werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'set_active'. Did you mean 'set_active_credential' instead?
-
-
-2025-09-27 11:49:01,354 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 11:55:18,489 INFO Starting app - MYDATA_ENV=production
+2025-09-27 12:27:21,147 INFO Starting app - MYDATA_ENV=production
 

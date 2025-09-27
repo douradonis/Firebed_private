@@ -7,12 +7,12 @@
     "AA": "7061",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 37.01,
-    "totalVatAmount": 8.88,
+    "totalNetValue": "37,01",
+    "totalVatAmount": "8,88",
+    "totalValue": "45,89",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 45.89
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010801580222",
@@ -22,12 +22,12 @@
     "AA": "7051525",
     "type": "2.1",
     "vatCategory": "7",
-    "totalNetValue": 2.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "2,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "2,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "996763330",
-    "Name_issuer": "",
-    "totalValue": 2.0
+    "Name_issuer": ""
   },
   {
     "mark": "400010801931862",
@@ -37,12 +37,12 @@
     "AA": "59236",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 27.84,
-    "totalVatAmount": 6.68,
+    "totalNetValue": "27,84",
+    "totalVatAmount": "6,68",
+    "totalValue": "34,52",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 34.52
+    "Name_issuer": ""
   },
   {
     "mark": "400010811069672",
@@ -52,12 +52,12 @@
     "AA": "59252",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 59.86,
-    "totalVatAmount": 14.37,
+    "totalNetValue": "59,86",
+    "totalVatAmount": "14,37",
+    "totalValue": "74,23",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 74.23
+    "Name_issuer": ""
   },
   {
     "mark": "400010816574392",
@@ -67,12 +67,12 @@
     "AA": "59272",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 25.01,
-    "totalVatAmount": 6.0,
+    "totalNetValue": "25,01",
+    "totalVatAmount": "6,00",
+    "totalValue": "31,01",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 31.01
+    "Name_issuer": ""
   },
   {
     "mark": "400010823773987",
@@ -82,12 +82,12 @@
     "AA": "2633",
     "type": "9.3",
     "vatCategory": "8",
-    "totalNetValue": 0.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "0,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "0,00",
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 0.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010823885619",
@@ -97,12 +97,12 @@
     "AA": "59277",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 15.8,
-    "totalVatAmount": 3.79,
+    "totalNetValue": "15,80",
+    "totalVatAmount": "3,79",
+    "totalValue": "19,59",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 19.59
+    "Name_issuer": ""
   },
   {
     "mark": "400010837491231",
@@ -112,12 +112,12 @@
     "AA": "7756",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 109.1,
-    "totalVatAmount": 26.18,
+    "totalNetValue": "109,10",
+    "totalVatAmount": "26,18",
+    "totalValue": "135,28",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 135.28
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010839117962",
@@ -127,12 +127,12 @@
     "AA": "7193796",
     "type": "2.1",
     "vatCategory": "7",
-    "totalNetValue": 4.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "4,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "4,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "996763330",
-    "Name_issuer": "",
-    "totalValue": 4.0
+    "Name_issuer": ""
   },
   {
     "mark": "400010850816176",
@@ -142,12 +142,12 @@
     "AA": "59341",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 20.16,
-    "totalVatAmount": 4.84,
+    "totalNetValue": "20,16",
+    "totalVatAmount": "4,84",
+    "totalValue": "25,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 25.0
+    "Name_issuer": ""
   },
   {
     "mark": "400010853560383",
@@ -157,12 +157,12 @@
     "AA": "7832",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 192.82,
-    "totalVatAmount": 46.28,
+    "totalNetValue": "192,82",
+    "totalVatAmount": "46,28",
+    "totalValue": "239,10",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 239.1
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010853581282",
@@ -172,12 +172,12 @@
     "AA": "2658",
     "type": "9.3",
     "vatCategory": "8",
-    "totalNetValue": 0.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "0,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "0,00",
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 0.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010868114052",
@@ -187,12 +187,12 @@
     "AA": "001395",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 16.13,
-    "totalVatAmount": 3.87,
+    "totalNetValue": "16,13",
+    "totalVatAmount": "3,87",
+    "totalValue": "20,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "082932309",
-    "Name_issuer": "ΓΑΛΑΙΟΣ & ΣΚΩΤΗ Ο.Ε.",
-    "totalValue": 20.0
+    "Name_issuer": "ΓΑΛΑΙΟΣ & ΣΚΩΤΗ Ο.Ε."
   },
   {
     "mark": "400010870220265",
@@ -202,12 +202,12 @@
     "AA": "7867",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 137.59,
-    "totalVatAmount": 33.02,
+    "totalNetValue": "137,59",
+    "totalVatAmount": "33,02",
+    "totalValue": "170,61",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 170.61
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010871752129",
@@ -217,12 +217,12 @@
     "AA": "9550",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 57.66,
-    "totalVatAmount": 13.84,
+    "totalNetValue": "57,66",
+    "totalVatAmount": "13,84",
+    "totalValue": "71,50",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 71.5
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010881399229",
@@ -232,12 +232,12 @@
     "AA": "59389",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 19.81,
-    "totalVatAmount": 4.75,
+    "totalNetValue": "19,81",
+    "totalVatAmount": "4,75",
+    "totalValue": "24,56",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 24.56
+    "Name_issuer": ""
   },
   {
     "mark": "400010884653611",
@@ -247,12 +247,12 @@
     "AA": "7922",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 42.25,
-    "totalVatAmount": 10.14,
+    "totalNetValue": "42,25",
+    "totalVatAmount": "10,14",
+    "totalValue": "52,39",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 52.39
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010887238491",
@@ -262,12 +262,12 @@
     "AA": "7929",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 177.14,
-    "totalVatAmount": 42.51,
+    "totalNetValue": "177,14",
+    "totalVatAmount": "42,51",
+    "totalValue": "219,65",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 219.65
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010887296621",
@@ -277,12 +277,12 @@
     "AA": "7930",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 25.24,
-    "totalVatAmount": 6.06,
+    "totalNetValue": "25,24",
+    "totalVatAmount": "6,06",
+    "totalValue": "31,30",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 31.3
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010895436846",
@@ -292,12 +292,12 @@
     "AA": "59428",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 17.57,
-    "totalVatAmount": 4.22,
+    "totalNetValue": "17,57",
+    "totalVatAmount": "4,22",
+    "totalValue": "21,79",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 21.79
+    "Name_issuer": ""
   },
   {
     "mark": "400010897133684",
@@ -307,12 +307,12 @@
     "AA": "7318108",
     "type": "2.1",
     "vatCategory": "7",
-    "totalNetValue": 4.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "4,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "4,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "996763330",
-    "Name_issuer": "",
-    "totalValue": 4.0
+    "Name_issuer": ""
   },
   {
     "mark": "400010900550807",
@@ -322,12 +322,12 @@
     "AA": "7979",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 129.37,
-    "totalVatAmount": 31.05,
+    "totalNetValue": "129,37",
+    "totalVatAmount": "31,05",
+    "totalValue": "160,42",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 160.42
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010909525248",
@@ -337,12 +337,12 @@
     "AA": "9687",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 12.63,
-    "totalVatAmount": 3.03,
+    "totalNetValue": "12,63",
+    "totalVatAmount": "3,03",
+    "totalValue": "15,66",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 15.66
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010910133802",
@@ -352,12 +352,12 @@
     "AA": "2701",
     "type": "9.3",
     "vatCategory": "8",
-    "totalNetValue": 0.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "0,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "0,00",
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 0.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010910151518",
@@ -367,12 +367,12 @@
     "AA": "7999",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 97.53,
-    "totalVatAmount": 23.41,
+    "totalNetValue": "97,53",
+    "totalVatAmount": "23,41",
+    "totalValue": "120,94",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 120.94
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010913198565",
@@ -382,12 +382,12 @@
     "AA": "59477",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 117.97,
-    "totalVatAmount": 28.31,
+    "totalNetValue": "117,97",
+    "totalVatAmount": "28,31",
+    "totalValue": "146,28",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "totalValue": 146.28
+    "Name_issuer": ""
   },
   {
     "mark": "400010923607408",
@@ -397,12 +397,12 @@
     "AA": "7450",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 60.71,
-    "totalVatAmount": 14.57,
+    "totalNetValue": "60,71",
+    "totalVatAmount": "14,57",
+    "totalValue": "75,28",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 75.28
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010939752552",
@@ -412,12 +412,12 @@
     "AA": "8123",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 48.76,
-    "totalVatAmount": 11.7,
+    "totalNetValue": "48,76",
+    "totalVatAmount": "11,70",
+    "totalValue": "60,46",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 60.46
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010952964204",
@@ -427,12 +427,12 @@
     "AA": "8145",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 217.74,
-    "totalVatAmount": 52.26,
+    "totalNetValue": "217,74",
+    "totalVatAmount": "52,26",
+    "totalValue": "270,00",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 270.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010961468653",
@@ -442,12 +442,12 @@
     "AA": "065839",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 64.68,
-    "totalVatAmount": 15.52,
+    "totalNetValue": "64,68",
+    "totalVatAmount": "15,52",
+    "totalValue": "80,20",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "999774012",
-    "Name_issuer": "",
-    "totalValue": 80.2
+    "Name_issuer": ""
   },
   {
     "mark": "400010968079828",
@@ -457,12 +457,12 @@
     "AA": "8202",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 46.63,
-    "totalVatAmount": 11.19,
+    "totalNetValue": "46,63",
+    "totalVatAmount": "11,19",
+    "totalValue": "57,82",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 57.82
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010968091370",
@@ -472,12 +472,12 @@
     "AA": "2752",
     "type": "9.3",
     "vatCategory": "8",
-    "totalNetValue": 0.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "0,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "0,00",
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 0.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010981349402",
@@ -487,12 +487,12 @@
     "AA": "2767",
     "type": "9.3",
     "vatCategory": "8",
-    "totalNetValue": 0.0,
-    "totalVatAmount": 0.0,
+    "totalNetValue": "0,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "0,00",
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 0.0
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010981421213",
@@ -502,12 +502,12 @@
     "AA": "8244",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 34.51,
-    "totalVatAmount": 8.28,
+    "totalNetValue": "34,51",
+    "totalVatAmount": "8,28",
+    "totalValue": "42,79",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 42.79
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010981487790",
@@ -517,12 +517,12 @@
     "AA": "8245",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 19.12,
-    "totalVatAmount": 4.59,
+    "totalNetValue": "19,12",
+    "totalVatAmount": "4,59",
+    "totalValue": "23,71",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 23.71
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010998405632",
@@ -532,12 +532,12 @@
     "AA": "7656",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 76.88,
-    "totalVatAmount": 18.45,
+    "totalNetValue": "76,88",
+    "totalVatAmount": "18,45",
+    "totalValue": "95,33",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 95.33
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400010998689332",
@@ -547,12 +547,12 @@
     "AA": "7174",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 13.02,
-    "totalVatAmount": 3.13,
+    "totalNetValue": "13,02",
+    "totalVatAmount": "3,13",
+    "totalValue": "16,15",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "999572703",
-    "Name_issuer": "ΑΦΟΙ ΞΥΔΕΑ ΟΕ",
-    "totalValue": 16.15
+    "Name_issuer": "ΑΦΟΙ ΞΥΔΕΑ ΟΕ"
   },
   {
     "mark": "400011007047697",
@@ -562,12 +562,12 @@
     "AA": "7671",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 23.42,
-    "totalVatAmount": 5.62,
+    "totalNetValue": "23,42",
+    "totalVatAmount": "5,62",
+    "totalValue": "29,04",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 29.04
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   },
   {
     "mark": "400011023403312",
@@ -577,11 +577,11 @@
     "AA": "7736",
     "type": "1.1",
     "vatCategory": "1",
-    "totalNetValue": 19.78,
-    "totalVatAmount": 4.75,
+    "totalNetValue": "19,78",
+    "totalVatAmount": "4,75",
+    "totalValue": "24,53",
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "totalValue": 24.53
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   }
 ]

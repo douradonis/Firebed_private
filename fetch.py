@@ -12,11 +12,6 @@ def _safe_strip(s):
     return str(s).strip() if s else ""
 
 def find_in_element_by_localnames(elem, localnames):
-    """
-    Διάσχιση του element (και υπο-στοιχείων) και επιστροφή
-    του πρώτου μη-κενό κειμένου όταν το localname του tag
-    ταιριάζει σε μία από τις localnames.
-    """
     if elem is None:
         return ""
     for sub in elem.iter():
@@ -33,7 +28,6 @@ def extract_issuer_info(invoice_elem, ns):
     name = ""
     issuer = invoice_elem.find("ns:issuer", ns)
     if issuer is not None:
-        # Προσπαθούμε με namespaced tags πρώτα
         vat = _safe_strip(issuer.findtext("ns:vatNumber", default="", namespaces=ns))
         if not vat:
             vat = find_in_element_by_localnames(issuer, ["vatNumber", "VATNumber", "vatnumber"])
@@ -41,7 +35,6 @@ def extract_issuer_info(invoice_elem, ns):
         if not name:
             name = find_in_element_by_localnames(issuer, ["name", "Name", "companyName", "partyName", "partyType", "party"])
     else:
-        # fallback: ψάξε οπουδήποτε μέσα στο invoice element
         vat = find_in_element_by_localnames(invoice_elem, ["vatNumber", "VATNumber", "vatnumber"])
         name = find_in_element_by_localnames(invoice_elem, ["name", "Name", "companyName", "partyName", "partyType", "party"])
     return _safe_strip(vat), _safe_strip(name)
@@ -56,24 +49,30 @@ def to_float_safe(x):
             return 0.0
 
 def format_date_to_ddmmyyyy(value: str) -> str:
-    """
-    Αν το value είναι ISO-like (π.χ. 2023-07-15 ή 2023-07-15T10:30:00),
-    το μετατρέπει σε 'dd/mm/YYYY'. Αν δεν μπορεί να κάνει parse,
-    επιστρέφει το αρχικό value (με strip).
-    Αν value είναι κενό/None, επιστρέφει "".
-    """
     if not value:
         return ""
     v = str(value).strip()
-    # Quick heuristic: αν ήδη έχει μορφή dd/mm/YYYY, επιστρέφουμε όπως είναι.
     if "/" in v and len(v.split("/")[0]) <= 2:
         return v
     try:
         dt = parse(v)
         return dt.strftime("%d/%m/%Y")
     except Exception:
-        # δεν μπόρεσε το parse — επιστρέψτε το raw (stripped)
         return v
+
+def format_decimal_comma(value) -> str:
+    if value is None:
+        return ""
+    try:
+        if isinstance(value, (int, float)):
+            s = f"{value:.2f}"
+            return s.replace(".", ",")
+        vs = str(value).strip()
+        num = float(vs.replace(",", "."))
+        s = f"{num:.2f}"
+        return s.replace(".", ",")
+    except Exception:
+        return str(value).strip()
 
 def request_docs(
     date_from: str,
@@ -86,14 +85,13 @@ def request_docs(
     out_filename: str = "invoices_vat_summary_classified.xlsx"
 ) -> Tuple[List[dict], List[dict]]:
     """
-    Fetch invoices from myDATA and optionally save Excel.
-    Returns: all_rows (detailed) και summary_list (summary)
+    Returns:
+        all_rows_json, summary_json  # JSON-ready with comma decimals
+    Also saves Excel with numeric columns for Καθαρή Αξία, ΦΠΑ, Σύνολο
     """
     URL_REQUEST_DOCS = "https://mydatapi.aade.gr/myDATA/RequestDocs"
     URL_REQUEST_TRANSMITTED = "https://mydatapi.aade.gr/myDATA/RequestTransmittedDocs"
-
     headers = {"aade-user-id": aade_user, "Ocp-Apim-Subscription-Key": aade_key}
-
     all_rows = []
     params_docs = {"mark": mark, "dateFrom": date_from, "dateTo": date_to}
 
@@ -115,46 +113,27 @@ def request_docs(
             series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header is not None else ""
             aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header is not None else ""
 
-            # --- τύπος παραστατικού (προσπαθούμε με διάφορες ονομασίες) ---
             invoice_type = ""
             if header is not None:
                 invoice_type = _safe_strip(header.findtext("ns:invoiceType", default="", namespaces=ns))
                 if not invoice_type:
-                    # ψάξε και μέσα στο header και στο invoice για πιθανές παραλλαγές
                     invoice_type = find_in_element_by_localnames(header, ["invoiceType", "InvoiceType", "invoiceCategory", "type", "documentType"])
             if not invoice_type:
-                # fallback: αναζήτηση οπουδήποτε μέσα στο invoice element
                 invoice_type = find_in_element_by_localnames(invoice, ["invoiceType", "InvoiceType", "invoiceCategory", "type", "documentType"])
 
             vatissuer, Name_issuer = extract_issuer_info(invoice, ns)
 
             vat_groups = defaultdict(lambda: {"netValue": 0.0, "vatAmount": 0.0})
-            # try multiple possible detail tag names (namespaced ή όχι)
-            details_nodes = invoice.findall(".//ns:invoiceDetails", ns)
-            if not details_nodes:
-                details_nodes = invoice.findall(".//ns:invoiceDetail", ns)
-            if not details_nodes:
-                # fallback to non-namespaced tags
-                details_nodes = invoice.findall(".//invoiceDetails") or invoice.findall(".//invoiceDetail")
-
+            details_nodes = invoice.findall(".//ns:invoiceDetails", ns) or invoice.findall(".//ns:invoiceDetail", ns) or invoice.findall(".//invoiceDetails") or invoice.findall(".//invoiceDetail")
             for detail in details_nodes:
-                net_text = detail.findtext("ns:netValue", default=None, namespaces=ns) or \
-                           detail.findtext("netValue") or detail.findtext("NetValue") or "0"
-                vat_text = detail.findtext("ns:vatAmount", default=None, namespaces=ns) or \
-                           detail.findtext("vatAmount") or detail.findtext("VatAmount") or "0"
-                vat_cat = detail.findtext("ns:vatCategory", default=None, namespaces=ns) or \
-                          detail.findtext("vatCategory") or detail.findtext("VatCategory") or ""
-                net, vat = to_float_safe(net_text), to_float_safe(vat_text)
-                cat = _safe_strip(vat_cat) or "1"
+                net = to_float_safe(detail.findtext("ns:netValue", default=None, namespaces=ns) or detail.findtext("netValue") or detail.findtext("NetValue") or 0)
+                vat = to_float_safe(detail.findtext("ns:vatAmount", default=None, namespaces=ns) or detail.findtext("vatAmount") or detail.findtext("VatAmount") or 0)
+                cat = _safe_strip(detail.findtext("ns:vatCategory", default=None, namespaces=ns) or detail.findtext("vatCategory") or detail.findtext("VatCategory") or "1")
                 vat_groups[cat]["netValue"] += net
                 vat_groups[cat]["vatAmount"] += vat
 
-            # fallback αν δεν βρέθηκαν λεπτομέρειες
             if not vat_groups:
-                summary_node = invoice.find("ns:invoiceSummary", ns)
-                if summary_node is None:
-                    # try non-namespaced summary
-                    summary_node = invoice.find("invoiceSummary")
+                summary_node = invoice.find("ns:invoiceSummary", ns) or invoice.find("invoiceSummary")
                 if summary_node is not None:
                     net = to_float_safe(summary_node.findtext("ns:totalNetValue", default="0", namespaces=ns) or summary_node.findtext("totalNetValue") or "0")
                     vat = to_float_safe(summary_node.findtext("ns:totalVatAmount", default="0", namespaces=ns) or summary_node.findtext("totalVatAmount") or "0")
@@ -162,17 +141,18 @@ def request_docs(
                     vat_groups["1"]["vatAmount"] += vat
 
             for vat_cat, totals in vat_groups.items():
-                # προσθέτουμε και το "AA" πεδίο (με κεφαλαία) για να το βρει το modal/template
+                total_value = round(totals["netValue"] + totals["vatAmount"], 2)
                 row = {
                     "mark": mark_val,
                     "issueDate": issueDate,
                     "series": series,
                     "aa": aa,
-                    "AA": aa,                          # <<-- προσθήκη για συμβατότητα templates
+                    "AA": aa,
                     "type": invoice_type,
                     "vatCategory": vat_cat,
                     "totalNetValue": round(totals["netValue"], 2),
                     "totalVatAmount": round(totals["vatAmount"], 2),
+                    "totalValue": total_value,
                     "classification": "αχαρακτηριστο",
                     "AFM_issuer": vatissuer,
                     "Name_issuer": Name_issuer
@@ -190,7 +170,6 @@ def request_docs(
     date_to_docs = datetime.strptime(date_to, "%d/%m/%Y")
     date_to_trans = date_to_docs + relativedelta(months=3)
     DATE_TO_TRANS = date_to_trans.strftime("%d/%m/%Y")
-
     params_trans = {"mark": mark, "dateFrom": date_from, "dateTo": DATE_TO_TRANS}
     resp_trans = requests.get(URL_REQUEST_TRANSMITTED, params=params_trans, headers=headers)
     transmitted_marks = set()
@@ -213,40 +192,60 @@ def request_docs(
     for row in all_rows:
         mark_val = row["mark"]
         if mark_val not in summary_rows:
-            # copy full row as starting aggregate (θα περιλαμβάνει και 'AA')
             summary_rows[mark_val] = dict(row)
         else:
-            # accumulate numeric totals
             summary_rows[mark_val]["totalNetValue"] += row.get("totalNetValue", 0)
             summary_rows[mark_val]["totalVatAmount"] += row.get("totalVatAmount", 0)
-            # preserve classification 'χαρακτηρισμενο' if any row has it
+            summary_rows[mark_val]["totalValue"] += row.get("totalValue", 0)
             if row.get("classification") == "χαρακτηρισμενο":
                 summary_rows[mark_val]["classification"] = "χαρακτηρισμενο"
-            # keep first non-empty type (αν summary δεν έχει type)
-            if not summary_rows[mark_val].get("type") and row.get("type"):
-                summary_rows[mark_val]["type"] = row.get("type")
-            # ensure AA exists on summary (αν δεν υπάρχει)
-            if not summary_rows[mark_val].get("AA") and row.get("AA"):
-                summary_rows[mark_val]["AA"] = row.get("AA")
-            if not summary_rows[mark_val].get("aa") and row.get("aa"):
-                summary_rows[mark_val]["aa"] = row.get("aa")
 
-    # finalize totals and normalize fields
     for s in summary_rows.values():
         s["totalNetValue"] = round(s.get("totalNetValue", 0), 2)
         s["totalVatAmount"] = round(s.get("totalVatAmount", 0), 2)
-        s["totalValue"] = round(s.get("totalNetValue", 0) + s.get("totalVatAmount", 0), 2)
-        # Normalize any date fields on the summary to dd/mm/YYYY
+        s["totalValue"] = round(s.get("totalValue", 0), 2)
         if s.get("issueDate"):
             s["issueDate"] = format_date_to_ddmmyyyy(s["issueDate"])
 
     summary_list = list(summary_rows.values())
 
-    # --- Step 5: Save Excel (αν ζητηθεί) ---
+    # --- Step 5: Save Excel with numeric columns and Greek headers ---
     if save_excel:
-        with pd.ExcelWriter(out_filename, engine="openpyxl") as writer:
-            pd.DataFrame(all_rows).to_excel(writer, sheet_name="detailed", index=False)
-            pd.DataFrame(summary_list).to_excel(writer, sheet_name="summary", index=False)
-        if debug: print(f"Saved {len(all_rows)} detailed rows and {len(summary_list)} summary rows to '{out_filename}'.")
+        all_rows_excel = [{
+            "MARK": r["mark"], "Ημερομηνία": r["issueDate"], "Σειρά": r["series"], "ΑΑ": r["aa"],
+            "Τύπος": r["type"], "Καθαρή Αξία": r["totalNetValue"], "ΦΠΑ": r["totalVatAmount"],
+            "Σύνολο": r["totalValue"], "Κατάσταση": r["classification"],
+            "AFM Εκδότη": r["AFM_issuer"], "Όνομα Εκδότη": r["Name_issuer"]
+        } for r in all_rows]
 
-    return all_rows, summary_list
+        summary_excel = [{
+            "MARK": s["mark"], "Ημερομηνία": s["issueDate"], "Σειρά": s["series"], "ΑΑ": s["aa"],
+            "Τύπος": s["type"], "Καθαρή Αξία": s["totalNetValue"], "ΦΠΑ": s["totalVatAmount"],
+            "Σύνολο": s["totalValue"], "Κατάσταση": s["classification"],
+            "AFM Εκδότη": s["AFM_issuer"], "Όνομα Εκδότη": s["Name_issuer"]
+        } for s in summary_list]
+
+        with pd.ExcelWriter(out_filename, engine="openpyxl") as writer:
+            pd.DataFrame(all_rows_excel).to_excel(writer, sheet_name="detailed", index=False)
+            pd.DataFrame(summary_excel).to_excel(writer, sheet_name="summary", index=False)
+        if debug:
+            print(f"Saved {len(all_rows)} detailed rows and {len(summary_list)} summary rows to '{out_filename}'.")
+
+    # --- Step 6: JSON-ready with comma decimals ---
+    all_rows_json = []
+    for r in all_rows:
+        rr = dict(r)
+        rr["totalNetValue"] = format_decimal_comma(rr["totalNetValue"])
+        rr["totalVatAmount"] = format_decimal_comma(rr["totalVatAmount"])
+        rr["totalValue"] = format_decimal_comma(rr["totalValue"])
+        all_rows_json.append(rr)
+
+    summary_json = []
+    for s in summary_list:
+        ss = dict(s)
+        ss["totalNetValue"] = format_decimal_comma(ss["totalNetValue"])
+        ss["totalVatAmount"] = format_decimal_comma(ss["totalVatAmount"])
+        ss["totalValue"] = format_decimal_comma(ss["totalValue"])
+        summary_json.append(ss)
+
+    return all_rows_json, summary_json

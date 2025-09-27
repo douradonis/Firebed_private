@@ -379,13 +379,14 @@ def fetch():
     return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
 
 # ---------------- MARK search ----------------
+
 @app.route("/search", methods=["GET", "POST"])
 def search():
-    # ... keep your existing search implementation unchanged ...
     result = None
     error = None
     mark = ""
     modal_summary = None
+
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
             "1.1": "Τιμολόγιο Πώλησης",
@@ -397,7 +398,20 @@ def search():
             "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
         }
         return INVOICE_TYPE_MAP.get(str(code), str(code) or "")
+
     mapper = globals().get("map_invoice_type", None) or _map_invoice_type_local
+
+    # helper για float από comma-decimal
+    def float_from_comma(value):
+        if value is None:
+            return 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        s = str(value).strip().replace(".", "").replace(",", ".")
+        try:
+            return float(s)
+        except Exception:
+            return 0.0
 
     if request.method == "POST":
         mark = request.form.get("mark", "").strip()
@@ -410,34 +424,63 @@ def search():
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
+
                 def pick(src: dict, *keys, default=""):
                     for k in keys:
                         if k in src and src.get(k) is not None and str(src.get(k)).strip() != "":
                             return src.get(k)
                     return default
+
                 summaries = json_read(SUMMARY_FILE)
                 found = None
                 if isinstance(summaries, list):
                     found = next((s for s in summaries if str(s.get("mark", "")).strip() == mark), None)
                 source = found if found else doc
+
                 aa_val = pick(source, "AA", "aa", "AA_issuer", "aaNumber", default=pick(doc, "aa", "AA", "aa"))
                 afm_val = pick(source, "AFM", "AFM_issuer", "AFMissuer", default=pick(doc, "AFM_issuer", "AFM", "AFM"))
                 name_val = pick(source, "Name", "Name_issuer", "NameIssuer", "name", default=pick(doc, "Name_issuer", "Name", "Name"))
                 series_val = pick(source, "series", "Series", "serie", default=pick(doc, "series", "Series", "serie"))
                 number_val = pick(source, "number", "aa", "AA", default=aa_val)
                 issue_date = pick(source, "issueDate", "issue_date", "issue", default=pick(doc, "issueDate", "issue_date", default=""))
-                total_net = pick(source, "totalNetValue", "totalNet", "net", default=pick(doc, "totalNetValue", "totalNet", 0))
-                total_vat = pick(source, "totalVatAmount", "totalVat", "vat", default=pick(doc, "totalVatAmount", "totalVat", 0))
-                total_value = pick(source, "totalValue", "total", default=round(float(total_net or 0) + float(total_vat or 0), 2))
+
+                # numeric fields: convert from comma-decimal strings to float for calculations
+                total_net_raw = pick(source, "totalNetValue", "totalNet", "net", default=pick(doc, "totalNetValue", "totalNet", 0))
+                total_vat_raw = pick(source, "totalVatAmount", "totalVat", "vat", default=pick(doc, "totalVatAmount", "totalVat", 0))
+                total_net_f = float_from_comma(total_net_raw)
+                total_vat_f = float_from_comma(total_vat_raw)
+
+                total_value_raw = pick(source, "totalValue", "total", default=round(total_net_f + total_vat_f, 2))
+                total_value_f = float_from_comma(total_value_raw)
+
                 type_code = pick(source, "type", "invoiceType", "documentType", default=pick(doc, "type", ""))
+
                 modal_summary = {
-                    "mark": mark, "AA": aa_val, "aa": aa_val, "AFM": afm_val, "Name": name_val,
-                    "series": series_val, "number": number_val, "issueDate": issue_date,
-                    "totalNetValue": total_net, "totalVatAmount": total_vat, "totalValue": total_value,
-                    "type": type_code, "type_name": mapper(type_code) if type_code else ""
+                    "mark": mark,
+                    "AA": aa_val,
+                    "aa": aa_val,
+                    "AFM": afm_val,
+                    "Name": name_val,
+                    "series": series_val,
+                    "number": number_val,
+                    "issueDate": issue_date,
+                    "totalNetValue": total_net_raw,      # keep comma-decimal string for display
+                    "totalVatAmount": total_vat_raw,    # keep comma-decimal string for display
+                    "totalValue": total_value_raw,      # keep comma-decimal string for display
+                    "type": type_code,
+                    "type_name": mapper(type_code) if type_code else ""
                 }
 
-    return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary, active_page="search")
+    return safe_render(
+        "search.html",
+        result=result,
+        error=error,
+        mark=mark,
+        modal_summary=modal_summary,
+        active_page="search"
+    )
+
+
 
 # ---------------- Save summary from modal to Excel & cache ----------------
 @app.route("/save_summary", methods=["POST"])
