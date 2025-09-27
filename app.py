@@ -74,11 +74,14 @@ def json_write(path: str, data: Any):
     os.replace(tmp, path)
 
 def load_credentials():
-    data = json_read(CREDENTIALS_FILE)
-    return data if isinstance(data, list) else []
+    if not os.path.exists(CREDENTIALS_FILE):
+        return []
+    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def save_credentials(creds):
-    json_write(CREDENTIALS_FILE, creds)
+    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+        json.dump(creds, f, ensure_ascii=False, indent=2)
 
 def add_credential(entry):
     creds = load_credentials()
@@ -210,18 +213,37 @@ def credentials():
         key = request.form.get("key", "").strip()
         env = MYDATA_ENV
         vat = request.form.get("vat", "").strip()
+
+        # Νέα πεδία
+        book_category = request.form.get("book_category", "Β").strip() or "Β"
+        fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
+        expense_tags = request.form.getlist("expense_tags") or []
+
         if not name:
             flash("Name required", "error")
         else:
-            ok, err = add_credential({"name": name, "user": user, "key": key, "env": env, "vat": vat})
+            entry = {
+                "name": name,
+                "user": user,
+                "key": key,
+                "env": env,
+                "vat": vat,
+                # προσθήκη νέων πεδίων
+                "book_category": book_category,
+                "fpa_applicable": fpa_applicable,
+                "expense_tags": expense_tags
+            }
+            ok, err = add_credential(entry)
             if ok:
                 flash("Saved", "success")
             else:
                 flash(err or "Could not save", "error")
         return redirect(url_for("credentials"))
+
+    # GET: φορτώνουμε τα credentials και αφήνουμε το context_processor να περάσει το active credential/ΑΦΜ
     creds = load_credentials()
-    active = session.get("active_credential")
-    return safe_render("credentials_list.html", credentials=creds, active_credential=active, active_page="credentials")
+    return safe_render("credentials_list.html", credentials=creds, active_page="credentials")
+
 
 @app.route("/credentials/edit/<name>", methods=["GET", "POST"])
 def credentials_edit(name):
@@ -238,6 +260,11 @@ def credentials_edit(name):
         env = (request.form.get("env") or MYDATA_ENV).strip()
         vat = (request.form.get("vat") or "").strip()
 
+        # Νέα πεδία από τη φόρμα επεξεργασίας
+        book_category = request.form.get("book_category", "Β").strip() or "Β"
+        fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
+        expense_tags = request.form.getlist("expense_tags") or []
+
         if not new_name:
             flash("Name required", "error")
             return redirect(url_for("credentials_edit", name=name))
@@ -246,7 +273,18 @@ def credentials_edit(name):
             flash("Another credential with that name already exists", "error")
             return redirect(url_for("credentials_edit", name=name))
 
-        new_entry = {"name": new_name, "user": user, "key": key, "env": env, "vat": vat}
+        new_entry = {
+            "name": new_name,
+            "user": user,
+            "key": key,
+            "env": env,
+            "vat": vat,
+            # αποθηκεύουμε επίσης τα νέα πεδία
+            "book_category": book_category,
+            "fpa_applicable": fpa_applicable,
+            "expense_tags": expense_tags
+        }
+
         updated = False
         for i, c in enumerate(creds):
             if c.get("name") == name:
@@ -258,24 +296,28 @@ def credentials_edit(name):
 
         save_credentials(creds)
 
-        # if the edited credential was active, update session to new name
+        # αν το credential που επεξεργάστηκε ήταν ενεργό — ενημέρωσε session
         if session.get("active_credential") == name:
             session["active_credential"] = new_name
 
         flash("Updated", "success")
         return redirect(url_for("credentials"))
 
+    # GET -> εμφανίζουμε την φόρμα επεξεργασίας. δεν περνάμε active_credential εδώ ώστε
+    # το context_processor να παρέχει και το active_credential_vat στην template.
     flash(f"Editing credential: {credential.get('name')}", "success")
     return safe_render("credentials_edit.html", credential=credential, active_page="credentials")
 
+
+
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
-    # if deleting active credential, unset session active
-    if session.get("active_credential") == name:
-        session.pop("active_credential", None)
-    delete_credential(name)
-    flash("Deleted", "success")
+    creds = load_credentials()
+    creds = [c for c in creds if c["name"] != name]
+    save_credentials(creds)
+    flash(f"Credential {name} διαγράφηκε.")
     return redirect(url_for("credentials"))
+
 
 # New route: set active credential
 @app.route("/set_active", methods=["POST"])

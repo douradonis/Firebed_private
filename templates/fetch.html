@@ -76,7 +76,13 @@
               {% for row in preview %}
                 <tr class="hover:bg-gray-50">
                   {% for v in row.values() %}
-                    <td class="px-3 py-2 align-top whitespace-nowrap">{{ v }}</td>
+                    <td class="px-3 py-2 align-top whitespace-nowrap">
+                      {% if v is number %}
+                        {{ ("{0:,.2f}".format(v)).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                      {% else %}
+                        {{ v }}
+                      {% endif %}
+                    </td>
                   {% endfor %}
                 </tr>
               {% endfor %}

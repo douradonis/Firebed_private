@@ -1,38 +1,139 @@
-2025-09-27 12:53:40,003 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:16:24,738 INFO Starting app - MYDATA_ENV=sandbox
 
-2025-09-27 12:56:56,843 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:16:25,234 INFO Starting app - MYDATA_ENV=production
 
-2025-09-27 12:59:24,456 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 13:02:33,591 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-27 13:02:34,093 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 13:03:26,708 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-09-27 13:03:27,319 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 13:05:18,683 INFO Starting app - MYDATA_ENV=production
-
-2025-09-27 13:05:33,348 ERROR Fetch error
+2025-09-27 16:32:11,797 ERROR Template rendering failed for credentials_list.html: credentials_modal.html
 Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 423, in fetch
-    total_net = float(d.get("totalNetValue", 0) or 0)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: could not convert string to float: '37,01'
-2025-09-27 13:06:24,893 INFO Starting app - MYDATA_ENV=production
+  File "/workspaces/Firebed_private/app.py", line 189, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 76, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 80, in block 'content'
+    {% include 'credentials_modal.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 65, in get_source
+    return self._get_source_fast(environment, template)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 99, in _get_source_fast
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: credentials_modal.html
 
-2025-09-27 13:07:12,948 INFO Starting app - MYDATA_ENV=production
 
-2025-09-27 13:09:09,397 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:32:27,859 INFO Starting app - MYDATA_ENV=production
 
-2025-09-27 13:14:45,124 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:33:02,261 ERROR Unhandled exception: 'credential' is undefined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 246, in credentials
+    return render_template("credentials_list.html", credentials=creds, active_credential=active_credential)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 76, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 80, in block 'content'
+    {% include 'credentials_edit.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_edit.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 6, in top-level template code
+    <title>{% block title %}myDATA{% endblock %}</title>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_edit.html", line 2, in block 'title'
+    {% block title %}Edit credential: {{ credential.name }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'credential' is undefined
 
-2025-09-27 13:15:23,226 INFO Starting app - MYDATA_ENV=production
 
-2025-09-27 13:16:41,543 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:33:04,227 ERROR Unhandled exception: 'credential' is undefined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 246, in credentials
+    return render_template("credentials_list.html", credentials=creds, active_credential=active_credential)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 76, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_list.html", line 80, in block 'content'
+    {% include 'credentials_edit.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_edit.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/workspaces/Firebed_private/templates/base.html", line 6, in top-level template code
+    <title>{% block title %}myDATA{% endblock %}</title>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/templates/credentials_edit.html", line 2, in block 'title'
+    {% block title %}Edit credential: {{ credential.name }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'credential' is undefined
 
-2025-09-27 13:19:26,145 INFO Starting app - MYDATA_ENV=production
 
-2025-09-27 13:19:57,107 INFO Starting app - MYDATA_ENV=production
+2025-09-27 16:33:42,009 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 16:35:59,480 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 16:36:12,366 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 16:37:08,462 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 17:01:32,960 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-27 17:01:33,447 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 17:04:50,242 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 17:05:47,338 INFO Starting app - MYDATA_ENV=production
 
