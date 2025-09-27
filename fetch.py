@@ -5,6 +5,7 @@ import pandas as pd
 from collections import defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from dateutil.parser import parse
 from typing import Tuple, List
 
 def _safe_strip(s):
@@ -54,6 +55,26 @@ def to_float_safe(x):
         except Exception:
             return 0.0
 
+def format_date_to_ddmmyyyy(value: str) -> str:
+    """
+    Αν το value είναι ISO-like (π.χ. 2023-07-15 ή 2023-07-15T10:30:00),
+    το μετατρέπει σε 'dd/mm/YYYY'. Αν δεν μπορεί να κάνει parse,
+    επιστρέφει το αρχικό value (με strip).
+    Αν value είναι κενό/None, επιστρέφει "".
+    """
+    if not value:
+        return ""
+    v = str(value).strip()
+    # Quick heuristic: αν ήδη έχει μορφή dd/mm/YYYY, επιστρέφουμε όπως είναι.
+    if "/" in v and len(v.split("/")[0]) <= 2:
+        return v
+    try:
+        dt = parse(v)
+        return dt.strftime("%d/%m/%Y")
+    except Exception:
+        # δεν μπόρεσε το parse — επιστρέψτε το raw (stripped)
+        return v
+
 def request_docs(
     date_from: str,
     date_to: str,
@@ -89,7 +110,8 @@ def request_docs(
         for invoice in root.findall(".//ns:invoice", ns):
             mark_val = _safe_strip(invoice.findtext("ns:mark", default="", namespaces=ns))
             header = invoice.find("ns:invoiceHeader", ns)
-            issueDate = _safe_strip(header.findtext("ns:issueDate", default="", namespaces=ns)) if header is not None else ""
+            issueDate_raw = _safe_strip(header.findtext("ns:issueDate", default="", namespaces=ns)) if header is not None else ""
+            issueDate = format_date_to_ddmmyyyy(issueDate_raw)
             series = _safe_strip(header.findtext("ns:series", default="", namespaces=ns)) if header is not None else ""
             aa = _safe_strip(header.findtext("ns:aa", default="", namespaces=ns)) if header is not None else ""
 
@@ -214,6 +236,9 @@ def request_docs(
         s["totalNetValue"] = round(s.get("totalNetValue", 0), 2)
         s["totalVatAmount"] = round(s.get("totalVatAmount", 0), 2)
         s["totalValue"] = round(s.get("totalNetValue", 0) + s.get("totalVatAmount", 0), 2)
+        # Normalize any date fields on the summary to dd/mm/YYYY
+        if s.get("issueDate"):
+            s["issueDate"] = format_date_to_ddmmyyyy(s["issueDate"])
 
     summary_list = list(summary_rows.values())
 
