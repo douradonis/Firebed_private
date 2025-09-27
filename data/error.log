@@ -1,0 +1,38 @@
+2025-09-27 12:53:40,003 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 12:56:56,843 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 12:59:24,456 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:02:33,591 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-27 13:02:34,093 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:03:26,708 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-27 13:03:27,319 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:05:18,683 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:05:33,348 ERROR Fetch error
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 423, in fetch
+    total_net = float(d.get("totalNetValue", 0) or 0)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '37,01'
+2025-09-27 13:06:24,893 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:07:12,948 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:09:09,397 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:14:45,124 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:15:23,226 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:16:41,543 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:19:26,145 INFO Starting app - MYDATA_ENV=production
+
+2025-09-27 13:19:57,107 INFO Starting app - MYDATA_ENV=production
+

@@ -1,4 +1,4 @@
-# app.py (updated - with per-customer files & active credential)
+
 import os
 import sys
 import json
@@ -293,16 +293,91 @@ def set_active_credential():
     return redirect(url_for("credentials"))
 
 # ---------------- Fetch page ----------------
+# ---------------- Helpers for per-customer JSON & summary ----------------
+def json_read(path: str):
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        log.exception("json_read failed for %s", path)
+        return []
+
+def json_write(path: str, data: Any):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+def append_doc_to_customer_file(doc, vat):
+    """
+    Add a doc to per-customer JSON file, avoiding duplicates.
+    Filename: data/{VAT}_invoices.json
+    """
+    if not vat:
+        return False
+    customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+    cache = json_read(customer_file)
+    sig = json.dumps(doc, sort_keys=True, ensure_ascii=False)
+    for d in cache:
+        try:
+            if json.dumps(d, sort_keys=True, ensure_ascii=False) == sig:
+                return False
+        except Exception:
+            if str(d) == str(doc):
+                return False
+    cache.append(doc)
+    json_write(customer_file, cache)
+    return True
+
+def append_summary_to_customer_file(summary, vat):
+    """
+    Save summary for a customer into per-customer summary JSON
+    Filename: data/{VAT}_summary.json
+    """
+    if not vat:
+        return False
+    summary_file = os.path.join(DATA_DIR, f"{vat}_summary.json")
+    summaries = json_read(summary_file)
+    # avoid duplicate by MARK
+    mark = str(summary.get("mark", "")).strip()
+    if any(str(s.get("mark", "")).strip() == mark for s in summaries):
+        return False
+    summaries.append(summary)
+    json_write(summary_file, summaries)
+    return True
+
+def get_customer_summary_file(vat):
+    return os.path.join(DATA_DIR, f"{vat}_summary.json")
+
+def get_customer_docs_file(vat):
+    return os.path.join(DATA_DIR, f"{vat}_invoices.json")
+
+
+
+# ---------------- Fetch page (updated with per-customer summary) ----------------
+
 @app.route("/fetch", methods=["GET", "POST"])
 def fetch():
     message = None
     error = None
+    preview = []  # <-- preview για template
     creds = load_credentials()
-    preview = load_cache()[:40]
-
-    # Determine active credential from session
     active_cred = get_active_credential_from_session()
     active_name = active_cred.get("name") if active_cred else None
+
+    def float_from_comma(value):
+        """Convert string with ',' decimal or '.' thousand separator to float safely."""
+        if value is None:
+            return 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        s = str(value).strip().replace(".", "").replace(",", ".")
+        try:
+            return float(s)
+        except Exception:
+            return 0.0
 
     if request.method == "POST":
         date_from_raw = request.form.get("date_from", "").strip()
@@ -312,16 +387,20 @@ def fetch():
         date_to_iso = normalize_input_date_to_iso(date_to_raw)
 
         if not date_from_iso or not date_to_iso:
-            error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
+            error = "Παρακαλώ συμπλήρωσε έγκυρες ημερομηνίες (dd/mm/YYYY)."
+            return safe_render(
+                "fetch.html",
+                credentials=creds,
+                message=message,
+                error=error,
+                preview=preview,
+                active_page="fetch",
+                active_credential=active_name
+            )
 
-        def iso_to_ddmmyyyy(iso_s: str) -> str:
-            return datetime.datetime.fromisoformat(iso_s).strftime("%d/%m/%Y")
+        d1 = datetime.datetime.fromisoformat(date_from_iso).strftime("%d/%m/%Y")
+        d2 = datetime.datetime.fromisoformat(date_to_iso).strftime("%d/%m/%Y")
 
-        d1 = iso_to_ddmmyyyy(date_from_iso)
-        d2 = iso_to_ddmmyyyy(date_to_iso)
-
-        # credential selection: priority => form selection -> session active -> env
         selected = request.form.get("use_credential") or session.get("active_credential") or ""
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
@@ -332,13 +411,19 @@ def fetch():
                 aade_user = c.get("user") or aade_user
                 aade_key = c.get("key") or aade_key
                 vat = vat or c.get("vat", "")
-
-                # set session active to this selected credential so it becomes default after fetch
                 session["active_credential"] = c.get("name")
 
         if not aade_user or not aade_key:
             error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
+            return safe_render(
+                "fetch.html",
+                credentials=creds,
+                message=message,
+                error=error,
+                preview=preview,
+                active_page="fetch",
+                active_credential=active_name
+            )
 
         try:
             all_rows, summary_list = request_docs(
@@ -351,35 +436,43 @@ def fetch():
                 save_excel=False
             )
 
-            added = 0
+            # Αποθήκευση σε per-customer JSON
+            added_docs = 0
+            added_summaries = 0
             for d in all_rows:
-                # if we have file bytes from request_docs you could save them here. For now we just build per-client filenames
-                # Build a per-client excel filename (not saving content here unless file bytes available)
-                filename = "mydata_export.xlsx"
-                if vat:
-                    filename = f"{vat}_{filename}"
-                elif selected:
-                    filename = f"{selected}_{filename}"
-                filepath = os.path.join(UPLOADS_DIR, secure_filename(filename))
-                # (optionally write file bytes if available)
+                if append_doc_to_customer_file(d, vat):
+                    added_docs += 1
 
-                if append_doc_to_cache(d, aade_user, aade_key):
-                    added += 1
+            for s in summary_list:
+                if append_summary_to_customer_file(s, vat):
+                    added_summaries += 1
 
-            if isinstance(summary_list, list):
-                save_summary_list(summary_list)
+            message = (f"Fetched {len(all_rows)} items, newly saved for VAT {vat}: "
+                       f"{added_docs} docs, {added_summaries} summaries.")
 
-            message = f"Fetched {len(all_rows)} items, newly cached: {added}"
-            preview = load_cache()[:40]
+            # Προετοιμασία preview πρώτων 40 εγγραφών
+            preview = all_rows[:40]
 
         except Exception as e:
             log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
+    return safe_render(
+        "fetch.html",
+        credentials=creds,
+        message=message,
+        error=error,
+        preview=preview,  # <-- περνάμε το preview στο template
+        active_page="fetch",
+        active_credential=active_name
+    )
+
+
+
+
+
 
 # ---------------- MARK search ----------------
-
 @app.route("/search", methods=["GET", "POST"])
 def search():
     result = None
@@ -401,7 +494,6 @@ def search():
 
     mapper = globals().get("map_invoice_type", None) or _map_invoice_type_local
 
-    # helper για float από comma-decimal
     def float_from_comma(value):
         if value is None:
             return 0.0
@@ -415,60 +507,47 @@ def search():
 
     if request.method == "POST":
         mark = request.form.get("mark", "").strip()
-        if not mark or not mark.isdigit() or len(mark) != 15:
+        active_cred = get_active_credential_from_session()
+        vat = active_cred.get("vat") if active_cred else None
+
+        if not vat:
+            error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
+        elif not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            cache = load_cache()
+            # load per-customer JSON file
+            customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+            cache = json_read(customer_file)
             doc = next((d for d in cache if str(d.get("mark", "")).strip() == mark), None)
+
             if not doc:
-                error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
+                error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
                 result = doc
 
                 def pick(src: dict, *keys, default=""):
                     for k in keys:
-                        if k in src and src.get(k) is not None and str(src.get(k)).strip() != "":
+                        if k in src and src.get(k) not in (None, ""):
                             return src.get(k)
                     return default
 
-                summaries = json_read(SUMMARY_FILE)
-                found = None
-                if isinstance(summaries, list):
-                    found = next((s for s in summaries if str(s.get("mark", "")).strip() == mark), None)
-                source = found if found else doc
-
-                aa_val = pick(source, "AA", "aa", "AA_issuer", "aaNumber", default=pick(doc, "aa", "AA", "aa"))
-                afm_val = pick(source, "AFM", "AFM_issuer", "AFMissuer", default=pick(doc, "AFM_issuer", "AFM", "AFM"))
-                name_val = pick(source, "Name", "Name_issuer", "NameIssuer", "name", default=pick(doc, "Name_issuer", "Name", "Name"))
-                series_val = pick(source, "series", "Series", "serie", default=pick(doc, "series", "Series", "serie"))
-                number_val = pick(source, "number", "aa", "AA", default=aa_val)
-                issue_date = pick(source, "issueDate", "issue_date", "issue", default=pick(doc, "issueDate", "issue_date", default=""))
-
-                # numeric fields: convert from comma-decimal strings to float for calculations
-                total_net_raw = pick(source, "totalNetValue", "totalNet", "net", default=pick(doc, "totalNetValue", "totalNet", 0))
-                total_vat_raw = pick(source, "totalVatAmount", "totalVat", "vat", default=pick(doc, "totalVatAmount", "totalVat", 0))
-                total_net_f = float_from_comma(total_net_raw)
-                total_vat_f = float_from_comma(total_vat_raw)
-
-                total_value_raw = pick(source, "totalValue", "total", default=round(total_net_f + total_vat_f, 2))
-                total_value_f = float_from_comma(total_value_raw)
-
-                type_code = pick(source, "type", "invoiceType", "documentType", default=pick(doc, "type", ""))
+                total_net_f = float_from_comma(pick(doc, "totalNetValue", "totalNet", "net", default=0))
+                total_vat_f = float_from_comma(pick(doc, "totalVatAmount", "totalVat", "vat", default=0))
+                total_value_f = total_net_f + total_vat_f
 
                 modal_summary = {
                     "mark": mark,
-                    "AA": aa_val,
-                    "aa": aa_val,
-                    "AFM": afm_val,
-                    "Name": name_val,
-                    "series": series_val,
-                    "number": number_val,
-                    "issueDate": issue_date,
-                    "totalNetValue": total_net_raw,      # keep comma-decimal string for display
-                    "totalVatAmount": total_vat_raw,    # keep comma-decimal string for display
-                    "totalValue": total_value_raw,      # keep comma-decimal string for display
-                    "type": type_code,
-                    "type_name": mapper(type_code) if type_code else ""
+                    "AA": pick(doc, "AA", "aa", default=""),
+                    "AFM": pick(doc, "AFM", default=""),
+                    "Name": pick(doc, "Name", "Name_issuer", default=""),
+                    "series": pick(doc, "series", "Series", "serie", default=""),
+                    "number": pick(doc, "number", "aa", "AA", default=""),
+                    "issueDate": pick(doc, "issueDate", "issue_date", default=""),
+                    "totalNetValue": pick(doc, "totalNetValue", "totalNet", 0),
+                    "totalVatAmount": pick(doc, "totalVatAmount", "totalVat", 0),
+                    "totalValue": f"{total_value_f:.2f}",
+                    "type": pick(doc, "type", "invoiceType", default=""),
+                    "type_name": mapper(pick(doc, "type", "invoiceType", default=""))
                 }
 
     return safe_render(
@@ -482,7 +561,9 @@ def search():
 
 
 
+
 # ---------------- Save summary from modal to Excel & cache ----------------
+# ---------------- Save summary from modal to Excel & per-customer JSON ----------------
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
     try:
@@ -495,30 +576,49 @@ def save_summary():
         flash(f"Invalid summary data: {e}", "error")
         return redirect(url_for("search"))
 
+    # Επιλέγουμε τον πελάτη από session
+    active = get_active_credential_from_session()
+    vat = active.get("vat") if active else summary.get("AFM")
+    if not vat:
+        flash("No active customer selected (VAT)", "error")
+        return redirect(url_for("search"))
+
+    # Helper για float
+    def float_from_comma(value):
+        if value is None:
+            return 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        s = str(value).strip().replace(".", "").replace(",", ".")
+        try:
+            return float(s)
+        except Exception:
+            return 0.0
+
+    # Row για Excel
+    total_net = float_from_comma(summary.get("totalNetValue", 0))
+    total_vat = float_from_comma(summary.get("totalVatAmount", 0))
+    total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
+
     row = {
         "MARK": str(summary.get("mark", "")),
-        "ΑΦΜ": summary.get("AFM", ""),
+        "ΑΦΜ": vat,
         "Επωνυμία": summary.get("Name", ""),
         "Σειρά": summary.get("series", ""),
         "Αριθμός": summary.get("number", ""),
         "Ημερομηνία": summary.get("issueDate", ""),
         "Είδος": summary.get("type", ""),
         "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
-        "Καθαρή Αξία": summary.get("totalNetValue", ""),
-        "ΦΠΑ": summary.get("totalVatAmount", ""),
-        "Σύνολο": summary.get("totalValue", "")
+        "Καθαρή Αξία": f"{total_net:.2f}",
+        "ΦΠΑ": f"{total_vat:.2f}",
+        "Σύνολο": f"{total_value:.2f}"
     }
 
-    # Choose excel path: priority -> active session credential vat -> row ΑΦΜ -> default
-    active = get_active_credential_from_session()
-    excel_path = DEFAULT_EXCEL_FILE
-    if active and active.get("vat"):
-        excel_path = excel_path_for(vat=active.get("vat"))
-    elif row.get("ΑΦΜ"):
-        excel_path = excel_path_for(vat=row.get("ΑΦΜ"))
-    else:
-        excel_path = DEFAULT_EXCEL_FILE
+    # Αποθήκευση σε per-customer summary JSON
+    append_summary_to_customer_file(summary, vat)
 
+    # Αποθήκευση σε Excel ανά πελάτη
+    excel_path = excel_path_for(vat=vat)
     try:
         df_new = pd.DataFrame([row]).astype(str).fillna("")
         if os.path.exists(excel_path):
@@ -533,13 +633,10 @@ def save_summary():
         flash(f"Excel save failed: {e}", "error")
         return redirect(url_for("search"))
 
-    try:
-        append_doc_to_cache(row)
-    except Exception:
-        log.exception("save_summary: append cache failed")
-
-    flash("Saved summary to Excel and cache", "success")
+    flash(f"Saved summary for VAT {vat} to JSON and Excel", "success")
     return redirect(url_for("list_invoices"))
+
+
 
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
