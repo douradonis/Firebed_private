@@ -1,15 +1,14 @@
-<!-- templates/base.html -->
 <!doctype html>
 <html lang="el">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}myDATA-Scan{% endblock %}</title>
+  <title>{% block title %}myDATA{% endblock %}</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- jQuery & DataTables (for list view) -->
+  <!-- jQuery & DataTables (kept for pages that need it) -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -24,7 +23,6 @@
       margin: 28px auto;
       padding: 16px;
     }
-    /* small helper to keep table overflow neat */
     .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
   </style>
 
@@ -36,40 +34,32 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
-          <p class="text-sm text-gray-600">myDATA Scan Tools</p>
+          <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
         </div>
 
-        <!-- NAVBAR: τα active strings πρέπει να ταιριάζουν ακριβώς
-             με τις τιμές που περνάμε ως active_page από τα routes -->
-        <nav class="flex gap-3 items-center">
-          <a href="{{ url_for('home') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'home') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Μενού
-          </a>
+        <div class="flex items-center gap-4">
+          <nav class="flex gap-3 items-center">
+            <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
+            <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
+            <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
+            <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
+            <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
+          </nav>
 
-          <!-- Bulk Fetch → δείχνει στο fetch endpoint (fetch.html) -->
-          <a href="{{ url_for('fetch') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'fetch') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Λήψη Παραστατικών
-          </a>
-
-          
-
-          <a href="{{ url_for('search') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'search') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Αναζήτηση MARK
-          </a>
-
-          <a href="{{ url_for('list_invoices') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'list_invoices') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Λίστα
-          </a>
-
-          <a href="{{ url_for('credentials') }}"
-             class="px-3 py-2 rounded-md text-sm font-medium transition {{ 'bg-sky-600 text-white' if (active_page == 'credentials') else 'bg-white border hover:bg-gray-100 text-gray-700' }}">
-             Κωδικοί - Πελάτες
-          </a>
-        </nav>
+          <!-- Active credential badge (now shows VAT if available) -->
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">Active:</span>
+            {% if active_credential %}
+              {% if active_credential_vat %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+              {% else %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+              {% endif %}
+            {% else %}
+              <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </header>
 
@@ -77,17 +67,13 @@
       {% if messages %}
         <div class="space-y-2 mb-4">
           {% for cat, msg in messages %}
-            <div class="p-3 rounded text-sm {% if cat == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
-              {{ msg }}
-            </div>
+            <div class="p-3 rounded text-sm {% if cat == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">{{ msg }}</div>
           {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
 
-    <main class="content-wrap">
-      {% block content %}{% endblock %}
-    </main>
+    {% block content %}{% endblock %}
   </div>
 
   {% block scripts %}{% endblock %}

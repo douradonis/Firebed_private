@@ -568,5 +568,20 @@
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
     "totalValue": 29.04
+  },
+  {
+    "mark": "400011023403312",
+    "issueDate": "2025-09-20",
+    "series": "11Μ0ΤΔΑ",
+    "aa": "7736",
+    "AA": "7736",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": 19.78,
+    "totalVatAmount": 4.75,
+    "classification": "χαρακτηρισμενο",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "totalValue": 24.53
   }
 ]

@@ -1,4 +1,4 @@
-# app.py (updated)
+# app.py (updated - with per-customer files & active credential)
 import os
 import sys
 import json
@@ -11,7 +11,7 @@ from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 
 from markupsafe import escape, Markup
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 
 import requests
 import pandas as pd
@@ -30,7 +30,7 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 CACHE_FILE = os.path.join(DATA_DIR, "invoices_cache.json")
 SUMMARY_FILE = os.path.join(DATA_DIR, "summary.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.json")
-EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
+DEFAULT_EXCEL_FILE = os.path.join(UPLOADS_DIR, "invoices.xlsx")
 ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
@@ -41,7 +41,7 @@ app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 
-# Logging
+# Logging (unchanged)
 log = logging.getLogger("mydata_app")
 log.setLevel(logging.INFO)
 if not log.handlers:
@@ -56,7 +56,7 @@ if not log.handlers:
 
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
 
-# ---------------- Helpers ----------------
+# ---------------- Helpers ---------------- (most unchanged)
 def json_read(path: str):
     if not os.path.exists(path):
         return []
@@ -135,11 +135,45 @@ def save_summary_list(summary_list: List[Dict]):
     except Exception:
         log.exception("Could not write summary file")
 
+# ---------------- small new helpers for per-customer files ----------------
+def get_cred_by_name(name: str) -> Optional[Dict]:
+    if not name:
+        return None
+    creds = load_credentials()
+    return next((c for c in creds if c.get("name") == name), None)
+
+def excel_path_for(cred_name: Optional[str] = None, vat: Optional[str] = None) -> str:
+    """
+    Return path to excel file for given credential. Priority: vat -> cred_name -> default.
+    Filenames: {vat}_invoices.xlsx  OR  {cred_name}_invoices.xlsx  OR default invoices.xlsx
+    """
+    if vat:
+        fn = f"{vat}_invoices.xlsx"
+        return os.path.join(UPLOADS_DIR, secure_filename(fn))
+    if cred_name:
+        fn = f"{cred_name}_invoices.xlsx"
+        return os.path.join(UPLOADS_DIR, secure_filename(fn))
+    return DEFAULT_EXCEL_FILE
+
+def get_active_credential_from_session() -> Optional[Dict]:
+    name = session.get("active_credential")
+    return get_cred_by_name(name) if name else None
+
+# στο app.py — κάτω από get_active_credential_from_session()
+@app.context_processor
+def inject_active_credential():
+    """
+    Εισάγει αυτόματα στα templates:
+      - active_credential: όνομα credential ή None
+      - active_credential_vat: ΑΦΜ του active credential (ή empty string)
+    """
+    active = get_active_credential_from_session()
+    name = active.get("name") if active else None
+    vat = active.get("vat") if active else ""
+    return dict(active_credential=name, active_credential_vat=vat)
+
 # ---------------- Validation helper ----------------
 def normalize_input_date_to_iso(s: str):
-    """
-    Accept only dd/mm/YYYY and return ISO YYYY-MM-DD (string) or None.
-    """
     if not s:
         return None
     s = s.strip()
@@ -162,15 +196,12 @@ def safe_render(template_name, **ctx):
             body += "<pre>" + escape(tb) + "</pre>"
         return body
 
-    
-
-
 # ---------------- Routes ----------------
 @app.route("/")
 def home():
     return safe_render("nav.html", active_page="home")
 
-# credentials CRUD
+# credentials CRUD (unchanged behaviour) but pass active credential to template
 @app.route("/credentials", methods=["GET", "POST"])
 def credentials():
     if request.method == "POST":
@@ -189,11 +220,11 @@ def credentials():
                 flash(err or "Could not save", "error")
         return redirect(url_for("credentials"))
     creds = load_credentials()
-    return safe_render("credentials_list.html", credentials=creds, active_page="credentials")
+    active = session.get("active_credential")
+    return safe_render("credentials_list.html", credentials=creds, active_credential=active, active_page="credentials")
 
 @app.route("/credentials/edit/<name>", methods=["GET", "POST"])
 def credentials_edit(name):
-    # load current credentials
     creds = load_credentials()
     credential = next((c for c in creds if c.get("name") == name), None)
     if not credential:
@@ -201,7 +232,6 @@ def credentials_edit(name):
         return redirect(url_for("credentials"))
 
     if request.method == "POST":
-        # read new values (including name)
         new_name = (request.form.get("name") or "").strip()
         user = (request.form.get("user") or "").strip()
         key = (request.form.get("key") or "").strip()
@@ -212,12 +242,10 @@ def credentials_edit(name):
             flash("Name required", "error")
             return redirect(url_for("credentials_edit", name=name))
 
-        # if name changed, prevent duplicates
         if new_name != name and any(c.get("name") == new_name for c in creds):
             flash("Another credential with that name already exists", "error")
             return redirect(url_for("credentials_edit", name=name))
 
-        # update entry in list
         new_entry = {"name": new_name, "user": user, "key": key, "env": env, "vat": vat}
         updated = False
         for i, c in enumerate(creds):
@@ -229,19 +257,39 @@ def credentials_edit(name):
             creds.append(new_entry)
 
         save_credentials(creds)
+
+        # if the edited credential was active, update session to new name
+        if session.get("active_credential") == name:
+            session["active_credential"] = new_name
+
         flash("Updated", "success")
         return redirect(url_for("credentials"))
 
-    # GET: render form. include active_page so navbar highlights
-    # DEBUG flash so you can see what credential was loaded
     flash(f"Editing credential: {credential.get('name')}", "success")
     return safe_render("credentials_edit.html", credential=credential, active_page="credentials")
 
-
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
+    # if deleting active credential, unset session active
+    if session.get("active_credential") == name:
+        session.pop("active_credential", None)
     delete_credential(name)
     flash("Deleted", "success")
+    return redirect(url_for("credentials"))
+
+# New route: set active credential
+@app.route("/set_active", methods=["POST"])
+def set_active_credential():
+    name = request.form.get("active_name")
+    if not name:
+        flash("No credential selected", "error")
+    else:
+        cred = get_cred_by_name(name)
+        if not cred:
+            flash("Credential not found", "error")
+        else:
+            session["active_credential"] = name
+            flash(f"Active credential set to {name}", "success")
     return redirect(url_for("credentials"))
 
 # ---------------- Fetch page ----------------
@@ -252,8 +300,11 @@ def fetch():
     creds = load_credentials()
     preview = load_cache()[:40]
 
+    # Determine active credential from session
+    active_cred = get_active_credential_from_session()
+    active_name = active_cred.get("name") if active_cred else None
+
     if request.method == "POST":
-        # dates expected dd/mm/YYYY from the form
         date_from_raw = request.form.get("date_from", "").strip()
         date_to_raw = request.form.get("date_to", "").strip()
 
@@ -262,17 +313,16 @@ def fetch():
 
         if not date_from_iso or not date_to_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες από-έως ημερομηνίες (dd/mm/YYYY)."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
 
-        # convert iso -> dd/mm/YYYY (fetch.request_docs expects dd/mm/YYYY)
         def iso_to_ddmmyyyy(iso_s: str) -> str:
             return datetime.datetime.fromisoformat(iso_s).strftime("%d/%m/%Y")
 
         d1 = iso_to_ddmmyyyy(date_from_iso)
         d2 = iso_to_ddmmyyyy(date_to_iso)
 
-        # credential selection
-        selected = request.form.get("use_credential") or ""
+        # credential selection: priority => form selection -> session active -> env
+        selected = request.form.get("use_credential") or session.get("active_credential") or ""
         vat = request.form.get("vat_number", "").strip()
         aade_user = AADE_USER_ENV
         aade_key = AADE_KEY_ENV
@@ -283,9 +333,12 @@ def fetch():
                 aade_key = c.get("key") or aade_key
                 vat = vat or c.get("vat", "")
 
+                # set session active to this selected credential so it becomes default after fetch
+                session["active_credential"] = c.get("name")
+
         if not aade_user or not aade_key:
             error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
-            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
+            return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
 
         try:
             all_rows, summary_list = request_docs(
@@ -298,13 +351,21 @@ def fetch():
                 save_excel=False
             )
 
-            # append detailed rows to cache
             added = 0
             for d in all_rows:
+                # if we have file bytes from request_docs you could save them here. For now we just build per-client filenames
+                # Build a per-client excel filename (not saving content here unless file bytes available)
+                filename = "mydata_export.xlsx"
+                if vat:
+                    filename = f"{vat}_{filename}"
+                elif selected:
+                    filename = f"{selected}_{filename}"
+                filepath = os.path.join(UPLOADS_DIR, secure_filename(filename))
+                # (optionally write file bytes if available)
+
                 if append_doc_to_cache(d, aade_user, aade_key):
                     added += 1
 
-            # save summary_list to SUMMARY_FILE
             if isinstance(summary_list, list):
                 save_summary_list(summary_list)
 
@@ -315,24 +376,16 @@ def fetch():
             log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch")
-
+    return safe_render("fetch.html", credentials=creds, message=message, error=error, preview=preview, active_page="fetch", active_credential=active_name)
 
 # ---------------- MARK search ----------------
 @app.route("/search", methods=["GET", "POST"])
 def search():
-    """
-    When POST with mark: if found in cache -> shows modal with summary.
-    The modal uses the saved summary.json (if available) or generates from cached item.
-    This version ensures modal_summary contains AA, AFM, Name, issueDate, type_name, totals.
-    """
+    # ... keep your existing search implementation unchanged ...
     result = None
     error = None
     mark = ""
     modal_summary = None
-
-    # local mapper (if you already have a global map_invoice_type above, it will still be used;
-    # keeping local fallback to be safe)
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
             "1.1": "Τιμολόγιο Πώλησης",
@@ -342,11 +395,8 @@ def search():
             "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
             "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
             "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
-            # (πρόσθεσε υπόλοιπα αν χρειάζεται)
         }
         return INVOICE_TYPE_MAP.get(str(code), str(code) or "")
-
-    # use global map_invoice_type if exists, else fallback to local
     mapper = globals().get("map_invoice_type", None) or _map_invoice_type_local
 
     if request.method == "POST":
@@ -354,30 +404,22 @@ def search():
         if not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            # find in cache
             cache = load_cache()
             doc = next((d for d in cache if str(d.get("mark", "")).strip() == mark), None)
             if not doc:
                 error = f"MARK {mark} όχι στην cache. Κάνε πρώτα Bulk Fetch."
             else:
                 result = doc
-
-                # helper to pick first available key from candidates
                 def pick(src: dict, *keys, default=""):
                     for k in keys:
                         if k in src and src.get(k) is not None and str(src.get(k)).strip() != "":
                             return src.get(k)
                     return default
-
-                # try summaries file first
                 summaries = json_read(SUMMARY_FILE)
                 found = None
                 if isinstance(summaries, list):
                     found = next((s for s in summaries if str(s.get("mark", "")).strip() == mark), None)
-
                 source = found if found else doc
-
-                # Build canonical fields expected by the template (don't change UI)
                 aa_val = pick(source, "AA", "aa", "AA_issuer", "aaNumber", default=pick(doc, "aa", "AA", "aa"))
                 afm_val = pick(source, "AFM", "AFM_issuer", "AFMissuer", default=pick(doc, "AFM_issuer", "AFM", "AFM"))
                 name_val = pick(source, "Name", "Name_issuer", "NameIssuer", "name", default=pick(doc, "Name_issuer", "Name", "Name"))
@@ -388,27 +430,14 @@ def search():
                 total_vat = pick(source, "totalVatAmount", "totalVat", "vat", default=pick(doc, "totalVatAmount", "totalVat", 0))
                 total_value = pick(source, "totalValue", "total", default=round(float(total_net or 0) + float(total_vat or 0), 2))
                 type_code = pick(source, "type", "invoiceType", "documentType", default=pick(doc, "type", ""))
-
                 modal_summary = {
-                    "mark": mark,
-                    "AA": aa_val,
-                    "aa": aa_val,
-                    "AFM": afm_val,
-                    "Name": name_val,
-                    "series": series_val,
-                    "number": number_val,
-                    "issueDate": issue_date,
-                    "totalNetValue": total_net,
-                    "totalVatAmount": total_vat,
-                    "totalValue": total_value,
-                    "type": type_code,
-                    "type_name": mapper(type_code) if type_code else ""
+                    "mark": mark, "AA": aa_val, "aa": aa_val, "AFM": afm_val, "Name": name_val,
+                    "series": series_val, "number": number_val, "issueDate": issue_date,
+                    "totalNetValue": total_net, "totalVatAmount": total_vat, "totalValue": total_value,
+                    "type": type_code, "type_name": mapper(type_code) if type_code else ""
                 }
 
     return safe_render("search.html", result=result, error=error, mark=mark, modal_summary=modal_summary, active_page="search")
-
-
-
 
 # ---------------- Save summary from modal to Excel & cache ----------------
 @app.route("/save_summary", methods=["POST"])
@@ -437,68 +466,76 @@ def save_summary():
         "Σύνολο": summary.get("totalValue", "")
     }
 
-    # Αποθήκευση στο Excel
+    # Choose excel path: priority -> active session credential vat -> row ΑΦΜ -> default
+    active = get_active_credential_from_session()
+    excel_path = DEFAULT_EXCEL_FILE
+    if active and active.get("vat"):
+        excel_path = excel_path_for(vat=active.get("vat"))
+    elif row.get("ΑΦΜ"):
+        excel_path = excel_path_for(vat=row.get("ΑΦΜ"))
+    else:
+        excel_path = DEFAULT_EXCEL_FILE
+
     try:
         df_new = pd.DataFrame([row]).astype(str).fillna("")
-        if os.path.exists(EXCEL_FILE):
-            df_existing = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+        if os.path.exists(excel_path):
+            df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-            df_concat.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
+            df_concat.to_excel(excel_path, index=False, engine="openpyxl")
         else:
-            os.makedirs(os.path.dirname(EXCEL_FILE) or ".", exist_ok=True)
-            df_new.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
+            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+            df_new.to_excel(excel_path, index=False, engine="openpyxl")
     except Exception as e:
         log.exception("save_summary: Excel write failed")
         flash(f"Excel save failed: {e}", "error")
         return redirect(url_for("search"))
 
-    # Προσθήκη στο cache με τα σωστά πεδία
     try:
-        cached = row.copy()  # χρησιμοποιούμε ακριβώς τα ίδια πεδία με το Excel
-        append_doc_to_cache(cached)
+        append_doc_to_cache(row)
     except Exception:
         log.exception("save_summary: append cache failed")
 
     flash("Saved summary to Excel and cache", "success")
     return redirect(url_for("list_invoices"))
 
-
-
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
 def list_invoices():
-    if request.args.get("download") and os.path.exists(EXCEL_FILE):
-        return send_file(EXCEL_FILE, as_attachment=True, download_name="invoices.xlsx",
+    # choose excel file based on active session credential
+    active = get_active_credential_from_session()
+    excel_path = DEFAULT_EXCEL_FILE
+    if active and active.get("vat"):
+        excel_path = excel_path_for(vat=active.get("vat"))
+    elif active and active.get("name"):
+        excel_path = excel_path_for(cred_name=active.get("name"))
+    else:
+        excel_path = DEFAULT_EXCEL_FILE
+
+    if request.args.get("download") and os.path.exists(excel_path):
+        # download the active client's file
+        return send_file(excel_path, as_attachment=True, download_name=os.path.basename(excel_path),
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    table = []
     table_html = ""
     error = ""
     css_numcols = ""
 
-    if os.path.exists(EXCEL_FILE):
+    if os.path.exists(excel_path):
         try:
-            df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+            df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
 
-            # drop technical column if exists
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
 
-            # add checkboxes
             if "MARK" in df.columns:
                 checkboxes = df["MARK"].apply(lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">')
                 df.insert(0, "✓", checkboxes)
 
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
-
-            # select-all checkbox in header
             table_html = table_html.replace("<th>✓</th>", '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>')
-
-            # wrap cells
             table_html = table_html.replace("<td>", '<td><div class="cell-wrap">').replace("</td>", "</div></td>")
 
-            # numeric column alignment
             import re
             headers = re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=re.S)
             num_indices = []
@@ -514,14 +551,17 @@ def list_invoices():
         except Exception as e:
             error = f"Σφάλμα ανάγνωσης Excel: {e}"
     else:
-        error = "Δεν βρέθηκε το αρχείο invoices.xlsx."
+        error = f"Δεν βρέθηκε το αρχείο {os.path.basename(excel_path)}."
 
+    # pass active_credential name so navbar and templates can reflect it
+    active_name = session.get("active_credential")
     return safe_render("list.html",
                        table_html=Markup(table_html),
                        error=error,
-                       file_exists=os.path.exists(EXCEL_FILE),
+                       file_exists=os.path.exists(excel_path),
                        css_numcols=css_numcols,
-                       active_page="list_invoices")
+                       active_page="list_invoices",
+                       active_credential=active_name)
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
@@ -531,15 +571,25 @@ def delete_invoices():
         flash("No marks selected", "error")
         return redirect(url_for("list_invoices"))
 
-    if os.path.exists(EXCEL_FILE):
+    # delete from active client's excel file (same logic as list)
+    active = get_active_credential_from_session()
+    excel_path = DEFAULT_EXCEL_FILE
+    if active and active.get("vat"):
+        excel_path = excel_path_for(vat=active.get("vat"))
+    elif active and active.get("name"):
+        excel_path = excel_path_for(cred_name=active.get("name"))
+    else:
+        excel_path = DEFAULT_EXCEL_FILE
+
+    if os.path.exists(excel_path):
         try:
-            df = pd.read_excel(EXCEL_FILE, engine="openpyxl", dtype=str).fillna("")
+            df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             if "MARK" in df.columns:
                 before = len(df)
                 df = df[~df["MARK"].astype(str).isin([str(m).strip() for m in marks_to_delete])]
                 after = len(df)
                 if after != before:
-                    df.to_excel(EXCEL_FILE, index=False, engine="openpyxl")
+                    df.to_excel(excel_path, index=False, engine="openpyxl")
         except Exception:
             log.exception("Σφάλμα διαγραφής")
 
@@ -550,8 +600,6 @@ def delete_invoices():
 @app.route("/health")
 def health():
     return "OK"
-
-
 
 # ---------------- Global error handler ----------------
 @app.errorhandler(Exception)
@@ -566,7 +614,6 @@ def handle_unexpected_error(e):
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
-
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5001"))
