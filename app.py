@@ -1278,6 +1278,9 @@ def delete_invoices():
         flash("No marks selected", "error")
         return redirect(url_for("list_invoices"))
 
+    # Normalize marks (strip)
+    marks_to_delete = [str(m).strip() for m in marks_to_delete if str(m).strip()]
+
     # delete from active client's excel file (same logic as list)
     active = get_active_credential_from_session()
     excel_path = DEFAULT_EXCEL_FILE
@@ -1288,20 +1291,43 @@ def delete_invoices():
     else:
         excel_path = DEFAULT_EXCEL_FILE
 
+    deleted_from_excel = 0
     if os.path.exists(excel_path):
         try:
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             if "MARK" in df.columns:
                 before = len(df)
-                df = df[~df["MARK"].astype(str).isin([str(m).strip() for m in marks_to_delete])]
+                df = df[~df["MARK"].astype(str).isin(marks_to_delete)]
                 after = len(df)
                 if after != before:
                     df.to_excel(excel_path, index=False, engine="openpyxl")
+                    deleted_from_excel = before - after
         except Exception:
-            log.exception("Σφάλμα διαγραφής")
+            log.exception("Σφάλμα διαγραφής από Excel")
 
-    flash(f"Deleted {len(marks_to_delete)} rows (if existed)", "success")
+    # Also delete matching MARK entries from the per-VAT epsilon cache
+    deleted_from_epsilon = 0
+    try:
+        vat = active.get("vat") if active else None
+        if vat:
+            epsilon_cache = load_epsilon_cache_for_vat(vat) or []
+            if epsilon_cache:
+                before_len = len(epsilon_cache)
+                # keep only those entries whose mark is NOT in marks_to_delete
+                epsilon_cache = [e for e in epsilon_cache if str(e.get("mark","")).strip() not in marks_to_delete]
+                after_len = len(epsilon_cache)
+                deleted_from_epsilon = before_len - after_len
+                if deleted_from_epsilon > 0:
+                    save_epsilon_cache_for_vat(vat, epsilon_cache)
+        else:
+            # If no active vat, optionally try to remove from all epsilon files? We skip.
+            log.info("No active VAT for epsilon deletion; skipped epsilon cleanup.")
+    except Exception:
+        log.exception("Σφάλμα διαγραφής από epsilon cache")
+
+    flash(f"Deleted {len(marks_to_delete)} selected marks (Excel removed: {deleted_from_excel}, Epsilon removed: {deleted_from_epsilon})", "success")
     return redirect(url_for("list_invoices"))
+
 
 
 
