@@ -37,17 +37,18 @@
       <div><strong>Σύνολο</strong><div>{{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div></div>
     </div>
 
+    {# Lines source: invoice_lines (preferred) or modal_summary.lines #}
     {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
 
     <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
 
-    {% if _lines and _lines|length > 0 %}
+    {# --- Case: multiple lines -> table with selects --- #}
+    {% if _lines and _lines|length > 1 %}
     <div class="overflow-auto max-h-96 border rounded">
       <table class="w-full border-collapse">
         <thead class="bg-gray-100 sticky top-0">
           <tr>
             <th class="p-2 border text-left">#</th>
-            <th class="p-2 border text-left">Περιγραφή</th>
             <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
             <th class="p-2 border text-right">Ποσό</th>
             <th class="p-2 border text-right">ΦΠΑ</th>
@@ -57,15 +58,13 @@
         <tbody id="linesTableBody">
           {% for line in _lines %}
           {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
-          {% set desc = line.description if line.description is defined else (line.desc if line.desc is defined else (line.Name if line.Name is defined else '')) %}
           {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else (line.net if line.net is defined else '')) %}
           {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else (line.vatPercent if line.vatPercent is defined else '')) %}
           {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
           {% set cat = line.category if line.category is defined else '' %}
           <tr data-line-id="{{ lid }}">
             <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
-            <td class="p-2 border break-words">{{ desc }}</td>
-            <td class="p-2 border">{{ vat_cat }}</td>
+            <td class="p-2 border break-words">{{ vat_cat }}</td>
             <td class="p-2 border text-right">{{ amt }}</td>
             <td class="p-2 border text-right">{{ vatv }}</td>
             <td class="p-2 border">
@@ -81,6 +80,40 @@
         </tbody>
       </table>
     </div>
+
+    {# --- Case: single line -> show buttons for categories --- #}
+    {% elif _lines and _lines|length == 1 %}
+      {% set single = _lines[0] %}
+      {% set lid = single.id if single.id is defined else (single.line_id if single.line_id is defined else 'l0') %}
+      {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else (single.net if single.net is defined else '')) %}
+      {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else (single.vatPercent if single.vatPercent is defined else '')) %}
+      {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
+      {% set selected_cat = single.category if single.category is defined else '' %}
+
+      <div id="singleLine" class="border rounded p-4">
+        <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div><strong>ΦΠΑ Κατηγορία</strong><div>{{ vat_cat }}</div></div>
+          <div><strong>Ποσό</strong><div>{{ amt }}</div></div>
+          <div><strong>ΦΠΑ</strong><div>{{ vatv }}</div></div>
+        </div>
+
+        <div class="mb-3">
+          <strong>Επίλεξε Κατηγορία Εξόδου</strong>
+          <div id="categoryButtons" class="mt-2 flex flex-wrap gap-2">
+            {% for c in customer_categories %}
+              <button type="button"
+                      class="category-btn px-3 py-2 border rounded hover:bg-sky-50"
+                      data-cat="{{ c }}"
+                      data-line-id="{{ lid }}"
+                      {% if c == selected_cat %}data-selected="1"{% endif %}>
+                {{ c }}
+              </button>
+            {% endfor %}
+            <button type="button" id="clearCategory" class="px-3 py-2 border rounded text-sm ml-2">Καθαρισμός</button>
+          </div>
+        </div>
+      </div>
+
     {% else %}
       <div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
     {% endif %}
@@ -114,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const summaryInput = document.getElementById('summaryJsonInput');
   if (!summaryInput) return;
 
+  // parse initial summary (server-provided)
   let summaryData;
   try {
     summaryData = JSON.parse(summaryInput.value || '{}');
@@ -121,15 +155,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error("Invalid initial summary JSON:", e);
     summaryData = {};
   }
-
   if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
 
-  function ensureLine(lineId, description, amount, vat, vatCategory) {
+  // helper to ensure a line exists in summaryData.lines by id
+  function ensureLine(lineId, amount, vat, vatCategory) {
     const idx = summaryData.lines.findIndex(l => String(l.id) === String(lineId));
     if (idx !== -1) return idx;
     const newLine = {
       id: String(lineId),
-      description: description || "",
+      description: "",
       amount: amount || "",
       vat: vat || "",
       vatCategory: vatCategory || "",
@@ -139,35 +173,103 @@ document.addEventListener('DOMContentLoaded', function() {
     return summaryData.lines.length - 1;
   }
 
+  // --- Multiple lines: existing table logic with selects ---
   const rows = document.querySelectorAll('#linesTableBody tr[data-line-id]');
-  rows.forEach(tr => {
-    const lid = tr.dataset.lineId;
-    const descEl = tr.querySelector('td:nth-child(2)');
-    const vatCatEl = tr.querySelector('td:nth-child(3)');
-    const amtEl = tr.querySelector('td:nth-child(4)');
-    const vatEl = tr.querySelector('td:nth-child(5)');
-    const sel = tr.querySelector('select.expense-category');
+  if (rows && rows.length > 0) {
+    rows.forEach(tr => {
+      const lid = tr.dataset.lineId;
+      const vatCatEl = tr.querySelector('td:nth-child(2)');
+      const amtEl = tr.querySelector('td:nth-child(3)');
+      const vatEl = tr.querySelector('td:nth-child(4)');
+      const sel = tr.querySelector('select.expense-category');
 
-    const desc = descEl ? descEl.innerText.trim() : "";
-    const vatCategory = vatCatEl ? vatCatEl.innerText.trim() : "";
-    const amt = amtEl ? amtEl.innerText.trim() : "";
-    const vat = vatEl ? vatEl.innerText.trim() : "";
-    const selected = sel ? sel.value : "";
+      const vatCategory = vatCatEl ? vatCatEl.innerText.trim() : "";
+      const amt = amtEl ? amtEl.innerText.trim() : "";
+      const vat = vatEl ? vatEl.innerText.trim() : "";
+      const selected = sel ? sel.value : "";
 
-    const idx = ensureLine(lid, desc, amt, vat, vatCategory);
-    if (selected) summaryData.lines[idx].category = selected;
-  });
-
-  const selects = document.querySelectorAll('select.expense-category');
-  selects.forEach(sel => {
-    sel.addEventListener('change', function() {
-      const lid = this.dataset.lineId;
-      const val = this.value;
-      const idx = summaryData.lines.findIndex(l => String(l.id) === String(lid));
-      if (idx !== -1) summaryData.lines[idx].category = val;
-      syncHidden();
+      const idx = ensureLine(lid, amt, vat, vatCategory);
+      if (selected) summaryData.lines[idx].category = selected;
     });
-  });
+
+    const selects = document.querySelectorAll('select.expense-category');
+    selects.forEach(sel => {
+      sel.addEventListener('change', function() {
+        const lid = this.dataset.lineId;
+        const val = this.value;
+        const idx = summaryData.lines.findIndex(l => String(l.id) === String(lid));
+        if (idx === -1) {
+          // shouldn't happen but create if needed
+          const tr = document.querySelector('tr[data-line-id="'+lid+'"]');
+          const d = tr ? (tr.querySelector('td:nth-child(2)').innerText.trim() || "") : "";
+          const a = tr ? (tr.querySelector('td:nth-child(3)').innerText.trim() || "") : "";
+          const v = tr ? (tr.querySelector('td:nth-child(4)').innerText.trim() || "") : "";
+          summaryData.lines.push({ id: String(lid), description: "", amount: a, vat: v, vatCategory: d, category: val });
+        } else {
+          summaryData.lines[idx].category = val;
+        }
+        syncHidden();
+      });
+    });
+  }
+
+  // --- Single-line UI: buttons ---
+  const singleLine = document.getElementById('singleLine');
+  if (singleLine) {
+    const lid = singleLine.dataset.lineId || document.querySelector('#singleLine')?.getAttribute('data-line-id') || null;
+    // fallback values from DOM content if data attributes absent
+    const vatCat = (singleLine.querySelector('div > div') && singleLine.querySelector('div > div').innerText) || "";
+    // but better: pull from our template variables via ensureLine called below
+
+    // find displayed elements values (amount/vat)
+    const amtEl = singleLine.querySelector('div div:nth-child(2)') || singleLine.querySelector('div:nth-child(1)');
+    const amount = amtEl ? amtEl.innerText.trim() : "";
+    const vatEl = singleLine.querySelector('div div:nth-child(3)') || null;
+    const vat = vatEl ? vatEl.innerText.trim() : "";
+    // ensure summary line exists
+    const idx = ensureLine(lid || 'l0', amount, vat, vatCat);
+
+    // init buttons
+    const buttons = document.querySelectorAll('#categoryButtons .category-btn');
+    function markActiveButton(cat) {
+      buttons.forEach(b => {
+        if (b.dataset.cat === cat) {
+          b.classList.add('bg-sky-600','text-white');
+        } else {
+          b.classList.remove('bg-sky-600','text-white');
+        }
+      });
+    }
+
+    // if server provided an already selected cat, highlight it
+    const preSelected = summaryData.lines[idx] && summaryData.lines[idx].category ? summaryData.lines[idx].category : ( (document.querySelector('#categoryButtons .category-btn[data-selected="1"]') || {}).dataset || {}).cat || "";
+    if (preSelected) markActiveButton(preSelected);
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const cat = this.dataset.cat;
+        // toggle selection: if already selected -> deselect
+        const currentlySelected = summaryData.lines[idx] && summaryData.lines[idx].category;
+        if (currentlySelected === cat) {
+          summaryData.lines[idx].category = "";
+          markActiveButton("");
+        } else {
+          summaryData.lines[idx].category = cat;
+          markActiveButton(cat);
+        }
+        syncHidden();
+      });
+    });
+
+    const clearBtn = document.getElementById('clearCategory');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        summaryData.lines[idx].category = "";
+        markActiveButton("");
+        syncHidden();
+      });
+    }
+  }
 
   function syncHidden() {
     try {
@@ -177,8 +279,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // initial sync
   syncHidden();
 
+  // ensure modal visible
   const modal = document.getElementById('summaryModal');
   if (modal) modal.style.display = 'flex';
 });
