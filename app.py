@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -294,6 +293,8 @@ def credentials_add():
     }
     credentials.append(new_cred)
     save_credentials(credentials)
+    # <-- added flash to ensure message appears if this route is used
+    flash("Saved", "success")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/edit/<orig_name>', methods=['POST'])
@@ -310,6 +311,8 @@ def credentials_edit_post(orig_name):
             c['expense_tags'] = request.form.getlist('expense_tags')
             break
     save_credentials(credentials)
+    # <-- added flash to ensure message appears if this route is used
+    flash("Updated", "success")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/delete/<name>', methods=['POST'])
@@ -317,6 +320,8 @@ def credentials_delete_post(name):
     credentials = load_credentials()
     credentials = [c for c in credentials if c['name'] != name]
     save_credentials(credentials)
+    # <-- added flash to ensure message appears if this route is used
+    flash(f"Credential {name} διαγράφηκε.", "success")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/set_active', methods=['POST'])
@@ -326,6 +331,8 @@ def credentials_set_active():
     for c in credentials:
         c['active'] = (c['name'] == active_name)
     save_credentials(credentials)
+    # <-- added flash in case this route is used
+    flash(f"Active credential set to {active_name}", "success")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/save_settings', methods=['POST'])
