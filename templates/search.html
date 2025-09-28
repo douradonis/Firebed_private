@@ -90,7 +90,12 @@
       {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
       {% set selected_cat = single.category if single.category is defined else '' %}
 
-      <div id="singleLine" class="border rounded p-4">
+      <div id="singleLine"
+           class="border rounded p-4"
+           data-line-id="{{ lid }}"
+           data-amount="{{ amt }}"
+           data-vat="{{ vatv }}"
+           data-vatcat="{{ vat_cat|e }}">
         <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div><strong>ΦΠΑ Κατηγορία</strong><div>{{ vat_cat }}</div></div>
           <div><strong>Ποσό</strong><div>{{ amt }}</div></div>
@@ -173,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return summaryData.lines.length - 1;
   }
 
-  // --- Multiple lines: existing table logic with selects ---
+  // --- Multiple lines: table with selects ---
   const rows = document.querySelectorAll('#linesTableBody tr[data-line-id]');
   if (rows && rows.length > 0) {
     rows.forEach(tr => {
@@ -199,7 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const val = this.value;
         const idx = summaryData.lines.findIndex(l => String(l.id) === String(lid));
         if (idx === -1) {
-          // shouldn't happen but create if needed
           const tr = document.querySelector('tr[data-line-id="'+lid+'"]');
           const d = tr ? (tr.querySelector('td:nth-child(2)').innerText.trim() || "") : "";
           const a = tr ? (tr.querySelector('td:nth-child(3)').innerText.trim() || "") : "";
@@ -216,18 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- Single-line UI: buttons ---
   const singleLine = document.getElementById('singleLine');
   if (singleLine) {
-    const lid = singleLine.dataset.lineId || document.querySelector('#singleLine')?.getAttribute('data-line-id') || null;
-    // fallback values from DOM content if data attributes absent
-    const vatCat = (singleLine.querySelector('div > div') && singleLine.querySelector('div > div').innerText) || "";
-    // but better: pull from our template variables via ensureLine called below
+    const lid = singleLine.dataset.lineId || 'l0';
+    const vatCat = singleLine.dataset.vatcat || "";
+    const amount = singleLine.dataset.amount || "";
+    const vat = singleLine.dataset.vat || "";
 
-    // find displayed elements values (amount/vat)
-    const amtEl = singleLine.querySelector('div div:nth-child(2)') || singleLine.querySelector('div:nth-child(1)');
-    const amount = amtEl ? amtEl.innerText.trim() : "";
-    const vatEl = singleLine.querySelector('div div:nth-child(3)') || null;
-    const vat = vatEl ? vatEl.innerText.trim() : "";
-    // ensure summary line exists
-    const idx = ensureLine(lid || 'l0', amount, vat, vatCat);
+    const idx = ensureLine(lid, amount, vat, vatCat);
 
     // init buttons
     const buttons = document.querySelectorAll('#categoryButtons .category-btn');
@@ -242,13 +240,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // if server provided an already selected cat, highlight it
-    const preSelected = summaryData.lines[idx] && summaryData.lines[idx].category ? summaryData.lines[idx].category : ( (document.querySelector('#categoryButtons .category-btn[data-selected="1"]') || {}).dataset || {}).cat || "";
+    const preSelected = summaryData.lines[idx] && summaryData.lines[idx].category
+                        ? summaryData.lines[idx].category
+                        : (document.querySelector('#categoryButtons .category-btn[data-selected="1"]') || {}).dataset?.cat || "";
     if (preSelected) markActiveButton(preSelected);
 
     buttons.forEach(btn => {
       btn.addEventListener('click', function() {
         const cat = this.dataset.cat;
-        // toggle selection: if already selected -> deselect
         const currentlySelected = summaryData.lines[idx] && summaryData.lines[idx].category;
         if (currentlySelected === cat) {
           summaryData.lines[idx].category = "";
