@@ -1703,3 +1703,253 @@ json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 
 2025-09-28 20:44:16,679 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
 
+2025-09-28 20:49:13,780 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 20:49:18,715 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:19,279 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:49:21,870 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:49:22,242 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:49:25,941 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:49:26,289 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:49:26,815 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:34,279 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:34,305 INFO Deleted 1 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400010783401151']
+
+2025-09-28 20:49:34,307 INFO Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-09-28 20:49:34,396 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:34,824 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:41,371 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:41,389 INFO Deleted 1 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400009407839474']
+
+2025-09-28 20:49:41,389 INFO Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-09-28 20:49:41,474 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:49:41,901 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:56:37,188 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 20:56:40,614 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:56:41,177 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:56:43,419 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:56:43,933 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:56:56,783 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:56:57,210 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-28 20:57:02,818 INFO Incoming request: method=POST path=/fetch remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-28 20:57:03,789 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-28 20:57:24,452 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-28 20:57:24,754 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:57:28,297 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:57:28,690 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:57:29,254 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:57:29,614 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:58:24,283 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:58:24,598 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:58:36,030 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:58:36,140 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:58:36,509 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:59:03,066 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 20:59:07,891 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:59:08,331 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:59:09,769 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:59:10,137 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:59:12,345 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:59:12,626 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 20:59:13,125 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 20:59:40,371 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:00:21,044 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:00:21,248 INFO Deleted 2 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400011062938530']
+
+2025-09-28 21:00:21,249 INFO Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-09-28 21:00:21,337 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:00:23,191 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:00:36,527 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:00:36,958 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:00:45,494 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:00:45,931 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:00:47,955 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:00:48,061 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:00:48,482 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:01:12,787 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:02:17,950 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:02:18,145 INFO Deleted 1 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400011062938530']
+
+2025-09-28 21:02:18,147 INFO Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-09-28 21:02:18,344 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:02:18,767 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:04:41,742 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:05:37,487 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-09-28 21:05:38,092 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:05:39,770 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:05:40,500 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:05:42,290 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:05:42,887 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:05:45,552 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:05:45,660 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:05:46,154 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:06:05,662 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:06:05,953 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:06:07,931 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:06:08,220 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:11:28,943 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:11:32,463 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:11:32,889 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:11:52,918 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:11:53,288 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:12:17,687 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:12:17,990 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:14:33,038 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:15:32,112 INFO Starting app - MYDATA_ENV=production
+
+2025-09-28 21:15:37,396 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:37,998 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:40,854 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:42,164 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:48,200 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:48,222 INFO Deleted 1 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400011062938530']
+
+2025-09-28 21:15:48,223 ERROR json_read failed for /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 130, in json_read
+    return json.load(f)
+           ^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2025-09-28 21:15:48,226 INFO No matching marks found in epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for deletion.
+
+2025-09-28 21:15:48,390 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:48,819 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:50,115 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:50,404 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:52,088 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:52,479 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:55,459 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:55,479 ERROR json_read failed for /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 130, in json_read
+    return json.load(f)
+           ^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2025-09-28 21:15:55,644 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:15:56,076 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:57,553 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-28 21:15:57,842 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:16:08,948 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-28 21:16:09,244 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+

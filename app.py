@@ -800,61 +800,69 @@ def search():
         elif not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
+            # --- φορτώνουμε cache invoices ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             cache = json_read(customer_file)
-
             docs_for_mark = [d for d in cache if str(d.get("mark","")).strip() == mark]
 
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
+                # --- Ελεγχος διπλοκαταχώρησης στο Excel ---
+                try:
+                    excel_path = excel_path_for(vat=vat)
+                    if os.path.exists(excel_path):
+                        df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                        if "MARK" in df.columns:
+                            marks_in_excel = df["MARK"].astype(str).str.strip().tolist()
+                            if mark in marks_in_excel:
+                                error = f"Διπλοκαταχώρηση: Το MARK {mark} υπάρχει ήδη στο Excel."
+                                return safe_render(
+                                    "search.html",
+                                    result=result,
+                                    error=error,
+                                    mark=mark,
+                                    modal_summary=None,
+                                    invoice_lines=[],
+                                    customer_categories=[],
+                                    active_page="search"
+                                )
+                except Exception:
+                    log.exception("Could not read Excel to check duplicate MARK")
+
+                # --- Έλεγχος αν ήδη χαρακτηρισμένο στο invoices.json ---
+                classified_docs = [
+                    d for d in docs_for_mark
+                    if str(d.get("classification","")).strip().lower() == "χαρακτηρισμενο"
+                ]
+                if classified_docs:
+                    error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
+                    return safe_render(
+                        "search.html",
+                        result=result,
+                        error=error,
+                        mark=mark,
+                        modal_summary=None,
+                        invoice_lines=[],
+                        customer_categories=[],
+                        active_page="search"
+                    )
+
+                # --- Κανονική προετοιμασία modal_summary και invoice_lines ---
                 invoice_lines = []
-                epsilon_cache = load_epsilon_cache_for_vat(vat)
-                existing_epsilon_entry = next((e for e in epsilon_cache if str(e.get("mark","")) == str(mark)), None)
-                saved_lines = existing_epsilon_entry.get("lines", []) if existing_epsilon_entry else []
+                saved_lines = []  # δε χρειάζεται εδώ το epsilon_invoices.json
 
                 for idx, inst in enumerate(docs_for_mark):
-                    # κάθε instance μπορεί να μην έχει description/amount/vat fields -> ομαλοποιούμε
                     line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                    # description: δοκιμάζουμε διάφορα πεδία (αν δεν υπάρχουν βάζουμε σύντομη περιγραφή)
                     description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
-                    # ποσό -> προσπαθούμε να πάρουμε το totalNetValue/totalValue για αυτό το instance
                     amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
-                    # vat -> προσπαθούμε να πάρουμε το totalVatAmount ή vatRate
                     vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
 
-                    # ---- VAT CATEGORY resolution: πρώτα από πεδίο στο inst, αλλιώς από vat_rate -> map με VAT_MAP
-                    # δοκιμάζουμε διάφορα πιθανά ονόματα που μπορεί να έχει στα invoices.json
-                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", default="")
-                    if not raw_vatcat:
-                        # fallback: ίσως το invoices.json έχει numeric code στη ρίζα του document
-                        raw_vatcat = pick(inst, "VATCategory", "vatCat", default="")
+                    # --- VAT CATEGORY ---
+                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
+                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
 
-                    # αν είναι κωδικός (π.χ. "1","2") κάνουμε map, αλλιώς κρατάμε το raw
-                    mapped_vatcat = ""
-                    try:
-                        key = str(raw_vatcat).strip()
-                        mapped_vatcat = VAT_MAP.get(key, raw_vatcat) if key else ""
-                    except Exception:
-                        mapped_vatcat = raw_vatcat or ""
-
-                    # αν ακόμα άδειο και υπάρχει γενικό vatCategory στον document (πρώτο doc)
-                    if not mapped_vatcat:
-                        # try reading vatCategory from doc-level (first)
-                        doc_level_vc = pick(first, "vatCategory", "vat_category", default="")
-                        if doc_level_vc:
-                            mapped_vatcat = VAT_MAP.get(str(doc_level_vc).strip(), doc_level_vc)
-
-                    # αν υπάρχει αποθηκευμένη κατηγορία στη θέση idx ή με ίδιο id -> πάρ' την
                     category = ""
-                    if saved_lines:
-                        saved_match = next((s for s in saved_lines if str(s.get("id","")) == str(line_id)), None)
-                        if not saved_match:
-                            # fallback by index
-                            if idx < len(saved_lines):
-                                saved_match = saved_lines[idx]
-                        if saved_match:
-                            category = saved_match.get("category", "") or ""
 
                     invoice_lines.append({
                         "id": line_id,
@@ -862,7 +870,7 @@ def search():
                         "amount": amount,
                         "vat": vat_rate,
                         "category": category,
-                        "vatCategory": mapped_vatcat   # <-- προσθέτουμε εδώ
+                        "vatCategory": mapped_vatcat
                     })
 
                 first = docs_for_mark[0]
@@ -910,6 +918,8 @@ def search():
         customer_categories=customer_categories,
         active_page="search"
     )
+
+
 
 
 
@@ -1273,15 +1283,15 @@ def list_invoices():
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
 def delete_invoices():
+    # collect and normalize marks
     marks_to_delete = request.form.getlist("delete_mark")
+    marks_to_delete = [str(m).strip() for m in marks_to_delete if str(m).strip()]
+
     if not marks_to_delete:
         flash("No marks selected", "error")
         return redirect(url_for("list_invoices"))
 
-    # Normalize marks (strip)
-    marks_to_delete = [str(m).strip() for m in marks_to_delete if str(m).strip()]
-
-    # delete from active client's excel file (same logic as list)
+    # determine active client's excel file (same logic as list view)
     active = get_active_credential_from_session()
     excel_path = DEFAULT_EXCEL_FILE
     if active and active.get("vat"):
@@ -1292,41 +1302,59 @@ def delete_invoices():
         excel_path = DEFAULT_EXCEL_FILE
 
     deleted_from_excel = 0
-    if os.path.exists(excel_path):
-        try:
+    try:
+        if os.path.exists(excel_path):
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+            # ensure MARK column exists
             if "MARK" in df.columns:
-                before = len(df)
-                df = df[~df["MARK"].astype(str).isin(marks_to_delete)]
-                after = len(df)
-                if after != before:
-                    df.to_excel(excel_path, index=False, engine="openpyxl")
-                    deleted_from_excel = before - after
-        except Exception:
-            log.exception("Σφάλμα διαγραφής από Excel")
+                # normalize MARK column to strings w/o surrounding spaces
+                marks_series = df["MARK"].astype(str).str.strip()
+                mask = marks_series.isin(marks_to_delete)
+                num_matches = int(mask.sum())
+                if num_matches > 0:
+                    df_remaining = df[~mask].copy()
+                    # Write back only if something will change
+                    df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
+                    deleted_from_excel = num_matches
+                    log.info("Deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
+                else:
+                    log.info("No matching MARKs found in Excel %s for deletion: %s", excel_path, marks_to_delete)
+            else:
+                log.warning("Excel file %s does not contain a MARK column; skipping Excel deletion.", excel_path)
+        else:
+            log.info("Excel path %s does not exist; skipping Excel deletion.", excel_path)
+    except Exception:
+        log.exception("Error while deleting from Excel")
 
-    # Also delete matching MARK entries from the per-VAT epsilon cache
+    # delete matching entries from per-VAT epsilon cache for the active VAT
     deleted_from_epsilon = 0
     try:
         vat = active.get("vat") if active else None
         if vat:
-            epsilon_cache = load_epsilon_cache_for_vat(vat) or []
-            if epsilon_cache:
+            epsilon_path = epsilon_file_path_for(vat)
+            if os.path.exists(epsilon_path):
+                epsilon_cache = json_read(epsilon_path) or []
                 before_len = len(epsilon_cache)
-                # keep only those entries whose mark is NOT in marks_to_delete
-                epsilon_cache = [e for e in epsilon_cache if str(e.get("mark","")).strip() not in marks_to_delete]
-                after_len = len(epsilon_cache)
+                # keep only entries whose mark is NOT in marks_to_delete
+                new_cache = [e for e in epsilon_cache if str(e.get("mark", "")).strip() not in marks_to_delete]
+                after_len = len(new_cache)
                 deleted_from_epsilon = before_len - after_len
                 if deleted_from_epsilon > 0:
-                    save_epsilon_cache_for_vat(vat, epsilon_cache)
+                    json_write(epsilon_path, new_cache)
+                    log.info("Deleted %d marks from epsilon cache %s for VAT %s", deleted_from_epsilon, epsilon_path, vat)
+                else:
+                    log.info("No matching marks found in epsilon cache %s for deletion.", epsilon_path)
+            else:
+                log.info("Epsilon cache %s does not exist for VAT %s; skipping epsilon deletion.", epsilon_file_path_for(vat), vat)
         else:
-            # If no active vat, optionally try to remove from all epsilon files? We skip.
-            log.info("No active VAT for epsilon deletion; skipped epsilon cleanup.")
+            log.info("No active VAT available; skipped epsilon deletion.")
     except Exception:
-        log.exception("Σφάλμα διαγραφής από epsilon cache")
+        log.exception("Error while deleting from epsilon cache")
 
-    flash(f"Deleted {len(marks_to_delete)} selected marks (Excel removed: {deleted_from_excel}, Epsilon removed: {deleted_from_epsilon})", "success")
+    # (optional) you could also remove summaries from data/{vat}_summary.json if desired.
+    flash(f"Deleted {len(marks_to_delete)} selected mark(s). Removed from Excel: {deleted_from_excel}, from Epsilon cache: {deleted_from_epsilon}", "success")
     return redirect(url_for("list_invoices"))
+
 
 
 
