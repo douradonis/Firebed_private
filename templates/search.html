@@ -15,7 +15,23 @@
   </form>
 </div>
 
-{% if modal_summary %}
+{% if allow_edit_existing and not request.args.get('force_edit') %}
+<div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800">
+  Το MARK {{ mark }} υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
+  <div class="mt-2 flex gap-2">
+    <a href="{{ url_for('search') }}?mark={{ mark }}&force_edit=1"
+       class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
+       Επιβεβαίωση
+    </a>
+    <button onclick="this.parentElement.parentElement.style.display='none'"
+            class="px-3 py-2 border rounded hover:bg-gray-50">
+      Άκυρο
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{% if modal_summary and (request.args.get('force_edit') or not allow_edit_existing) %}
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
@@ -25,7 +41,6 @@
       <button onclick="closeModal()" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
 
-    <!-- Βασικά στοιχεία παραστατικού -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
       <div><strong>Α/Α Παραστατικού</strong><div>{{ modal_summary.AA or modal_summary.get('AA','') }}</div></div>
       <div><strong>ΑΦΜ</strong><div>{{ modal_summary.AFM or modal_summary.get('AFM','') }}</div></div>
@@ -37,13 +52,11 @@
       <div><strong>Σύνολο</strong><div>{{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div></div>
     </div>
 
-    {# Lines source: invoice_lines (preferred) or modal_summary.lines #}
     {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
 
     <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
 
-    {# --- Case: multiple lines -> table with selects --- #}
-    {% if _lines and _lines|length > 1 %}
+    {% if _lines|length > 1 %}
     <div class="overflow-auto max-h-96 border rounded">
       <table class="w-full border-collapse">
         <thead class="bg-gray-100 sticky top-0">
@@ -58,8 +71,8 @@
         <tbody id="linesTableBody">
           {% for line in _lines %}
           {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
-          {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else (line.net if line.net is defined else '')) %}
-          {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else (line.vatPercent if line.vatPercent is defined else '')) %}
+          {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else '') %}
+          {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else '') %}
           {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
           {% set cat = line.category if line.category is defined else '' %}
           <tr data-line-id="{{ lid }}">
@@ -81,12 +94,11 @@
       </table>
     </div>
 
-    {# --- Case: single line -> show buttons for categories --- #}
-    {% elif _lines and _lines|length == 1 %}
+    {% elif _lines|length == 1 %}
       {% set single = _lines[0] %}
       {% set lid = single.id if single.id is defined else (single.line_id if single.line_id is defined else 'l0') %}
-      {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else (single.net if single.net is defined else '')) %}
-      {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else (single.vatPercent if single.vatPercent is defined else '')) %}
+      {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else '') %}
+      {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else '') %}
       {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
       {% set selected_cat = single.category if single.category is defined else '' %}
 
@@ -107,10 +119,9 @@
           <div id="categoryButtons" class="mt-2 flex flex-wrap gap-2">
             {% for c in customer_categories %}
               <button type="button"
-                      class="category-btn px-3 py-2 border rounded hover:bg-sky-50"
+                      class="category-btn px-3 py-2 border rounded hover:bg-sky-50 {% if c == selected_cat %}bg-sky-600 text-white{% endif %}"
                       data-cat="{{ c }}"
-                      data-line-id="{{ lid }}"
-                      {% if c == selected_cat %}data-selected="1"{% endif %}>
+                      data-line-id="{{ lid }}">
                 {{ c }}
               </button>
             {% endfor %}
@@ -125,13 +136,13 @@
 
     <div class="mt-4 flex justify-between items-center">
       <div class="text-sm text-gray-600">
-        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη (credentials). Μπορείς να ορίσεις/επεξεργαστείς αυτές τις επιλογές στη σελίδα Credentials.
+        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείς να ορίσεις/επεξεργαστείς αυτές τις επιλογές στη σελίδα Credentials.
       </div>
 
       <div class="flex justify-end gap-2">
         <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
           <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
-          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο XLSX & Cache</button>
+          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
         </form>
         <button onclick="closeModal()" class="px-3 py-2 border rounded">Κλείσιμο</button>
       </div>
@@ -152,138 +163,63 @@ document.addEventListener('DOMContentLoaded', function() {
   const summaryInput = document.getElementById('summaryJsonInput');
   if (!summaryInput) return;
 
-  // parse initial summary (server-provided)
   let summaryData;
-  try {
-    summaryData = JSON.parse(summaryInput.value || '{}');
-  } catch (e) {
-    console.error("Invalid initial summary JSON:", e);
-    summaryData = {};
-  }
+  try { summaryData = JSON.parse(summaryInput.value || '{}'); }
+  catch(e) { console.error("Invalid JSON:", e); summaryData={}; }
   if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
 
-  // helper to ensure a line exists in summaryData.lines by id
-  function ensureLine(lineId, amount, vat, vatCategory) {
-    const idx = summaryData.lines.findIndex(l => String(l.id) === String(lineId));
-    if (idx !== -1) return idx;
-    const newLine = {
-      id: String(lineId),
-      description: "",
-      amount: amount || "",
-      vat: vat || "",
-      vatCategory: vatCategory || "",
-      category: ""
-    };
-    summaryData.lines.push(newLine);
-    return summaryData.lines.length - 1;
+  function ensureLine(id, amount, vat, vatCat, existingCat="") {
+    let idx = summaryData.lines.findIndex(l => String(l.id)===String(id));
+    if(idx===-1){
+      summaryData.lines.push({id:String(id), description:"", amount:amount||"", vat:vat||"", vatCategory:vatCat||"", category:existingCat||""});
+      idx = summaryData.lines.length-1;
+    }
+    return idx;
   }
 
-  // --- Multiple lines: table with selects ---
-  const rows = document.querySelectorAll('#linesTableBody tr[data-line-id]');
-  if (rows && rows.length > 0) {
-    rows.forEach(tr => {
-      const lid = tr.dataset.lineId;
-      const vatCatEl = tr.querySelector('td:nth-child(2)');
-      const amtEl = tr.querySelector('td:nth-child(3)');
-      const vatEl = tr.querySelector('td:nth-child(4)');
-      const sel = tr.querySelector('select.expense-category');
+  function syncHidden(){ summaryInput.value = JSON.stringify(summaryData); }
 
-      const vatCategory = vatCatEl ? vatCatEl.innerText.trim() : "";
-      const amt = amtEl ? amtEl.innerText.trim() : "";
-      const vat = vatEl ? vatEl.innerText.trim() : "";
-      const selected = sel ? sel.value : "";
+  // Multi-line table
+  document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr=>{
+    const lid=tr.dataset.lineId;
+    const amt=tr.querySelector('td:nth-child(3)')?.innerText.trim()||"";
+    const vat=tr.querySelector('td:nth-child(4)')?.innerText.trim()||"";
+    const vatCat=tr.querySelector('td:nth-child(2)')?.innerText.trim()||"";
+    const sel=tr.querySelector('select.expense-category');
+    const existingCat=sel?.value||"";
+    const idx=ensureLine(lid, amt, vat, vatCat, existingCat);
+    if(sel){ sel.value=summaryData.lines[idx].category||""; sel.addEventListener('change',()=>{summaryData.lines[idx].category=sel.value; syncHidden();}); }
+  });
 
-      const idx = ensureLine(lid, amt, vat, vatCategory);
-      if (selected) summaryData.lines[idx].category = selected;
-    });
+  // Single-line buttons
+  const singleLine=document.getElementById('singleLine');
+  if(singleLine){
+    const lid=singleLine.dataset.lineId;
+    const amt=singleLine.dataset.amount||"";
+    const vat=singleLine.dataset.vat||"";
+    const vatCat=singleLine.dataset.vatcat||"";
+    const preSel=summaryData.lines.find(l=>l.id===lid)?.category||"";
+    const idx=ensureLine(lid, amt, vat, vatCat, preSel);
 
-    const selects = document.querySelectorAll('select.expense-category');
-    selects.forEach(sel => {
-      sel.addEventListener('change', function() {
-        const lid = this.dataset.lineId;
-        const val = this.value;
-        const idx = summaryData.lines.findIndex(l => String(l.id) === String(lid));
-        if (idx === -1) {
-          const tr = document.querySelector('tr[data-line-id="'+lid+'"]');
-          const d = tr ? (tr.querySelector('td:nth-child(2)').innerText.trim() || "") : "";
-          const a = tr ? (tr.querySelector('td:nth-child(3)').innerText.trim() || "") : "";
-          const v = tr ? (tr.querySelector('td:nth-child(4)').innerText.trim() || "") : "";
-          summaryData.lines.push({ id: String(lid), description: "", amount: a, vat: v, vatCategory: d, category: val });
-        } else {
-          summaryData.lines[idx].category = val;
-        }
+    const buttons=document.querySelectorAll('#categoryButtons .category-btn');
+    function markActive(cat){ buttons.forEach(b=>{ b.classList.toggle('bg-sky-600',b.dataset.cat===cat); b.classList.toggle('text-white',b.dataset.cat===cat); }); }
+    if(preSel) markActive(preSel);
+
+    buttons.forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const cat=btn.dataset.cat;
+        summaryData.lines[idx].category=(summaryData.lines[idx].category===cat)?"":cat;
+        markActive(summaryData.lines[idx].category);
         syncHidden();
       });
     });
+    const clearBtn=document.getElementById('clearCategory');
+    if(clearBtn) clearBtn.addEventListener('click',()=>{ summaryData.lines[idx].category=""; markActive(""); syncHidden(); });
   }
 
-  // --- Single-line UI: buttons ---
-  const singleLine = document.getElementById('singleLine');
-  if (singleLine) {
-    const lid = singleLine.dataset.lineId || 'l0';
-    const vatCat = singleLine.dataset.vatcat || "";
-    const amount = singleLine.dataset.amount || "";
-    const vat = singleLine.dataset.vat || "";
-
-    const idx = ensureLine(lid, amount, vat, vatCat);
-
-    // init buttons
-    const buttons = document.querySelectorAll('#categoryButtons .category-btn');
-    function markActiveButton(cat) {
-      buttons.forEach(b => {
-        if (b.dataset.cat === cat) {
-          b.classList.add('bg-sky-600','text-white');
-        } else {
-          b.classList.remove('bg-sky-600','text-white');
-        }
-      });
-    }
-
-    // if server provided an already selected cat, highlight it
-    const preSelected = summaryData.lines[idx] && summaryData.lines[idx].category
-                        ? summaryData.lines[idx].category
-                        : (document.querySelector('#categoryButtons .category-btn[data-selected="1"]') || {}).dataset?.cat || "";
-    if (preSelected) markActiveButton(preSelected);
-
-    buttons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        const cat = this.dataset.cat;
-        const currentlySelected = summaryData.lines[idx] && summaryData.lines[idx].category;
-        if (currentlySelected === cat) {
-          summaryData.lines[idx].category = "";
-          markActiveButton("");
-        } else {
-          summaryData.lines[idx].category = cat;
-          markActiveButton(cat);
-        }
-        syncHidden();
-      });
-    });
-
-    const clearBtn = document.getElementById('clearCategory');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', function() {
-        summaryData.lines[idx].category = "";
-        markActiveButton("");
-        syncHidden();
-      });
-    }
-  }
-
-  function syncHidden() {
-    try {
-      summaryInput.value = JSON.stringify(summaryData);
-    } catch (e) {
-      console.error("Could not serialize summaryData", e);
-    }
-  }
-
-  // initial sync
+  const modal=document.getElementById('summaryModal');
+  if(modal) modal.style.display='flex';
   syncHidden();
-
-  // ensure modal visible
-  const modal = document.getElementById('summaryModal');
-  if (modal) modal.style.display = 'flex';
 });
 </script>
 {% endblock %}
