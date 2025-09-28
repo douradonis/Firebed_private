@@ -41,6 +41,9 @@ app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 
+@app.before_request
+def log_request_path():
+    log.info("Incoming request: method=%s path=%s remote=%s ref=%s", request.method, request.path, request.remote_addr, request.referrer)
 # Logging (unchanged)
 log = logging.getLogger("mydata_app")
 log.setLevel(logging.INFO)
@@ -56,7 +59,9 @@ if not log.handlers:
 
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
 GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
-SETTINGS_FILE = 'credentials_settings.json'
+# keep settings inside data/ so it's co-located with other app files
+SETTINGS_FILE = os.path.join(DATA_DIR, "credentials_settings.json")
+
 
 def get_global_accounts_from_credentials() -> Dict:
     """
@@ -223,11 +228,19 @@ def inject_active_credential():
     Εισάγει αυτόματα στα templates:
       - active_credential: όνομα credential ή None
       - active_credential_vat: ΑΦΜ του active credential (ή empty string)
+      - app_settings: γενικές ρυθμίσεις εφαρμογής (φορτώνονται από SETTINGS_FILE)
     """
     active = get_active_credential_from_session()
     name = active.get("name") if active else None
     vat = active.get("vat") if active else ""
-    return dict(active_credential=name, active_credential_vat=vat)
+    # Load settings (fall back to empty dict)
+    try:
+        settings = load_settings() or {}
+    except Exception:
+        log.exception("Could not load settings for context processor")
+        settings = {}
+    return dict(active_credential=name, active_credential_vat=vat, app_settings=settings)
+
 
 # ---------------- Validation helper ----------------
 def normalize_input_date_to_iso(s: str):
@@ -398,7 +411,7 @@ def credentials_edit(name):
             "key": key,
             "env": env,
             "vat": vat,
-            # αποθηκεύουμε επίσης τα νέα πεδία
+            # Αποθηκεύουμε επίσης τα νέα πεδία
             "book_category": book_category,
             "fpa_applicable": fpa_applicable,
             "expense_tags": expense_tags
@@ -415,27 +428,48 @@ def credentials_edit(name):
 
         save_credentials(creds)
 
-        # αν το credential που επεξεργάστηκε ήταν ενεργό — ενημέρωσε session
+        # Αν το credential που επεξεργάστηκε ήταν ενεργό — ενημέρωσε session
         if session.get("active_credential") == name:
             session["active_credential"] = new_name
+            flash(f"Active credential updated to '{new_name}'", "success")
+        else:
+            flash(f"Credential '{new_name}' updated successfully", "success")
 
-        flash("Updated", "success")
         return redirect(url_for("credentials"))
 
-    # GET -> εμφανίζουμε την φόρμα επεξεργασίας. δεν περνάμε active_credential εδώ ώστε
-    # το context_processor να παρέχει και το active_credential_vat στην template.
-    flash(f"Editing credential: {credential.get('name')}", "success")
-    return safe_render("credentials_edit.html", credential=credential, active_page="credentials")
+    # GET -> εμφανίζουμε τη φόρμα επεξεργασίας
+    flash(f"Editing credential: {credential.get('name')}", "info")
+    return safe_render(
+        "credentials_edit.html",
+        credential=credential,
+        active_page="credentials"
+    )
+
 
 
 
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
     creds = load_credentials()
-    creds = [c for c in creds if c["name"] != name]
+    credential = next((c for c in creds if c.get("name") == name), None)
+    
+    if not credential:
+        flash(f"Credential '{name}' not found", "error")
+        return redirect(url_for("credentials"))
+
+    # Αφαίρεση credential
+    creds = [c for c in creds if c.get("name") != name]
     save_credentials(creds)
-    flash(f"Credential {name} διαγράφηκε.")
+
+    # Αν ήταν ενεργό, καθαρίζουμε session
+    if session.get("active_credential") == name:
+        session.pop("active_credential", None)
+        flash(f"Active credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.", "success")
+    else:
+        flash(f"Credential '{name}' διαγράφηκε.", "success")
+
     return redirect(url_for("credentials"))
+
 
 
 # New route: set active credential
@@ -523,41 +557,22 @@ def get_customer_docs_file(vat):
 def fetch():
     message = None
     error = None
-    preview = []  # <-- preview για template
+    preview = []
     creds = load_credentials()
     active_cred = get_active_credential_from_session()
     active_name = active_cred.get("name") if active_cred else None
 
-    def float_from_comma(value):
-        """Convert string with ',' decimal or '.' thousand separator to float safely."""
-        if value is None:
-            return 0.0
-        if isinstance(value, (int, float)):
-            return float(value)
-        s = str(value).strip().replace(".", "").replace(",", ".")
-        try:
-            return float(s)
-        except Exception:
-            return 0.0
-
     if request.method == "POST":
         date_from_raw = request.form.get("date_from", "").strip()
         date_to_raw = request.form.get("date_to", "").strip()
-
         date_from_iso = normalize_input_date_to_iso(date_from_raw)
         date_to_iso = normalize_input_date_to_iso(date_to_raw)
 
         if not date_from_iso or not date_to_iso:
             error = "Παρακαλώ συμπλήρωσε έγκυρες ημερομηνίες (dd/mm/YYYY)."
-            return safe_render(
-                "fetch.html",
-                credentials=creds,
-                message=message,
-                error=error,
-                preview=preview,
-                active_page="fetch",
-                active_credential=active_name
-            )
+            return safe_render("fetch.html", credentials=creds, message=message,
+                               error=error, preview=preview, active_page="fetch",
+                               active_credential=active_name)
 
         d1 = datetime.datetime.fromisoformat(date_from_iso).strftime("%d/%m/%Y")
         d2 = datetime.datetime.fromisoformat(date_to_iso).strftime("%d/%m/%Y")
@@ -576,15 +591,9 @@ def fetch():
 
         if not aade_user or not aade_key:
             error = "Δεν υπάρχουν αποθηκευμένα credentials για την κλήση."
-            return safe_render(
-                "fetch.html",
-                credentials=creds,
-                message=message,
-                error=error,
-                preview=preview,
-                active_page="fetch",
-                active_credential=active_name
-            )
+            return safe_render("fetch.html", credentials=creds, message=message,
+                               error=error, preview=preview, active_page="fetch",
+                               active_credential=active_name)
 
         try:
             all_rows, summary_list = request_docs(
@@ -597,10 +606,11 @@ def fetch():
                 save_excel=False
             )
 
-            # Αποθήκευση σε per-customer JSON
             added_docs = 0
             added_summaries = 0
             for d in all_rows:
+                if vat:
+                    d["AFM"] = vat  # προσθέτουμε AFM
                 if append_doc_to_customer_file(d, vat):
                     added_docs += 1
 
@@ -611,23 +621,28 @@ def fetch():
             message = (f"Fetched {len(all_rows)} items, newly saved for VAT {vat}: "
                        f"{added_docs} docs, {added_summaries} summaries.")
 
-            # Προετοιμασία preview πρώτων 40 εγγραφών
             preview = all_rows[:40]
 
         except Exception as e:
             log.exception("Fetch error")
             error = f"Σφάλμα λήψης: {str(e)[:400]}"
 
-    return safe_render(
-        "fetch.html",
-        credentials=creds,
-        message=message,
-        error=error,
-        preview=preview,  # <-- περνάμε το preview στο template
-        active_page="fetch",
-        active_credential=active_name
-    )
+    return safe_render("fetch.html", credentials=creds, message=message,
+                       error=error, preview=preview, active_page="fetch",
+                       active_credential=active_name)
 
+
+@app.route("/credentials/get_settings", methods=["GET"])
+def credentials_get_settings():
+    """
+    Επιστρέφει τα stored general settings σε JSON — βολικό για AJAX αν το cog τα φορτώνει δυναμικά.
+    """
+    try:
+        settings = load_settings() or {}
+        return jsonify({"status": "ok", "settings": settings})
+    except Exception as e:
+        log.exception("Could not return settings")
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 
@@ -692,6 +707,9 @@ def search():
                             return src.get(k)
                     return default
 
+                # AFM fallback σε AFM_issuer
+                vat_doc = pick(doc, "AFM", "AFM_issuer", default="")
+
                 total_net_f = float_from_comma(pick(doc, "totalNetValue", "totalNet", "net", default=0))
                 total_vat_f = float_from_comma(pick(doc, "totalVatAmount", "totalVat", "vat", default=0))
                 total_value_f = total_net_f + total_vat_f
@@ -699,14 +717,14 @@ def search():
                 modal_summary = {
                     "mark": mark,
                     "AA": pick(doc, "AA", "aa", default=""),
-                    "AFM": pick(doc, "AFM", default=""),
+                    "AFM": vat_doc,
                     "Name": pick(doc, "Name", "Name_issuer", default=""),
                     "series": pick(doc, "series", "Series", "serie", default=""),
                     "number": pick(doc, "number", "aa", "AA", default=""),
                     "issueDate": pick(doc, "issueDate", "issue_date", default=""),
-                    "totalNetValue": pick(doc, "totalNetValue", "totalNet", 0),
-                    "totalVatAmount": pick(doc, "totalVatAmount", "totalVat", 0),
-                    "totalValue": f"{total_value_f:.2f}",
+                    "totalNetValue": f"{total_net_f:.2f}".replace(".", ","),
+                    "totalVatAmount": f"{total_vat_f:.2f}".replace(".", ","),
+                    "totalValue": f"{total_value_f:.2f}".replace(".", ","),
                     "type": pick(doc, "type", "invoiceType", default=""),
                     "type_name": mapper(pick(doc, "type", "invoiceType", default=""))
                 }
@@ -719,6 +737,7 @@ def search():
         modal_summary=modal_summary,
         active_page="search"
     )
+
 @app.route("/save_accounts", methods=["POST"])
 def save_accounts():
     """
@@ -773,14 +792,12 @@ def save_summary():
         flash(f"Invalid summary data: {e}", "error")
         return redirect(url_for("search"))
 
-    # Επιλέγουμε τον πελάτη από session
     active = get_active_credential_from_session()
     vat = active.get("vat") if active else summary.get("AFM")
     if not vat:
         flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
-    # Helper για float
     def float_from_comma(value):
         if value is None:
             return 0.0
@@ -792,7 +809,6 @@ def save_summary():
         except Exception:
             return 0.0
 
-    # Row για Excel
     total_net = float_from_comma(summary.get("totalNetValue", 0))
     total_vat = float_from_comma(summary.get("totalVatAmount", 0))
     total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
@@ -806,15 +822,13 @@ def save_summary():
         "Ημερομηνία": summary.get("issueDate", ""),
         "Είδος": summary.get("type", ""),
         "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
-        "Καθαρή Αξία": f"{total_net:.2f}",
-        "ΦΠΑ": f"{total_vat:.2f}",
-        "Σύνολο": f"{total_value:.2f}"
+        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
     }
 
-    # Αποθήκευση σε per-customer summary JSON
     append_summary_to_customer_file(summary, vat)
 
-    # Αποθήκευση σε Excel ανά πελάτη
     excel_path = excel_path_for(vat=vat)
     try:
         df_new = pd.DataFrame([row]).astype(str).fillna("")
@@ -832,6 +846,7 @@ def save_summary():
 
     flash(f"Saved summary for VAT {vat} to JSON and Excel", "success")
     return redirect(url_for("list_invoices"))
+
 
 
 

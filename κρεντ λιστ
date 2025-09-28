@@ -17,23 +17,17 @@
 .flash-close { margin-left:auto; background:transparent; border:none; cursor:pointer; font-weight:700; font-size:16px; line-height:1; color:inherit; }
 </style>
 
-<script>
-function showBanner(message, kind='success', ttl=6000) {
-  const container=document.getElementById('flashBanners'); if(!container) return;
-  let cls='flash-success'; if(kind==='error'||kind==='danger') cls='flash-error'; else if(kind==='info') cls='flash-info';
-  const el=document.createElement('div'); el.className='flash-banner '+cls; el.innerHTML=`<div class="flash-text">${escapeHtml(String(message))}</div>`;
-  const btn=document.createElement('button'); btn.className='flash-close'; btn.type='button'; btn.innerHTML='&times;'; btn.addEventListener('click',()=>{el.remove();});
-  el.appendChild(btn); container.insertBefore(el, container.firstChild);
-  if(ttl>0) setTimeout(()=>{try{el.remove();}catch(e){}},ttl);
-}
-function escapeHtml(unsafe){ return unsafe.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); }
-
-document.addEventListener('DOMContentLoaded', function(){
-  {% for category, msg in get_flashed_messages(with_categories=true) %}
-    showBanner({{ msg|tojson }}, {{ category|tojson }});
-  {% endfor %}
-});
-</script>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        {% for category, msg in messages %}
+          showBanner({{ msg|tojson }}, {{ category|tojson }});
+        {% endfor %}
+      });
+    </script>
+  {% endif %}
+{% endwith %}
 
 <div class="max-w-6xl mx-auto mt-6">
   <div class="flex justify-between items-center mb-4">
@@ -232,39 +226,71 @@ function openEditModal(elem){
   document.getElementById('editForm').action = '/credentials/edit/' + encodeURIComponent(name);
 }
 
-// FPA toggle logic
+// FPA toggle
 document.addEventListener('DOMContentLoaded', function(){
   const addFpa = document.getElementById('addFpa');
   const addNoVat = document.getElementById('add_exp_no_vat');
   if(addFpa && addNoVat){
-    addNoVat.disabled = !addFpa.checked; addNoVat.checked=false;
-    addFpa.addEventListener('change',()=>{ addNoVat.disabled=!addFpa.checked; if(!addFpa.checked) addNoVat.checked=false; });
+    addNoVat.disabled = !addFpa.checked;
+    addNoVat.checked = false;
+    addFpa.addEventListener('change', function(){ addNoVat.disabled=!addFpa.checked; if(!addFpa.checked) addNoVat.checked=false; });
   }
   const editFpa = document.getElementById('editFPA');
   const editNoVat = document.getElementById('edit_exp_no_vat');
   if(editFpa && editNoVat){
-    editFpa.addEventListener('change',()=>{ editNoVat.disabled=!editFpa.checked; if(!editFpa.checked) editNoVat.checked=false; });
+    editFpa.addEventListener('change', function(){ editNoVat.disabled=!editFpa.checked; if(!editFpa.checked) editNoVat.checked=false; });
   }
 });
+
+// Inline banners
+function showBanner(message, kind='success', ttl=6000) {
+  const container=document.getElementById('flashBanners'); if(!container) return;
+  let cls='flash-success'; if(kind==='error'||kind==='danger') cls='flash-error'; else if(kind==='info') cls='flash-info';
+  const el=document.createElement('div'); el.className='flash-banner '+cls; el.innerHTML=`<div class="flash-text">${escapeHtml(String(message))}</div>`;
+  const btn=document.createElement('button'); btn.className='flash-close'; btn.type='button'; btn.innerHTML='&  ×;</button>; btn.addEventListener('click',()=>{el.remove();}); el.appendChild(btn); container.insertBefore(el, container.firstChild);
+  if(ttl>0) setTimeout(()=>{try{el.remove();}catch(e){}},ttl);
+}
+
+function escapeHtml(unsafe){ 
+  return unsafe.replaceAll('&','&amp;')
+               .replaceAll('<','&lt;')
+               .replaceAll('>','&gt;')
+               .replaceAll('"','&quot;')
+               .replaceAll("'","&#039;");
+}
 
 // Settings helpers
 function populateSettingsIntoForm(){
   const form=document.getElementById('settingsForm'); if(!form) return;
   const settings=window.APP_SETTINGS||{};
-  for(const input of form.querySelectorAll('input[name]')){ if(settings.hasOwnProperty(input.name)) input.value=settings[input.name]??''; }
+  for(const input of form.querySelectorAll('input[name]')){
+    if(settings.hasOwnProperty(input.name)) input.value=settings[input.name]??'';
+  }
 }
 function openSettingsModal(){ populateSettingsIntoForm(); openModal('settingsModal'); }
 function saveSettings(){
   const form=document.getElementById('settingsForm'); const data={};
   for(const input of form.querySelectorAll('input[name]')) data[input.name]=input.value.trim();
-  fetch('/credentials/save_settings',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+  fetch('/credentials/save_settings',{
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body:JSON.stringify(data)
+  })
   .then(res=>{ if(!res.ok) throw new Error('Σφάλμα αποθήκευσης ('+res.status+')'); return res.json(); })
   .then(resp=>{
-    if(resp && resp.status==='ok'){ for(const k in data){ if(Object.prototype.hasOwnProperty.call(data,k)) window.APP_SETTINGS[k]=data[k]; }
-      showBanner('Ρυθμίσεις αποθηκεύτηκαν!','success',5000); closeModal('settingsModal');
+    if(resp && resp.status==='ok'){ 
+      for(const k in data){ if(Object.prototype.hasOwnProperty.call(data,k)) window.APP_SETTINGS[k]=data[k]; }
+      showBanner('Ρυθμίσεις αποθηκεύτηκαν!','success',5000); 
+      closeModal('settingsModal');
     } else showBanner('Σφάλμα αποθήκευσης — δοκίμασε ξανά.','error',7000);
   })
   .catch(err=>{ console.error(err); showBanner('Αποτυχία αποθήκευσης ρυθμίσεων: '+(err.message||err),'error',7000); });
 }
+
+document.addEventListener('DOMContentLoaded', function(){
+  populateSettingsIntoForm();
+  document.querySelectorAll("button[onclick=\"openModal('settingsModal')\"]").forEach(b=>b.onclick=openSettingsModal);
+});
 </script>
 {% endblock %}
+

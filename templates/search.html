@@ -20,20 +20,19 @@
   {% endif %}
 </div>
 
-<!-- Modal summary (if modal_summary provided) -->
 {% if modal_summary %}
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
   <div class="bg-white rounded-lg shadow-lg w-11/12 md:w-2/3 p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">
-        Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark') }}
+        Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}
       </h3>
       <button onclick="document.getElementById('summaryModal').style.display='none';" class="text-gray-500">✕</button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div><strong>Α/Α Παραστατικού</strong><div>{{ modal_summary.AA or modal_summary.get('AA','') }}</div></div>
-      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.AFM or modal_summary.get('AFM','') }}</div></div>
+      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.get('AFM','') }}</div></div>
       <div><strong>Επωνυμία</strong><div>{{ modal_summary.Name or modal_summary.get('Name','') }}</div></div>
       <div><strong>Ημερομηνία</strong><div>{{ modal_summary.issueDate or modal_summary.get('issueDate','') }}</div></div>
       <div><strong>Τύπος Παραστατικού</strong><div>{{ modal_summary.type_name or modal_summary.get('type_name','') }}</div></div>
@@ -51,9 +50,5 @@
     </div>
   </div>
 </div>
-
-<script>
-  // Το modal εμφανίζεται αυτόματα μέσω rendering
-</script>
 {% endif %}
 {% endblock %}

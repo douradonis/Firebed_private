@@ -24,6 +24,11 @@
       padding: 16px;
     }
     .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    /* Flash banner styles */
+    .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
+    .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
   </style>
 
   {% block head_extra %}{% endblock %}
@@ -63,11 +68,12 @@
       </div>
     </header>
 
+    <!-- Flash messages as top banner -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-2 mb-4">
           {% for cat, msg in messages %}
-            <div class="p-3 rounded text-sm {% if cat == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">{{ msg }}</div>
+            <div class="flash-banner {% if cat == 'error' %}flash-error{% else %}flash-success{% endif %}">{{ msg }}</div>
           {% endfor %}
         </div>
       {% endif %}
@@ -77,5 +83,14 @@
   </div>
 
   {% block scripts %}{% endblock %}
+
+  <script>
+    // Auto-remove flash banners after 6 seconds
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(() => {
+        document.querySelectorAll('.flash-banner').forEach(el => el.remove());
+      }, 6000);
+    });
+  </script>
 </body>
 </html>

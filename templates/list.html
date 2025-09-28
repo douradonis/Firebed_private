@@ -12,6 +12,29 @@
 .small-btn.secondary { background:#6c757d; }
 .small-btn.danger { background:#dc3545; }
 {{ css_numcols | safe }}
+
+/* Flash banner styling */
+.flash-banner {
+  position: relative;
+  padding: 12px 2.5rem 12px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.flash-banner.flash-error { background: #fef2f2; color: #b91c1c; }
+.flash-banner.flash-success { background: #ecfdf5; color: #065f46; }
+.flash-banner .close-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
 </style>
 
 <!-- DataTables + ColReorder + ColResize -->
@@ -37,8 +60,18 @@
     <button id="deleteBtn" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
   </div>
 
+  <!-- Flash messages -->
   {% if error %}
-    <div class="p-3 mb-3 rounded bg-red-50 text-red-800">{{ error }}</div>
+    <div class="flash-banner flash-error">
+      {{ error }}
+      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endif %}
+  {% if message %}
+    <div class="flash-banner flash-success">
+      {{ message }}
+      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
   {% endif %}
 
   <div class="table-wrapper">
@@ -107,6 +140,16 @@ $(document).ready(function(){
     $('body').append(form);
     form.submit();
   });
+
+  // Auto fade-out flash banners after 5 seconds
+  const flashBanners = document.querySelectorAll('.flash-banner');
+  flashBanners.forEach(b => {
+    setTimeout(() => {
+      b.style.transition = "opacity 0.8s ease";
+      b.style.opacity = "0";
+      setTimeout(()=>b.remove(), 800);
+    }, 5000);
+  });
 });
 </script>
-{% endblock %} 
+{% endblock %}
