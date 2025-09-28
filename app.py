@@ -803,16 +803,12 @@ def search():
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             cache = json_read(customer_file)
 
-            # βρες *όλα* τα docs που έχουν αυτό το MARK
             docs_for_mark = [d for d in cache if str(d.get("mark","")).strip() == mark]
 
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                # εάν υπάρχουν πολλαπλά instances -> θεωρούμε κάθε instance ως ξεχωριστή "γραμμή"
-                # κατασκευάζουμε invoice_lines από τα docs_for_mark
                 invoice_lines = []
-                # φορτώνουμε existing epsilon entries για προ-γέμισμα κατηγοριών
                 epsilon_cache = load_epsilon_cache_for_vat(vat)
                 existing_epsilon_entry = next((e for e in epsilon_cache if str(e.get("mark","")) == str(mark)), None)
                 saved_lines = existing_epsilon_entry.get("lines", []) if existing_epsilon_entry else []
@@ -826,6 +822,28 @@ def search():
                     amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
                     # vat -> προσπαθούμε να πάρουμε το totalVatAmount ή vatRate
                     vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
+
+                    # ---- VAT CATEGORY resolution: πρώτα από πεδίο στο inst, αλλιώς από vat_rate -> map με VAT_MAP
+                    # δοκιμάζουμε διάφορα πιθανά ονόματα που μπορεί να έχει στα invoices.json
+                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", default="")
+                    if not raw_vatcat:
+                        # fallback: ίσως το invoices.json έχει numeric code στη ρίζα του document
+                        raw_vatcat = pick(inst, "VATCategory", "vatCat", default="")
+
+                    # αν είναι κωδικός (π.χ. "1","2") κάνουμε map, αλλιώς κρατάμε το raw
+                    mapped_vatcat = ""
+                    try:
+                        key = str(raw_vatcat).strip()
+                        mapped_vatcat = VAT_MAP.get(key, raw_vatcat) if key else ""
+                    except Exception:
+                        mapped_vatcat = raw_vatcat or ""
+
+                    # αν ακόμα άδειο και υπάρχει γενικό vatCategory στον document (πρώτο doc)
+                    if not mapped_vatcat:
+                        # try reading vatCategory from doc-level (first)
+                        doc_level_vc = pick(first, "vatCategory", "vat_category", default="")
+                        if doc_level_vc:
+                            mapped_vatcat = VAT_MAP.get(str(doc_level_vc).strip(), doc_level_vc)
 
                     # αν υπάρχει αποθηκευμένη κατηγορία στη θέση idx ή με ίδιο id -> πάρ' την
                     category = ""
@@ -843,10 +861,10 @@ def search():
                         "description": description,
                         "amount": amount,
                         "vat": vat_rate,
-                        "category": category
+                        "category": category,
+                        "vatCategory": mapped_vatcat   # <-- προσθέτουμε εδώ
                     })
 
-                # φτιάχνουμε modal_summary βάσει του πρώτου instance αλλά με αθροιστικά πεδία
                 first = docs_for_mark[0]
                 total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
                 total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
@@ -864,19 +882,15 @@ def search():
                     "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
                     "totalValue": f"{total_value:.2f}".replace(".", ","),
                     "type": pick(first, "type", "invoiceType", default=""),
-                    "type_name": mapper(pick(first, "type", "invoiceType", default=""))
+                    "type_name": mapper(pick(first, "type", "invoiceType", default="")),
+                    "lines": invoice_lines
                 }
 
-                # προσθέτουμε τις γραμμές στο modal_summary και στέλνουμε invoice_lines ξεχωριστά
-                modal_summary["lines"] = invoice_lines
-
-                # Κατηγορίες ανά πελάτη
-                if active_cred:
-                    raw_tags = active_cred.get("expense_tags") or []
-                    if isinstance(raw_tags, str):
-                        customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
-                    elif isinstance(raw_tags, list):
-                        customer_categories = raw_tags
+                raw_tags = active_cred.get("expense_tags") or []
+                if isinstance(raw_tags, str):
+                    customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
+                elif isinstance(raw_tags, list):
+                    customer_categories = raw_tags
                 if not customer_categories:
                     customer_categories = [
                         "αγορες_εμπορευματων",
@@ -998,8 +1012,6 @@ def save_summary():
       - per-customer summary JSON (data/{vat}_summary.json)
       - per-customer Excel (uploads/{vat}_invoices.xlsx)
       - per-VAT epsilon cache (data/epsilon/{vat}_epsilon_invoices.json)
-    If the submitted summary lacks 'lines', we rebuild them from the customer's invoices.json
-    (so multiple instances with same mark become separate lines).
     """
     try:
         payload = request.form.get("summary_json") or request.get_data(as_text=True)
@@ -1018,7 +1030,6 @@ def save_summary():
         flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
-    # helper
     def float_from_comma(value):
         if value is None:
             return 0.0
@@ -1034,7 +1045,6 @@ def save_summary():
     lines = summary.get("lines", []) or []
     if not lines:
         try:
-            # load all docs for this VAT and same mark
             mark = str(summary.get("mark", "")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             all_docs = json_read(docs_file)
@@ -1045,12 +1055,28 @@ def save_summary():
                 description = inst.get("description") or inst.get("desc") or inst.get("Description") or inst.get("Name") or inst.get("Name_issuer") or f"Instance #{idx+1}"
                 amount = inst.get("amount") or inst.get("lineTotal") or inst.get("totalNetValue") or inst.get("totalValue") or ""
                 vat_rate = inst.get("vat") or inst.get("vatRate") or inst.get("vatPercent") or inst.get("totalVatAmount") or ""
+
+                # try to extract a vatCategory from multiple possible places
+                raw_vatcat = inst.get("vatCategory") or inst.get("vat_category") or inst.get("VATCategory") or inst.get("vatCat") or ""
+                # if not present on the instance, try doc-level keys (some invoice shapes store it elsewhere)
+                if not raw_vatcat:
+                    raw_vatcat = inst.get("vatCategoryCode") or inst.get("vat_code") or ""
+
+                # map numeric codes to human-readable using VAT_MAP, else keep raw
+                vat_cat_mapped = ""
+                if raw_vatcat is not None and str(raw_vatcat).strip():
+                    key = str(raw_vatcat).strip()
+                    vat_cat_mapped = VAT_MAP.get(key, raw_vatcat)
+                else:
+                    vat_cat_mapped = ""
+
                 reconstructed.append({
                     "id": ln_id,
                     "description": description,
                     "amount": amount,
                     "vat": vat_rate,
-                    "category": ""
+                    "category": "",
+                    "vatCategory": vat_cat_mapped
                 })
             lines = reconstructed
         except Exception:
@@ -1063,15 +1089,25 @@ def save_summary():
         if not isinstance(ln, dict):
             continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
+        # compute/mapping from any possible key names
+        raw_vcat = ln.get("vatCategory") or ln.get("vat_category") or ln.get("vatCat") or ln.get("vat_cat") or ""
+        # if raw_vcat is a code map it
+        vcat_mapped = ""
+        if raw_vcat is not None and str(raw_vcat).strip():
+            vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat)
+        else:
+            vcat_mapped = ""
+
         normalized_lines.append({
             "id": ln_id,
             "description": ln.get("description","") or ln.get("desc","") or "",
             "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
             "vat": ln.get("vat","") or ln.get("vatRate","") or "",
-            "category": ln.get("category","") or ""
+            "category": ln.get("category","") or "",
+            "vatCategory": vcat_mapped
         })
 
-    # attach normalized lines back into summary
+    # attach normalized lines back into summary (so it will be saved in per-customer summary JSON)
     summary["lines"] = normalized_lines
 
     # --- append summary to per-customer summary JSON (if not duplicate) ---
@@ -1114,13 +1150,12 @@ def save_summary():
         flash("Excel save failed", "error")
         # do not abort — proceed to save epsilon as well
 
-    # --- Save per-line categories into epsilon per-vat file ---
+    # --- Save per-line categories into epsilon per-vat file (with vat_category per line) ---
     try:
         epsilon_cache = load_epsilon_cache_for_vat(vat)
         mark = str(summary.get("mark","")).strip()
 
         epsilon_entry = {
-            # copy many useful original fields (so epsilon row resembles invoices.json instance)
             "mark": mark,
             "issueDate": summary.get("issueDate",""),
             "series": summary.get("series",""),
@@ -1144,7 +1179,8 @@ def save_summary():
                 "description": ln.get("description",""),
                 "amount": ln.get("amount",""),
                 "vat": ln.get("vat",""),
-                "category": ln.get("category","")
+                "category": ln.get("category",""),
+                "vat_category": ln.get("vatCategory","") or ""   # <-- αποθηκεύουμε mapped string εδώ
             })
 
         # replace existing entry for same mark
@@ -1160,6 +1196,13 @@ def save_summary():
 
     flash(f"Saved summary for VAT {vat} and updated epsilon cache", "success")
     return redirect(url_for("list_invoices"))
+
+
+
+
+
+
+
 
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
