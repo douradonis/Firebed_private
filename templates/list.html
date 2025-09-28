@@ -35,6 +35,44 @@
   cursor: pointer;
   line-height: 1;
 }
+
+/* Download dropdown styles */
+.download-dropdown { position: relative; display: inline-block; }
+.download-toggle {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#0d6efd;
+  color:white;
+  cursor:pointer;
+  text-decoration:none;
+  border: none;
+}
+.download-menu {
+  position:absolute;
+  right:0;
+  margin-top:8px;
+  min-width:220px;
+  background:white;
+  border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.12);
+  z-index:50;
+  overflow:hidden;
+}
+.download-menu a, .download-menu button {
+  display:block;
+  width:100%;
+  padding:10px 12px;
+  text-align:left;
+  border:none;
+  background:transparent;
+  color:#111827;
+  text-decoration:none;
+  cursor:pointer;
+}
+.download-menu a:hover, .download-menu button:hover { background:#f3f4f6; }
 </style>
 
 <!-- DataTables + ColReorder + ColResize -->
@@ -47,9 +85,20 @@
 <div class="bg-white rounded-lg shadow p-4">
   <div class="flex items-center justify-between mb-3">
     <h2 class="text-lg font-semibold">Λίστα Παραστατικών</h2>
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-center">
       {% if file_exists %}
-        <a class="small-btn" href="{{ url_for('list_invoices') }}?download=1">⬇️ Κατέβασμα .xlsx</a>
+        <!-- Download dropdown: Εξοδολόγιο (download existing) + Epsilon (placeholder) -->
+        <div class="download-dropdown" id="downloadDropdown">
+          <button id="downloadToggle" class="download-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+            ⬇️ Κατέβασμα .xlsx
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/></svg>
+          </button>
+
+          <div id="downloadMenu" class="download-menu hidden" role="menu" aria-labelledby="downloadToggle">
+            <a href="{{ url_for('list_invoices', download=1) }}" role="menuitem">Εξοδολόγιο — Κατέβασε υπάρχον αρχείο</a>
+            <button id="epsilonExport" role="menuitem" type="button">Epsilon Excel — Έρχεται (placeholder)</button>
+          </div>
+        </div>
       {% endif %}
       <a class="small-btn secondary" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
     </div>
@@ -150,6 +199,55 @@ $(document).ready(function(){
       setTimeout(()=>b.remove(), 800);
     }, 5000);
   });
+
+  // Download dropdown behaviour
+  (function(){
+    const toggle = document.getElementById('downloadToggle');
+    const menu = document.getElementById('downloadMenu');
+    const epsilon = document.getElementById('epsilonExport');
+
+    if(!toggle || !menu) return;
+
+    function openMenu(){
+      menu.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded','true');
+    }
+    function closeMenu(){
+      menu.classList.add('hidden');
+      toggle.setAttribute('aria-expanded','false');
+    }
+
+    toggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(menu.classList.contains('hidden')) openMenu(); else closeMenu();
+    });
+
+    // close when clicking outside
+    document.addEventListener('click', function(e){
+      if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
+        closeMenu();
+      }
+    });
+
+    // Escape closes menu
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') closeMenu();
+    });
+
+    // Placeholder action for Epsilon export.
+    if(epsilon){
+      epsilon.addEventListener('click', function(e){
+        e.preventDefault();
+        closeMenu();
+        // show a friendly notification — if showBanner exists use it, otherwise alert
+        if(typeof showBanner === 'function'){
+          showBanner('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.', 'info', 6000);
+        } else {
+          alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.');
+        }
+      });
+    }
+  })();
 });
 </script>
 {% endblock %}
