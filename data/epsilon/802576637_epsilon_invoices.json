@@ -1,0 +1,26 @@
+[
+  {
+    "mark": "400010783401151",
+    "AFM": "802576637",
+    "Name": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "series": "11Μ0ΤΔΑ",
+    "number": "7061",
+    "issueDate": "01/09/2025",
+    "totalNetValue": "37,01",
+    "totalVatAmount": "8,88",
+    "totalValue": "45,89",
+    "lines": []
+  },
+  {
+    "mark": "400009406874951",
+    "AFM": "802576637",
+    "Name": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "series": "8Μ0ΤΔΑ",
+    "number": "3669",
+    "issueDate": "12/05/2025",
+    "totalNetValue": "172,80",
+    "totalVatAmount": "41,47",
+    "totalValue": "214,27",
+    "lines": []
+  }
+]
