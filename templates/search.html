@@ -15,9 +15,10 @@
   </form>
 </div>
 
+{# Modal εμφανίζεται μόνο αν modal_summary υπάρχει #}
 {% if modal_summary %}
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4">
-  <div class="bg-white rounded-lg shadow-lg w-full max-w-5xl p-6">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">
         Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}
@@ -28,7 +29,7 @@
     <!-- Βασικά στοιχεία παραστατικού -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
       <div><strong>Α/Α Παραστατικού</strong><div>{{ modal_summary.AA or modal_summary.get('AA','') }}</div></div>
-      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.get('AFM','') }}</div></div>
+      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.AFM or modal_summary.get('AFM','') }}</div></div>
       <div><strong>Επωνυμία</strong><div>{{ modal_summary.Name or modal_summary.get('Name','') }}</div></div>
       <div><strong>Ημερομηνία</strong><div>{{ modal_summary.issueDate or modal_summary.get('issueDate','') }}</div></div>
       <div><strong>Τύπος Παραστατικού</strong><div>{{ modal_summary.type_name or modal_summary.get('type_name','') }}</div></div>
@@ -37,29 +38,42 @@
       <div><strong>Σύνολο</strong><div>{{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div></div>
     </div>
 
-    <!-- Αναλυτικές γραμμές -->
-    {% if invoice_lines %}
-    <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού</h4>
+    {# Επιλέγουμε γραμμές: προτεραιότητα invoice_lines -> modal_summary.lines -> άδειο #}
+    {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
+
+    <!-- Αναλυτικές γραμμές (όλες οι γραμμές από invoices.json για αυτό το MARK) -->
+    <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
+
+    {% if _lines and _lines|length > 0 %}
     <div class="overflow-auto max-h-96 border rounded">
       <table class="w-full border-collapse">
         <thead class="bg-gray-100 sticky top-0">
           <tr>
-            <th class="p-2 border">Περιγραφή</th>
-            <th class="p-2 border">Ποσό</th>
-            <th class="p-2 border">ΦΠΑ</th>
-            <th class="p-2 border">Κατηγορία Εξόδου</th>
+            <th class="p-2 border text-left">#</th>
+            <th class="p-2 border text-left">Περιγραφή</th>
+            <th class="p-2 border text-right">Ποσό</th>
+            <th class="p-2 border text-right">ΦΠΑ</th>
+            <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
           </tr>
         </thead>
-        <tbody>
-          {% for line in invoice_lines %}
-          <tr data-line-id="{{ line.id }}">
-            <td class="p-2 border">{{ line.description }}</td>
-            <td class="p-2 border">{{ line.amount }}</td>
-            <td class="p-2 border">{{ line.vat }}</td>
+        <tbody id="linesTableBody">
+          {% for line in _lines %}
+          {# ensure sensible keys exist when rendering #}
+          {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
+          {% set desc = line.description if line.description is defined else (line.desc if line.desc is defined else (line.Name if line.Name is defined else '')) %}
+          {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else (line.net if line.net is defined else '')) %}
+          {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else (line.vatPercent if line.vatPercent is defined else '')) %}
+          {% set cat = line.category if line.category is defined else '' %}
+          <tr data-line-id="{{ lid }}">
+            <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
+            <td class="p-2 border break-words">{{ desc }}</td>
+            <td class="p-2 border text-right">{{ amt }}</td>
+            <td class="p-2 border text-right">{{ vatv }}</td>
             <td class="p-2 border">
-              <select class="expense-category p-1 border rounded w-full" data-line-id="{{ line.id }}">
-                {% for cat in customer_categories %}
-                  <option value="{{ cat }}" {% if line.category == cat %}selected{% endif %}>{{ cat }}</option>
+              <select class="expense-category p-1 border rounded w-full" data-line-id="{{ lid }}">
+                <option value="">-- επίλεξε --</option>
+                {% for c in customer_categories %}
+                  <option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>
                 {% endfor %}
               </select>
             </td>
@@ -68,14 +82,23 @@
         </tbody>
       </table>
     </div>
+    {% else %}
+      <div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
     {% endif %}
 
-    <div class="mt-4 flex justify-end gap-2">
-      <form method="POST" action="{{ url_for('save_summary') }}">
-        <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson }}'>
-        <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο XLSX & Cache</button>
-      </form>
-      <button onclick="closeModal()" class="px-3 py-2 border rounded">Κλείσιμο</button>
+    <div class="mt-4 flex justify-between items-center">
+      <div class="text-sm text-gray-600">
+        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη (credentials). Μπορείς να ορίσεις/επεξεργαστείς αυτές τις επιλογές στη σελίδα Credentials.
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
+          {# Θυμηθείτε: backend περιμένει field "summary_json" με το summary + lines #}
+          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
+          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο XLSX & Cache</button>
+        </form>
+        <button onclick="closeModal()" class="px-3 py-2 border rounded">Κλείσιμο</button>
+      </div>
     </div>
   </div>
 </div>
@@ -85,33 +108,97 @@
 {% block scripts %}
 <script>
 function closeModal() {
-  document.getElementById('summaryModal').style.display = 'none';
+  const m = document.getElementById('summaryModal');
+  if (m) m.style.display = 'none';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   const summaryInput = document.getElementById('summaryJsonInput');
-  const categories = document.querySelectorAll('.expense-category');
+  if (!summaryInput) return;
 
-  categories.forEach(sel => {
+  // Parse initial summary (όπως το πέρασε το server)
+  let summaryData;
+  try {
+    summaryData = JSON.parse(summaryInput.value || '{}');
+  } catch (e) {
+    console.error("Invalid initial summary JSON:", e);
+    summaryData = {};
+  }
+
+  // If server didn't include lines inside modal_summary but invoice lines are rendered
+  // στη DOM, δημιουργούμε/ενημερώνουμε summaryData.lines από το DOM.
+  if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
+
+  // Helper: ensure a line exists in summaryData.lines by id and return its index
+  function ensureLine(lineId, description, amount, vat) {
+    const idx = summaryData.lines.findIndex(l => String(l.id) === String(lineId));
+    if (idx !== -1) return idx;
+    // create new
+    const newLine = { id: String(lineId), description: description || "", amount: amount || "", vat: vat || "", category: "" };
+    summaryData.lines.push(newLine);
+    return summaryData.lines.length - 1;
+  }
+
+  // Initialize summaryData.lines from DOM table rows (covers case invoice_lines used)
+  const rows = document.querySelectorAll('#linesTableBody tr[data-line-id]');
+  rows.forEach(tr => {
+    const lid = tr.dataset.lineId;
+    const descEl = tr.querySelector('td:nth-child(2)');
+    const amtEl = tr.querySelector('td:nth-child(3)');
+    const vatEl = tr.querySelector('td:nth-child(4)');
+    const sel = tr.querySelector('select.expense-category');
+
+    const desc = descEl ? descEl.innerText.trim() : "";
+    const amt = amtEl ? amtEl.innerText.trim() : "";
+    const vat = vatEl ? vatEl.innerText.trim() : "";
+    const selected = sel ? sel.value : "";
+
+    const idx = ensureLine(lid, desc, amt, vat);
+    // keep existing category from server if present, else fill from select
+    if (selected) summaryData.lines[idx].category = selected;
+    // ensure description/amount/vat set if missing
+    if (!summaryData.lines[idx].description) summaryData.lines[idx].description = desc;
+    if (!summaryData.lines[idx].amount) summaryData.lines[idx].amount = amt;
+    if (!summaryData.lines[idx].vat) summaryData.lines[idx].vat = vat;
+  });
+
+  // Attach change listeners to selects to update summaryData and hidden input
+  const selects = document.querySelectorAll('select.expense-category');
+  selects.forEach(sel => {
     sel.addEventListener('change', function() {
-      const lineId = this.dataset.lineId;
-      const selectedValue = this.value;
-
-      const data = JSON.parse(summaryInput.value);
-
-      data.lines.forEach(line => {
-        if(line.id == lineId) {
-          line.category = selectedValue;
-        }
-      });
-
-      summaryInput.value = JSON.stringify(data);
+      const lid = this.dataset.lineId;
+      const val = this.value;
+      const idx = summaryData.lines.findIndex(l => String(l.id) === String(lid));
+      if (idx === -1) {
+        // create it (shouldn't normally happen)
+        const tr = document.querySelector('tr[data-line-id="'+lid+'"]');
+        const d = tr ? (tr.querySelector('td:nth-child(2)').innerText.trim() || "") : "";
+        const a = tr ? (tr.querySelector('td:nth-child(3)').innerText.trim() || "") : "";
+        const v = tr ? (tr.querySelector('td:nth-child(4)').innerText.trim() || "") : "";
+        summaryData.lines.push({ id: String(lid), description: d, amount: a, vat: v, category: val });
+      } else {
+        summaryData.lines[idx].category = val;
+      }
+      syncHidden();
     });
   });
 
-  {% if auto_open_modal %}
-    document.getElementById('summaryModal').style.display = 'flex';
-  {% endif %}
+  function syncHidden() {
+    try {
+      summaryInput.value = JSON.stringify(summaryData);
+    } catch (e) {
+      console.error("Could not serialize summaryData", e);
+    }
+  }
+
+  // initial sync (in case server had prefilled categories inside modal_summary.lines)
+  syncHidden();
+
+  // Ensure modal visible
+  const modal = document.getElementById('summaryModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
 });
 </script>
 {% endblock %}

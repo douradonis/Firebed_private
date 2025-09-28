@@ -227,7 +227,58 @@ def epsilon_file_path_for(vat: str) -> str:
     os.makedirs(epsilon_dir, exist_ok=True)
     return os.path.join(epsilon_dir, secure_filename(f"{vat}_epsilon_invoices.json"))
 
+# New function: build epsilon from invoices.json (used when epsilon file missing)
+def build_epsilon_from_invoices(vat: str) -> List[Dict]:
+    """
+    Δημιουργεί αρχική λίστα εγγραφών για το epsilon file (per-VAT) βασισμένη
+    στο data/{vat}_invoices.json. Κάθε εγγραφή έχει:
+      { "mark": "...", "AA": ..., "AFM": ..., "lines": [ {id, description, amount, vat, category:''}, ... ] }
+    """
+    invoices_file = get_customer_docs_file(vat)
+    invoices = json_read(invoices_file) if os.path.exists(invoices_file) else []
+    epsilon_list: List[Dict] = []
+
+    def pick(src: dict, *keys, default=""):
+        for k in keys:
+            if k in src and src.get(k) not in (None, ""):
+                return src.get(k)
+        return default
+
+    for doc in invoices:
+        mark = str(pick(doc, "mark", "MARK", "Mark", default="")).strip()
+        if not mark:
+            mark = str(pick(doc, "identifier", "id", default="")).strip()
+        if not mark:
+            continue
+        vat_doc = pick(doc, "AFM", "AFM_issuer", default="")
+        aa = pick(doc, "AA", "aa", default="")
+        raw_lines = doc.get("lines") or doc.get("Lines") or doc.get("Positions") or []
+        prepared = []
+        for idx, raw in enumerate(raw_lines):
+            line_id = raw.get("id") or raw.get("line_id") or raw.get("LineId") or f"{mark}_l{idx}"
+            description = pick(raw, "description", "desc", "Description", "name", "Name") or ""
+            amount = pick(raw, "amount", "lineTotal", "net", "value", default="")
+            vat_rate = pick(raw, "vat", "vatRate", "vatPercent", "vatAmount", default="")
+            prepared.append({
+                "id": line_id,
+                "description": description,
+                "amount": amount,
+                "vat": vat_rate,
+                "category": ""   # αρχικά κενό, user θα το συμπληρώσει
+            })
+        epsilon_list.append({
+            "mark": mark,
+            "AA": aa,
+            "AFM": vat_doc,
+            "lines": prepared
+        })
+    return epsilon_list
+
 def load_epsilon_cache_for_vat(vat: str) -> List[Dict]:
+    """
+    Αν υπάρχει το per-vat epsilon αρχείο το διαβάζει, αλλιώς το χτίζει
+    από το {vat}_invoices.json (με build_epsilon_from_invoices) και το αποθηκεύει.
+    """
     path = epsilon_file_path_for(vat)
     if os.path.exists(path):
         try:
@@ -235,7 +286,19 @@ def load_epsilon_cache_for_vat(vat: str) -> List[Dict]:
         except Exception:
             log.exception("Could not read epsilon cache for %s", vat)
             return []
-    return []
+    # build from invoices if possible
+    try:
+        epsilon_list = build_epsilon_from_invoices(vat)
+        if epsilon_list:
+            try:
+                json_write(path, epsilon_list)
+                log.info("Built epsilon cache for %s from %s_invoices.json (%d entries)", vat, vat, len(epsilon_list))
+            except Exception:
+                log.exception("Could not write newly built epsilon cache for %s", vat)
+        return epsilon_list
+    except Exception:
+        log.exception("Failed to build epsilon cache from invoices for %s", vat)
+        return []
 
 def save_epsilon_cache_for_vat(vat: str, data: List[Dict]):
     path = epsilon_file_path_for(vat)
@@ -657,7 +720,7 @@ def credentials_get_settings():
         return jsonify({"status": "ok", "settings": settings})
     except Exception as e:
         log.exception("Could not return settings")
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({"status":"error","error":str(e)}), 500
 
 
 
@@ -670,7 +733,7 @@ def search():
     error = None
     mark = ""
     modal_summary = None
-    lines = []
+    invoice_lines = []
     customer_categories = []
 
     def _map_invoice_type_local(code):
@@ -678,7 +741,7 @@ def search():
             "1.1": "Τιμολόγιο Πώλησης",
             "1.2": "Τιμολόγιο Πώλησης / Ενδοκοινοτικές Παραδόσεις",
             "1.3": "Τιμολόγιο Πώλησης / Παραδόσεις Τρίτων Χωρών",
-            "1.4": "Τιμολόγιο Πώλησης / Πώληση για Λογαριασμό ΤΡΙΤΩΝ",
+            "1.4": "Τιμολόγιο Πώλησης / Πώληση για Λογαριασμό Τρίτων",
             "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
             "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
             "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
@@ -698,7 +761,6 @@ def search():
         except Exception:
             return 0.0
 
-    # helper to pick field variations
     def pick(src: dict, *keys, default=""):
         for k in keys:
             if k in src and src.get(k) not in (None, ""):
@@ -715,68 +777,45 @@ def search():
         elif not mark or not mark.isdigit() or len(mark) != 15:
             error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
         else:
-            # load per-customer JSON file
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             cache = json_read(customer_file)
-            doc = next((d for d in cache if str(d.get("mark", "")).strip() == mark), None)
 
-            if not doc:
+            # βρες *όλα* τα docs που έχουν αυτό το MARK
+            docs_for_mark = [d for d in cache if str(d.get("mark","")).strip() == mark]
+
+            if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                result = doc
-
-                vat_doc = pick(doc, "AFM", "AFM_issuer", default="")
-                total_net_f = float_from_comma(pick(doc, "totalNetValue", "totalNet", "net", default=0))
-                total_vat_f = float_from_comma(pick(doc, "totalVatAmount", "totalVat", "vat", default=0))
-                total_value_f = total_net_f + total_vat_f
-
-                modal_summary = {
-                    "mark": mark,
-                    "AA": pick(doc, "AA", "aa", default=""),
-                    "AFM": vat_doc,
-                    "Name": pick(doc, "Name", "Name_issuer", default=""),
-                    "series": pick(doc, "series", "Series", "serie", default=""),
-                    "number": pick(doc, "number", "aa", "AA", default=""),
-                    "issueDate": pick(doc, "issueDate", "issue_date", default=""),
-                    "totalNetValue": f"{total_net_f:.2f}".replace(".", ","),
-                    "totalVatAmount": f"{total_vat_f:.2f}".replace(".", ","),
-                    "totalValue": f"{total_value_f:.2f}".replace(".", ","),
-                    "type": pick(doc, "type", "invoiceType", default=""),
-                    "type_name": mapper(pick(doc, "type", "invoiceType", default=""))
-                }
-
-                # Load existing epsilon cache for the VAT to pre-fill categories if already saved
+                # εάν υπάρχουν πολλαπλά instances -> θεωρούμε κάθε instance ως ξεχωριστή "γραμμή"
+                # κατασκευάζουμε invoice_lines από τα docs_for_mark
+                invoice_lines = []
+                # φορτώνουμε existing epsilon entries για προ-γέμισμα κατηγοριών
                 epsilon_cache = load_epsilon_cache_for_vat(vat)
                 existing_epsilon_entry = next((e for e in epsilon_cache if str(e.get("mark","")) == str(mark)), None)
+                saved_lines = existing_epsilon_entry.get("lines", []) if existing_epsilon_entry else []
 
-                # Lines for Epsilon Excel (εάν υπάρχουν)
-                raw_lines = doc.get("lines") or doc.get("Lines") or doc.get("Positions") or []
-                prepared_lines = []
-                for idx, raw in enumerate(raw_lines):
-                    # Ensure an id so we can match to epsilon saved lines
-                    line_id = raw.get("id") or raw.get("line_id") or raw.get("LineId") or f"{mark}_l{idx}"
+                for idx, inst in enumerate(docs_for_mark):
+                    # κάθε instance μπορεί να μην έχει description/amount/vat fields -> ομαλοποιούμε
+                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                    # description: δοκιμάζουμε διάφορα πεδία (αν δεν υπάρχουν βάζουμε σύντομη περιγραφή)
+                    description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
+                    # ποσό -> προσπαθούμε να πάρουμε το totalNetValue/totalValue για αυτό το instance
+                    amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
+                    # vat -> προσπαθούμε να πάρουμε το totalVatAmount ή vatRate
+                    vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
 
-                    description = pick(raw, "description", "desc", "Description", "name", "Name") or ""
-                    amount = pick(raw, "amount", "lineTotal", "net", "value", default="")
-                    vat_rate = pick(raw, "vat", "vatRate", "vatPercent", "vatAmount", default="")
-
-                    # try to find saved category in existing epsilon entry
+                    # αν υπάρχει αποθηκευμένη κατηγορία στη θέση idx ή με ίδιο id -> πάρ' την
                     category = ""
-                    if existing_epsilon_entry:
-                        saved_lines = existing_epsilon_entry.get("lines", [])
-                        # first try to match by id
-                        saved_match = next((s for s in saved_lines if s.get("id") == line_id), None)
+                    if saved_lines:
+                        saved_match = next((s for s in saved_lines if str(s.get("id","")) == str(line_id)), None)
                         if not saved_match:
-                            # fallback: try match by description and amount
-                            saved_match = next((s for s in saved_lines if (s.get("description","") == description and str(s.get("amount","")) == str(amount))), None)
-                        if not saved_match:
-                            # fallback: try by index
+                            # fallback by index
                             if idx < len(saved_lines):
                                 saved_match = saved_lines[idx]
                         if saved_match:
                             category = saved_match.get("category", "") or ""
 
-                    prepared_lines.append({
+                    invoice_lines.append({
                         "id": line_id,
                         "description": description,
                         "amount": amount,
@@ -784,22 +823,37 @@ def search():
                         "category": category
                     })
 
-                lines = prepared_lines
-                # attach lines to modal_summary so template can use modal_summary.lines
-                modal_summary["lines"] = lines
+                # φτιάχνουμε modal_summary βάσει του πρώτου instance αλλά με αθροιστικά πεδία
+                first = docs_for_mark[0]
+                total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
+                total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
+                total_value = total_net + total_vat
 
-                # Κατηγορίες ανά πελάτη: προτίμηση expense_tags στο credential
+                modal_summary = {
+                    "mark": mark,
+                    "AA": pick(first, "AA", "aa", default=""),
+                    "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                    "Name": pick(first, "Name", "Name_issuer", default=""),
+                    "series": pick(first, "series", "Series", "serie", default=""),
+                    "number": pick(first, "number", "aa", "AA", default=""),
+                    "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
+                    "totalNetValue": f"{total_net:.2f}".replace(".", ","),
+                    "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
+                    "totalValue": f"{total_value:.2f}".replace(".", ","),
+                    "type": pick(first, "type", "invoiceType", default=""),
+                    "type_name": mapper(pick(first, "type", "invoiceType", default=""))
+                }
+
+                # προσθέτουμε τις γραμμές στο modal_summary και στέλνουμε invoice_lines ξεχωριστά
+                modal_summary["lines"] = invoice_lines
+
+                # Κατηγορίες ανά πελάτη
                 if active_cred:
-                    # credentials may store expense_tags as list of keys OR comma separated string
                     raw_tags = active_cred.get("expense_tags") or []
                     if isinstance(raw_tags, str):
-                        # split by comma
                         customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
                     elif isinstance(raw_tags, list):
                         customer_categories = raw_tags
-                    else:
-                        customer_categories = []
-                # fallback to sensible defaults if none configured
                 if not customer_categories:
                     customer_categories = [
                         "αγορες_εμπορευματων",
@@ -815,10 +869,12 @@ def search():
         error=error,
         mark=mark,
         modal_summary=modal_summary,
-        lines=lines,
+        invoice_lines=invoice_lines,
         customer_categories=customer_categories,
         active_page="search"
     )
+
+
 
 @app.route("/save_epsilon", methods=["POST"])
 def save_epsilon():
@@ -915,12 +971,12 @@ def save_accounts():
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
     """
-    Αποθηκεύει τα δεδομένα summary του MARK:
-      - σε per-customer JSON
-      - στο Excel του πελάτη (per-VAT)
-      - **ΚΑΙ** αποθηκεύει/ενημερώνει το per-VAT epsilon αρχείο με τις γραμμές
-        (συμπεριλαμβάνει τις κατηγορίες που όρισε ο χρήστης για κάθε γραμμή).
-    Χρησιμοποιείται από το search modal (επιλογή κατηγοριών/lines).
+    Save MARK summary + per-line categories into:
+      - per-customer summary JSON (data/{vat}_summary.json)
+      - per-customer Excel (uploads/{vat}_invoices.xlsx)
+      - per-VAT epsilon cache (data/epsilon/{vat}_epsilon_invoices.json)
+    If the submitted summary lacks 'lines', we rebuild them from the customer's invoices.json
+    (so multiple instances with same mark become separate lines).
     """
     try:
         payload = request.form.get("summary_json") or request.get_data(as_text=True)
@@ -929,6 +985,7 @@ def save_summary():
             return redirect(url_for("search"))
         summary = json.loads(payload)
     except Exception as e:
+        log.exception("save_summary: invalid JSON payload")
         flash(f"Invalid summary data: {e}", "error")
         return redirect(url_for("search"))
 
@@ -938,7 +995,7 @@ def save_summary():
         flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
-    # float parsing helper
+    # helper
     def float_from_comma(value):
         if value is None:
             return 0.0
@@ -950,32 +1007,77 @@ def save_summary():
         except Exception:
             return 0.0
 
-    # compute totals
-    total_net = float_from_comma(summary.get("totalNetValue", 0))
-    total_vat = float_from_comma(summary.get("totalVatAmount", 0))
-    total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
+    # Ensure lines exist: if client didn't provide them, try to reconstruct from invoices file
+    lines = summary.get("lines", []) or []
+    if not lines:
+        try:
+            # load all docs for this VAT and same mark
+            mark = str(summary.get("mark", "")).strip()
+            docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+            all_docs = json_read(docs_file)
+            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
+            reconstructed = []
+            for idx, inst in enumerate(docs_for_mark):
+                ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                description = inst.get("description") or inst.get("desc") or inst.get("Description") or inst.get("Name") or inst.get("Name_issuer") or f"Instance #{idx+1}"
+                amount = inst.get("amount") or inst.get("lineTotal") or inst.get("totalNetValue") or inst.get("totalValue") or ""
+                vat_rate = inst.get("vat") or inst.get("vatRate") or inst.get("vatPercent") or inst.get("totalVatAmount") or ""
+                reconstructed.append({
+                    "id": ln_id,
+                    "description": description,
+                    "amount": amount,
+                    "vat": vat_rate,
+                    "category": ""
+                })
+            lines = reconstructed
+        except Exception:
+            log.exception("save_summary: failed to reconstruct lines from invoices file")
+            lines = []
 
-    # create row for Excel
-    row = {
-        "MARK": str(summary.get("mark", "")),
-        "ΑΦΜ": vat,
-        "Επωνυμία": summary.get("Name", ""),
-        "Σειρά": summary.get("series", ""),
-        "Αριθμός": summary.get("number", ""),
-        "Ημερομηνία": summary.get("issueDate", ""),
-        "Είδος": summary.get("type", ""),
-        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
-        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
-    }
+    # Normalize lines: ensure dicts with required keys
+    normalized_lines = []
+    for idx, ln in enumerate(lines):
+        if not isinstance(ln, dict):
+            continue
+        ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
+        normalized_lines.append({
+            "id": ln_id,
+            "description": ln.get("description","") or ln.get("desc","") or "",
+            "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
+            "vat": ln.get("vat","") or ln.get("vatRate","") or "",
+            "category": ln.get("category","") or ""
+        })
 
-    # Append to per-customer JSON summary
-    append_summary_to_customer_file(summary, vat)
+    # attach normalized lines back into summary
+    summary["lines"] = normalized_lines
 
-    # Save/update Excel
+    # --- append summary to per-customer summary JSON (if not duplicate) ---
+    try:
+        append_summary_to_customer_file(summary, vat)
+    except Exception:
+        log.exception("save_summary: append_summary_to_customer_file failed")
+
+    # --- Save/update Excel as before ---
     excel_path = excel_path_for(vat=vat)
     try:
+        total_net = float_from_comma(summary.get("totalNetValue", 0))
+        total_vat = float_from_comma(summary.get("totalVatAmount", 0))
+        total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
+
+        row = {
+            "MARK": str(summary.get("mark", "")),
+            "ΑΦΜ": vat,
+            "Επωνυμία": summary.get("Name", ""),
+            "Σειρά": summary.get("series", ""),
+            "Αριθμός": summary.get("number", ""),
+            "Ημερομηνία": summary.get("issueDate", ""),
+            "Είδος": summary.get("type", ""),
+            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
+            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+        }
+
         df_new = pd.DataFrame([row]).astype(str).fillna("")
         if os.path.exists(excel_path):
             df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
@@ -984,64 +1086,59 @@ def save_summary():
         else:
             os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
             df_new.to_excel(excel_path, index=False, engine="openpyxl")
-    except Exception as e:
+    except Exception:
         log.exception("save_summary: Excel write failed")
-        flash(f"Excel save failed: {e}", "error")
-        return redirect(url_for("search"))
+        flash("Excel save failed", "error")
+        # do not abort — proceed to save epsilon as well
 
-    # ----------------------------
-    # Επιπλέον: αποθήκευση των γραμμών με χαρακτηρισμούς σε per-VAT epsilon αρχείο
-    # ----------------------------
+    # --- Save per-line categories into epsilon per-vat file ---
     try:
-        # Προετοιμάζουμε αντικείμενο για εφόσον θέλουμε να αποθηκεύσουμε για Epsilon
         epsilon_cache = load_epsilon_cache_for_vat(vat)
-        mark = str(summary.get("mark", ""))
+        mark = str(summary.get("mark","")).strip()
 
-        # Build epsilon entry: keep essential summary fields + lines
         epsilon_entry = {
+            # copy many useful original fields (so epsilon row resembles invoices.json instance)
             "mark": mark,
-            "AFM": summary.get("AFM", vat),
-            "Name": summary.get("Name", ""),
-            "series": summary.get("series", ""),
-            "number": summary.get("number", ""),
-            "issueDate": summary.get("issueDate", ""),
-            "totalNetValue": summary.get("totalNetValue", ""),
-            "totalVatAmount": summary.get("totalVatAmount", ""),
-            "totalValue": summary.get("totalValue", ""),
-            # lines: ensure shape -> id, description, amount, vat, category
+            "issueDate": summary.get("issueDate",""),
+            "series": summary.get("series",""),
+            "aa": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "AA": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "type": summary.get("type",""),
+            "vatCategory": summary.get("vatCategory",""),
+            "totalNetValue": summary.get("totalNetValue",""),
+            "totalVatAmount": summary.get("totalVatAmount",""),
+            "totalValue": summary.get("totalValue",""),
+            "classification": summary.get("classification",""),
+            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
+            "Name_issuer": summary.get("Name_issuer","") or summary.get("Name",""),
+            "AFM": summary.get("AFM","") or vat,
             "lines": []
         }
 
-        # summary may already include "lines" updated by the client
-        provided_lines = summary.get("lines", []) or []
-        # normalize lines: ensure id, description, amount, vat, category
-        for idx, ln in enumerate(provided_lines):
-            if not isinstance(ln, dict):
-                continue
-            ln_id = ln.get("id") or f"{mark}_l{idx}"
+        for ln in normalized_lines:
             epsilon_entry["lines"].append({
-                "id": ln_id,
-                "description": ln.get("description", "") or ln.get("desc", "") or "",
-                "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
-                "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
-                "category": ln.get("category", "") or ""
+                "id": ln.get("id",""),
+                "description": ln.get("description",""),
+                "amount": ln.get("amount",""),
+                "vat": ln.get("vat",""),
+                "category": ln.get("category","")
             })
 
-        # Merge into epsilon_cache (replace if same mark)
+        # replace existing entry for same mark
         existing_index = next((i for i, d in enumerate(epsilon_cache) if str(d.get("mark","")) == mark), None)
         if existing_index is not None:
             epsilon_cache[existing_index] = epsilon_entry
         else:
             epsilon_cache.append(epsilon_entry)
 
-        # Save epsilon cache
         save_epsilon_cache_for_vat(vat, epsilon_cache)
-
     except Exception:
-        log.exception("Failed to save epsilon per-line categories")
+        log.exception("save_summary: failed saving epsilon cache")
 
-    flash(f"Saved summary for VAT {vat} to JSON and Excel (and updated epsilon cache)", "success")
+    flash(f"Saved summary for VAT {vat} and updated epsilon cache", "success")
     return redirect(url_for("list_invoices"))
+
+
 
 
 
