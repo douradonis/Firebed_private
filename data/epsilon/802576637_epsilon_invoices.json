@@ -1,32 +1,25 @@
 [
   {
-    "mark": "400009406874951",
-    "issueDate": "12/05/2025",
-    "series": "8Μ0ΤΔΑ",
-    "aa": "3669",
-    "AA": "3669",
+    "mark": "400010783401151",
+    "issueDate": "01/09/2025",
+    "series": "11Μ0ΤΔΑ",
+    "aa": "7061",
+    "AA": "7061",
     "type": "1.1",
     "vatCategory": "",
-    "totalNetValue": "195,30",
-    "totalVatAmount": "42,82",
-    "totalValue": "238,12",
+    "totalNetValue": "37,01",
+    "totalVatAmount": "8,88",
+    "totalValue": "45,89",
     "classification": "",
     "AFM_issuer": "802576637",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
     "AFM": "802576637",
     "lines": [
       {
-        "id": "400009406874951_inst0",
+        "id": "400010783401151_inst0",
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "172,80",
-        "vat": "41,47",
-        "category": "αγορες_α_υλων"
-      },
-      {
-        "id": "400009406874951_inst1",
-        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "22,50",
-        "vat": "1,35",
+        "amount": "37,01",
+        "vat": "8,88",
         "category": "αγορες_εμπορευματων"
       }
     ]

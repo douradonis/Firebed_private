@@ -61,8 +61,31 @@ log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
 GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
 # keep settings inside data/ so it's co-located with other app files
 SETTINGS_FILE = os.path.join(DATA_DIR, "credentials_settings.json")
+VAT_MAP = {
+    "1": "ΦΠΑ 24%",
+    "2": "ΦΠΑ 13%",
+    "3": "ΦΠΑ 6%",
+    "4": "ΦΠΑ 17%",
+    "5": "ΦΠΑ 9%",
+    "6": "ΦΠΑ 4%",
+    "7": "Εξαιρούμενο άρθρο 39α",
+    "8": "Εξαιρούμενο άρθρο 47β",
+    "9": "Άνευ ΦΠΑ",
+}
 
 
+def load_invoices():
+    if os.path.exists(INVOICES_FILE):
+        with open(INVOICES_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+# φορτώνουμε epsilon_invoices.json
+def load_epsilon():
+    if os.path.exists(EPSILON_FILE):
+        with open(EPSILON_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 def get_global_accounts_from_credentials() -> Dict:
     """
     Διαβάζει το credentials.json και επιστρέφει το αντικείμενο accounts
@@ -1137,12 +1160,6 @@ def save_summary():
 
     flash(f"Saved summary for VAT {vat} and updated epsilon cache", "success")
     return redirect(url_for("list_invoices"))
-
-
-
-
-
-
 
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
