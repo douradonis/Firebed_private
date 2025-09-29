@@ -1641,29 +1641,25 @@ def delete_invoices():
         flash("No marks selected", "error")
         return redirect(url_for("list_invoices"))
 
-    # determine active client's excel file (same logic as list view)
+    # determine active client's excel file
     active = get_active_credential_from_session()
     excel_path = DEFAULT_EXCEL_FILE
     if active and active.get("vat"):
         excel_path = excel_path_for(vat=active.get("vat"))
     elif active and active.get("name"):
         excel_path = excel_path_for(cred_name=active.get("name"))
-    else:
-        excel_path = DEFAULT_EXCEL_FILE
 
     deleted_from_excel = 0
     try:
         if os.path.exists(excel_path):
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-            # ensure MARK column exists
             if "MARK" in df.columns:
-                # normalize MARK column to strings w/o surrounding spaces
                 marks_series = df["MARK"].astype(str).str.strip()
                 mask = marks_series.isin(marks_to_delete)
                 num_matches = int(mask.sum())
                 if num_matches > 0:
                     df_remaining = df[~mask].copy()
-                    # Write back only if something will change
+                    # Write back even αν df_remaining είναι κενό
                     df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
                     deleted_from_excel = num_matches
                     log.info("Deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
@@ -1676,7 +1672,7 @@ def delete_invoices():
     except Exception:
         log.exception("Error while deleting from Excel")
 
-    # delete matching entries from per-VAT epsilon cache for the active VAT
+    # delete matching entries from per-VAT epsilon cache
     deleted_from_epsilon = 0
     try:
         vat = active.get("vat") if active else None
@@ -1685,7 +1681,6 @@ def delete_invoices():
             if os.path.exists(epsilon_path):
                 epsilon_cache = json_read(epsilon_path) or []
                 before_len = len(epsilon_cache)
-                # keep only entries whose mark is NOT in marks_to_delete
                 new_cache = [e for e in epsilon_cache if str(e.get("mark", "")).strip() not in marks_to_delete]
                 after_len = len(new_cache)
                 deleted_from_epsilon = before_len - after_len
@@ -1701,9 +1696,10 @@ def delete_invoices():
     except Exception:
         log.exception("Error while deleting from epsilon cache")
 
-    # (optional) you could also remove summaries from data/{vat}_summary.json if desired.
     flash(f"Deleted {len(marks_to_delete)} selected mark(s). Removed from Excel: {deleted_from_excel}, from Epsilon cache: {deleted_from_epsilon}", "success")
     return redirect(url_for("list_invoices"))
+
+
 
 
 
