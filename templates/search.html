@@ -166,7 +166,24 @@ document.addEventListener('DOMContentLoaded', function() {
   let summaryData;
   try { summaryData = JSON.parse(summaryInput.value || '{}'); }
   catch(e) { console.error("Invalid JSON:", e); summaryData={}; }
+
+  // Ensure lines array exists
   if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
+
+  // If modal_summary contains invoice-level χαρακτηρισμός, use it to preselect categories
+  const invoiceLevelChar = (summaryData['χαρακτηρισμός'] || summaryData['characteristic'] || summaryData['classification'] || "").toString().trim();
+
+  // If modal_summary.lines contains per-line category values, merge them into summaryData.lines by id
+  if (Array.isArray(summaryData.lines) && summaryData.lines.length > 0) {
+    // normalize ids to strings
+    summaryData.lines = summaryData.lines.map(l => {
+      if (!l) return l;
+      l.id = l.id !== undefined ? String(l.id) : (l.line_id !== undefined ? String(l.line_id) : "");
+      // possible fallback keys for category
+      l.category = l.category || l.cat || l.line_category || l['κατηγορία'] || "";
+      return l;
+    });
+  }
 
   function ensureLine(id, amount, vat, vatCat, existingCat="") {
     let idx = summaryData.lines.findIndex(l => String(l.id)===String(id));
@@ -179,46 +196,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function syncHidden(){ summaryInput.value = JSON.stringify(summaryData); }
 
-  // Multi-line table
+  // Multi-line table: for each row, prefer category from summaryData.lines (if present),
+  // otherwise, if invoiceLevelChar exists and matches an option, set that.
   document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr=>{
-    const lid=tr.dataset.lineId;
-    const amt=tr.querySelector('td:nth-child(3)')?.innerText.trim()||"";
-    const vat=tr.querySelector('td:nth-child(4)')?.innerText.trim()||"";
-    const vatCat=tr.querySelector('td:nth-child(2)')?.innerText.trim()||"";
-    const sel=tr.querySelector('select.expense-category');
-    const existingCat=sel?.value||"";
-    const idx=ensureLine(lid, amt, vat, vatCat, existingCat);
-    if(sel){ sel.value=summaryData.lines[idx].category||""; sel.addEventListener('change',()=>{summaryData.lines[idx].category=sel.value; syncHidden();}); }
+    const lid = tr.dataset.lineId;
+    const amt = tr.querySelector('td:nth-child(3)')?.innerText.trim()||"";
+    const vat = tr.querySelector('td:nth-child(4)')?.innerText.trim()||"";
+    const vatCat = tr.querySelector('td:nth-child(2)')?.innerText.trim()||"";
+    const sel = tr.querySelector('select.expense-category');
+
+    // find if we have a saved category in summaryData.lines
+    const existingLine = summaryData.lines.find(l => String(l.id) === String(lid));
+    const existingCat = existingLine && existingLine.category ? existingLine.category : "";
+
+    const idx = ensureLine(lid, amt, vat, vatCat, existingCat);
+
+    if (sel) {
+      // if no per-line category but we have invoiceLevelChar, and option exists, apply it
+      if ((!summaryData.lines[idx].category || summaryData.lines[idx].category === "") && invoiceLevelChar) {
+        const opt = Array.from(sel.options).find(o => String(o.value).trim() === invoiceLevelChar);
+        if (opt) {
+          summaryData.lines[idx].category = invoiceLevelChar;
+        }
+      }
+      // finally set the select to the (possibly updated) category
+      sel.value = summaryData.lines[idx].category || "";
+      sel.addEventListener('change', () => {
+        summaryData.lines[idx].category = sel.value;
+        syncHidden();
+      });
+    }
   });
 
   // Single-line buttons
-  const singleLine=document.getElementById('singleLine');
-  if(singleLine){
-    const lid=singleLine.dataset.lineId;
-    const amt=singleLine.dataset.amount||"";
-    const vat=singleLine.dataset.vat||"";
-    const vatCat=singleLine.dataset.vatcat||"";
-    const preSel=summaryData.lines.find(l=>l.id===lid)?.category||"";
-    const idx=ensureLine(lid, amt, vat, vatCat, preSel);
+  const singleLine = document.getElementById('singleLine');
+  if (singleLine){
+    const lid = singleLine.dataset.lineId;
+    const amt = singleLine.dataset.amount||"";
+    const vat = singleLine.dataset.vat||"";
+    const vatCat = singleLine.dataset.vatcat||"";
+    const idx = ensureLine(lid, amt, vat, vatCat, "");
 
-    const buttons=document.querySelectorAll('#categoryButtons .category-btn');
-    function markActive(cat){ buttons.forEach(b=>{ b.classList.toggle('bg-sky-600',b.dataset.cat===cat); b.classList.toggle('text-white',b.dataset.cat===cat); }); }
-    if(preSel) markActive(preSel);
+    // If summaryData.lines[idx].category empty but invoiceLevelChar matches one button -> set it
+    const buttons = document.querySelectorAll('#categoryButtons .category-btn');
+    function markActive(cat){
+      buttons.forEach(b=>{
+        const isActive = (b.dataset.cat === cat);
+        b.classList.toggle('bg-sky-600', isActive);
+        b.classList.toggle('text-white', isActive);
+      });
+    }
+
+    // prefer per-line category if available
+    const perLineCat = summaryData.lines[idx] && summaryData.lines[idx].category ? summaryData.lines[idx].category : "";
+    if (perLineCat) {
+      markActive(perLineCat);
+    } else if (invoiceLevelChar) {
+      // if invoice-level characteristic exists, and matches a button, apply it
+      const foundBtn = Array.from(buttons).find(b => b.dataset.cat === invoiceLevelChar);
+      if (foundBtn) {
+        summaryData.lines[idx].category = invoiceLevelChar;
+        markActive(invoiceLevelChar);
+      }
+    }
 
     buttons.forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const cat=btn.dataset.cat;
-        summaryData.lines[idx].category=(summaryData.lines[idx].category===cat)?"":cat;
+      btn.addEventListener('click', ()=>{
+        const cat = btn.dataset.cat;
+        summaryData.lines[idx].category = (summaryData.lines[idx].category === cat) ? "" : cat;
         markActive(summaryData.lines[idx].category);
         syncHidden();
       });
     });
-    const clearBtn=document.getElementById('clearCategory');
-    if(clearBtn) clearBtn.addEventListener('click',()=>{ summaryData.lines[idx].category=""; markActive(""); syncHidden(); });
+
+    const clearBtn = document.getElementById('clearCategory');
+    if (clearBtn) clearBtn.addEventListener('click', ()=>{
+      summaryData.lines[idx].category = "";
+      markActive("");
+      syncHidden();
+    });
   }
 
-  const modal=document.getElementById('summaryModal');
-  if(modal) modal.style.display='flex';
+  // When modal opens, show it and sync hidden input
+  const modal = document.getElementById('summaryModal');
+  if (modal) modal.style.display='flex';
   syncHidden();
 });
 </script>
