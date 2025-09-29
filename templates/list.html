@@ -189,7 +189,10 @@ $(document).ready(function(){
       scrollY: '55vh',
       scrollX: true,
       scrollCollapse: true,
-      fixedHeader: true,
+      fixedHeader: {
+      header: true,
+      headerOffset: 0
+                  },
       colReorder: true,
       autoWidth: false,
       columnDefs: [{ orderable: false, targets: 0 }] 
@@ -204,6 +207,12 @@ $(document).ready(function(){
         $(this).toggle($(this).text().toLowerCase().indexOf(q) !== -1);
       });
     });
+    // Force redraw after DataTable initialization to fix alignment
+    setTimeout(function(){
+      $('.summary-table').DataTable().columns.adjust().draw();
+}, 100);
+
+  
   }
 
   // select-all checkbox

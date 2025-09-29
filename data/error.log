@@ -486,3 +486,237 @@ NameError: name 'tempfile' is not defined. Did you mean: 'compile'? Or did you f
 
 2025-09-29 11:31:48,014 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
 
+2025-09-29 11:34:09,436 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:34:10,500 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:34:49,691 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:34:49,993 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:34:57,720 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:34:57,875 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:34:58,982 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:34:59,249 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011075598890&force_edit=1
+
+2025-09-29 11:35:00,590 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011075598890&force_edit=1
+
+2025-09-29 11:35:00,593 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-09-29 11:35:00,594 INFO epsilon: updated per-line categories for mark 400011075598890 (vat 802576637)
+
+2025-09-29 11:35:00,670 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011075598890&force_edit=1
+
+2025-09-29 11:35:00,953 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:35:06,082 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:35:06,239 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:35:07,761 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:35:07,927 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:35:09,581 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:35:09,608 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-09-29 11:35:09,796 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:35:09,981 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:36:11,862 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:36:12,096 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:36:16,581 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:36:16,845 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-29 11:36:26,559 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-09-29 11:36:26,793 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:36:27,852 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:36:28,028 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:36:29,702 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:36:29,723 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-09-29 11:36:29,882 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 11:36:30,467 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:38:27,889 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:38:28,191 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:38:35,877 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:38:36,159 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:40:21,014 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:40:21,033 ERROR Template rendering failed for list.html: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 418, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/list.html", line 245, in template
+    const form = $('<form method="POST" action="{{ url_for("delete_invoices") }}"></form>');
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+
+
+2025-09-29 11:40:21,225 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:40:42,310 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:40:42,610 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:43:24,951 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:43:24,971 INFO Deleted 1 marks from Excel /workspaces/Firebed_private/uploads/802576637_invoices.xlsx: ['400011081061618']
+
+2025-09-29 11:43:24,972 INFO Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-09-29 11:43:25,121 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:43:25,513 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:43:55,965 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:43:56,210 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:45:10,702 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:45:11,960 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:45:47,799 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:45:48,140 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:48:59,820 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:49:00,410 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:50:03,983 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:50:04,457 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:50:09,226 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:50:09,394 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 11:51:36,835 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 11:51:37,175 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:11:57,897 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:11:58,950 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:15:48,446 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:15:48,875 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:29:28,482 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:29:29,637 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:32:01,981 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:32:02,331 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:36:51,444 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:36:51,946 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:37:13,158 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:37:13,427 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:40:29,203 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:40:31,862 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:40:35,956 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:40:36,212 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:41:24,392 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:41:24,744 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:44:08,242 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:44:08,571 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:45:53,041 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:45:53,367 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:46:00,084 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:46:00,368 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:46:02,804 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:46:03,112 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:49:02,465 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:49:02,904 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:49:16,083 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:49:16,401 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:49:33,549 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:49:33,795 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 12:49:34,779 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-09-29 12:49:35,133 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:53:13,229 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:53:14,184 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:54:33,069 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:54:33,452 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:54:51,651 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:54:51,922 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-09-29 12:54:57,649 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=None
+
+2025-09-29 12:54:57,872 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
