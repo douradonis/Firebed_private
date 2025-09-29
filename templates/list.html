@@ -73,6 +73,38 @@
   cursor:pointer;
 }
 .download-menu a:hover, .download-menu button:hover { background:#f3f4f6; }
+
+/* Pop-up modal */
+#deleteModal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5);
+}
+#deleteModal .modal-content {
+  background: #fff;
+  margin: 15% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 360px;
+  text-align: center;
+}
+#deleteModal .modal-buttons {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+#deleteModal .modal-buttons button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+#deleteModal .modal-buttons .cancel { background:#6c757d; color:#fff; }
+#deleteModal .modal-buttons .confirm { background:#dc3545; color:#fff; }
 </style>
 
 <!-- DataTables + ColReorder + ColResize -->
@@ -87,7 +119,6 @@
     <h2 class="text-lg font-semibold">Λίστα Παραστατικών</h2>
     <div class="flex gap-2 items-center">
       {% if file_exists %}
-        <!-- Download dropdown: Εξοδολόγιο (download existing) + Epsilon (placeholder) -->
         <div class="download-dropdown" id="downloadDropdown">
           <button id="downloadToggle" class="download-toggle" type="button" aria-haspopup="true" aria-expanded="false">
             ⬇️ Κατέβασμα .xlsx
@@ -109,7 +140,6 @@
     <button id="deleteBtn" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
   </div>
 
-  <!-- Flash messages -->
   {% if error %}
     <div class="flash-banner flash-error">
       {{ error }}
@@ -131,6 +161,17 @@
     {% endif %}
   </div>
 </div>
+
+<!-- Pop-up Modal for Delete Confirmation -->
+<div id="deleteModal">
+  <div class="modal-content">
+    <div id="deleteModalMessage">Θέλεις σίγουρα να διαγράψεις τις επιλεγμένες εγγραφές;</div>
+    <div class="modal-buttons">
+      <button class="cancel">Ακύρωση</button>
+      <button class="confirm">Διαγραφή</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -141,6 +182,7 @@
 
 <script>
 $(document).ready(function(){
+  // DataTables setup
   try {
     const dt = $('.summary-table').DataTable({
       paging: true,
@@ -150,15 +192,10 @@ $(document).ready(function(){
       fixedHeader: true,
       colReorder: true,
       autoWidth: false,
-      columnDefs: [{ orderable: false, targets: 0 }] // checkbox column
+      columnDefs: [{ orderable: false, targets: 0 }] 
     });
-
-    // Resizable columns with sticky headers
     dt.colResize({ resizeMode: 'flex' });
-
-    $('#globalSearch').on('input', function(){
-      dt.search(this.value).draw();
-    });
+    $('#globalSearch').on('input', function(){ dt.search(this.value).draw(); });
   } catch(e){
     console.warn("DataTables not initialized:", e);
     $('#globalSearch').on('input', function(){
@@ -175,29 +212,33 @@ $(document).ready(function(){
     $('input[type="checkbox"][name="delete_mark"]').prop('checked', checked);
   });
 
+  // Delete button -> open modal
+  const modal = $('#deleteModal');
+  let marksToDelete = [];
   $('#deleteBtn').on('click', function(){
-    const selected = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
-    if(!selected.length){
+    marksToDelete = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
+    if(!marksToDelete.length){
       alert('Επίλεξε πρώτα γραμμές για διαγραφή.');
       return;
     }
-    if(!confirm(`Θες σίγουρα να διαγράψεις ${selected.length} εγγραφή(ες);`)) return;
+    $('#deleteModalMessage').text(`Θες σίγουρα να διαγράψεις ${marksToDelete.length} εγγραφή(ες);`);
+    modal.show();
+  });
+
+  // Modal buttons
+  modal.find('.cancel').on('click', function(){ modal.hide(); });
+  modal.find('.confirm').on('click', function(){
     const form = $('<form method="POST" action="{{ url_for("delete_invoices") }}"></form>');
-    selected.forEach(function(s){
+    marksToDelete.forEach(function(s){
       form.append($('<input>').attr('type','hidden').attr('name','delete_mark').val(s));
     });
     $('body').append(form);
     form.submit();
   });
 
-  // Auto fade-out flash banners after 5 seconds
-  const flashBanners = document.querySelectorAll('.flash-banner');
-  flashBanners.forEach(b => {
-    setTimeout(() => {
-      b.style.transition = "opacity 0.8s ease";
-      b.style.opacity = "0";
-      setTimeout(()=>b.remove(), 800);
-    }, 5000);
+  // Auto fade-out flash banners
+  document.querySelectorAll('.flash-banner').forEach(b => {
+    setTimeout(() => { b.style.transition = "opacity 0.8s ease"; b.style.opacity = "0"; setTimeout(()=>b.remove(),800); }, 5000);
   });
 
   // Download dropdown behaviour
@@ -205,46 +246,17 @@ $(document).ready(function(){
     const toggle = document.getElementById('downloadToggle');
     const menu = document.getElementById('downloadMenu');
     const epsilon = document.getElementById('epsilonExport');
-
     if(!toggle || !menu) return;
-
-    function openMenu(){
-      menu.classList.remove('hidden');
-      toggle.setAttribute('aria-expanded','true');
-    }
-    function closeMenu(){
-      menu.classList.add('hidden');
-      toggle.setAttribute('aria-expanded','false');
-    }
-
-    toggle.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(menu.classList.contains('hidden')) openMenu(); else closeMenu();
-    });
-
-    // close when clicking outside
-    document.addEventListener('click', function(e){
-      if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
-        closeMenu();
-      }
-    });
-
-    // Escape closes menu
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') closeMenu();
-    });
-
-    // Placeholder action for Epsilon export.
+    function openMenu(){ menu.classList.remove('hidden'); toggle.setAttribute('aria-expanded','true'); }
+    function closeMenu(){ menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false'); }
+    toggle.addEventListener('click', function(e){ e.stopPropagation(); menu.classList.contains('hidden')?openMenu():closeMenu(); });
+    document.addEventListener('click', function(e){ if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)) closeMenu(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeMenu(); });
     if(epsilon){
       epsilon.addEventListener('click', function(e){
-        e.preventDefault();
-        closeMenu();
-        // show a friendly notification — if showBanner exists use it, otherwise alert
-        if(typeof showBanner === 'function'){
-          showBanner('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.', 'info', 6000);
-        } else {
-          alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.');
-        }
+        e.preventDefault(); closeMenu();
+        if(typeof showBanner==='function'){ showBanner('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.','info',6000); } 
+        else { alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); }
       });
     }
   })();
