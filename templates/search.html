@@ -9,21 +9,21 @@
     <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="flex gap-2">
-    <input name="mark" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded" value="{{ mark }}">
+  <form method="post" class="flex gap-2" id="markSearchForm">
+    <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded" value="{{ mark }}">
     <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
   </form>
 </div>
 
 {% if allow_edit_existing and not request.args.get('force_edit') %}
-<div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800">
-  Το MARK {{ mark }} υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
+<div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
+  Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
   <div class="mt-2 flex gap-2">
-    <a href="{{ url_for('search') }}?mark={{ mark }}&force_edit=1"
-       class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
-       Επιβεβαίωση
-    </a>
-    <button onclick="this.parentElement.parentElement.style.display='none'"
+    <!-- button που θα χειριστεί JS (επιβεβαίωση) -->
+    <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
+      Επιβεβαίωση
+    </button>
+    <button id="dismissBannerBtn" type="button" onclick="this.parentElement.parentElement.style.display='none'"
             class="px-3 py-2 border rounded hover:bg-gray-50">
       Άκυρο
     </button>
@@ -32,13 +32,13 @@
 {% endif %}
 
 {% if modal_summary and (request.args.get('force_edit') or not allow_edit_existing) %}
-<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4">
+<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">
         Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}
       </h3>
-      <button onclick="closeModal()" class="text-gray-500 text-xl font-bold">✕</button>
+      <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -144,144 +144,196 @@
           <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
           <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
         </form>
-        <button onclick="closeModal()" class="px-3 py-2 border rounded">Κλείσιμο</button>
+        <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
       </div>
     </div>
   </div>
 </div>
 {% endif %}
 
+{# Include the list inner (table). Make sure list_inner.html exists and that the search view
+   passes the same context variables that list_inner expects (table_html, file_exists, etc.) #}
+{% include 'list_inner.html' %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-function closeModal() {
+const SEARCH_BASE_URL = "{{ url_for('search') }}";
+
+function closeModal(){
   const m = document.getElementById('summaryModal');
   if (m) m.style.display = 'none';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  const summaryInput = document.getElementById('summaryJsonInput');
-  if (!summaryInput) return;
-
-  let summaryData;
-  try { summaryData = JSON.parse(summaryInput.value || '{}'); }
-  catch(e) { console.error("Invalid JSON:", e); summaryData={}; }
-
-  // Ensure lines array exists
-  if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
-
-  // If modal_summary contains invoice-level χαρακτηρισμός, use it to preselect categories
-  const invoiceLevelChar = (summaryData['χαρακτηρισμός'] || summaryData['characteristic'] || summaryData['classification'] || "").toString().trim();
-
-  // If modal_summary.lines contains per-line category values, merge them into summaryData.lines by id
-  if (Array.isArray(summaryData.lines) && summaryData.lines.length > 0) {
-    // normalize ids to strings
-    summaryData.lines = summaryData.lines.map(l => {
-      if (!l) return l;
-      l.id = l.id !== undefined ? String(l.id) : (l.line_id !== undefined ? String(l.line_id) : "");
-      // possible fallback keys for category
-      l.category = l.category || l.cat || l.line_category || l['κατηγορία'] || "";
-      return l;
+document.addEventListener('DOMContentLoaded', function(){
+  // --- force-edit confirmation behavior ---
+  const forceBtn = document.getElementById('forceEditBtn');
+  const markInput = document.getElementById('markInput');
+  if (forceBtn){
+    forceBtn.addEventListener('click', function(){
+      const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
+      const markVal = encodeURIComponent(markValRaw || '');
+      if (!markVal){
+        alert('Δεν δόθηκε MARK για επιβεβαίωση.');
+        return;
+      }
+      if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
+        window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
+      }
     });
   }
 
-  function ensureLine(id, amount, vat, vatCat, existingCat="") {
-    let idx = summaryData.lines.findIndex(l => String(l.id)===String(id));
-    if(idx===-1){
-      summaryData.lines.push({id:String(id), description:"", amount:amount||"", vat:vat||"", vatCategory:vatCat||"", category:existingCat||""});
-      idx = summaryData.lines.length-1;
+  // modal open/close wiring
+  const modal = document.getElementById('summaryModal');
+  const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
+  modalCloseBtns.forEach(b => b?.addEventListener('click', closeModal));
+  {% if modal_summary and (request.args.get('force_edit') or not allow_edit_existing) %}
+    // show modal if server provided it
+    setTimeout(()=>{ const m = document.getElementById('summaryModal'); if (m) m.style.display = 'flex'; }, 80);
+  {% endif %}
+
+  // --- normalize summary JSON & wire modal selects/buttons ---
+  const summaryInput = document.getElementById('summaryJsonInput');
+  if (summaryInput){
+    try {
+      let summaryData = JSON.parse(summaryInput.value || '{}');
+      if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
+
+      // normalize per-line ids & category keys
+      summaryData.lines = summaryData.lines.map(l => {
+        if (!l) return {id:'', description:'', amount:'', vat:'', category:'', vatCategory:''};
+        l.id = (l.id!==undefined)?String(l.id):(l.line_id!==undefined?String(l.line_id):'');
+        l.category = l.category || l.cat || l.line_category || l['κατηγορία'] || '';
+        return l;
+      });
+
+      // map lines in the modal table
+      document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr => {
+        const lid = String(tr.dataset.lineId || '');
+        const sel = tr.querySelector('select.expense-category');
+        if (!sel) return;
+        let existing = summaryData.lines.find(x => String(x.id) === lid);
+        if (!existing){
+          existing = {id: lid, category: ''};
+          summaryData.lines.push(existing);
+        }
+        sel.value = existing.category || '';
+        sel.addEventListener('change', function(){ existing.category = sel.value; summaryInput.value = JSON.stringify(summaryData); });
+      });
+
+      // single-line buttons
+      const singleLine = document.getElementById('singleLine');
+      if (singleLine){
+        const lid = String(singleLine.dataset.lineId || '');
+        let existing = summaryData.lines.find(x => String(x.id) === lid);
+        if (!existing){
+          existing = {id: lid, category: ''};
+          summaryData.lines.push(existing);
+        }
+        const buttons = document.querySelectorAll('#categoryButtons .category-btn');
+        function markActive(cat){
+          buttons.forEach(b => {
+            b.classList.toggle('bg-sky-600', b.dataset.cat === cat);
+            b.classList.toggle('text-white', b.dataset.cat === cat);
+          });
+        }
+        if (existing.category) markActive(existing.category);
+        buttons.forEach(btn => {
+          btn.addEventListener('click', function(){
+            const cat = this.dataset.cat;
+            existing.category = (existing.category === cat) ? '' : cat;
+            markActive(existing.category);
+            summaryInput.value = JSON.stringify(summaryData);
+          });
+        });
+        const clearBtn = document.getElementById('clearCategory');
+        clearBtn?.addEventListener('click', function(){
+          existing.category = '';
+          markActive('');
+          summaryInput.value = JSON.stringify(summaryData);
+        });
+      }
+
+      // write back normalized JSON
+      summaryInput.value = JSON.stringify(summaryData);
+    } catch(e){
+      console.warn('summary JSON parse/normalize error', e);
     }
-    return idx;
   }
 
-  function syncHidden(){ summaryInput.value = JSON.stringify(summaryData); }
+  // --- DataTables and list interactions ---
+  const hasTable = document.querySelector('.summary-table') !== null;
+  if (hasTable){
+    // only init DataTables if jquery + datatables are available
+    const jq = window.jQuery;
+    const dtAvail = jq && jq.fn && jq.fn.dataTable;
+    if (dtAvail){
+      try {
+        const dt = $('.summary-table').DataTable({
+          paging: true,
+          scrollY: '55vh',
+          scrollX: true,
+          scrollCollapse: true,
+          fixedHeader: { header: true, headerOffset: 0 },
+          colReorder: true,
+          autoWidth: false,
+          columnDefs: [{ orderable: false, targets: 0 }]
+        });
+        if (typeof dt.colResize === 'function') {
+          try { dt.colResize({ resizeMode: 'flex' }); } catch(e){ console.warn('colResize failed', e); }
+        }
+        const globalSearch = document.getElementById('globalSearch');
+        if (globalSearch){
+          globalSearch.addEventListener('input', function(){ dt.search(this.value).draw(); });
+        }
+        setTimeout(()=>{ try{ dt.columns.adjust().draw(); }catch(e){} }, 120);
+      } catch(e){
+        console.warn('DataTables init failed — falling back', e);
+      }
+    } else {
+      // fallback plain filter if datatables not loaded
+      const globalSearch = document.getElementById('globalSearch');
+      if (globalSearch){
+        globalSearch.addEventListener('input', function(){
+          const q = this.value.toLowerCase();
+          document.querySelectorAll('.summary-table tbody tr').forEach(tr => {
+            tr.style.display = tr.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+          });
+        });
+      }
+    }
 
-  // Multi-line table: for each row, prefer category from summaryData.lines (if present),
-  // otherwise, if invoiceLevelChar exists and matches an option, set that.
-  document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr=>{
-    const lid = tr.dataset.lineId;
-    const amt = tr.querySelector('td:nth-child(3)')?.innerText.trim()||"";
-    const vat = tr.querySelector('td:nth-child(4)')?.innerText.trim()||"";
-    const vatCat = tr.querySelector('td:nth-child(2)')?.innerText.trim()||"";
-    const sel = tr.querySelector('select.expense-category');
-
-    // find if we have a saved category in summaryData.lines
-    const existingLine = summaryData.lines.find(l => String(l.id) === String(lid));
-    const existingCat = existingLine && existingLine.category ? existingLine.category : "";
-
-    const idx = ensureLine(lid, amt, vat, vatCat, existingCat);
-
-    if (sel) {
-      // if no per-line category but we have invoiceLevelChar, and option exists, apply it
-      if ((!summaryData.lines[idx].category || summaryData.lines[idx].category === "") && invoiceLevelChar) {
-        const opt = Array.from(sel.options).find(o => String(o.value).trim() === invoiceLevelChar);
-        if (opt) {
-          summaryData.lines[idx].category = invoiceLevelChar;
+    // add select-all checkbox if any delete checkboxes exist
+    try {
+      const anyCheckbox = document.querySelector('input[name="delete_mark"]');
+      if (anyCheckbox){
+        const firstTh = document.querySelector('.summary-table thead th');
+        if (firstTh && !document.getElementById('selectAll')){
+          const chk = document.createElement('input');
+          chk.type = 'checkbox'; chk.id = 'selectAll'; chk.title = 'Επιλογή όλων';
+          chk.style.marginRight = '6px';
+          firstTh.prepend(chk);
+          chk.addEventListener('change', function(){ document.querySelectorAll('input[name="delete_mark"]').forEach(cb => cb.checked = this.checked); });
+        }
+        // try to auto-fill checkbox values from MARK/ΑΦΜ-like column
+        const headers = Array.from(document.querySelectorAll('.summary-table thead th')).map(h => h.innerText.trim().toLowerCase());
+        let markIdx = headers.findIndex(h => h.includes('mark'));
+        if (markIdx === -1) markIdx = headers.findIndex(h => h.includes('αφμ') || h.includes('afm'));
+        if (markIdx >= 0){
+          document.querySelectorAll('.summary-table tbody tr').forEach(row => {
+            const cb = row.querySelector('input[name="delete_mark"]');
+            if (cb){
+              const td = row.querySelectorAll('td')[markIdx];
+              if (td){
+                const v = td.innerText.trim();
+                if (v) cb.value = v;
+              }
+            }
+          });
         }
       }
-      // finally set the select to the (possibly updated) category
-      sel.value = summaryData.lines[idx].category || "";
-      sel.addEventListener('change', () => {
-        summaryData.lines[idx].category = sel.value;
-        syncHidden();
-      });
-    }
-  });
-
-  // Single-line buttons
-  const singleLine = document.getElementById('singleLine');
-  if (singleLine){
-    const lid = singleLine.dataset.lineId;
-    const amt = singleLine.dataset.amount||"";
-    const vat = singleLine.dataset.vat||"";
-    const vatCat = singleLine.dataset.vatcat||"";
-    const idx = ensureLine(lid, amt, vat, vatCat, "");
-
-    // If summaryData.lines[idx].category empty but invoiceLevelChar matches one button -> set it
-    const buttons = document.querySelectorAll('#categoryButtons .category-btn');
-    function markActive(cat){
-      buttons.forEach(b=>{
-        const isActive = (b.dataset.cat === cat);
-        b.classList.toggle('bg-sky-600', isActive);
-        b.classList.toggle('text-white', isActive);
-      });
-    }
-
-    // prefer per-line category if available
-    const perLineCat = summaryData.lines[idx] && summaryData.lines[idx].category ? summaryData.lines[idx].category : "";
-    if (perLineCat) {
-      markActive(perLineCat);
-    } else if (invoiceLevelChar) {
-      // if invoice-level characteristic exists, and matches a button, apply it
-      const foundBtn = Array.from(buttons).find(b => b.dataset.cat === invoiceLevelChar);
-      if (foundBtn) {
-        summaryData.lines[idx].category = invoiceLevelChar;
-        markActive(invoiceLevelChar);
-      }
-    }
-
-    buttons.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const cat = btn.dataset.cat;
-        summaryData.lines[idx].category = (summaryData.lines[idx].category === cat) ? "" : cat;
-        markActive(summaryData.lines[idx].category);
-        syncHidden();
-      });
-    });
-
-    const clearBtn = document.getElementById('clearCategory');
-    if (clearBtn) clearBtn.addEventListener('click', ()=>{
-      summaryData.lines[idx].category = "";
-      markActive("");
-      syncHidden();
-    });
-  }
-
-  // When modal opens, show it and sync hidden input
-  const modal = document.getElementById('summaryModal');
-  if (modal) modal.style.display='flex';
-  syncHidden();
+    } catch(e){ console.warn('select-all / mark mapping error', e); }
+  } // end hasTable
 });
 </script>
 {% endblock %}

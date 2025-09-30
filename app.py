@@ -932,7 +932,11 @@ def search():
     invoice_lines = []
     customer_categories = []
     allow_edit_existing = False
+    table_html = ""
+    file_exists = False
+    css_numcols = ""
 
+    # τοπικός mapper fallback
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
             "1.1": "Τιμολόγιο Πώλησης",
@@ -964,11 +968,11 @@ def search():
                 return src.get(k)
         return default
 
-    # Πάρε active_cred νωρίς ώστε να είναι διαθέσιμο και σε GET με force_edit
+    # active credential πρώτα
     active_cred = get_active_credential_from_session()
     vat = active_cred.get("vat") if active_cred else None
 
-    # Επιτρέπουμε το σενάριο: GET ?mark=...&force_edit=1 -> προσομοιώνουμε το POST flow
+    # emulate POST: GET ?mark=...&force_edit=1 θα συμπεριφερθεί σαν POST
     emulate_post = False
     if request.method == "GET" and request.args.get("mark") and request.args.get("force_edit"):
         mark = request.args.get("mark", "").strip()
@@ -977,7 +981,6 @@ def search():
     if request.method == "POST" or emulate_post:
         if request.method == "POST":
             mark = request.form.get("mark", "").strip()
-        # αν είμαστε σε emulate_post το mark έχει ήδη βγει από args
 
         if not vat:
             error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
@@ -986,8 +989,11 @@ def search():
         else:
             # --- φορτώνουμε cache invoices ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
-            cache = json_read(customer_file)
-            docs_for_mark = [d for d in cache if str(d.get("mark","")).strip() == mark]
+            try:
+                cache = json_read(customer_file) or []
+            except Exception:
+                cache = []
+            docs_for_mark = [d for d in cache if str(d.get("mark", "")).strip() == mark]
 
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
@@ -996,12 +1002,12 @@ def search():
                 try:
                     excel_path = excel_path_for(vat=vat)
                     if os.path.exists(excel_path):
-                        df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                        if "MARK" in df.columns:
-                            marks_in_excel = df["MARK"].astype(str).str.strip().tolist()
+                        df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                        if "MARK" in df_check.columns:
+                            marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
                             if mark in marks_in_excel:
                                 allow_edit_existing = True
-                                # αν δεν έχει ζητηθεί force_edit, δείχνουμε το warning και σταματάμε
+                                # αν δεν έχει ζητηθεί force_edit -> δείχνουμε warning και επιστρέφουμε
                                 if not (request.args.get('force_edit') or (request.method == "POST" and request.form.get('force_edit')) or emulate_post):
                                     return safe_render(
                                         "search.html",
@@ -1013,7 +1019,10 @@ def search():
                                         customer_categories=[],
                                         allow_edit_existing=True,
                                         vat=vat,
-                                        active_page="search"
+                                        active_page="search",
+                                        table_html="",
+                                        file_exists=os.path.exists(excel_path),
+                                        css_numcols=""
                                     )
                                 # αλλιώς (force_edit) συνεχίζουμε -> modal θα ανοίξει παρακάτω
                 except Exception:
@@ -1022,7 +1031,7 @@ def search():
                 # --- Έλεγχος αν ήδη χαρακτηρισμένο στο invoices.json ---
                 classified_docs = [
                     d for d in docs_for_mark
-                    if str(d.get("classification","")).strip().lower() == "χαρακτηρισμενο"
+                    if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
                 ]
                 if classified_docs:
                     error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
@@ -1036,7 +1045,10 @@ def search():
                         customer_categories=[],
                         allow_edit_existing=False,
                         vat=vat,
-                        active_page="search"
+                        active_page="search",
+                        table_html="",
+                        file_exists=False,
+                        css_numcols=""
                     )
 
                 # --- Κανονική προετοιμασία modal_summary και invoice_lines ---
@@ -1082,7 +1094,7 @@ def search():
                     "lines": invoice_lines
                 }
 
-                # --- Προφόρτωση χαρακτηρισμού & per-line categories από data/epsilon/{vat}_epsilon_invoices.json αν υπάρχει ---
+                # --- Προφόρτωση χαρακτηρισμού & per-line categories από epsilon cache ---
                 try:
                     epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
                     eps_list = json_read(epsilon_path) or []
@@ -1097,9 +1109,7 @@ def search():
                             matched = it
                             break
                     if matched:
-                        # top-level invoice characteristic (διατήρηση για συμβατότητα)
                         modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός','') or ""
-                        # Αν στο epsilon υπάρχουν per-line category τιμές, αντιγράψτe τες στα modal_summary.lines
                         try:
                             eps_lines = matched.get("lines", []) or []
                             eps_by_id = { str(l.get("id","")): l for l in eps_lines if l.get("id") is not None }
@@ -1109,14 +1119,11 @@ def search():
                                     continue
                                 eps_line = eps_by_id.get(lid)
                                 if eps_line:
-                                    # αν modal δεν έχει category, αντιγράφουμε αυτή του epsilon
                                     if not ml.get("category") and eps_line.get("category"):
                                         ml["category"] = eps_line.get("category")
-                                    # επίσης αντιγράφουμε vat_category αν λείπει
                                     if (not ml.get("vatCategory") or ml.get("vatCategory")== "") and eps_line.get("vat_category"):
                                         ml["vatCategory"] = eps_line.get("vat_category")
                         except Exception:
-                            # μη κρίσιμο — προχωράμε χωρίς per-line merge
                             log.exception("Failed to merge per-line categories from epsilon")
                 except Exception:
                     log.exception("Could not read epsilon cache for prefill")
@@ -1135,7 +1142,32 @@ def search():
                         "δαπανες_χωρις_φπα"
                     ]
 
-    # Επιστρέφουμε πάντα το vat στο context ώστε τα hidden inputs να γεμίζουν σωστά
+    # --- Build table_html same way as /list so we can include it below the search form ---
+    try:
+        active = get_active_credential_from_session()
+        excel_path = DEFAULT_EXCEL_FILE
+        if active and active.get("vat"):
+            excel_path = excel_path_for(vat=active.get("vat"))
+        elif active and active.get("name"):
+            excel_path = excel_path_for(cred_name=active.get("name"))
+        if os.path.exists(excel_path):
+            file_exists = True
+            df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+            df = df.astype(str)
+            if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
+                df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            # insert checkbox column as first column
+            checkbox_html = '<input type="checkbox" name="delete_mark" />'
+            df.insert(0, "✓", [checkbox_html] * len(df))
+            table_html = df.to_html(classes="summary-table", index=False, escape=False)
+        else:
+            file_exists = False
+            table_html = ""
+    except Exception:
+        log.exception("Failed building table_html for search page")
+        table_html = ""
+
+    # Επιστρέφουμε πάντα το vat και όλα τα context vars
     return safe_render(
         "search.html",
         result=result,
@@ -1146,8 +1178,12 @@ def search():
         customer_categories=customer_categories,
         allow_edit_existing=allow_edit_existing,
         vat=vat,
-        active_page="search"
+        active_page="search",
+        table_html=table_html,
+        file_exists=file_exists,
+        css_numcols=css_numcols
     )
+
 
 
 
@@ -1474,7 +1510,7 @@ def save_summary():
             else:
                 log.info(f"epsilon: no per-line changes for mark {mark} (vat {vat})")
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
-                return redirect(url_for("list_invoices"))
+                return redirect(url_for("search"))
 
         # --- ELSE: no existing record in epsilon -> proceed to write Excel and append new epsilon entry ---
         # Excel write (unchanged behavior)
@@ -1551,7 +1587,7 @@ def save_summary():
         log.exception("save_summary: failed saving epsilon cache")
         flash("Failed updating epsilon cache", "error")
 
-    return redirect(url_for("list_invoices"))
+    return redirect(url_for("search"))
 
 
 
@@ -1698,7 +1734,7 @@ def delete_invoices():
         log.exception("Error while deleting from epsilon cache")
 
     flash(f"Deleted {len(marks_to_delete)} selected mark(s). Removed from Excel: {deleted_from_excel}, from Epsilon cache: {deleted_from_epsilon}", "success")
-    return redirect(url_for("list_invoices"))
+    return redirect(url_for("search"))
 
 
 

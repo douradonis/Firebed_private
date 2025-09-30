@@ -1,104 +1,131 @@
-<div class="bg-white rounded-lg shadow p-4">
-  <div class="flex items-center justify-between mb-3">
-    <h2 class="text-lg font-semibold">Λίστα Παραστατικών</h2>
-    <div class="flex gap-2 items-center">
+<div class="bg-white rounded-lg shadow p-6 mt-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+    <h3 class="text-xl font-semibold text-gray-800">Λίστα Παραστατικών</h3>
+
+    <div class="flex gap-2 items-center flex-wrap">
       {% if file_exists %}
-        <div class="download-dropdown" id="downloadDropdown">
-          <button id="downloadToggle" class="download-toggle" type="button" aria-haspopup="true" aria-expanded="false">
-            ⬇️ Κατέβασμα .xlsx
-          </button>
-          <div id="downloadMenu" class="download-menu hidden" role="menu" aria-labelledby="downloadToggle">
-            <a href="{{ url_for('list_invoices', download=1) }}" role="menuitem">Εξοδολόγιο</a>
-            <button id="epsilonExport" role="menuitem" type="button">Epsilon Excel — Έρχεται (placeholder)</button>
-          </div>
+      <div class="relative">
+        <button id="downloadToggle" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400" type="button" aria-haspopup="true" aria-expanded="false">
+          ⬇️ Κατέβασμα .xlsx
+        </button>
+        <div id="downloadMenu" class="hidden absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden z-50">
+          <a class="block px-4 py-2 hover:bg-gray-100 transition" href="{{ url_for('list_invoices', download=1) }}">Εξοδολόγιο (.xlsx)</a>
+          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel — Έρχεται</button>
         </div>
+      </div>
       {% endif %}
-      <a class="small-btn secondary" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
+
+      <a class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
     </div>
   </div>
 
-  <div class="mb-3 flex gap-2">
-    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border rounded w-64">
-    <button id="deleteBtn" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
+  <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    <button id="deleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
+    <div id="deleteSpinner" class="ml-2 hidden text-gray-700">Αποστολή…</div>
   </div>
 
-  {% if error %}
-    <div class="flash-banner flash-error">
-      {{ error }}
-      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
-    </div>
-  {% endif %}
-  {% if message %}
-    <div class="flash-banner flash-success">
-      {{ message }}
-      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
-    </div>
-  {% endif %}
-
-  <div class="table-wrapper">
+  <div class="overflow-x-auto">
     {% if table_html %}
       {{ table_html | safe }}
     {% else %}
-      <div class="p-3 text-gray-600">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
+      <div class="p-3 text-gray-500">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
     {% endif %}
   </div>
 </div>
 
+<!-- Delete modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-30">
+  <div class="bg-white p-6 rounded-lg w-80 shadow-lg text-center">
+    <div id="deleteModalMessage" class="mb-4 font-semibold text-gray-800"></div>
+    <div class="flex gap-3 justify-center">
+      <button id="deleteCancel" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Ακύρωση</button>
+      <button id="deleteConfirm" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">Διαγραφή</button>
+    </div>
+  </div>
+</div>
+
 <script>
-$(document).ready(function(){
-  // DataTables setup
-  try {
-    const dt = $('.summary-table').DataTable({
-      paging: true,
-      scrollY: '55vh',
-      scrollX: true,
-      scrollCollapse: true,
-      fixedHeader: { header: true, headerOffset: 0 },
-      colReorder: true,
-      autoWidth: false,
-      columnDefs: [{ orderable: false, targets: 0 }] 
-    });
-    dt.colResize({ resizeMode: 'flex' });
-    $('#globalSearch').on('input', function(){ dt.search(this.value).draw(); });
-  } catch(e){
-    console.warn("DataTables not initialized:", e);
-    $('#globalSearch').on('input', function(){
-      const q = this.value.toLowerCase();
-      $('.summary-table tbody tr').each(function(){
-        $(this).toggle($(this).text().toLowerCase().indexOf(q) !== -1);
-      });
-    });
-  }
-
-  // select-all checkbox
-  $('#selectAll').on('change', function(){
-    const checked = this.checked;
-    $('input[type="checkbox"][name="delete_mark"]').prop('checked', checked);
-  });
-
-  // Delete modal
-  const modal = $('#deleteModal');
-  let marksToDelete = [];
-  $('#deleteBtn').on('click', function(){
-    marksToDelete = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
-    if(!marksToDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
-    $('#deleteModalMessage').text(`Θες σίγουρα να διαγράψεις ${marksToDelete.length} εγγραφή(ες);`);
-    modal.show();
-  });
-  modal.find('.cancel').on('click', function(){ modal.hide(); });
-  modal.find('.confirm').on('click', function(){
-    const form = $('<form method="POST" action="{{ url_for("delete_invoices") }}"></form>');
-    marksToDelete.forEach(function(s){ form.append($('<input>').attr('type','hidden').attr('name','delete_mark').val(s)); });
-    $('body').append(form);
-    form.submit();
-  });
+(function(){
+  const qs = (s,r=document)=>r.querySelector(s);
+  const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
 
   // Download dropdown
-  const toggle = document.getElementById('downloadToggle');
-  const menu = document.getElementById('downloadMenu');
+  const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
   if(toggle && menu){
-    toggle.addEventListener('click', e => { e.stopPropagation(); menu.classList.toggle('hidden'); });
-    document.addEventListener('click', e => { if(!menu.contains(e.target) && !toggle.contains(e.target)) menu.classList.add('hidden'); });
+    toggle.addEventListener('click', e=>{
+      e.stopPropagation();
+      menu.classList.toggle('hidden');
+      toggle.setAttribute('aria-expanded', menu.classList.contains('hidden')?'false':'true');
+    });
+    document.addEventListener('click', e=>{
+      if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
+        menu.classList.add('hidden');
+        toggle.setAttribute('aria-expanded','false');
+      }
+    });
+    document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
+    qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
   }
-});
+
+  // Checkbox values from MARK/AFM
+  (function mapCheckboxValues(){
+    const anyCb=qs('input[name="delete_mark"]'); if(!anyCb) return;
+    const headers=qsa('.summary-table thead th').map(th=>th.innerText.trim().toLowerCase());
+    let markIdx=headers.findIndex(h=>h.includes('mark') || h.includes('αφμ') || h.includes('afm'));
+    if(markIdx>=0){
+      qsa('.summary-table tbody tr').forEach(row=>{
+        const cb=row.querySelector('input[name="delete_mark"]');
+        const tds=row.querySelectorAll('td');
+        if(cb && tds[markIdx]) cb.value=tds[markIdx].innerText.trim();
+      });
+    }
+  })();
+
+  // Select-all checkbox
+  (function(){
+    const anyCb=qs('input[name="delete_mark"]'); if(!anyCb) return;
+    const firstTh=qs('.summary-table thead th'); if(!firstTh) return;
+    if(!qs('#selectAll')){
+      const chk=document.createElement('input'); chk.type='checkbox'; chk.id='selectAll'; chk.title='Επιλογή όλων'; chk.className='mr-2';
+      firstTh.prepend(chk);
+      chk.addEventListener('change', function(){ qsa('input[name="delete_mark"]').forEach(cb=>cb.checked=this.checked); });
+    }
+  })();
+
+  // Fallback search (αν δεν υπάρχει DataTable)
+  qs('#globalSearch')?.addEventListener('input', function(){
+    const q=this.value.toLowerCase();
+    qsa('.summary-table tbody tr').forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none');
+  });
+
+  // Delete flow
+  (function(){
+    const deleteBtn=qs('#deleteBtn'); if(!deleteBtn) return;
+    const modal=qs('#deleteModal');
+    const modalMsg=qs('#deleteModalMessage');
+    const cancelBtn=qs('#deleteCancel');
+    const confirmBtn=qs('#deleteConfirm');
+    const spinner=qs('#deleteSpinner');
+    let toDelete=[];
+
+    deleteBtn.addEventListener('click', ()=>{
+      toDelete=qsa('input[name="delete_mark"]:checked').map(cb=>cb.value).filter(v=>v.trim()!=='');
+      if(!toDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
+      modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
+      modal.classList.remove('hidden');
+    });
+
+    cancelBtn?.addEventListener('click', ()=>modal.classList.add('hidden'));
+
+    confirmBtn?.addEventListener('click', ()=>{
+      confirmBtn.disabled=true; spinner?.classList.remove('hidden');
+      const form=document.createElement('form'); form.method='POST'; form.action="{{ url_for('delete_invoices') }}";
+      const existingCsrf=qs('input[name="csrf_token"]'); 
+      if(existingCsrf){ const t=document.createElement('input'); t.type='hidden'; t.name='csrf_token'; t.value=existingCsrf.value; form.appendChild(t); }
+      toDelete.forEach(v=>{ const inp=document.createElement('input'); inp.type='hidden'; inp.name='delete_mark'; inp.value=v; form.appendChild(inp); });
+      document.body.appendChild(form); form.submit();
+    });
+  })();
+})();
 </script>
