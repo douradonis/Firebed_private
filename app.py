@@ -5,10 +5,11 @@ import json
 import traceback
 import logging
 from logging.handlers import RotatingFileHandler
+import datetime
 from typing import Any, List, Dict, Optional
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
-from datetime import datetime, timezone
+from datetime import timezone
 from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
@@ -1457,7 +1458,7 @@ def save_summary():
                     updated = True
 
             if updated:
-                existing["_updated_at"] = datetime.now(timezone.utc).isoformat()
+                existing["_updated_at"] = _dt.now(timezone.utc).isoformat()
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
                 # safe save
@@ -1469,7 +1470,7 @@ def save_summary():
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
                 # IMPORTANT: skip Excel rewrite on re-characterisation
-                return redirect(url_for("list_invoices"))
+                return redirect(url_for("search"))
             else:
                 log.info(f"epsilon: no per-line changes for mark {mark} (vat {vat})")
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
