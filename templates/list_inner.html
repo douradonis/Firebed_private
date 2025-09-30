@@ -6,7 +6,7 @@
       {% if file_exists %}
       <div class="relative">
         <!-- Κουμπί κατεβάσματος με βελάκι -->
-        <button id="downloadToggle" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2" type="button" aria-haspopup="true" aria-expanded="false">
+        <button id="downloadToggle" class="px-4 py-2 bg-[#0d6efd] text-white rounded-lg shadow hover:bg-[#0b5ed7] transition flex items-center gap-2" type="button" aria-haspopup="true" aria-expanded="false">
           ⬇️ Κατέβασμα .xlsx
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
@@ -23,8 +23,8 @@
     </div>
   </div>
 
-  <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+  <div class="flex items-center gap-3 mb-4">
+    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
     <button id="deleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
     <div id="deleteSpinner" class="ml-2 hidden text-gray-700">Αποστολή…</div>
   </div>
@@ -52,7 +52,7 @@
 <style>
 /* Πίνακας - χρώματα και διαχωριστικά */
 .summary-table th {
-  background-color: #0d6efd;
+  background-color: #0d6efd; /* ίδιο μπλε με active menu */
   color: white;
   border: 1px solid #ccc;
 }
