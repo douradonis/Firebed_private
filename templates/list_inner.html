@@ -5,8 +5,12 @@
     <div class="flex gap-2 items-center flex-wrap">
       {% if file_exists %}
       <div class="relative">
-        <button id="downloadToggle" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400" type="button" aria-haspopup="true" aria-expanded="false">
+        <!-- Κουμπί κατεβάσματος με βελάκι -->
+        <button id="downloadToggle" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2" type="button" aria-haspopup="true" aria-expanded="false">
           ⬇️ Κατέβασμα .xlsx
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+          </svg>
         </button>
         <div id="downloadMenu" class="hidden absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden z-50">
           <a class="block px-4 py-2 hover:bg-gray-100 transition" href="{{ url_for('list_invoices', download=1) }}">Εξοδολόγιο (.xlsx)</a>
@@ -44,6 +48,20 @@
     </div>
   </div>
 </div>
+
+<style>
+/* Πίνακας - χρώματα και διαχωριστικά */
+.summary-table th {
+  background-color: #0d6efd;
+  color: white;
+  border: 1px solid #ccc;
+}
+.summary-table td {
+  border: 1px solid #e2e8f0;
+}
+.summary-table tr:nth-child(even) { background-color: #f9fafb; }
+.summary-table tr:hover { background-color: #e6f0ff; }
+</style>
 
 <script>
 (function(){
@@ -93,7 +111,7 @@
     }
   })();
 
-  // Fallback search (αν δεν υπάρχει DataTable)
+  // Fallback search
   qs('#globalSearch')?.addEventListener('input', function(){
     const q=this.value.toLowerCase();
     qsa('.summary-table tbody tr').forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none');
