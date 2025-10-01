@@ -1486,5 +1486,37 @@
     "AFM_issuer": "801567852",
     "Name_issuer": "",
     "AFM": "802576637"
+  },
+  {
+    "mark": "400011134063902",
+    "issueDate": "30/09/2025",
+    "series": "TΔA",
+    "aa": "59942",
+    "AA": "59942",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "73,55",
+    "totalVatAmount": "17,65",
+    "totalValue": "91,20",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "800916954",
+    "Name_issuer": "",
+    "AFM": "802576637"
+  },
+  {
+    "mark": "400011137682839",
+    "issueDate": "30/09/2025",
+    "series": "ΤΠΥ",
+    "aa": "4084",
+    "AA": "4084",
+    "type": "2.1",
+    "vatCategory": "1",
+    "totalNetValue": "150,00",
+    "totalVatAmount": "36,00",
+    "totalValue": "186,00",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "159712098",
+    "Name_issuer": "",
+    "AFM": "802576637"
   }
 ]
