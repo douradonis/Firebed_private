@@ -13,6 +13,7 @@ from datetime import timezone
 from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
+from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
 
 import requests
 import pandas as pd
@@ -935,6 +936,7 @@ def search():
     table_html = ""
     file_exists = False
     css_numcols = ""
+    modal_warning = None  # νέο flag για προειδοποιητικό modal
 
     # τοπικός mapper fallback
     def _map_invoice_type_local(code):
@@ -982,11 +984,55 @@ def search():
         if request.method == "POST":
             mark = request.form.get("mark", "").strip()
 
-        if not vat:
-            error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
-        elif not mark or not mark.isdigit() or len(mark) != 15:
-            error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
-        else:
+        # --- Έλεγχος αν το input είναι URL ---
+        import re
+        from urllib.parse import urlparse
+        from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
+
+        input_is_url = re.match(r'^https?://', mark)
+        if input_is_url:
+            domain = urlparse(mark).netloc.lower()
+            scraped_afm = None
+            scraped_marks = []
+
+            try:
+                if "wedoconnect" in domain:
+                    scraped_marks, scraped_afm = scrape_wedoconnect(mark)
+                elif "mydatapi.aade.gr" in domain:
+                    data = scrape_mydatapi(mark)
+                    scraped_marks = [data.get("MARK", "N/A")]
+                    scraped_afm = data.get("ΑΦΜ Πελάτη")
+                elif "einvoice.s1ecos.gr" in domain:
+                    scraped_marks, scraped_afm = scrape_einvoice(mark)
+                elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
+                    scraped_marks = scrape_impact(mark)
+                elif "epsilonnet.gr" in domain:
+                    mark_val, scraped_afm, _ = scrape_epsilon(mark)
+                    if mark_val:
+                        scraped_marks = [mark_val]
+                else:
+                    error = "Άγνωστο URL για scraping."
+            except Exception as e:
+                log.exception(f"Scraping failed for URL {mark}")
+                error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
+
+            # --- Έλεγχος AFM με ενεργό πελάτη ---
+            if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
+                modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
+
+            # εισαγωγή MARK που επιστράφηκε από scraper
+            if scraped_marks:
+                mark = scraped_marks[0]
+
+        # --- Έλεγχος MARK αν δεν είναι URL ---
+        if not input_is_url:
+            if not vat:
+                error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
+            elif not mark or not mark.isdigit() or len(mark) != 15:
+                error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
+
+        # --- συνέχεια της υπάρχουσας λογικής με cache, Excel, modal_summary ---
+        if not error:
             # --- φορτώνουμε cache invoices ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             try:
@@ -998,7 +1044,7 @@ def search():
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                # --- Ελεγχος διπλοκαταχώρησης στο Excel ---
+                # --- Έλεγχος διπλοκαταχώρησης στο Excel ---
                 try:
                     excel_path = excel_path_for(vat=vat)
                     if os.path.exists(excel_path):
@@ -1007,7 +1053,6 @@ def search():
                             marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
                             if mark in marks_in_excel:
                                 allow_edit_existing = True
-                                # αν δεν έχει ζητηθεί force_edit -> δείχνουμε warning και επιστρέφουμε
                                 if not (request.args.get('force_edit') or (request.method == "POST" and request.form.get('force_edit')) or emulate_post):
                                     return safe_render(
                                         "search.html",
@@ -1022,13 +1067,13 @@ def search():
                                         active_page="search",
                                         table_html="",
                                         file_exists=os.path.exists(excel_path),
-                                        css_numcols=""
+                                        css_numcols="",
+                                        modal_warning=modal_warning
                                     )
-                                # αλλιώς (force_edit) συνεχίζουμε -> modal θα ανοίξει παρακάτω
                 except Exception:
                     log.exception("Could not read Excel to check duplicate MARK")
 
-                # --- Έλεγχος αν ήδη χαρακτηρισμένο στο invoices.json ---
+                # --- Έλεγχος χαρακτηρισμού στο invoices.json ---
                 classified_docs = [
                     d for d in docs_for_mark
                     if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
@@ -1048,7 +1093,8 @@ def search():
                         active_page="search",
                         table_html="",
                         file_exists=False,
-                        css_numcols=""
+                        css_numcols="",
+                        modal_warning=modal_warning
                     )
 
                 # --- Κανονική προετοιμασία modal_summary και invoice_lines ---
@@ -1142,7 +1188,7 @@ def search():
                         "δαπανες_χωρις_φπα"
                     ]
 
-    # --- Build table_html same way as /list so we can include it below the search form ---
+    # --- Build table_html same way as /list ---
     try:
         active = get_active_credential_from_session()
         excel_path = DEFAULT_EXCEL_FILE
@@ -1181,8 +1227,10 @@ def search():
         active_page="search",
         table_html=table_html,
         file_exists=file_exists,
-        css_numcols=css_numcols
+        css_numcols=css_numcols,
+        modal_warning=modal_warning
     )
+
 
 
 
