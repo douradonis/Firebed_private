@@ -67,29 +67,100 @@ def scrape_einvoice(url):
         return []
 
     soup = BeautifulSoup(r.text, "html.parser")
+    # look for typical span structure
     mark_tag = soup.find("span", class_="field field-Mark")
     if mark_tag:
         mark = mark_tag.find("span", class_="value")
         if mark:
             return [mark.get_text(strip=True)]
+
+    # fallback: search text block for Μ.Αρ.Κ. followed by 15 digits
+    txt = soup.get_text(" ", strip=True)
+    m = re.search(r"Μ\.?Αρ\.?Κ\.?\s*[:\u00A0\s-]*\s*(\d{15})", txt, re.I)
+    if m:
+        return [m.group(1)]
     return []
 
-# -------------------- MAIN --------------------
+# -------------------- IMPACT E-INVOICE --------------------
+def scrape_impact(url):
+    """
+    Scrape pages like https://einvoice.impact.gr/v/...
+    Strategy:
+      - requests + BS4 (the example page contains the MARK in HTML text)
+      - try CSS selector patterns, then label-sibling, then regex on page text
+    """
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.encoding = 'utf-8'
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return []
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    # 1) try to find a span with class/value pattern
+    el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
+    if el and el.get_text(strip=True):
+        return [el.get_text(strip=True)]
+
+    # 2) look for label text 'Μ.Αρ.Κ.' and read the number near it
+    # we search the whole text around label occurrences
+    for lbl in soup.find_all(string=re.compile(r"Μ\.?Αρ\.?Κ\.?", re.I)):
+        # work with parent block text
+        parent = lbl.parent
+        if parent:
+            block_text = parent.get_text(" ", strip=True)
+            m = MARK_RE.search(block_text)
+            if m:
+                return [m.group(0)]
+            # also search next siblings text
+            sib_text = ""
+            for sib in parent.next_siblings:
+                try:
+                    sib_text += " " + (sib.get_text(" ", strip=True) if hasattr(sib, "get_text") else str(sib))
+                except Exception:
+                    continue
+            m2 = MARK_RE.search(sib_text)
+            if m2:
+                return [m2.group(0)]
+
+    # 3) fallback: search entire page text for pattern "Μ.Αρ.Κ." followed by 15 digits
+    full_text = soup.get_text(" ", strip=True)
+    m = re.search(r"Μ\.?Αρ\.?Κ\.?\s*[:\u00A0\s-]*\s*(\d{15})", full_text, re.I)
+    if m:
+        return [m.group(1)]
+
+    # 4) last fallback: any 15-digit number on page
+    found = MARK_RE.findall(full_text)
+    if found:
+        return [found[0]]
+
+    return []
+
+
+# -------------------- MAIN (updated) --------------------
 def main():
     url = input("Εισάγετε το URL: ").strip()
 
     # Εντοπισμός της πηγής με βάση το domain του URL
-    domain = urlparse(url).netloc
+    domain = urlparse(url).netloc.lower()
+    data = {}
+    marks = []
+
     if "wedoconnect" in domain:
         source = "Wedoconnect"
         marks = scrape_wedoconnect(url)
     elif "mydatapi.aade.gr" in domain:
         source = "MyData"
         data = scrape_mydatapi(url)
-        marks = [data["MARK"]]
+        marks = [data.get("MARK", "N/A")]
     elif "einvoice.s1ecos.gr" in domain:
         source = "ECOS E-Invoicing"
         marks = scrape_einvoice(url)
+    elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
+        source = "Impact E-Invoicing"
+        marks = scrape_impact(url)
     else:
         print("Άγνωστο URL. Δεν μπορεί να γίνει scrape.")
         return
@@ -103,9 +174,15 @@ def main():
     else:
         print("Δεν βρέθηκε MARK.")
 
+    # --- ΝΕΟ: στην περίπτωση MyData να εμφανίζει και το ΑΦΜ πελάτη πάντα ---
+    if source == "MyData":
+        afm = data.get("ΑΦΜ Πελάτη", data.get("ΑΦΜ", "N/A"))
+        print(f"\nΑΦΜ Πελάτη: {afm}")
+
     # Προειδοποίηση αν πρόκειται για απόδειξη
     if source == "MyData" and "απόδειξη" in data.get("Είδος Παραστατικού", "").lower():
         print("\n⚠️ Προσοχή: Πρόκειται για απόδειξη!")
+
 
 if __name__ == "__main__":
     main()
