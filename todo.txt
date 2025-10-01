@@ -1,2 +1,3 @@
-url web scraper ecos, wedoconnect issuer vat error
+ενσωματωση scraper στο search
+πιστωτικα τιμολογια
 γραμμογραφηση epsilon + αρχειο ect
