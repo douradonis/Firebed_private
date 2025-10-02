@@ -278,6 +278,64 @@ document.addEventListener('DOMContentLoaded', function(){
   const summaryInput = document.getElementById('summaryJsonInput'); // may be null
   const saveSummaryForm = document.getElementById('saveSummaryForm');
 
+  // --- ensure search icon behaves same as input clear/submit ---
+(function wireSearchIconBehavior(){
+  const mi = document.getElementById('markInput');
+  if (!mi) return;
+
+  // πιθανές selectors για το icon — πρόσθεσε εδώ άλλους αν το HTML σου χρησιμοποιεί διαφορετικό
+  const possibleSelectors = [
+    '.icon-search',      // συνηθισμένο custom class
+    '.btn-search',       // γενικό
+    '#searchIcon',       // id
+    '.fa-search',        // font-awesome icon
+    '.magnifier',        // άλλο πιθανό
+    'button[aria-label="search"]',
+    'button[data-action="search"]'
+  ];
+
+  let found = null;
+  for (const sel of possibleSelectors) {
+    const el = document.querySelector(sel);
+    if (el) { found = el; break; }
+  }
+
+  // αν δεν βρέθηκε κανένα, δοκίμασε να βρεις το icon δίπλα στο κουμπί "διαγραφή επιλεγμένων"
+  if (!found) {
+    const delBtn = document.querySelector('button#deleteSelected, button.delete-selected, button[data-action="delete-selected"]');
+    if (delBtn && delBtn.parentElement) {
+      // ψάχνουμε για ένα button/img/svg δίπλα του
+      const sibling = delBtn.parentElement.querySelector('button, a, svg, i');
+      if (sibling && sibling !== delBtn) found = sibling;
+    }
+  }
+
+  if (!found) return; // τίποτα να συλλάβουμε
+
+  found.addEventListener('click', function(e){
+    try {
+      // Αν το icon πρέπει να *καθαρίσει* το πεδίο:
+      // α) καθάρισε την τιμή
+      mi.value = '';
+      // β) εκπέμπουμε input/keyup events ώστε οποιοδήποτε listener (το maybeRestore) να τρέξει
+      mi.dispatchEvent(new Event('input', { bubbles: true }));
+      mi.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Backspace' }));
+
+      // γ) επιπλέον: αν υπάρχει DataTables active search, καθάρισε και την DataTables αναζήτηση
+      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+        try {
+          const dt = $('.summary-table').DataTable();
+          dt.search('').columns().search('').draw();
+        } catch(ignore){}
+      }
+    } catch(err){
+      console.warn('search icon handler failed', err);
+    }
+    // αν το icon κανονικά υποβάλλει φόρμα, αφήνουμε την default συμπεριφορά να τρέξει
+  });
+})();
+
+
   // detect vat keys in summary
   function detectVatKeysFromSummary(){
     if(summaryInput && summaryInput.value){
@@ -658,84 +716,104 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   // --- new: restore table / reload when markInput cleared ---
-  // --- new: restore table / reload when markInput cleared (robust) ---
-(function wireMarkInputClearRestore(){
-  const markInputEl = document.getElementById('markInput');
-  if (!markInputEl) return;
+// restore full table + selection/checkbox state when search input is cleared
+// --- new: restore table / reload when markInput cleared ---
+(function wireRobustClearRestore(){
+  // reuse already-declared markInput if present, otherwise query it
+  const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
+  if (!mi) return;
 
-  // helper: restore client-side DataTable or show all rows
-  function restoreTableClientSide(){
+  // debounce timer
+  let t = null;
+  // store last observed value to detect programmatic clears as well
+  let lastVal = mi.value || '';
+
+  function restoreAllRowsAndUi(){
     try {
-      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
         try {
-          const table = $('.summary-table').DataTable();
-          table.search('').draw();
-        } catch(e){
-          // fallback to showing all rows
+          const dt = $('.summary-table').DataTable();
+          dt.search('').columns().search('').draw();
+          // ensure nodes visible
+          try {
+            dt.rows().nodes().to$().each(function(){ this.style.display = ''; });
+          } catch(e){ /* ignore */ }
+          try { dt.columns.adjust().draw(false); } catch(e){ /* ignore */ }
+        } catch(e) {
+          console.warn('DataTables restore failed, falling back to DOM restore', e);
           document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
         }
       } else {
         document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
       }
-    } catch(e){
-      console.warn('restoreTableClientSide failed', e);
+
+      // reset select-all checkbox if exists
+      const selectAll = document.getElementById('selectAll') || document.querySelector('.summary-table thead input[type="checkbox"]#selectAll');
+      if (selectAll) selectAll.checked = false;
+
+      // dispatch event so other code can react
+      const evt = new Event('tableRestored');
+      document.querySelectorAll('.summary-table').forEach(t => t.dispatchEvent(evt));
+    } catch(err){
+      console.warn('restoreAllRowsAndUi failed', err);
     }
   }
 
-  // helper: decide whether to reload from server (only if URL currently has mark param)
-  function reloadFromServerIfUrlHadMark(){
-    try {
-      const curUrl = new URL(window.location.href);
-      if (curUrl.searchParams.has('mark')) {
-        // safe remove mark and force_edit then navigate
-        curUrl.searchParams.delete('mark');
-        curUrl.searchParams.delete('force_edit');
-        const dest = curUrl.pathname + (curUrl.search ? ('?' + curUrl.searchParams.toString()) : '') + curUrl.hash;
-        // navigate only if different (avoid no-op)
-        if (dest !== window.location.pathname + window.location.search + window.location.hash) {
-          window.location = dest;
-          return true;
+  function maybeRestore(){
+    clearTimeout(t);
+    t = setTimeout(()=>{
+      try {
+        const v = (mi.value || '').trim();
+        // only trigger when field became empty (either by user or programmatic change)
+        if (v === '' && (lastVal && lastVal.trim() !== '')) {
+          // If page initially had a server-side MARK, do a reload to fetch full table
+          try {
+            if (typeof INITIAL_MARK !== 'undefined' && INITIAL_MARK && INITIAL_MARK.trim() !== '') {
+              // if current URL already has mark param, go to base search (no params)
+              const cur = new URL(window.location.href);
+              if (cur.searchParams.has('mark') || cur.searchParams.has('force_edit')) {
+                window.location = SEARCH_BASE_URL;
+                return;
+              }
+            }
+          } catch(e){ /* ignore URL errors and fallthrough to client restore */ }
+
+          // fallback to client-side restore
+          restoreAllRowsAndUi();
         }
+        lastVal = v;
+      } catch(e){
+        console.warn(e);
       }
-    } catch(e){
-      console.warn('reloadFromServerIfUrlHadMark failed', e);
-    }
-    return false;
+    }, 150);
   }
 
-  // Debounced handler for value-empty
-  let timer = null;
-  function onMaybeEmpty(){
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      const v = (markInputEl.value || '').trim();
-      if (v === '') {
-        // first try client-side restore
-        restoreTableClientSide();
-        // then optionally reload from server if the URL currently contains a mark param
-        // (this covers the case when the user navigated to /search?mark=...)
-        // NOTE: only reload if it actually changes the URL to avoid spurious reloads
-        reloadFromServerIfUrlHadMark();
-      }
-    }, 200); // small debounce
-  }
+  // wire events likely to change input value
+  mi.addEventListener('input', maybeRestore);
+  mi.addEventListener('keyup', maybeRestore);
+  mi.addEventListener('paste', function(){ setTimeout(maybeRestore, 50); });
+  mi.addEventListener('cut', function(){ setTimeout(maybeRestore, 50); });
+  mi.addEventListener('blur', maybeRestore);
 
-  // Wire up many events to be robust: input, keyup, paste, cut, blur (for mouse clears),
-  // and also monitor explicit clear button if present (some browsers show a UI)
-  markInputEl.addEventListener('input', onMaybeEmpty);
-  markInputEl.addEventListener('keyup', onMaybeEmpty);
-  markInputEl.addEventListener('paste', function(){ setTimeout(onMaybeEmpty, 50); });
-  markInputEl.addEventListener('cut', function(){ setTimeout(onMaybeEmpty, 50); });
-  markInputEl.addEventListener('blur', onMaybeEmpty);
-
-  // Also support programmatic clears (other scripts). Use MutationObserver on value attribute as last resort.
+  // also poll occasionally for programmatic changes (lightweight)
+  let pollInterval = null;
   try {
-    const mo = new MutationObserver(onMaybeEmpty);
-    mo.observe(markInputEl, { attributes: true, attributeFilter: ['value'] });
-    // disconnect on unload to avoid leaks
-    window.addEventListener('beforeunload', () => mo.disconnect());
-  } catch(e){ /* ignore if not allowed */ }
+    pollInterval = setInterval(() => {
+      const current = (mi.value || '').trim();
+      if (current !== (lastVal || '').trim()) {
+        maybeRestore();
+      }
+    }, 300);
+
+    window.addEventListener('beforeunload', () => {
+      if (pollInterval) clearInterval(pollInterval);
+    });
+  } catch(e){
+    // ignore poll setup errors
+  }
 })();
+
+
 
 
 });

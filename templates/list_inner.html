@@ -61,7 +61,6 @@
 .summary-table tfoot td {
   background-color: #f1f5f9;
 }
-
 </style>
 
 <script>
@@ -164,46 +163,69 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    reorderColumns();  // <-- Καλούμε πρώτα την αναδιάταξη
+    reorderColumns();
     computeTableTotals();
-          // Μικρότερο πλάτος για την πρώτη στήλη (checkboxes)
+
+    // Μικρότερο πλάτος για checkbox
     const firstTh = qs('.summary-table thead th:first-child');
     if(firstTh) firstTh.style.width = '40px';
-      qsa('.summary-table tbody tr').forEach(tr => {
+    qsa('.summary-table tbody tr').forEach(tr => {
       const firstTd = tr.querySelector('td:first-child');
       if(firstTd) firstTd.style.width = '40px';
-      });
+    });
 
-    // Toggle checkbox σε διπλό κλικ οπουδήποτε στη γραμμή
+    // Toggle checkbox σε διπλό κλικ
     const tbody = qs('.summary-table tbody');
-      if(tbody){
-        tbody.addEventListener('dblclick', e => {
+    if(tbody){
+      tbody.addEventListener('dblclick', e => {
         const tr = e.target.closest('tr');
-      if(!tr) return;
+        if(!tr) return;
         const cb = tr.querySelector('input[name="delete_mark"]');
-      if(cb) cb.checked = !cb.checked;
+        if(cb) cb.checked = !cb.checked;
       });
     }
-
 
     const table=qs('.summary-table');
     if(!table) return;
-
     const observer = new MutationObserver(() => computeTableTotals());
     observer.observe(table, { childList: true, subtree: true, characterData: true });
 
-    const globalSearch=qs('#globalSearch');
-    if(globalSearch){
-      globalSearch.addEventListener('input', function(){
-        const q=this.value.toLowerCase();
-        qsa('.summary-table tbody tr').forEach(tr=>{
-          tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none';
-        });
-        computeTableTotals();
+    // --- Global Search ---
+    const globalSearch = qs('#globalSearch');
+    function applyFilter(){
+      const q = (globalSearch.value||'').toLowerCase();
+      qsa('.summary-table tbody tr').forEach(tr=>{
+        tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none';
       });
+      computeTableTotals();
     }
 
-    // Download dropdown
+    if(globalSearch){
+      // Input event (πληκτρολόγηση, x button)
+      globalSearch.addEventListener('input', applyFilter);
+
+      // Keyup για Delete / Backspace / Ctrl+A / Cmd+A
+      globalSearch.addEventListener('keyup', e => {
+        if(['Delete','Backspace'].includes(e.key) || (e.metaKey||e.ctrlKey && e.key.toLowerCase()==='a')){
+          setTimeout(applyFilter, 10);
+        }
+      });
+
+      // Escape για καθαρισμό
+      globalSearch.addEventListener('keydown', e=>{
+        if(e.key==='Escape'){
+          globalSearch.value='';
+          applyFilter();
+        }
+      });
+
+      // MutationObserver για τυχόν προγραμματισμένη αλλαγή value
+      const mo = new MutationObserver(applyFilter);
+      mo.observe(globalSearch, { attributes:true, attributeFilter:['value'] });
+      window.addEventListener('beforeunload', ()=>mo.disconnect());
+    }
+
+    // --- Download dropdown ---
     const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
     if(toggle && menu){
       toggle.addEventListener('click', e=>{
@@ -221,7 +243,7 @@
       qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
     }
 
-    // Delete
+    // --- Delete button ---
     const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
       const modal=qs('#deleteModal');
       const modalMsg=qs('#deleteModalMessage');
@@ -245,7 +267,9 @@
         document.body.appendChild(form); form.submit();
       });
     }
+
   });
 })();
 </script>
+
 
