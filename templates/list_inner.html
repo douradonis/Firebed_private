@@ -5,7 +5,6 @@
     <div class="flex gap-2 items-center flex-wrap">
       {% if file_exists %}
       <div class="relative">
-        <!-- Κουμπί κατεβάσματος με βελάκι -->
         <button id="downloadToggle" class="px-4 py-2 bg-[#0d6efd] text-white rounded-lg shadow hover:bg-[#0b5ed7] transition flex items-center gap-2" type="button" aria-haspopup="true" aria-expanded="false">
           ⬇️ Κατέβασμα .xlsx
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -18,7 +17,6 @@
         </div>
       </div>
       {% endif %}
-
       <a class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
     </div>
   </div>
@@ -50,9 +48,8 @@
 </div>
 
 <style>
-/* Πίνακας - χρώματα και διαχωριστικά */
 .summary-table th {
-  background-color: #0d6efd; /* ίδιο μπλε με active menu */
+  background-color: #0d6efd;
   color: white;
   border: 1px solid #ccc;
 }
@@ -61,6 +58,9 @@
 }
 .summary-table tr:nth-child(even) { background-color: #f9fafb; }
 .summary-table tr:hover { background-color: #e6f0ff; }
+.summary-table tfoot td {
+  background-color: #f1f5f9;
+}
 </style>
 
 <script>
@@ -68,82 +68,144 @@
   const qs = (s,r=document)=>r.querySelector(s);
   const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
 
-  // Download dropdown
-  const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
-  if(toggle && menu){
-    toggle.addEventListener('click', e=>{
-      e.stopPropagation();
-      menu.classList.toggle('hidden');
-      toggle.setAttribute('aria-expanded', menu.classList.contains('hidden')?'false':'true');
-    });
-    document.addEventListener('click', e=>{
-      if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
-        menu.classList.add('hidden');
-        toggle.setAttribute('aria-expanded','false');
-      }
-    });
-    document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
-    qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
+  function parseLocalizedNumber(str){
+    if(!str) return 0;
+    return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0;
   }
 
-  // Checkbox values from MARK/AFM
-  (function mapCheckboxValues(){
-    const anyCb=qs('input[name="delete_mark"]'); if(!anyCb) return;
-    const headers=qsa('.summary-table thead th').map(th=>th.innerText.trim().toLowerCase());
-    let markIdx=headers.findIndex(h=>h.includes('mark') || h.includes('αφμ') || h.includes('afm'));
-    if(markIdx>=0){
-      qsa('.summary-table tbody tr').forEach(row=>{
-        const cb=row.querySelector('input[name="delete_mark"]');
-        const tds=row.querySelectorAll('td');
-        if(cb && tds[markIdx]) cb.value=tds[markIdx].innerText.trim();
+  function formatGreekNumber(n){
+    if(n===null||n===undefined) n=0;
+    const sign = n<0?'-':'';
+    const absn=Math.abs(Number(n)||0);
+    const parts=absn.toFixed(2).split('.');
+    const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decPart=parts[1]||'00';
+    return sign+intPart+','+decPart;
+  }
+
+  function computeTableTotals(){
+    try {
+      const table=qs('.summary-table');
+      if(!table) return;
+      const thead=table.querySelector('thead');
+      const headers=thead?Array.from(thead.querySelectorAll('th')):[];
+      const headerTexts=headers.map(h => (h.innerText || h.textContent || '').toString().trim().toLowerCase());
+
+      const netKeys=['καθαρή','καθαρη','net','netvalue','totalnet','καθαρη αξια','καθαρή αξία'];
+      const vatKeys=['φπα','vat']; 
+      const totalKeys=['σύνολο','συνολο','total','totalvalue','sum'];
+
+      function findIndexByKeywords(keys){
+        for(let i=0;i<headerTexts.length;i++){
+          const t=headerTexts[i];
+          if(!t) continue;
+          for(const k of keys) if(t===k) return i;
+        }
+        return -1;
+      }
+
+      const netIdx=findIndexByKeywords(netKeys);
+      const vatIdx=findIndexByKeywords(vatKeys);
+      const totalIdx=findIndexByKeywords(totalKeys);
+
+      let netSum=0, vatSum=0, totalSum=0;
+      const tbody=table.querySelector('tbody');
+      if(!tbody) return;
+
+      Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
+        if(tr.style.display==='none') return;
+        const tds=Array.from(tr.querySelectorAll('td'));
+        if(netIdx>=0 && tds[netIdx]) netSum+=parseLocalizedNumber(tds[netIdx].innerText);
+        if(vatIdx>=0 && tds[vatIdx]) vatSum+=parseLocalizedNumber(tds[vatIdx].innerText);
+        if(totalIdx>=0 && tds[totalIdx]) totalSum+=parseLocalizedNumber(tds[totalIdx].innerText);
+      });
+
+      const existingTfoot=table.querySelector('tfoot');
+      if(existingTfoot) existingTfoot.remove();
+
+      const tfoot=document.createElement('tfoot');
+      const tr=document.createElement('tr');
+      const colCount=headers.length || (table.querySelectorAll('tr:first-child td').length || 0);
+
+      for(let i=0;i<colCount;i++){
+        const td=document.createElement('td');
+        td.className='p-2 border text-right font-medium';
+        if(i===0){
+          td.className='p-2 border text-left font-semibold';
+          td.innerText='ΣΥΝΟΛΑ';
+        } else if(i===netIdx) td.innerText=formatGreekNumber(netSum);
+        else if(i===vatIdx) td.innerText=formatGreekNumber(vatSum);
+        else if(i===totalIdx) td.innerText=formatGreekNumber(totalSum);
+        else td.innerText='';
+        tr.appendChild(td);
+      }
+      tfoot.appendChild(tr);
+      table.appendChild(tfoot);
+    } catch(e){ console.warn('computeTableTotals failed', e); }
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const table=qs('.summary-table');
+    if(!table) return;
+
+    computeTableTotals();
+
+    const observer = new MutationObserver(() => computeTableTotals());
+    observer.observe(table, { childList: true, subtree: true, characterData: true });
+
+    const globalSearch=qs('#globalSearch');
+    if(globalSearch){
+      globalSearch.addEventListener('input', function(){
+        const q=this.value.toLowerCase();
+        qsa('.summary-table tbody tr').forEach(tr=>{
+          tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none';
+        });
+        computeTableTotals();
       });
     }
-  })();
 
-  // Select-all checkbox
-  (function(){
-    const anyCb=qs('input[name="delete_mark"]'); if(!anyCb) return;
-    const firstTh=qs('.summary-table thead th'); if(!firstTh) return;
-    if(!qs('#selectAll')){
-      const chk=document.createElement('input'); chk.type='checkbox'; chk.id='selectAll'; chk.title='Επιλογή όλων'; chk.className='mr-2';
-      firstTh.prepend(chk);
-      chk.addEventListener('change', function(){ qsa('input[name="delete_mark"]').forEach(cb=>cb.checked=this.checked); });
+    // Download dropdown
+    const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
+    if(toggle && menu){
+      toggle.addEventListener('click', e=>{
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+        toggle.setAttribute('aria-expanded', menu.classList.contains('hidden')?'false':'true');
+      });
+      document.addEventListener('click', e=>{
+        if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
+          menu.classList.add('hidden');
+          toggle.setAttribute('aria-expanded','false');
+        }
+      });
+      document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
+      qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
     }
-  })();
 
-  // Fallback search
-  qs('#globalSearch')?.addEventListener('input', function(){
-    const q=this.value.toLowerCase();
-    qsa('.summary-table tbody tr').forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none');
+    // Delete
+    const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
+      const modal=qs('#deleteModal');
+      const modalMsg=qs('#deleteModalMessage');
+      const cancelBtn=qs('#deleteCancel');
+      const confirmBtn=qs('#deleteConfirm');
+      const spinner=qs('#deleteSpinner');
+      let toDelete=[];
+      deleteBtn.addEventListener('click', ()=>{
+        toDelete=qsa('input[name="delete_mark"]:checked').map(cb=>cb.value).filter(v=>v.trim()!=='');
+        if(!toDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
+        modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
+        modal.classList.remove('hidden');
+      });
+      cancelBtn?.addEventListener('click', ()=>modal.classList.add('hidden'));
+      confirmBtn?.addEventListener('click', ()=>{
+        confirmBtn.disabled=true; spinner?.classList.remove('hidden');
+        const form=document.createElement('form'); form.method='POST'; form.action="{{ url_for('delete_invoices') }}";
+        const existingCsrf=qs('input[name="csrf_token"]'); 
+        if(existingCsrf){ const t=document.createElement('input'); t.type='hidden'; t.name='csrf_token'; t.value=existingCsrf.value; form.appendChild(t); }
+        toDelete.forEach(v=>{ const inp=document.createElement('input'); inp.type='hidden'; inp.name='delete_mark'; inp.value=v; form.appendChild(inp); });
+        document.body.appendChild(form); form.submit();
+      });
+    }
   });
-
-  // Delete flow
-  (function(){
-    const deleteBtn=qs('#deleteBtn'); if(!deleteBtn) return;
-    const modal=qs('#deleteModal');
-    const modalMsg=qs('#deleteModalMessage');
-    const cancelBtn=qs('#deleteCancel');
-    const confirmBtn=qs('#deleteConfirm');
-    const spinner=qs('#deleteSpinner');
-    let toDelete=[];
-
-    deleteBtn.addEventListener('click', ()=>{
-      toDelete=qsa('input[name="delete_mark"]:checked').map(cb=>cb.value).filter(v=>v.trim()!=='');
-      if(!toDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
-      modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
-      modal.classList.remove('hidden');
-    });
-
-    cancelBtn?.addEventListener('click', ()=>modal.classList.add('hidden'));
-
-    confirmBtn?.addEventListener('click', ()=>{
-      confirmBtn.disabled=true; spinner?.classList.remove('hidden');
-      const form=document.createElement('form'); form.method='POST'; form.action="{{ url_for('delete_invoices') }}";
-      const existingCsrf=qs('input[name="csrf_token"]'); 
-      if(existingCsrf){ const t=document.createElement('input'); t.type='hidden'; t.name='csrf_token'; t.value=existingCsrf.value; form.appendChild(t); }
-      toDelete.forEach(v=>{ const inp=document.createElement('input'); inp.type='hidden'; inp.name='delete_mark'; inp.value=v; form.appendChild(inp); });
-      document.body.appendChild(form); form.submit();
-    });
-  })();
 })();
 </script>
