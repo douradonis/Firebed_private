@@ -457,3 +457,139 @@ TypeError: 'list' object is not callable
 
 2025-10-01 21:18:34,547 INFO Starting app - MYDATA_ENV=production
 
+2025-10-01 21:19:47,311 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:19:47,476 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:19:47,953 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:19:51,105 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:19:51,278 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:19:51,738 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:01,485 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:01,657 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:02,112 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:06,424 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:06,514 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:06,851 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:22,228 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:22,322 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:22,691 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:25,622 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:25,714 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:20:26,050 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:24:08,908 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-01 21:24:09,710 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:24:15,987 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:24:16,431 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:24:25,480 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:24:26,009 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:12,208 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:12,768 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:22,555 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:23,219 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:33,390 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:33,823 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:37,573 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:37,981 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:50,616 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:25:51,048 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:12,272 INFO Starting app - MYDATA_ENV=production
+
+2025-10-01 21:28:21,176 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:21,632 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-10-01 21:28:22,787 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/fetch
+
+2025-10-01 21:28:23,474 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:28:29,409 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:28:29,808 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:28:33,027 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-01 21:28:33,542 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:37,233 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:37,703 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:50,289 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:28:50,686 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011067068726&force_edit=1
+
+2025-10-01 21:29:09,499 INFO Starting app - MYDATA_ENV=production
+
+2025-10-02 12:33:27,870 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-02 12:33:28,548 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-02 12:33:36,314 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9.github.dev/
+
+2025-10-02 12:33:36,749 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-02 12:33:51,514 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-02 12:33:51,912 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:33:54,316 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:33:54,487 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:33:54,749 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:34:06,286 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:34:06,579 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:34:06,771 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:01,246 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=None
+
+2025-10-02 12:53:01,622 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:14,822 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:14,980 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:15,154 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:17,138 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:17,212 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-02 12:53:17,376 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
