@@ -166,6 +166,25 @@
   document.addEventListener('DOMContentLoaded', function(){
     reorderColumns();  // <-- Καλούμε πρώτα την αναδιάταξη
     computeTableTotals();
+          // Μικρότερο πλάτος για την πρώτη στήλη (checkboxes)
+    const firstTh = qs('.summary-table thead th:first-child');
+    if(firstTh) firstTh.style.width = '40px';
+      qsa('.summary-table tbody tr').forEach(tr => {
+      const firstTd = tr.querySelector('td:first-child');
+      if(firstTd) firstTd.style.width = '40px';
+      });
+
+    // Toggle checkbox σε διπλό κλικ οπουδήποτε στη γραμμή
+    const tbody = qs('.summary-table tbody');
+      if(tbody){
+        tbody.addEventListener('dblclick', e => {
+        const tr = e.target.closest('tr');
+      if(!tr) return;
+        const cb = tr.querySelector('input[name="delete_mark"]');
+      if(cb) cb.checked = !cb.checked;
+      });
+    }
+
 
     const table=qs('.summary-table');
     if(!table) return;

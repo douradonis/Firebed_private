@@ -154,3 +154,7 @@
 
 2025-10-02 16:28:14,951 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
 
+2025-10-02 16:32:26,558 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-02 16:32:27,246 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
