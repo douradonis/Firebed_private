@@ -1031,11 +1031,11 @@ def search():
         from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
 
         input_is_url = re.match(r'^https?://', mark)
-        scraped_marks = []
-        scraped_afm = None
-
         if input_is_url:
             domain = urlparse(mark).netloc.lower()
+            scraped_afm = None
+            scraped_marks = []
+
             try:
                 if "wedoconnect" in domain:
                     scraped_marks, scraped_afm = scrape_wedoconnect(mark)
@@ -1057,153 +1057,171 @@ def search():
                 log.exception(f"Scraping failed for URL {mark}")
                 error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
+            # --- Έλεγχος AFM με ενεργό πελάτη ---
             if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
                 modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
 
+            # εισαγωγή MARK που επιστράφηκε από scraper
             if scraped_marks:
                 mark = scraped_marks[0]
 
+        # --- Έλεγχος MARK αν δεν είναι URL ---
         if not input_is_url:
             if not vat:
                 error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
             elif not mark or not mark.isdigit() or len(mark) != 15:
                 error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
 
-        # --- Έλεγχος MARK στο Excel για yellow box ---
+        # --- συνέχεια της υπάρχουσας λογικής με cache, Excel, modal_summary ---
         if not error:
-            try:
-                excel_path = excel_path_for(vat=vat)
-                if os.path.exists(excel_path):
-                    df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                    marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist() if "MARK" in df_check.columns else []
-                    if mark in marks_in_excel:
-                        allow_edit_existing = True  # yellow box flag
-            except Exception:
-                log.exception("Could not read Excel to check MARK")
-
-            # --- Φόρτωση invoices.json ---
+            # --- φορτώνουμε cache invoices ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             try:
                 cache = json_read(customer_file) or []
             except Exception:
                 cache = []
-
             docs_for_mark = [d for d in cache if str(d.get("mark", "")).strip() == mark]
 
+            # flag για ήδη χαρακτηρισμένα docs — δεν κάνουμε return εδώ, μόνο θα εμφανίσουμε μήνυμα
+            classified_flag = False
+            classified_docs = [
+                d for d in docs_for_mark
+                if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
+            ]
+            if classified_docs:
+                error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
+                classified_flag = True
+                # δεν χτίζουμε modal_summary ούτε τα invoice_lines — αλλά αφήνουμε να εμφανιστεί ο πίνακας
+
+            # --- Έλεγχος διπλοκαταχώρησης στο Excel για yellow box ---
+            try:
+                excel_path = excel_path_for(vat=vat)
+                if os.path.exists(excel_path):
+                    df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                    if "MARK" in df_check.columns:
+                        marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
+                        if mark in marks_in_excel:
+                            allow_edit_existing = True
+                            # αν δεν θέλουμε να ανοίγει modal αυτόματα, δεν κάνουμε return εδώ
+            except Exception:
+                log.exception("Could not read Excel to check duplicate MARK")
+
+            # Αν δεν έχουμε docs για το MARK στην cache -> άλλο μήνυμα
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                classified_docs = [
-                    d for d in docs_for_mark
-                    if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
-                ]
-                if classified_docs:
-                    error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
-                    return safe_render(
-                        "search.html",
-                        result=result,
-                        error=error,
-                        mark=mark,
-                        modal_summary=None,
-                        invoice_lines=[],
-                        customer_categories=[],
-                        allow_edit_existing=False,
-                        vat=vat,
-                        active_page="search",
-                        table_html="",
-                        file_exists=False,
-                        css_numcols="",
-                        modal_warning=modal_warning
-                    )
+                # Εάν είναι χαρακτηρισμένο, αποφύγε τον χτισμό modal_summary, αλλιώς χτίσε το κανονικά
+                if not classified_flag:
+                    invoice_lines = []
+                    for idx, inst in enumerate(docs_for_mark):
+                        line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                        description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
+                        amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
+                        vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
 
-                invoice_lines = []
-                for idx, inst in enumerate(docs_for_mark):
-                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                    description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
-                    amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
-                    vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
-                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
-                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                    invoice_lines.append({
-                        "id": line_id,
-                        "description": description,
-                        "amount": amount,
-                        "vat": vat_rate,
-                        "category": "",
-                        "vatCategory": mapped_vatcat
-                    })
+                        raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
+                        mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
 
-                first = docs_for_mark[0]
-                total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
-                total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
-                total_value = total_net + total_vat
+                        category = ""
 
-                modal_summary = {
-                    "mark": mark,
-                    "AA": pick(first, "AA", "aa", default=""),
-                    "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
-                    "Name": pick(first, "Name", "Name_issuer", default=""),
-                    "series": pick(first, "series", "Series", "serie", default=""),
-                    "number": pick(first, "number", "aa", "AA", default=""),
-                    "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
-                    "totalNetValue": f"{total_net:.2f}".replace(".", ","),
-                    "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
-                    "totalValue": f"{total_value:.2f}".replace(".", ","),
-                    "type": pick(first, "type", "invoiceType", default=""),
-                    "type_name": mapper(pick(first, "type", "invoiceType", default="")),
-                    "lines": invoice_lines
-                }
+                        invoice_lines.append({
+                            "id": line_id,
+                            "description": description,
+                            "amount": amount,
+                            "vat": vat_rate,
+                            "category": category,
+                            "vatCategory": mapped_vatcat
+                        })
 
-                # --- Προφόρτωση epsilon cache ---
-                try:
-                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                    eps_list = json_read(epsilon_path) or []
-                    matched = next((it for it in eps_list if any(str(it.get(k,"")).strip() == str(mark).strip() for k in ('mark','MARK','invoice_id','Αριθμός Μητρώου','id'))), None)
-                    if matched:
-                        modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός','') or ""
-                        try:
-                            eps_lines = matched.get("lines", []) or []
-                            eps_by_id = { str(l.get("id","")): l for l in eps_lines if l.get("id") is not None }
-                            for ml in modal_summary.get("lines", []):
-                                lid = str(ml.get("id",""))
-                                if lid and eps_by_id.get(lid):
-                                    eps_line = eps_by_id[lid]
-                                    if not ml.get("category") and eps_line.get("category"):
-                                        ml["category"] = eps_line.get("category")
-                                    if (not ml.get("vatCategory") or ml.get("vatCategory")== "") and eps_line.get("vat_category"):
-                                        ml["vatCategory"] = eps_line.get("vat_category")
-                        except Exception:
-                            log.exception("Failed to merge per-line categories from epsilon")
-                except Exception:
-                    log.exception("Could not read epsilon cache for prefill")
+                    first = docs_for_mark[0]
+                    total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
+                    total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
+                    total_value = total_net + total_vat
 
-                raw_tags = active_cred.get("expense_tags") or []
-                if isinstance(raw_tags, str):
-                    customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
-                elif isinstance(raw_tags, list):
-                    customer_categories = raw_tags
-                if not customer_categories:
-                    customer_categories = [
-                        "αγορες_εμπορευματων",
-                        "αγορες_α_υλων",
-                        "γενικες_δαπανες",
-                        "αμοιβες_τριτων",
-                        "δαπανες_χωρις_φπα"
-                    ]
+                    modal_summary = {
+                        "mark": mark,
+                        "AA": pick(first, "AA", "aa", default=""),
+                        "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                        "Name": pick(first, "Name", "Name_issuer", default=""),
+                        "series": pick(first, "series", "Series", "serie", default=""),
+                        "number": pick(first, "number", "aa", "AA", default=""),
+                        "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
+                        "totalNetValue": f"{total_net:.2f}".replace(".", ","),
+                        "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
+                        "totalValue": f"{total_value:.2f}".replace(".", ","),
+                        "type": pick(first, "type", "invoiceType", default=""),
+                        "type_name": mapper(pick(first, "type", "invoiceType", default="")),
+                        "lines": invoice_lines
+                    }
 
-    # --- Build table_html ---
+                    # --- Προφόρτωση χαρακτηρισμού & per-line categories από epsilon cache ---
+                    try:
+                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                        eps_list = json_read(epsilon_path) or []
+                        def match_epsilon_item(item, mark_val):
+                            for k in ('mark','MARK','invoice_id','Αριθμός Μητρώου','id'):
+                                if k in item and str(item[k]).strip() == str(mark_val).strip():
+                                    return True
+                            return False
+                        matched = None
+                        for it in eps_list:
+                            if match_epsilon_item(it, mark):
+                                matched = it
+                                break
+                        if matched:
+                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός','') or ""
+                            try:
+                                eps_lines = matched.get("lines", []) or []
+                                eps_by_id = { str(l.get("id","")): l for l in eps_lines if l.get("id") is not None }
+                                for ml in modal_summary.get("lines", []):
+                                    lid = str(ml.get("id",""))
+                                    if not lid:
+                                        continue
+                                    eps_line = eps_by_id.get(lid)
+                                    if eps_line:
+                                        if not ml.get("category") and eps_line.get("category"):
+                                            ml["category"] = eps_line.get("category")
+                                        if (not ml.get("vatCategory") or ml.get("vatCategory")== "") and eps_line.get("vat_category"):
+                                            ml["vatCategory"] = eps_line.get("vat_category")
+                            except Exception:
+                                log.exception("Failed to merge per-line categories from epsilon")
+                    except Exception:
+                        log.exception("Could not read epsilon cache for prefill")
+
+                    raw_tags = active_cred.get("expense_tags") or []
+                    if isinstance(raw_tags, str):
+                        customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
+                    elif isinstance(raw_tags, list):
+                        customer_categories = raw_tags
+                    if not customer_categories:
+                        customer_categories = [
+                            "αγορες_εμπορευματων",
+                            "αγορες_α_υλων",
+                            "γενικες_δαπανες",
+                            "αμοιβες_τριτων",
+                            "δαπανες_χωρις_φπα"
+                        ]
+                else:
+                    # docs exist but are already classified — keep error message, but still show table later
+                    modal_summary = None
+                    invoice_lines = []
+                    customer_categories = []
+
+    # --- Build table_html same way as /list ---
     try:
+        active = get_active_credential_from_session()
         excel_path = DEFAULT_EXCEL_FILE
-        if active_cred and active_cred.get("vat"):
-            excel_path = excel_path_for(vat=active_cred.get("vat"))
-        elif active_cred and active_cred.get("name"):
-            excel_path = excel_path_for(cred_name=active_cred.get("name"))
+        if active and active.get("vat"):
+            excel_path = excel_path_for(vat=active.get("vat"))
+        elif active and active.get("name"):
+            excel_path = excel_path_for(cred_name=active.get("name"))
         if os.path.exists(excel_path):
             file_exists = True
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            # insert checkbox column as first column
             checkbox_html = '<input type="checkbox" name="delete_mark" />'
             df.insert(0, "✓", [checkbox_html] * len(df))
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
@@ -1214,6 +1232,7 @@ def search():
         log.exception("Failed building table_html for search page")
         table_html = ""
 
+    # Επιστρέφουμε πάντα το vat και όλα τα context vars
     return safe_render(
         "search.html",
         result=result,
@@ -1230,6 +1249,7 @@ def search():
         css_numcols=css_numcols,
         modal_warning=modal_warning
     )
+
 
 
 
