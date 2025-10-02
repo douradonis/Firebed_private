@@ -1124,6 +1124,7 @@ def search():
 
                         category = ""
 
+                        # store raw strings initially; we'll format later depending on type
                         invoice_lines.append({
                             "id": line_id,
                             "description": description,
@@ -1138,21 +1139,74 @@ def search():
                     total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
                     total_value = total_net + total_vat
 
-                    modal_summary = {
-                        "mark": mark,
-                        "AA": pick(first, "AA", "aa", default=""),
-                        "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
-                        "Name": pick(first, "Name", "Name_issuer", default=""),
-                        "series": pick(first, "series", "Series", "serie", default=""),
-                        "number": pick(first, "number", "aa", "AA", default=""),
-                        "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
-                        "totalNetValue": f"{total_net:.2f}".replace(".", ","),
-                        "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
-                        "totalValue": f"{total_value:.2f}".replace(".", ","),
-                        "type": pick(first, "type", "invoiceType", default=""),
-                        "type_name": mapper(pick(first, "type", "invoiceType", default="")),
-                        "lines": invoice_lines
-                    }
+                    # --- NEGATIVE TYPES: αν ο τύπος του παραστατικού είναι πιστωτικό/πιστωτικό λιανικής,
+                    # τότε αποθηκεύουμε/εμφανίζουμε τις τιμές με αρνητικό πρόσημο.
+                    NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
+                    inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
+                    is_negative = inv_type in NEGATIVE_TYPES
+
+                    # αρνητοποίηση per-line amounts (αν χρειάζεται)
+                    if is_negative:
+                        # μετατρέπουμε τις γραμμές σε αρνητικές εμφανίσεις
+                        for ml in invoice_lines:
+                            try:
+                                v = float_from_comma(ml.get("amount", 0))
+                                ml["amount"] = f"-{abs(v):.2f}".replace(".", ",")
+                            except Exception:
+                                # αν δεν είναι αριθμός, άφησέ το ως έχει
+                                ml["amount"] = ml.get("amount", "")
+                            try:
+                                vv = float_from_comma(ml.get("vat", 0))
+                                ml["vat"] = f"-{abs(vv):.2f}".replace(".", ",")
+                            except Exception:
+                                ml["vat"] = ml.get("vat", "")
+                    else:
+                        # μορφοποίηση χωρίς πρόσημο (όπως είχες)
+                        for ml in invoice_lines:
+                            try:
+                                v = float_from_comma(ml.get("amount", 0))
+                                ml["amount"] = f"{v:.2f}".replace(".", ",")
+                            except Exception:
+                                ml["amount"] = ml.get("amount", "")
+                            try:
+                                vv = float_from_comma(ml.get("vat", 0))
+                                ml["vat"] = f"{vv:.2f}".replace(".", ",")
+                            except Exception:
+                                ml["vat"] = ml.get("vat", "")
+
+                    # totals: μορφοποίηση με αρνητικό πρόσημο αν χρειάζεται
+                    if is_negative:
+                        modal_summary = {
+                            "mark": mark,
+                            "AA": pick(first, "AA", "aa", default=""),
+                            "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                            "Name": pick(first, "Name", "Name_issuer", default=""),
+                            "series": pick(first, "series", "Series", "serie", default=""),
+                            "number": pick(first, "number", "aa", "AA", default=""),
+                            "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
+                            "totalNetValue": f"-{abs(total_net):.2f}".replace(".", ","),
+                            "totalVatAmount": f"-{abs(total_vat):.2f}".replace(".", ","),
+                            "totalValue": f"-{abs(total_value):.2f}".replace(".", ","),
+                            "type": inv_type,
+                            "type_name": mapper(inv_type),
+                            "lines": invoice_lines
+                        }
+                    else:
+                        modal_summary = {
+                            "mark": mark,
+                            "AA": pick(first, "AA", "aa", default=""),
+                            "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                            "Name": pick(first, "Name", "Name_issuer", default=""),
+                            "series": pick(first, "series", "Series", "serie", default=""),
+                            "number": pick(first, "number", "aa", "AA", default=""),
+                            "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
+                            "totalNetValue": f"{total_net:.2f}".replace(".", ","),
+                            "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
+                            "totalValue": f"{total_value:.2f}".replace(".", ","),
+                            "type": inv_type,
+                            "type_name": mapper(inv_type),
+                            "lines": invoice_lines
+                        }
 
                     # --- Προφόρτωση χαρακτηρισμού & per-line categories από epsilon cache ---
                     try:
@@ -1249,6 +1303,7 @@ def search():
         css_numcols=css_numcols,
         modal_warning=modal_warning
     )
+
 
 
 

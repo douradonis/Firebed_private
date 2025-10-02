@@ -897,3 +897,23 @@ jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was loo
 
 2025-10-02 15:06:56,444 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
 
+2025-10-02 15:18:22,817 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-02 15:18:23,356 INFO Starting app - MYDATA_ENV=production
+
+2025-10-02 15:18:27,704 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:18:28,835 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:18:58,381 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:18:58,898 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:19:05,799 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:19:05,828 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-02 15:19:05,993 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search?mark=400011062938530
+
+2025-10-02 15:19:06,491 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+

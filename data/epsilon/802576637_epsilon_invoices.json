@@ -55,5 +55,33 @@
       }
     ],
     "_updated_at": "2025-09-30T13:10:42.410266+00:00"
+  },
+  {
+    "mark": "400010850816176",
+    "issueDate": "06/09/2025",
+    "series": "TΔA",
+    "aa": "59341",
+    "AA": "59341",
+    "type": "5.1",
+    "vatCategory": "",
+    "totalNetValue": "-20,16",
+    "totalVatAmount": "-4,84",
+    "totalValue": "-25,00",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "802576637",
+    "Name_issuer": "",
+    "AFM": "802576637",
+    "lines": [
+      {
+        "id": "400010850816176_inst0",
+        "description": "Instance #1",
+        "amount": "-20,16",
+        "vat": "-4,84",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]
