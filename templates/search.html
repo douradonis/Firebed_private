@@ -15,11 +15,11 @@
   </form>
 </div>
 
+{# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
 {% if allow_edit_existing and not request.args.get('force_edit') %}
 <div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
   Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
   <div class="mt-2 flex gap-2">
-    <!-- button που θα χειριστεί JS (επιβεβαίωση) -->
     <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
       Επιβεβαίωση
     </button>
@@ -31,7 +31,7 @@
 </div>
 {% endif %}
 
-{% if modal_summary and (request.args.get('force_edit') or not allow_edit_existing) %}
+{% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
@@ -150,7 +150,7 @@
   </div>
 </div>
 {% endif %}
-{# --- Νέο AFM Warning Modal --- #}
+
 {% if modal_warning %}
 <div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -166,8 +166,7 @@
   </div>
 </div>
 {% endif %}
-{# Include the list inner (table). Make sure list_inner.html exists and that the search view
-   passes the same context variables that list_inner expects (table_html, file_exists, etc.) #}
+
 {% include 'list_inner.html' %}
 {% endblock %}
 
@@ -178,12 +177,38 @@ const SEARCH_BASE_URL = "{{ url_for('search') }}";
 function closeModal(){
   const m = document.getElementById('summaryModal');
   if (m) m.style.display = 'none';
+  // αφαιρούμε το force_edit από το URL όταν κλείνει το modal
+  removeForceEditParamFromUrl();
+}
+
+// αφαίρεση του force_edit από το URL χωρίς reload
+function removeForceEditParamFromUrl(){
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('force_edit')) {
+      url.searchParams.delete('force_edit');
+      // ενημέρωσε τη γραμμή διεύθυνσης χωρίς να κάνεις reload
+      history.replaceState(null, '', url.pathname + (url.search ? ('?' + url.searchParams.toString()) : '') + url.hash);
+    }
+  } catch(e){
+    console.warn('removeForceEditParamFromUrl failed', e);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  // --- force-edit confirmation behavior ---
   const forceBtn = document.getElementById('forceEditBtn');
   const markInput = document.getElementById('markInput');
+  const existingBanner = document.getElementById('existingBanner');
+  const dismissBannerBtn = document.getElementById('dismissBannerBtn');
+
+  // dismiss button ασφαλές hide (client-side)
+  if(dismissBannerBtn){
+    dismissBannerBtn.addEventListener('click', function(){
+      if(existingBanner) existingBanner.style.display = 'none';
+    });
+  }
+
+  // Όταν ο χρήστης πατήσει "Επιβεβαίωση" στο yellow box:
   if (forceBtn){
     forceBtn.addEventListener('click', function(){
       const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
@@ -193,6 +218,8 @@ document.addEventListener('DOMContentLoaded', function(){
         return;
       }
       if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
+        // κρύβουμε προσωρινά το banner και ζητάμε force_edit από server (redirect με param)
+        if(existingBanner) existingBanner.style.display = 'none';
         window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
       }
     });
@@ -202,9 +229,18 @@ document.addEventListener('DOMContentLoaded', function(){
   const modal = document.getElementById('summaryModal');
   const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
   modalCloseBtns.forEach(b => b?.addEventListener('click', closeModal));
-  {% if modal_summary and (request.args.get('force_edit') or not allow_edit_existing) %}
-    // show modal if server provided it
-    setTimeout(()=>{ const m = document.getElementById('summaryModal'); if (m) m.style.display = 'flex'; }, 80);
+
+  // show modal only when server explicitly set force_edit=1 OR when mark didn't exist in excel
+  {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
+    setTimeout(()=>{
+      const m = document.getElementById('summaryModal');
+      if (m) {
+        m.style.display = 'flex';
+        // αφαιρούμε το force_edit αμέσως μετά που εμφανίστηκε το modal
+        // ώστε να μην ανοίγει αυτόματα σε reload/επόμενες φορτώσεις
+        removeForceEditParamFromUrl();
+      }
+    }, 80);
   {% endif %}
 
   {% if modal_warning %}
@@ -217,14 +253,13 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   {% endif %}
-  // --- normalize summary JSON & wire modal selects/buttons ---
+
+  // --- the rest of your existing summary wiring (no changes) ---
   const summaryInput = document.getElementById('summaryJsonInput');
   if (summaryInput){
     try {
       let summaryData = JSON.parse(summaryInput.value || '{}');
       if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
-
-      // normalize per-line ids & category keys
       summaryData.lines = summaryData.lines.map(l => {
         if (!l) return {id:'', description:'', amount:'', vat:'', category:'', vatCategory:''};
         l.id = (l.id!==undefined)?String(l.id):(l.line_id!==undefined?String(l.line_id):'');
@@ -232,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function(){
         return l;
       });
 
-      // map lines in the modal table
       document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr => {
         const lid = String(tr.dataset.lineId || '');
         const sel = tr.querySelector('select.expense-category');
@@ -246,7 +280,6 @@ document.addEventListener('DOMContentLoaded', function(){
         sel.addEventListener('change', function(){ existing.category = sel.value; summaryInput.value = JSON.stringify(summaryData); });
       });
 
-      // single-line buttons
       const singleLine = document.getElementById('singleLine');
       if (singleLine){
         const lid = String(singleLine.dataset.lineId || '');
@@ -278,18 +311,14 @@ document.addEventListener('DOMContentLoaded', function(){
           summaryInput.value = JSON.stringify(summaryData);
         });
       }
-
-      // write back normalized JSON
       summaryInput.value = JSON.stringify(summaryData);
     } catch(e){
       console.warn('summary JSON parse/normalize error', e);
     }
   }
 
-  // --- DataTables and list interactions ---
   const hasTable = document.querySelector('.summary-table') !== null;
   if (hasTable){
-    // only init DataTables if jquery + datatables are available
     const jq = window.jQuery;
     const dtAvail = jq && jq.fn && jq.fn.dataTable;
     if (dtAvail){
@@ -316,7 +345,6 @@ document.addEventListener('DOMContentLoaded', function(){
         console.warn('DataTables init failed — falling back', e);
       }
     } else {
-      // fallback plain filter if datatables not loaded
       const globalSearch = document.getElementById('globalSearch');
       if (globalSearch){
         globalSearch.addEventListener('input', function(){
@@ -328,7 +356,6 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
 
-    // add select-all checkbox if any delete checkboxes exist
     try {
       const anyCheckbox = document.querySelector('input[name="delete_mark"]');
       if (anyCheckbox){
@@ -340,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function(){
           firstTh.prepend(chk);
           chk.addEventListener('change', function(){ document.querySelectorAll('input[name="delete_mark"]').forEach(cb => cb.checked = this.checked); });
         }
-        // try to auto-fill checkbox values from MARK/ΑΦΜ-like column
         const headers = Array.from(document.querySelectorAll('.summary-table thead th')).map(h => h.innerText.trim().toLowerCase());
         let markIdx = headers.findIndex(h => h.includes('mark'));
         if (markIdx === -1) markIdx = headers.findIndex(h => h.includes('αφμ') || h.includes('afm'));
@@ -358,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
       }
     } catch(e){ console.warn('select-all / mark mapping error', e); }
-  } // end hasTable
+  }
 });
 </script>
 {% endblock %}

@@ -941,56 +941,56 @@ def search():
     # τοπικός mapper fallback
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
-        "1.1": "Τιμολόγιο Πώλησης",
-        "1.2": "Τιμολόγιο Πώλησης / Ενδοκοινοτικές Παραδόσεις",
-        "1.3": "Τιμολόγιο Πώλησης / Παραδόσεις Τρίτων Χωρών",
-        "1.4": "Τιμολόγιο Πώλησης / Πώληση για Λογαριασμό Τρίτων",
-        "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
-        "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
-        "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
-        "2.2": "Τιμολόγιο Παροχής / Ενδοκοινοτική Παροχή Υπηρεσιών",
-        "2.3": "Τιμολόγιο Παροχής / Παροχή Υπηρεσιών σε λήπτη Τρίτης Χώρας",
-        "2.4": "Τιμολόγιο Παροχής / Συμπληρωματικό Παραστατικό",
-        "3.1": "Τίτλος Κτήσης (μη υπόχρεος Εκδότης)",
-        "3.2": "Τίτλος Κτήσης (άρνηση έκδοσης από υπόχρεο Εκδότη)",
-        "5.1": "Πιστωτικό Τιμολόγιο / Συσχετιζόμενο",
-        "5.2": "Πιστωτικό Τιμολόγιο / Μη Συσχετιζόμενο",
-        "6.1": "Στοιχείο Αυτοπαράδοσης",
-        "6.2": "Στοιχείο Ιδιοχρησιμοποίησης",
-        "7.1": "Συμβόλαιο - Έσοδο",
-        "8.1": "Ενοίκια - Έσοδο",
-        "8.2": "Τέλος ανθεκτικότητας κλιματικής κρίσης",
-        "8.4": "Απόδειξη Είσπραξης POS",
-        "8.5": "Απόδειξη Επιστροφής POS",
-        "8.6": "Δελτίο Παραγγελίας Εστίασης",
-        "9.3": "Δελτίο Αποστολής",
-        "11.1": "ΑΛΠ",
-        "11.2": "ΑΠΥ",
-        "11.3": "Απλοποιημένο Τιμολόγιο",
-        "11.4": "Πιστωτικό Στοιχείο Λιανικής",
-        "11.5": "Απόδειξη Λιανικής Πώλησης για Λογαριασμό Τρίτων",
-        "13.1": "Έξοδα - Αγορές Λιανικών Συναλλαγών ημεδαπής / αλλοδαπής",
-        "13.2": "Παροχή Λιανικών Συναλλαγών ημεδαπής / αλλοδαπής",
-        "13.3": "Κοινόχρηστα",
-        "13.4": "Συνδρομές",
-        "13.30": "Παραστατικά Οντότητας ως Αναγράφονται από την ίδια (Δυναμικό)",
-        "13.31": "Πιστωτικό Στοιχείο Λιανικής ημεδαπής / αλλοδαπής",
-        "14.1": "Τιμολόγιο / Ενδοκοινοτικές Αποκτήσεις",
-        "14.2": "Τιμολόγιο / Αποκτήσεις Τρίτων Χωρών",
-        "14.3": "Τιμολόγιο / Ενδοκοινοτική Λήψη Υπηρεσιών",
-        "14.4": "Τιμολόγιο / Λήψη Υπηρεσιών Τρίτων Χωρών",
-        "14.5": "ΕΦΚΑ και λοιποί Ασφαλιστικοί Οργανισμοί",
-        "14.30": "Παραστατικά Οντότητας ως Αναγράφονται από την ίδια (Δυναμικό)",
-        "14.31": "Πιστωτικό ημεδαπής / αλλοδαπής",
-        "15.1": "Συμβόλαιο - Έξοδο",
-        "16.1": "Ενοίκιο Έξοδο",
-        "17.1": "Μισθοδοσία",
-        "17.2": "Αποσβέσεις",
-        "17.3": "Λοιπές Εγγραφές Τακτοποίησης Εσόδων - Λογιστική Βάση",
-        "17.4": "Λοιπές Εγγραφές Τακτοποίησης Εσόδων - Φορολογική Βάση",
-        "17.5": "Λοιπές Εγγραφές Τακτοποίησης Εξόδων - Λογιστική Βάση",
-        "17.6": "Λοιπές Εγγραφές Τακτοποίησης Εξόδων - Φορολογική Βάση",
-    }
+            "1.1": "Τιμολόγιο Πώλησης",
+            "1.2": "Τιμολόγιο Πώλησης / Ενδοκοινοτικές Παραδόσεις",
+            "1.3": "Τιμολόγιο Πώλησης / Παραδόσεις Τρίτων Χωρών",
+            "1.4": "Τιμολόγιο Πώλησης / Πώληση για Λογαριασμό Τρίτων",
+            "1.5": "Τιμολόγιο Πώλησης / Εκκαθάριση Πωλήσεων Τρίτων - Αμοιβή από Πωλήσεις Τρίτων",
+            "1.6": "Τιμολόγιο Πώλησης / Συμπληρωματικό Παραστατικό",
+            "2.1": "Τιμολόγιο Παροχής Υπηρεσιών",
+            "2.2": "Τιμολόγιο Παροχής / Ενδοκοινοτική Παροχή Υπηρεσιών",
+            "2.3": "Τιμολόγιο Παροχής / Παροχή Υπηρεσιών σε λήπτη Τρίτης Χώρας",
+            "2.4": "Τιμολόγιο Παροχής / Συμπληρωματικό Παραστατικό",
+            "3.1": "Τίτλος Κτήσης (μη υπόχρεος Εκδότης)",
+            "3.2": "Τίτλος Κτήσης (άρνηση έκδοσης από υπόχρεο Εκδότη)",
+            "5.1": "Πιστωτικό Τιμολόγιο / Συσχετιζόμενο",
+            "5.2": "Πιστωτικό Τιμολόγιο / Μη Συσχετιζόμενο",
+            "6.1": "Στοιχείο Αυτοπαράδοσης",
+            "6.2": "Στοιχείο Ιδιοχρησιμοποίησης",
+            "7.1": "Συμβόλαιο - Έσοδο",
+            "8.1": "Ενοίκια - Έσοδο",
+            "8.2": "Τέλος ανθεκτικότητας κλιματικής κρίσης",
+            "8.4": "Απόδειξη Είσπραξης POS",
+            "8.5": "Απόδειξη Επιστροφής POS",
+            "8.6": "Δελτίο Παραγγελίας Εστίασης",
+            "9.3": "Δελτίο Αποστολής",
+            "11.1": "ΑΛΠ",
+            "11.2": "ΑΠΥ",
+            "11.3": "Απλοποιημένο Τιμολόγιο",
+            "11.4": "Πιστωτικό Στοιχείο Λιανικής",
+            "11.5": "Απόδειξη Λιανικής Πώλησης για Λογαριασμό Τρίτων",
+            "13.1": "Έξοδα - Αγορές Λιανικών Συναλλαγών ημεδαπής / αλλοδαπής",
+            "13.2": "Παροχή Λιανικών Συναλλαγών ημεδαπής / αλλοδαπής",
+            "13.3": "Κοινόχρηστα",
+            "13.4": "Συνδρομές",
+            "13.30": "Παραστατικά Οντότητας ως Αναγράφονται από την ίδια (Δυναμικό)",
+            "13.31": "Πιστωτικό Στοιχείο Λιανικής ημεδαπής / αλλοδαπής",
+            "14.1": "Τιμολόγιο / Ενδοκοινοτικές Αποκτήσεις",
+            "14.2": "Τιμολόγιο / Αποκτήσεις Τρίτων Χωρών",
+            "14.3": "Τιμολόγιο / Ενδοκοινοτική Λήψη Υπηρεσιών",
+            "14.4": "Τιμολόγιο / Λήψη Υπηρεσιών Τρίτων Χωρών",
+            "14.5": "ΕΦΚΑ και λοιποί Ασφαλιστικοί Οργανισμοί",
+            "14.30": "Παραστατικά Οντότητας ως Αναγράφονται από την ίδια (Δυναμικό)",
+            "14.31": "Πιστωτικό ημεδαπής / αλλοδαπής",
+            "15.1": "Συμβόλαιο - Έξοδο",
+            "16.1": "Ενοίκιο Έξοδο",
+            "17.1": "Μισθοδοσία",
+            "17.2": "Αποσβέσεις",
+            "17.3": "Λοιπές Εγγραφές Τακτοποίησης Εσόδων - Λογιστική Βάση",
+            "17.4": "Λοιπές Εγγραφές Τακτοποίησης Εσόδων - Φορολογική Βάση",
+            "17.5": "Λοιπές Εγγραφές Τακτοποίησης Εξόδων - Λογιστική Βάση",
+            "17.6": "Λοιπές Εγγραφές Τακτοποίησης Εξόδων - Φορολογική Βάση",
+        }
         return INVOICE_TYPE_MAP.get(str(code), str(code) or "")
 
     mapper = globals().get("map_invoice_type", None) or _map_invoice_type_local
@@ -1012,11 +1012,11 @@ def search():
                 return src.get(k)
         return default
 
-    # active credential πρώτα
+    # active credential
     active_cred = get_active_credential_from_session()
     vat = active_cred.get("vat") if active_cred else None
 
-    # emulate POST: GET ?mark=...&force_edit=1 θα συμπεριφερθεί σαν POST
+    # emulate POST: GET ?mark=...&force_edit=1
     emulate_post = False
     if request.method == "GET" and request.args.get("mark") and request.args.get("force_edit"):
         mark = request.args.get("mark", "").strip()
@@ -1026,17 +1026,16 @@ def search():
         if request.method == "POST":
             mark = request.form.get("mark", "").strip()
 
-        # --- Έλεγχος αν το input είναι URL ---
         import re
         from urllib.parse import urlparse
         from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
 
         input_is_url = re.match(r'^https?://', mark)
+        scraped_marks = []
+        scraped_afm = None
+
         if input_is_url:
             domain = urlparse(mark).netloc.lower()
-            scraped_afm = None
-            scraped_marks = []
-
             try:
                 if "wedoconnect" in domain:
                     scraped_marks, scraped_afm = scrape_wedoconnect(mark)
@@ -1058,64 +1057,42 @@ def search():
                 log.exception(f"Scraping failed for URL {mark}")
                 error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            # --- Έλεγχος AFM με ενεργό πελάτη ---
             if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
                 modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
 
-            # εισαγωγή MARK που επιστράφηκε από scraper
             if scraped_marks:
                 mark = scraped_marks[0]
 
-        # --- Έλεγχος MARK αν δεν είναι URL ---
         if not input_is_url:
             if not vat:
                 error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
             elif not mark or not mark.isdigit() or len(mark) != 15:
                 error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
 
-        # --- συνέχεια της υπάρχουσας λογικής με cache, Excel, modal_summary ---
+        # --- Έλεγχος MARK στο Excel για yellow box ---
         if not error:
-            # --- φορτώνουμε cache invoices ---
+            try:
+                excel_path = excel_path_for(vat=vat)
+                if os.path.exists(excel_path):
+                    df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                    marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist() if "MARK" in df_check.columns else []
+                    if mark in marks_in_excel:
+                        allow_edit_existing = True  # yellow box flag
+            except Exception:
+                log.exception("Could not read Excel to check MARK")
+
+            # --- Φόρτωση invoices.json ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             try:
                 cache = json_read(customer_file) or []
             except Exception:
                 cache = []
+
             docs_for_mark = [d for d in cache if str(d.get("mark", "")).strip() == mark]
 
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                # --- Έλεγχος διπλοκαταχώρησης στο Excel ---
-                try:
-                    excel_path = excel_path_for(vat=vat)
-                    if os.path.exists(excel_path):
-                        df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                        if "MARK" in df_check.columns:
-                            marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
-                            if mark in marks_in_excel:
-                                allow_edit_existing = True
-                                if not (request.args.get('force_edit') or (request.method == "POST" and request.form.get('force_edit')) or emulate_post):
-                                    return safe_render(
-                                        "search.html",
-                                        result=result,
-                                        error=None,
-                                        mark=mark,
-                                        modal_summary=None,
-                                        invoice_lines=[],
-                                        customer_categories=[],
-                                        allow_edit_existing=True,
-                                        vat=vat,
-                                        active_page="search",
-                                        table_html="",
-                                        file_exists=os.path.exists(excel_path),
-                                        css_numcols="",
-                                        modal_warning=modal_warning
-                                    )
-                except Exception:
-                    log.exception("Could not read Excel to check duplicate MARK")
-
-                # --- Έλεγχος χαρακτηρισμού στο invoices.json ---
                 classified_docs = [
                     d for d in docs_for_mark
                     if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
@@ -1139,25 +1116,20 @@ def search():
                         modal_warning=modal_warning
                     )
 
-                # --- Κανονική προετοιμασία modal_summary και invoice_lines ---
                 invoice_lines = []
                 for idx, inst in enumerate(docs_for_mark):
                     line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
                     description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
                     amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
                     vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
-
                     raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
                     mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-
-                    category = ""
-
                     invoice_lines.append({
                         "id": line_id,
                         "description": description,
                         "amount": amount,
                         "vat": vat_rate,
-                        "category": category,
+                        "category": "",
                         "vatCategory": mapped_vatcat
                     })
 
@@ -1182,20 +1154,11 @@ def search():
                     "lines": invoice_lines
                 }
 
-                # --- Προφόρτωση χαρακτηρισμού & per-line categories από epsilon cache ---
+                # --- Προφόρτωση epsilon cache ---
                 try:
                     epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
                     eps_list = json_read(epsilon_path) or []
-                    def match_epsilon_item(item, mark_val):
-                        for k in ('mark','MARK','invoice_id','Αριθμός Μητρώου','id'):
-                            if k in item and str(item[k]).strip() == str(mark_val).strip():
-                                return True
-                        return False
-                    matched = None
-                    for it in eps_list:
-                        if match_epsilon_item(it, mark):
-                            matched = it
-                            break
+                    matched = next((it for it in eps_list if any(str(it.get(k,"")).strip() == str(mark).strip() for k in ('mark','MARK','invoice_id','Αριθμός Μητρώου','id'))), None)
                     if matched:
                         modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός','') or ""
                         try:
@@ -1203,10 +1166,8 @@ def search():
                             eps_by_id = { str(l.get("id","")): l for l in eps_lines if l.get("id") is not None }
                             for ml in modal_summary.get("lines", []):
                                 lid = str(ml.get("id",""))
-                                if not lid:
-                                    continue
-                                eps_line = eps_by_id.get(lid)
-                                if eps_line:
+                                if lid and eps_by_id.get(lid):
+                                    eps_line = eps_by_id[lid]
                                     if not ml.get("category") and eps_line.get("category"):
                                         ml["category"] = eps_line.get("category")
                                     if (not ml.get("vatCategory") or ml.get("vatCategory")== "") and eps_line.get("vat_category"):
@@ -1230,21 +1191,19 @@ def search():
                         "δαπανες_χωρις_φπα"
                     ]
 
-    # --- Build table_html same way as /list ---
+    # --- Build table_html ---
     try:
-        active = get_active_credential_from_session()
         excel_path = DEFAULT_EXCEL_FILE
-        if active and active.get("vat"):
-            excel_path = excel_path_for(vat=active.get("vat"))
-        elif active and active.get("name"):
-            excel_path = excel_path_for(cred_name=active.get("name"))
+        if active_cred and active_cred.get("vat"):
+            excel_path = excel_path_for(vat=active_cred.get("vat"))
+        elif active_cred and active_cred.get("name"):
+            excel_path = excel_path_for(cred_name=active_cred.get("name"))
         if os.path.exists(excel_path):
             file_exists = True
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
-            # insert checkbox column as first column
             checkbox_html = '<input type="checkbox" name="delete_mark" />'
             df.insert(0, "✓", [checkbox_html] * len(df))
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
@@ -1255,7 +1214,6 @@ def search():
         log.exception("Failed building table_html for search page")
         table_html = ""
 
-    # Επιστρέφουμε πάντα το vat και όλα τα context vars
     return safe_render(
         "search.html",
         result=result,
