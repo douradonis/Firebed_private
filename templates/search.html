@@ -9,9 +9,16 @@
     <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="flex gap-2" id="markSearchForm">
+  <form method="post" class="flex gap-2 items-center" id="markSearchForm">
     <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
     <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
+
+    <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
+    <div class="flex items-center gap-2 ml-4">
+      <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
+      <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
+      <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
+    </div>
   </form>
 </div>
 
@@ -75,7 +82,7 @@
           {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else '') %}
           {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
           {% set cat = line.category if line.category is defined else '' %}
-          <tr data-line-id="{{ lid }}">
+          <tr data-line-id="{{ lid }}" data-vat="{{ vat_cat }}">
             <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
             <td class="p-2 border break-words">{{ vat_cat }}</td>
             <td class="p-2 border text-right">{{ amt }}</td>
@@ -151,6 +158,27 @@
 </div>
 {% endif %}
 
+{# --- Repeat mapping modal (dynamic, populated by JS) --- #}
+<div id="repeatMappingModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4" style="display:none;">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
+      <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
+    </div>
+
+    <div id="repeatModalBody" class="space-y-3">
+      <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
+      <!-- JS θα γεμίσει εδώ -->
+      <div id="repeatMappingList" class="space-y-2"></div>
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
+      <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
 {% if modal_warning %}
 <div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -167,79 +195,324 @@
 </div>
 {% endif %}
 
+{# Flash container (JS will inject messages here) #}
+<div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
+
 {% include 'list_inner.html' %}
 {% endblock %}
 
 {% block scripts %}
 <script>
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
+const VAT = "{{ vat or '' }}"; // active vat from server
+const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
+ // initial categories passed from server as fallback; will be overridden if API returns expense_tags
+let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
 
-function closeModal(){
-  const m = document.getElementById('summaryModal');
-  if (m) m.style.display = 'none';
-  // αφαιρούμε το force_edit από το URL όταν κλείνει το modal
-  removeForceEditParamFromUrl();
+// Helper: show transient flash (client-side)
+function showFlash(message, type='info', timeout=3000){
+  try {
+    const container = document.getElementById('clientFlashContainer');
+    if(!container) return;
+    const el = document.createElement('div');
+    el.className = 'mb-2 p-3 rounded shadow text-sm';
+    if(type === 'success') el.classList.add('bg-green-50', 'text-green-800');
+    else if(type === 'error') el.classList.add('bg-red-50', 'text-red-800');
+    else el.classList.add('bg-gray-50', 'text-gray-800');
+    el.innerText = message;
+    container.appendChild(el);
+    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }catch(e){} }, timeout);
+  } catch(e){ console.warn('showFlash failed', e); }
 }
 
-// αφαίρεση του force_edit από το URL χωρίς reload
+// Helper API calls
+async function apiGetRepeatEntry(vat){
+  try {
+    const url = '/api/repeat_entry/get' + (vat ? ('?vat=' + encodeURIComponent(vat)) : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) return { ok: false };
+    return await res.json();
+  } catch(e){
+    console.warn('apiGetRepeatEntry failed', e);
+    return { ok: false };
+  }
+}
+async function apiSaveRepeatEntry(enabled, mapping, vat){
+  try {
+    const res = await fetch('/api/repeat_entry/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ enabled: !!enabled, mapping: mapping || {}, vat: vat || VAT })
+    });
+    if(!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      return { ok: false, status: res.status, body: txt };
+    }
+    return await res.json();
+  } catch(e){
+    console.warn('apiSaveRepeatEntry failed', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
 function removeForceEditParamFromUrl(){
   try {
     const url = new URL(window.location.href);
     if (url.searchParams.has('force_edit')) {
       url.searchParams.delete('force_edit');
-      // ενημέρωσε τη γραμμή διεύθυνσης χωρίς να κάνεις reload
       history.replaceState(null, '', url.pathname + (url.search ? ('?' + url.searchParams.toString()) : '') + url.hash);
     }
-  } catch(e){
-    console.warn('removeForceEditParamFromUrl failed', e);
-  }
+  } catch(e){ console.warn('removeForceEditParamFromUrl failed', e); }
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  // ---------- DOM references ----------
+  const repeatSwitch = document.getElementById('repeatEntrySwitch');
+  const editRepeatBtn = document.getElementById('editRepeatMappingBtn');
+  const repeatModal = document.getElementById('repeatMappingModal');
+  const repeatModalList = document.getElementById('repeatMappingList');
+  const repeatModalSave = document.getElementById('repeatModalSave');
+  const repeatModalCancel = document.getElementById('repeatModalCancel');
+  const repeatModalCloseX = document.getElementById('repeatModalCloseX');
+  const summaryInput = document.getElementById('summaryJsonInput'); // may be null
+  const saveSummaryForm = document.getElementById('saveSummaryForm');
+
+  // detect vat keys in summary
+  function detectVatKeysFromSummary(){
+    if(summaryInput && summaryInput.value){
+      try {
+        const obj = JSON.parse(summaryInput.value || '{}');
+        const lines = Array.isArray(obj.lines) ? obj.lines : [];
+        const set = new Set();
+        lines.forEach(l => {
+          const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
+          if(key) set.add(key);
+        });
+        if(set.size) return Array.from(set);
+      } catch(e){ /* ignore */ }
+    }
+    return ['0%','6%','13%','24%'];
+  }
+
+  // Build repeat modal UI given an existing mapping (object)
+  function buildRepeatModalUI(existingMapping){
+    repeatModalList.innerHTML = '';
+    const vatKeys = detectVatKeysFromSummary();
+    const mapping = existingMapping || {};
+    // default row
+    const defaultRow = document.createElement('div');
+    defaultRow.className = 'flex items-center gap-3';
+    defaultRow.innerHTML = `<div class="w-36 text-sm font-medium">Προεπιλογή</div>`;
+    const defaultSelect = document.createElement('select');
+    defaultSelect.className = 'p-1 border rounded flex-1';
+    const opt0 = document.createElement('option'); opt0.value=''; opt0.innerText='-- (κανένα) --'; defaultSelect.appendChild(opt0);
+    CUSTOMER_CATEGORIES.forEach(c=>{
+      const o = document.createElement('option'); o.value = c; o.innerText = c;
+      if(mapping['__default'] === c) o.selected = true;
+      defaultSelect.appendChild(o);
+    });
+    defaultRow.appendChild(defaultSelect);
+    repeatModalList.appendChild(defaultRow);
+
+    vatKeys.forEach(vk=>{
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-3';
+      const label = document.createElement('div');
+      label.className = 'w-36 text-sm font-medium';
+      label.innerText = vk || '(άγνωστο)';
+      const sel = document.createElement('select');
+      sel.className = 'p-1 border rounded flex-1';
+      const oEmpty = document.createElement('option'); oEmpty.value=''; oEmpty.innerText='-- (προεπιλογή) --'; sel.appendChild(oEmpty);
+      CUSTOMER_CATEGORIES.forEach(c=>{
+        const o=document.createElement('option'); o.value=c; o.innerText=c;
+        if(mapping[vk] === c) o.selected = true;
+        sel.appendChild(o);
+      });
+      row.appendChild(label);
+      row.appendChild(sel);
+      repeatModalList.appendChild(row);
+    });
+  }
+
+  function openRepeatModalWithMapping(mapping){
+    buildRepeatModalUI(mapping || {});
+    repeatModal.style.display = 'flex';
+  }
+  function closeRepeatModal(){ repeatModal.style.display = 'none'; }
+
+  // collect mapping from modal selects
+  function collectMappingFromModal(){
+    const mapping = {};
+    const selects = repeatModalList.querySelectorAll('select');
+    if(selects.length){
+      const first = selects[0];
+      if(first && first.value) mapping['__default'] = first.value;
+      const vatKeys = detectVatKeysFromSummary();
+      for(let i=1;i<selects.length;i++){
+        const sel = selects[i];
+        const vatKey = vatKeys[i-1];
+        if(sel && sel.value) mapping[vatKey] = sel.value;
+      }
+    }
+    return mapping;
+  }
+
+  // apply given mapping to summary JSON and submit saveSummaryForm
+  function applyMappingToSummaryAndSubmitUsingMapping(mapping){
+    if(!summaryInput || !saveSummaryForm) return false;
+    try {
+      const data = JSON.parse(summaryInput.value || '{}');
+      if(!Array.isArray(data.lines)) data.lines = [];
+      data.lines = data.lines.map(l => {
+        const vatKey = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
+        if(mapping && mapping[vatKey]) l.category = mapping[vatKey];
+        else if(mapping && mapping.__default) l.category = mapping.__default;
+        return l;
+      });
+      summaryInput.value = JSON.stringify(data);
+      saveSummaryForm.submit();
+      return true;
+    } catch(e){
+      console.warn('applyMappingToSummaryAndSubmitUsingMapping error', e);
+      return false;
+    }
+  }
+
+  // ---------- Initialization: load server repeat_entry config ----------
+  (async function initRepeatEntry(){
+    try {
+      const resp = await apiGetRepeatEntry(VAT);
+      if(resp && resp.ok){
+        const repeat = resp.repeat_entry || { enabled: false, mapping: {} };
+        // if server provided expense_tags (e.g. from save), update categories
+        if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
+          CUSTOMER_CATEGORIES = resp.expense_tags.slice();
+        }
+        const enabled = !!repeat.enabled;
+        const mapping = repeat.mapping || {};
+
+        if(repeatSwitch){
+          repeatSwitch.checked = enabled;
+          // show edit button if mapping exists
+          if(mapping && Object.keys(mapping).length) editRepeatBtn.classList.remove('hidden');
+          repeatSwitch.addEventListener('change', async function(){
+            const now = this.checked;
+            // if enabling and no mapping -> open modal to create mapping
+            if(now){
+              if(!mapping || Object.keys(mapping).length === 0){
+                // open modal letting user create mapping
+                openRepeatModalWithMapping({});
+              } else {
+                // mapping exists -> keep edit button visible
+                editRepeatBtn.classList.remove('hidden');
+              }
+            } else {
+              editRepeatBtn.classList.add('hidden');
+            }
+            // Persist enabled flag immediately (keep mapping as-is)
+            const saveResp = await apiSaveRepeatEntry(now, mapping, VAT);
+            if(saveResp && saveResp.ok){
+              showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
+              // if server returned expense_tags update local categories
+              if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
+                CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
+              }
+            } else {
+              showFlash('Αποτυχία αποθήκευσης ρύθμισης.', 'error');
+            }
+          });
+        }
+
+        // If repeat enabled and mapping exists and modal_summary present -> auto apply mapping now
+        if(enabled && mapping && Object.keys(mapping).length && summaryInput){
+          const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
+          if(did){
+            // hide summary modal if it would open
+            const sm = document.getElementById('summaryModal');
+            if(sm) sm.style.display = 'none';
+          }
+        }
+
+        // Wire edit button
+        if(editRepeatBtn){
+          editRepeatBtn.classList.toggle('hidden', !mapping || Object.keys(mapping).length===0);
+          editRepeatBtn.addEventListener('click', function(){
+            openRepeatModalWithMapping(mapping);
+          });
+        }
+      } else {
+        // fallback: switch off
+        if(repeatSwitch) repeatSwitch.checked = false;
+      }
+    } catch(e){
+      console.warn('initRepeatEntry failed', e);
+    }
+  })();
+
+  // ---------- modal handlers ----------
+  repeatModalCloseX?.addEventListener('click', closeRepeatModal);
+  repeatModalCancel?.addEventListener('click', closeRepeatModal);
+
+  repeatModalSave?.addEventListener('click', async function(){
+    // collect mapping
+    const mapping = collectMappingFromModal();
+    // persist to backend and enable repeat
+    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
+    if(resp && resp.ok){
+      // update categories if server returned expense_tags
+      if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
+        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
+      }
+      // make sure switch is on and edit button visible
+      if(repeatSwitch) repeatSwitch.checked = true;
+      editRepeatBtn.classList.remove('hidden');
+      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής.', 'success');
+      closeRepeatModal();
+      // if there's a modal_summary currently open, apply mapping immediately
+      if(summaryInput){
+        applyMappingToSummaryAndSubmitUsingMapping(mapping);
+      }
+    } else {
+      // log and notify user minimally
+      console.warn('Failed saving repeat mapping', resp);
+      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
+    }
+  });
+
+  // ---------- existing original JS (dismiss banner, force edit, summary modal wiring, etc) ----------
   const forceBtn = document.getElementById('forceEditBtn');
   const markInput = document.getElementById('markInput');
   const existingBanner = document.getElementById('existingBanner');
   const dismissBannerBtn = document.getElementById('dismissBannerBtn');
 
-  // dismiss button ασφαλές hide (client-side)
   if(dismissBannerBtn){
-    dismissBannerBtn.addEventListener('click', function(){
-      if(existingBanner) existingBanner.style.display = 'none';
-    });
+    dismissBannerBtn.addEventListener('click', function(){ if(existingBanner) existingBanner.style.display = 'none'; });
   }
 
-  // Όταν ο χρήστης πατήσει "Επιβεβαίωση" στο yellow box:
   if (forceBtn){
     forceBtn.addEventListener('click', function(){
       const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
       const markVal = encodeURIComponent(markValRaw || '');
-      if (!markVal){
-        alert('Δεν δόθηκε MARK για επιβεβαίωση.');
-        return;
-      }
+      if (!markVal){ alert('Δεν δόθηκε MARK για επιβεβαίωση.'); return; }
       if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
-        // κρύβουμε προσωρινά το banner και ζητάμε force_edit από server (redirect με param)
         if(existingBanner) existingBanner.style.display = 'none';
         window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
       }
     });
   }
 
-  // modal open/close wiring
   const modal = document.getElementById('summaryModal');
   const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
-  modalCloseBtns.forEach(b => b?.addEventListener('click', closeModal));
+  modalCloseBtns.forEach(b => b?.addEventListener('click', function(){
+    if(modal) modal.style.display = 'none';
+    removeForceEditParamFromUrl();
+  }));
 
-  // show modal only when server explicitly set force_edit=1 OR when mark didn't exist in excel
   {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
     setTimeout(()=>{
       const m = document.getElementById('summaryModal');
-      if (m) {
-        m.style.display = 'flex';
-        // αφαιρούμε το force_edit αμέσως μετά που εμφανίστηκε το modal
-        // ώστε να μην ανοίγει αυτόματα σε reload/επόμενες φορτώσεις
-        removeForceEditParamFromUrl();
-      }
+      if (m) { m.style.display = 'flex'; removeForceEditParamFromUrl(); }
     }, 80);
   {% endif %}
 
@@ -248,14 +521,11 @@ document.addEventListener('DOMContentLoaded', function(){
   const afmModalBtn = document.getElementById('afmModalConfirm');
   if (afmModal && afmModalBtn){
     setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    afmModalBtn.addEventListener('click', function(){
-      afmModal.style.display = 'none';
-    });
+    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
   }
   {% endif %}
 
   // --- the rest of your existing summary wiring (no changes) ---
-  const summaryInput = document.getElementById('summaryJsonInput');
   if (summaryInput){
     try {
       let summaryData = JSON.parse(summaryInput.value || '{}');
@@ -317,6 +587,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
+  // the table / datatables logic code (kept unchanged)
   const hasTable = document.querySelector('.summary-table') !== null;
   if (hasTable){
     const jq = window.jQuery;
@@ -385,6 +656,89 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     } catch(e){ console.warn('select-all / mark mapping error', e); }
   }
+
+  // --- new: restore table / reload when markInput cleared ---
+  // --- new: restore table / reload when markInput cleared (robust) ---
+(function wireMarkInputClearRestore(){
+  const markInputEl = document.getElementById('markInput');
+  if (!markInputEl) return;
+
+  // helper: restore client-side DataTable or show all rows
+  function restoreTableClientSide(){
+    try {
+      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+        try {
+          const table = $('.summary-table').DataTable();
+          table.search('').draw();
+        } catch(e){
+          // fallback to showing all rows
+          document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
+        }
+      } else {
+        document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
+      }
+    } catch(e){
+      console.warn('restoreTableClientSide failed', e);
+    }
+  }
+
+  // helper: decide whether to reload from server (only if URL currently has mark param)
+  function reloadFromServerIfUrlHadMark(){
+    try {
+      const curUrl = new URL(window.location.href);
+      if (curUrl.searchParams.has('mark')) {
+        // safe remove mark and force_edit then navigate
+        curUrl.searchParams.delete('mark');
+        curUrl.searchParams.delete('force_edit');
+        const dest = curUrl.pathname + (curUrl.search ? ('?' + curUrl.searchParams.toString()) : '') + curUrl.hash;
+        // navigate only if different (avoid no-op)
+        if (dest !== window.location.pathname + window.location.search + window.location.hash) {
+          window.location = dest;
+          return true;
+        }
+      }
+    } catch(e){
+      console.warn('reloadFromServerIfUrlHadMark failed', e);
+    }
+    return false;
+  }
+
+  // Debounced handler for value-empty
+  let timer = null;
+  function onMaybeEmpty(){
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const v = (markInputEl.value || '').trim();
+      if (v === '') {
+        // first try client-side restore
+        restoreTableClientSide();
+        // then optionally reload from server if the URL currently contains a mark param
+        // (this covers the case when the user navigated to /search?mark=...)
+        // NOTE: only reload if it actually changes the URL to avoid spurious reloads
+        reloadFromServerIfUrlHadMark();
+      }
+    }, 200); // small debounce
+  }
+
+  // Wire up many events to be robust: input, keyup, paste, cut, blur (for mouse clears),
+  // and also monitor explicit clear button if present (some browsers show a UI)
+  markInputEl.addEventListener('input', onMaybeEmpty);
+  markInputEl.addEventListener('keyup', onMaybeEmpty);
+  markInputEl.addEventListener('paste', function(){ setTimeout(onMaybeEmpty, 50); });
+  markInputEl.addEventListener('cut', function(){ setTimeout(onMaybeEmpty, 50); });
+  markInputEl.addEventListener('blur', onMaybeEmpty);
+
+  // Also support programmatic clears (other scripts). Use MutationObserver on value attribute as last resort.
+  try {
+    const mo = new MutationObserver(onMaybeEmpty);
+    mo.observe(markInputEl, { attributes: true, attributeFilter: ['value'] });
+    // disconnect on unload to avoid leaks
+    window.addEventListener('beforeunload', () => mo.disconnect());
+  } catch(e){ /* ignore if not allowed */ }
+})();
+
+
 });
 </script>
+
 {% endblock %}

@@ -74,7 +74,74 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+import re
 
+def normalize_vat_key(raw):
+    """
+    Normalize different vat-category representations into a canonical form like '24%','0%','6%','13%'
+    Examples:
+      'ΦΠΑ 24%' -> '24%'
+      '24%' -> '24%'
+      '24' -> '24%'
+      'VAT 24%' -> '24%'
+      '0%' -> '0%'
+    Returns empty string for unknown/empty.
+    """
+    if raw is None:
+        return ""
+    s = str(raw).strip().lower()
+    if not s:
+        return ""
+    # remove common words like 'φπα' or 'vat'
+    s = re.sub(r'φπα|\bvat\b', '', s, flags=re.IGNORECASE).strip()
+    # find a number (integer or decimal) optionally followed by %
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*%?', s)
+    if m:
+        num = m.group(1).replace(',', '.')
+        # if it's integer-like, keep integer
+        if '.' in num:
+            # keep as-is (rare), but normalize trailing .0
+            try:
+                f = float(num)
+                if f.is_integer():
+                    num = str(int(f))
+                else:
+                    # keep one or two decimals? keep as original trimmed
+                    num = num.rstrip('0').rstrip('.') if '.' in num else num
+            except:
+                num = num
+        # canonical form: without decimals if integer, with '%' suffix
+        return f"{num}%"
+    # if there is something else like 'μηδεν' -> map to 0%
+    if re.search(r'0|μηδ', s):
+        return "0%"
+    return ""
+def read_credentials_list():
+    try:
+        with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+    except Exception:
+        log.exception("read_credentials_list failed")
+        return []
+
+def write_credentials_list(data_list):
+    tmp = CREDENTIALS_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data_list, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, CREDENTIALS_FILE)
+
+def find_active_client_index(creds_list, vat=None):
+    # priority: match vat, else find 'active': true, else first
+    if vat:
+        for i,c in enumerate(creds_list):
+            if str(c.get('vat','')).strip() == str(vat).strip():
+                return i
+    for i,c in enumerate(creds_list):
+        if c.get('active'):
+            return i
+    return 0 if creds_list else None
 
 def load_invoices():
     if os.path.exists(INVOICES_FILE):
@@ -431,6 +498,65 @@ def safe_render(template_name, **ctx):
 @app.route("/")
 def home():
     return safe_render("nav.html", active_page="home")
+
+@app.route('/api/repeat_entry/get', methods=['GET'])
+def api_repeat_entry_get():
+    creds = read_credentials_list()
+    if not creds:
+        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
+    vat = request.args.get('vat') or (get_active_credential_from_session() or {}).get('vat')
+    idx = find_active_client_index(creds, vat=vat)
+    if idx is None:
+        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
+    repeat = creds[idx].get('repeat_entry', {"enabled": False, "mapping": {}})
+    # ensure expense_tags is a list of strings
+    raw_tags = creds[idx].get('expense_tags') or []
+    if isinstance(raw_tags, str):
+        expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
+    elif isinstance(raw_tags, list):
+        expense_tags = [str(t) for t in raw_tags]
+    else:
+        expense_tags = []
+    return jsonify({"ok": True, "repeat_entry": repeat, "expense_tags": expense_tags})
+
+
+@app.route('/api/repeat_entry/save', methods=['POST'])
+def api_repeat_entry_save():
+    payload = request.get_json(silent=True) or {}
+    enabled = bool(payload.get('enabled', False))
+    mapping = payload.get('mapping', {}) or {}
+
+    # sanitize + normalize mapping keys and values
+    normalized_mapping = {}
+    for k, v in mapping.items():
+        nk = normalize_vat_key(k)
+        if not nk:
+            # allow storing __default specially (leave as-is)
+            if str(k).strip() == '__default' and v:
+                normalized_mapping['__default'] = str(v).strip()
+            continue
+        normalized_mapping[nk] = str(v).strip()
+
+    creds = read_credentials_list()
+    vat = payload.get('vat') or (get_active_credential_from_session() or {}).get('vat')
+    idx = find_active_client_index(creds, vat=vat)
+    if idx is None:
+        return jsonify({"ok": False, "error": "No credentials found"}), 400
+
+    creds[idx].setdefault('repeat_entry', {})
+    creds[idx]['repeat_entry']['enabled'] = enabled
+    creds[idx]['repeat_entry']['mapping'] = normalized_mapping
+    creds[idx]['repeat_entry']['updated_at'] = datetime.datetime.utcnow().isoformat() + 'Z'
+    creds[idx]['repeat_entry']['user'] = (get_active_credential_from_session() or {}).get('user') or 'unknown'
+
+    try:
+        write_credentials_list(creds)
+        # optionally: return expense_tags too, if you earlier wanted that
+        return jsonify({"ok": True, "repeat_entry": creds[idx]['repeat_entry']})
+    except Exception as e:
+        log.exception("Failed saving repeat_entry")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 @app.route('/credentials/add', methods=['POST'])
@@ -938,7 +1064,7 @@ def search():
     css_numcols = ""
     modal_warning = None  # νέο flag για προειδοποιητικό modal
 
-    # τοπικός mapper fallback
+    # ---------- helpers ----------
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
             "1.1": "Τιμολόγιο Πώλησης",
@@ -1012,9 +1138,76 @@ def search():
                 return src.get(k)
         return default
 
-    # active credential
+    # ---------- credentials helpers ----------
+    def credentials_path():
+        return os.path.join(DATA_DIR, "credentials.json")
+
+    def read_credentials_list_local():
+        try:
+            p = credentials_path()
+            if not os.path.exists(p):
+                return []
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f) or []
+        except Exception:
+            log.exception("read_credentials_list_local failed")
+            return []
+
+    def write_credentials_list_local(creds_list):
+        try:
+            p = credentials_path()
+            tmp = p + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(creds_list, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, p)
+            return True
+        except Exception:
+            log.exception("write_credentials_list_local failed")
+            return False
+
+    def find_active_client_index_local(creds_list, vat_to_match=None):
+        if not creds_list:
+            return None
+        if vat_to_match:
+            for i, c in enumerate(creds_list):
+                try:
+                    if str(c.get("vat", "")).strip() == str(vat_to_match).strip():
+                        return i
+                except Exception:
+                    continue
+        for i, c in enumerate(creds_list):
+            if c.get("active"):
+                return i
+        return 0
+
+    # ---------- active credential ----------
     active_cred = get_active_credential_from_session()
     vat = active_cred.get("vat") if active_cred else None
+
+    # --- Handle JSON AJAX request to save repeat mapping ---
+    # expects JSON: {"action":"save_repeat_entry", "enabled": true/false, "mapping": {...}}
+    if request.method == "POST" and request.is_json:
+        data = request.get_json() or {}
+        if data.get("action") == "save_repeat_entry":
+            enabled = bool(data.get("enabled", False))
+            mapping = data.get("mapping", {}) or {}
+            # read creds, locate active client, set repeat_entry, write back
+            creds = read_credentials_list_local()
+            idx = find_active_client_index_local(creds, vat_to_match=vat)
+            if idx is None:
+                return jsonify({"ok": False, "error": "No credentials found to save."}), 400
+            try:
+                # ensure structure
+                creds[idx]["repeat_entry"] = {"enabled": enabled, "mapping": mapping}
+                ok = write_credentials_list_local(creds)
+                if not ok:
+                    return jsonify({"ok": False, "error": "Failed to write credentials file."}), 500
+                # also update session active_cred if needed (so frontend sees the change on reload)
+                # (Assuming existence of helper to refresh active credential in session; otherwise next request will read file)
+                return jsonify({"ok": True})
+            except Exception as e:
+                log.exception("Failed saving repeat entry mapping")
+                return jsonify({"ok": False, "error": str(e)}), 500
 
     # emulate POST: GET ?mark=...&force_edit=1
     emulate_post = False
@@ -1023,7 +1216,8 @@ def search():
         emulate_post = True
 
     if request.method == "POST" or emulate_post:
-        if request.method == "POST":
+        # If this was not JSON-save, normal form handling below
+        if request.method == "POST" and not request.is_json:
             mark = request.form.get("mark", "").strip()
 
         import re
@@ -1102,7 +1296,6 @@ def search():
                         marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
                         if mark in marks_in_excel:
                             allow_edit_existing = True
-                            # αν δεν θέλουμε να ανοίγει modal αυτόματα, δεν κάνουμε return εδώ
             except Exception:
                 log.exception("Could not read Excel to check duplicate MARK")
 
@@ -1110,7 +1303,7 @@ def search():
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                # Εάν είναι χαρακτηρισμένο, αποφύγε τον χτισμό modal_summary, αλλιώς χτίσε το κανονικά
+                # build modal_summary unless classified_flag
                 if not classified_flag:
                     invoice_lines = []
                     for idx, inst in enumerate(docs_for_mark):
@@ -1124,7 +1317,6 @@ def search():
 
                         category = ""
 
-                        # store raw strings initially; we'll format later depending on type
                         invoice_lines.append({
                             "id": line_id,
                             "description": description,
@@ -1139,21 +1331,16 @@ def search():
                     total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
                     total_value = total_net + total_vat
 
-                    # --- NEGATIVE TYPES: αν ο τύπος του παραστατικού είναι πιστωτικό/πιστωτικό λιανικής,
-                    # τότε αποθηκεύουμε/εμφανίζουμε τις τιμές με αρνητικό πρόσημο.
                     NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
                     inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
                     is_negative = inv_type in NEGATIVE_TYPES
 
-                    # αρνητοποίηση per-line amounts (αν χρειάζεται)
                     if is_negative:
-                        # μετατρέπουμε τις γραμμές σε αρνητικές εμφανίσεις
                         for ml in invoice_lines:
                             try:
                                 v = float_from_comma(ml.get("amount", 0))
                                 ml["amount"] = f"-{abs(v):.2f}".replace(".", ",")
                             except Exception:
-                                # αν δεν είναι αριθμός, άφησέ το ως έχει
                                 ml["amount"] = ml.get("amount", "")
                             try:
                                 vv = float_from_comma(ml.get("vat", 0))
@@ -1161,7 +1348,6 @@ def search():
                             except Exception:
                                 ml["vat"] = ml.get("vat", "")
                     else:
-                        # μορφοποίηση χωρίς πρόσημο (όπως είχες)
                         for ml in invoice_lines:
                             try:
                                 v = float_from_comma(ml.get("amount", 0))
@@ -1174,7 +1360,6 @@ def search():
                             except Exception:
                                 ml["vat"] = ml.get("vat", "")
 
-                    # totals: μορφοποίηση με αρνητικό πρόσημο αν χρειάζεται
                     if is_negative:
                         modal_summary = {
                             "mark": mark,
@@ -1208,7 +1393,7 @@ def search():
                             "lines": invoice_lines
                         }
 
-                    # --- Προφόρτωση χαρακτηρισμού & per-line categories από epsilon cache ---
+                    # Εισαγωγή προφόρτωσης χαρακτηρισμού από epsilon cache (όπως πριν)
                     try:
                         epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
                         eps_list = json_read(epsilon_path) or []
@@ -1256,10 +1441,19 @@ def search():
                             "δαπανες_χωρις_φπα"
                         ]
                 else:
-                    # docs exist but are already classified — keep error message, but still show table later
                     modal_summary = None
                     invoice_lines = []
                     customer_categories = []
+
+    # ---------- Read credentials to extract repeat_entry config to pass to template ----------
+    repeat_entry_conf = {}
+    try:
+        creds_list = read_credentials_list_local()
+        idx = find_active_client_index_local(creds_list, vat_to_match=vat)
+        if idx is not None and idx < len(creds_list):
+            repeat_entry_conf = creds_list[idx].get("repeat_entry", {}) or {}
+    except Exception:
+        log.exception("Could not read repeat_entry config from credentials")
 
     # --- Build table_html same way as /list ---
     try:
@@ -1286,7 +1480,7 @@ def search():
         log.exception("Failed building table_html for search page")
         table_html = ""
 
-    # Επιστρέφουμε πάντα το vat και όλα τα context vars
+    # Επιστρέφουμε πάντα το vat και όλα τα context vars, μαζί με repeat_entry_conf
     return safe_render(
         "search.html",
         result=result,
@@ -1301,8 +1495,12 @@ def search():
         table_html=table_html,
         file_exists=file_exists,
         css_numcols=css_numcols,
-        modal_warning=modal_warning
+        modal_warning=modal_warning,
+        # για frontend repeat modal
+        repeat_entry_conf=repeat_entry_conf
     )
+
+
 
 
 
@@ -1452,14 +1650,53 @@ def save_summary():
         except Exception:
             return 0.0
 
+    # normalize vat-key helper
+    import re
+    def normalize_vat_key(raw):
+        """
+        Normalize various representations to canonical 'NN%' style strings.
+        Examples:
+          'ΦΠΑ 24%' -> '24%'
+          '24' -> '24%'
+          '24,00%' -> '24%'
+          'VAT 13%' -> '13%'
+          'μηδεν' -> '0%'
+        Returns '' if cannot extract.
+        """
+        if raw is None:
+            return ""
+        s = str(raw).strip().lower()
+        if not s:
+            return ""
+        # remove common words
+        s = re.sub(r'φπα|\bvat\b|\bpercent\b|\b%$', '', s, flags=re.IGNORECASE).strip()
+        # try to find a number
+        m = re.search(r'(\d+(?:[.,]\d+)?)', s)
+        if m:
+            num = m.group(1).replace(',', '.')
+            try:
+                f = float(num)
+                if f.is_integer():
+                    num_str = str(int(f))
+                else:
+                    # keep minimal decimals trimmed
+                    num_str = num.rstrip('0').rstrip('.') if '.' in num else num
+            except Exception:
+                num_str = num
+            return f"{num_str}%"
+        # special-case zero words
+        if re.search(r'0|μηδ', s):
+            return "0%"
+        return ""
+
     # --- Ensure lines are present (reconstruct if needed) ---
     lines = summary.get("lines", []) or []
     if not lines:
         try:
             mark = str(summary.get("mark", "")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
-            all_docs = json_read(docs_file)
-            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
+            all_docs = json_read(docs_file) or []
+            docs_for_mark = [d for d in all_docs if str(d.get("mark", "")).strip() == mark]
             reconstructed = []
             for idx, inst in enumerate(docs_for_mark):
                 ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
@@ -1490,16 +1727,64 @@ def save_summary():
             continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
         raw_vcat = ln.get("vatCategory") or ln.get("vat_category") or ln.get("vatCat") or ln.get("vat_cat") or ""
+        # map via VAT_MAP if possible, else leave raw
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
-            "description": ln.get("description","") or ln.get("desc","") or "",
-            "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
-            "vat": ln.get("vat","") or ln.get("vatRate","") or "",
-            "category": ln.get("category","") or "",
+            "description": ln.get("description", "") or ln.get("desc", "") or "",
+            "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
+            "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
+            "category": ln.get("category", "") or "",
             "vatCategory": vcat_mapped
         })
     summary["lines"] = normalized_lines
+
+    # --- Load repeat_entry mapping from credentials and normalize its keys ---
+    try:
+        creds = read_credentials_list() or []
+        idx_cred = find_active_client_index(creds, vat=vat)
+        repeat_map = {}
+        if idx_cred is not None:
+            repeat_entry = creds[idx_cred].get("repeat_entry", {}) or {}
+            raw_map = repeat_entry.get("mapping", {}) or {}
+            # normalize keys, keep __default if present
+            for k, v in raw_map.items():
+                if str(k) == "__default":
+                    if v:
+                        repeat_map["__default"] = str(v)
+                    continue
+                nk = normalize_vat_key(k)
+                if nk:
+                    repeat_map[nk] = str(v)
+            # also accept '__default' stored in top-level repeat_entry
+            if "__default" not in repeat_map and repeat_entry.get("mapping", {}).get("__default"):
+                repeat_map["__default"] = repeat_entry["mapping"].get("__default")
+    except Exception:
+        log.exception("save_summary: failed to load repeat_entry mapping")
+        repeat_map = {}
+
+    # --- If repeat_map present, apply mapping to any lines missing category ---
+    try:
+        applied_count = 0
+        if repeat_map and isinstance(repeat_map, dict):
+            for ln in normalized_lines:
+                if not ln:
+                    continue
+                if ln.get("category"):
+                    continue  # already set by user
+                raw_vcat = ln.get("vatCategory") or ln.get("vat") or ""
+                nk = normalize_vat_key(raw_vcat)
+                if nk and nk in repeat_map:
+                    ln["category"] = repeat_map[nk]
+                    applied_count += 1
+                elif repeat_map.get("__default"):
+                    ln["category"] = repeat_map["__default"]
+                    applied_count += 1
+        if applied_count:
+            flash(f"Εφαρμόσθηκαν αυτόματες επαναληπτικές κατηγορίες σε {applied_count} γραμμές.", "success")
+    except Exception:
+        log.exception("save_summary: failed applying repeat_map")
+        # don't block saving; proceed
 
     # --- Append summary to per-customer summary JSON (keep existing behavior) ---
     try:
@@ -1564,7 +1849,7 @@ def save_summary():
         # defensive: coerce None -> []
         if epsilon_cache is None:
             epsilon_cache = []
-        mark = str(summary.get("mark","")).strip()
+        mark = str(summary.get("mark", "")).strip()
 
         # find existing epsilon entry by mark (robust)
         existing_index = None
@@ -1582,35 +1867,35 @@ def save_summary():
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
             # index existing lines by id
-            existing_by_id = { str(l.get("id","")): l for l in existing_lines if l.get("id") is not None }
+            existing_by_id = { str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None }
 
             updated = False
             for ln in normalized_lines:
-                lid = str(ln.get("id",""))
+                lid = str(ln.get("id", ""))
                 if not lid:
                     continue
                 if lid in existing_by_id:
                     el = existing_by_id[lid]
-                    new_cat = ln.get("category","") or ""
+                    new_cat = ln.get("category", "") or ""
                     # update category only if different and non-empty
-                    if new_cat and str(el.get("category","")) != new_cat:
+                    if new_cat and str(el.get("category", "")) != new_cat:
                         el["category"] = new_cat
                         # keep backward-compatible key names
-                        el["vat_category"] = ln.get("vatCategory","") or el.get("vat_category","")
+                        el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
                         updated = True
                     # if vatCategory present in normalized_lines and differs, update it too
-                    elif ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
+                    elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
                         el["vat_category"] = ln.get("vatCategory")
                         updated = True
                 else:
                     # new line not present in epsilon -> append minimal line preserving category
                     new_el = {
                         "id": lid,
-                        "description": ln.get("description",""),
-                        "amount": ln.get("amount",""),
-                        "vat": ln.get("vat",""),
-                        "category": ln.get("category","") or "",
-                        "vat_category": ln.get("vatCategory","") or ""
+                        "description": ln.get("description", ""),
+                        "amount": ln.get("amount", ""),
+                        "vat": ln.get("vat", ""),
+                        "category": ln.get("category", "") or "",
+                        "vat_category": ln.get("vatCategory", "") or ""
                     }
                     existing_lines.append(new_el)
                     existing_by_id[lid] = new_el
@@ -1672,31 +1957,32 @@ def save_summary():
         # Build full epsilon entry and append
         epsilon_entry = {
             "mark": mark,
-            "issueDate": summary.get("issueDate",""),
-            "series": summary.get("series",""),
-            "aa": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
-            "AA": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
-            "type": summary.get("type",""),
-            "vatCategory": summary.get("vatCategory",""),
-            "totalNetValue": summary.get("totalNetValue",""),
-            "totalVatAmount": summary.get("totalVatAmount",""),
-            "totalValue": summary.get("totalValue",""),
-            "classification": summary.get("classification",""),
+            "issueDate": summary.get("issueDate", ""),
+            "series": summary.get("series", ""),
+            "aa": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
+            "AA": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
+            "type": summary.get("type", ""),
+            "vatCategory": summary.get("vatCategory", ""),
+            "totalNetValue": summary.get("totalNetValue", ""),
+            "totalVatAmount": summary.get("totalVatAmount", ""),
+            "totalValue": summary.get("totalValue", ""),
+            "classification": summary.get("classification", ""),
             "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
             "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
-            "Name_issuer": summary.get("Name_issuer","") or summary.get("Name",""),
-            "AFM": summary.get("AFM","") or vat,
+            "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
+            "Name_issuer": summary.get("Name_issuer", "") or summary.get("Name", ""),
+            "AFM": summary.get("AFM", "") or vat,
             "lines": []
         }
         for ln in normalized_lines:
+            # ensure category already possibly filled by repeat_map application earlier
             epsilon_entry["lines"].append({
-                "id": ln.get("id",""),
-                "description": ln.get("description",""),
-                "amount": ln.get("amount",""),
-                "vat": ln.get("vat",""),
-                "category": ln.get("category","") or "",
-                "vat_category": ln.get("vatCategory","") or ""
+                "id": ln.get("id", ""),
+                "description": ln.get("description", ""),
+                "amount": ln.get("amount", ""),
+                "vat": ln.get("vat", ""),
+                "category": ln.get("category", "") or "",
+                "vat_category": ln.get("vatCategory", "") or ""
             })
 
         epsilon_cache.append(epsilon_entry)
@@ -1711,18 +1997,6 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # ---------------- List / download ----------------
