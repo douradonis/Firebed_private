@@ -1,34 +1,5 @@
 [
   {
-    "mark": "400011067068726",
-    "issueDate": "24/09/2025",
-    "series": "TΔA",
-    "aa": "59788",
-    "AA": "59788",
-    "type": "1.1",
-    "vatCategory": "",
-    "totalNetValue": "31,92",
-    "totalVatAmount": "7,66",
-    "totalValue": "39,58",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "802576637",
-    "Name_issuer": "",
-    "AFM": "802576637",
-    "lines": [
-      {
-        "id": "400011067068726_inst0",
-        "description": "Instance #1",
-        "amount": "31,92",
-        "vat": "7,66",
-        "category": "αμοιβες_τριτων",
-        "vat_category": "ΦΠΑ 24%"
-      }
-    ],
-    "_updated_at": "2025-10-02T15:28:48.086563+00:00"
-  },
-  {
     "mark": "400011062938530",
     "issueDate": "24/09/2025",
     "series": "11Μ0ΤΔΑ",
@@ -56,33 +27,5 @@
       }
     ],
     "_updated_at": "2025-09-30T13:10:42.410266+00:00"
-  },
-  {
-    "mark": "400010850816176",
-    "issueDate": "06/09/2025",
-    "series": "TΔA",
-    "aa": "59341",
-    "AA": "59341",
-    "type": "5.1",
-    "vatCategory": "",
-    "totalNetValue": "-20,16",
-    "totalVatAmount": "-4,84",
-    "totalValue": "-25,00",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "802576637",
-    "Name_issuer": "",
-    "AFM": "802576637",
-    "lines": [
-      {
-        "id": "400010850816176_inst0",
-        "description": "Instance #1",
-        "amount": "-20,16",
-        "vat": "-4,84",
-        "category": "αγορες_εμπορευματων",
-        "vat_category": "ΦΠΑ 24%"
-      }
-    ]
   }
 ]

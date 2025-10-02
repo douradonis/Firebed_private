@@ -61,6 +61,7 @@
 .summary-table tfoot td {
   background-color: #f1f5f9;
 }
+
 </style>
 
 <script>
@@ -81,6 +82,24 @@
     const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const decPart=parts[1]||'00';
     return sign+intPart+','+decPart;
+  }
+
+  function reorderColumns(){
+    const table = qs('.summary-table');
+    if(!table) return;
+    const headers = Array.from(table.querySelectorAll('thead th'));
+    const headerTexts = headers.map(h => (h.innerText || h.textContent || '').trim().toLowerCase());
+    const moveLast = ['φπα_κατηγορια','είδος'];
+    const indexesToMove = moveLast.map(name => headerTexts.findIndex(h => h === name.toLowerCase()))
+                                  .filter(idx => idx >= 0);
+    if(!indexesToMove.length) return;
+    const allRows = [ ...qsa('thead tr', table), ...qsa('tbody tr', table) ];
+    allRows.forEach(tr => {
+      indexesToMove.forEach(idx => {
+        const cell = tr.children[idx];
+        if(cell) tr.appendChild(cell);
+      });
+    });
   }
 
   function computeTableTotals(){
@@ -145,10 +164,11 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    reorderColumns();  // <-- Καλούμε πρώτα την αναδιάταξη
+    computeTableTotals();
+
     const table=qs('.summary-table');
     if(!table) return;
-
-    computeTableTotals();
 
     const observer = new MutationObserver(() => computeTableTotals());
     observer.observe(table, { childList: true, subtree: true, characterData: true });
@@ -209,3 +229,4 @@
   });
 })();
 </script>
+
