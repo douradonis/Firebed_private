@@ -1,34 +1,5 @@
 [
   {
-    "mark": "400011062938530",
-    "issueDate": "24/09/2025",
-    "series": "11Μ0ΤΔΑ",
-    "aa": "7836",
-    "AA": "7836",
-    "type": "1.1",
-    "vatCategory": "",
-    "totalNetValue": "41,57",
-    "totalVatAmount": "9,98",
-    "totalValue": "51,55",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "802576637",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM": "802576637",
-    "lines": [
-      {
-        "id": "400011062938530_inst0",
-        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "41,57",
-        "vat": "9,98",
-        "category": "αγορες_α_υλων",
-        "vat_category": "ΦΠΑ 24%"
-      }
-    ],
-    "_updated_at": "2025-10-02T19:06:25.048725+00:00"
-  },
-  {
     "mark": "400010850816176",
     "issueDate": "06/09/2025",
     "series": "TΔA",
@@ -56,5 +27,33 @@
       }
     ],
     "_updated_at": "2025-10-02T19:58:05.186680+00:00"
+  },
+  {
+    "mark": "400011062938530",
+    "issueDate": "24/09/2025",
+    "series": "11Μ0ΤΔΑ",
+    "aa": "7836",
+    "AA": "7836",
+    "type": "1.1",
+    "vatCategory": "",
+    "totalNetValue": "41,57",
+    "totalVatAmount": "9,98",
+    "totalValue": "51,55",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "802576637",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "802576637",
+    "lines": [
+      {
+        "id": "400011062938530_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "41,57",
+        "vat": "9,98",
+        "category": "αγορες_α_υλων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]

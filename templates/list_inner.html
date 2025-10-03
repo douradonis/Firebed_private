@@ -131,7 +131,7 @@
       if(!tbody) return;
 
       Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
-        if(tr.style.display==='none') return;
+        if(tr.style.display==='none') return; // Μόνο ορατές γραμμές
         const tds=Array.from(tr.querySelectorAll('td'));
         if(netIdx>=0 && tds[netIdx]) netSum+=parseLocalizedNumber(tds[netIdx].innerText);
         if(vatIdx>=0 && tds[vatIdx]) vatSum+=parseLocalizedNumber(tds[vatIdx].innerText);
@@ -185,41 +185,42 @@
       });
     }
 
-    const table=qs('.summary-table');
-    if(!table) return;
-    const observer = new MutationObserver(() => computeTableTotals());
-    observer.observe(table, { childList: true, subtree: true, characterData: true });
-
-    // --- Global Search ---
+    // --- Global Search + dynamic totals ---
     const globalSearch = qs('#globalSearch');
+
     function applyFilter(){
       const q = (globalSearch.value||'').toLowerCase();
+
+      // DataTables API search
+      if(window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+        const dt = $('.summary-table').DataTable();
+        if(dt){
+          dt.search(globalSearch.value).draw();
+          computeTableTotals(); // Totals after DataTables filter
+          return;
+        }
+      }
+
+      // fallback manual filtering
       qsa('.summary-table tbody tr').forEach(tr=>{
         tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none';
       });
-      computeTableTotals();
+      computeTableTotals(); // Totals μετά το manual filter
     }
 
     if(globalSearch){
-      // Input event (πληκτρολόγηση, x button)
       globalSearch.addEventListener('input', applyFilter);
-
-      // Keyup για Delete / Backspace / Ctrl+A / Cmd+A
       globalSearch.addEventListener('keyup', e => {
         if(['Delete','Backspace'].includes(e.key) || (e.metaKey||e.ctrlKey && e.key.toLowerCase()==='a')){
           setTimeout(applyFilter, 10);
         }
       });
-
-      // Escape για καθαρισμό
       globalSearch.addEventListener('keydown', e=>{
         if(e.key==='Escape'){
           globalSearch.value='';
           applyFilter();
         }
       });
-
-      // MutationObserver για τυχόν προγραμματισμένη αλλαγή value
       const mo = new MutationObserver(applyFilter);
       mo.observe(globalSearch, { attributes:true, attributeFilter:['value'] });
       window.addEventListener('beforeunload', ()=>mo.disconnect());
@@ -271,5 +272,4 @@
   });
 })();
 </script>
-
 
