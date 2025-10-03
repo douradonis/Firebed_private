@@ -569,6 +569,8 @@ def credentials_add():
     book_category = request.form.get('book_category','Β')
     fpa_applicable = bool(request.form.get('fpa_applicable'))
     expense_tags = request.form.getlist('expense_tags')
+    apodeixakia_type = request.form.get('apodeixakia_type', '').strip()
+    apodeixakia_supplier = request.form.get('apodeixakia_supplier', '').strip()
     new_cred = {
         'name': name,
         'vat': vat,
@@ -577,6 +579,8 @@ def credentials_add():
         'book_category': book_category,
         'fpa_applicable': fpa_applicable,
         'expense_tags': expense_tags,
+        'apodeixakia_type': apodeixakia_type,
+        'apodeixakia_supplier': apodeixakia_supplier,
         'active': False
     }
     credentials.append(new_cred)
@@ -585,23 +589,8 @@ def credentials_add():
     flash("Saved", "success")
     return redirect(url_for('credentials'))
 
-@app.route('/credentials/edit/<orig_name>', methods=['POST'])
-def credentials_edit_post(orig_name):
-    credentials = load_credentials()
-    for c in credentials:
-        if c['name'] == orig_name:
-            c['name'] = request.form.get('name')
-            c['vat'] = request.form.get('vat')
-            c['user'] = request.form.get('user')
-            c['key'] = request.form.get('key')
-            c['book_category'] = request.form.get('book_category','Β')
-            c['fpa_applicable'] = bool(request.form.get('fpa_applicable'))
-            c['expense_tags'] = request.form.getlist('expense_tags')
-            break
-    save_credentials(credentials)
-    # <-- added flash to ensure message appears if this route is used
-    flash("Updated", "success")
-    return redirect(url_for('credentials'))
+
+
 
 @app.route('/credentials/delete/<name>', methods=['POST'])
 def credentials_delete_post(name):
@@ -645,6 +634,8 @@ def credentials():
         book_category = request.form.get("book_category", "Β").strip() or "Β"
         fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
         expense_tags = request.form.getlist("expense_tags") or []
+        apodeixakia_type = request.form.get("apodeixakia_type", "").strip()   # "afm" or "supplier"
+        apodeixakia_supplier = request.form.get("apodeixakia_supplier", "").strip()
 
         if not name:
             flash("Name required", "error")
@@ -658,7 +649,9 @@ def credentials():
                 # προσθήκη νέων πεδίων
                 "book_category": book_category,
                 "fpa_applicable": fpa_applicable,
-                "expense_tags": expense_tags
+                "expense_tags": expense_tags,
+                "apodeixakia_type": apodeixakia_type,
+                "apodeixakia_supplier": apodeixakia_supplier
             }
             ok, err = add_credential(entry)
             if ok:
@@ -692,6 +685,19 @@ def credentials_edit(name):
         fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
         expense_tags = request.form.getlist("expense_tags") or []
 
+        # Νέα πεδία (apodeixakia) - fallback στις υπάρχουσες τιμές αν δεν παρέχονται
+        apodeixakia_type = request.form.get("apodeixakia_type")
+        if apodeixakia_type is None:
+            apodeixakia_type = credential.get("apodeixakia_type", "")
+        else:
+            apodeixakia_type = apodeixakia_type.strip()
+
+        apodeixakia_supplier = request.form.get("apodeixakia_supplier")
+        if apodeixakia_supplier is None:
+            apodeixakia_supplier = credential.get("apodeixakia_supplier", "")
+        else:
+            apodeixakia_supplier = apodeixakia_supplier.strip()
+
         if not new_name:
             flash("Name required", "error")
             return redirect(url_for("credentials_edit", name=name))
@@ -709,7 +715,10 @@ def credentials_edit(name):
             # Αποθηκεύουμε επίσης τα νέα πεδία
             "book_category": book_category,
             "fpa_applicable": fpa_applicable,
-            "expense_tags": expense_tags
+            "expense_tags": expense_tags,
+            # Αποθηκεύουμε και τα apodeixakia πεδία
+            "apodeixakia_type": apodeixakia_type,
+            "apodeixakia_supplier": apodeixakia_supplier
         }
 
         updated = False
@@ -733,6 +742,7 @@ def credentials_edit(name):
         return redirect(url_for("credentials"))
 
     # GET -> εμφανίζουμε τη φόρμα επεξεργασίας
+    # Προσθέτουμε flash πληροφορία (παραμένει ως έχει)
     flash(f"Editing credential: {credential.get('name')}", "info")
     return safe_render(
         "credentials_edit.html",
@@ -741,14 +751,15 @@ def credentials_edit(name):
     )
 
 
-
-
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
     creds = load_credentials()
     credential = next((c for c in creds if c.get("name") == name), None)
-    
+
     if not credential:
+        # Αν είναι AJAX, επιστρέφουμε JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'error', 'error': 'not found'}), 404
         flash(f"Credential '{name}' not found", "error")
         return redirect(url_for("credentials"))
 
@@ -757,14 +768,22 @@ def credentials_delete(name):
     save_credentials(creds)
 
     # Αν ήταν ενεργό, καθαρίζουμε session
+    was_active = False
     if session.get("active_credential") == name:
         session.pop("active_credential", None)
+        was_active = True
+
+    # Αν request από AJAX, επιστρέφουμε JSON ώστε το frontend fetch να το χειριστεί
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'ok', 'deleted': name, 'was_active': was_active})
+
+    # Διαφορετικά κάνουμε τα flash + redirect όπως παλιά
+    if was_active:
         flash(f"Active credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.", "success")
     else:
         flash(f"Credential '{name}' διαγράφηκε.", "success")
 
     return redirect(url_for("credentials"))
-
 
 
 # New route: set active credential
@@ -781,6 +800,7 @@ def set_active_credential():
             session["active_credential"] = name
             flash(f"Active credential set to {name}", "success")
     return redirect(url_for("credentials"))
+
 
 # ---------------- Fetch page ----------------
 # ---------------- Helpers for per-customer JSON & summary ----------------
