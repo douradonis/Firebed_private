@@ -14,7 +14,7 @@ from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
 from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
-
+import re
 import requests
 import pandas as pd
 
@@ -38,10 +38,14 @@ ERROR_LOG = os.path.join(DATA_DIR, "error.log")
 AADE_USER_ENV = os.getenv("AADE_USER_ID", "")
 AADE_KEY_ENV = os.getenv("AADE_SUBSCRIPTION_KEY", "")
 MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
+ALLOWED_CLIENT_EXT = {'.xlsx', '.xls', '.csv'}
+
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
+FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
+
 
 @app.before_request
 def log_request_path():
@@ -74,7 +78,65 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
-import re
+
+
+def _fiscal_meta_path():
+    return os.path.join(DATA_DIR, FISCAL_META)
+
+def get_active_fiscal_year():
+    """Return currently selected fiscal year as int, or None."""
+    try:
+        p = _fiscal_meta_path()
+        if os.path.exists(p):
+            with open(p, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+                y = data.get('fiscal_year')
+                if isinstance(y, int): return y
+                # accept numeric strings too
+                if isinstance(y, str) and y.isdigit(): return int(y)
+    except Exception:
+        log.exception("Failed to read fiscal meta")
+    return None
+
+def set_active_fiscal_year(year):
+    """Persist fiscal year (int)."""
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        p = _fiscal_meta_path()
+        with open(p, 'w', encoding='utf-8') as fh:
+            json.dump({'fiscal_year': int(year)}, fh)
+        log.info("Set active fiscal year: %s", year)
+        return True
+    except Exception:
+        log.exception("Failed to write fiscal meta")
+        return False
+def _client_meta_path():
+    """Full path to metadata JSON for client_db inside DATA_DIR."""
+    return os.path.join(DATA_DIR, 'client_db.meta.json')
+
+def read_client_meta():
+    """Read metadata if exists, return dict or None."""
+    meta_path = _client_meta_path()
+    try:
+        if os.path.exists(meta_path):
+            with open(meta_path, 'r', encoding='utf-8') as fh:
+                return json.load(fh)
+    except Exception:
+        log.exception("Failed reading client_db.meta.json")
+    return None
+
+def write_client_meta(filename, uploaded_at_iso):
+    """Write metadata (filename, uploaded_at iso) to meta file."""
+    meta = {
+        'filename': filename,
+        'uploaded_at': uploaded_at_iso
+    }
+    meta_path = _client_meta_path()
+    try:
+        with open(meta_path, 'w', encoding='utf-8') as fh:
+            json.dump(meta, fh, ensure_ascii=False, indent=2)
+    except Exception:
+        log.exception("Failed writing client_db.meta.json")
 
 def normalize_vat_key(raw):
     """
@@ -499,6 +561,99 @@ def safe_render(template_name, **ctx):
 def home():
     return safe_render("nav.html", active_page="home")
 
+
+@app.route('/get_fiscal_year', methods=['GET'])
+def route_get_fiscal_year():
+    y = get_active_fiscal_year()
+    return jsonify(exists=(y is not None), fiscal_year=y), 200
+
+@app.route('/set_fiscal_year', methods=['POST'])
+def route_set_fiscal_year():
+    """
+    POST JSON or form: { fiscal_year: 2025 }
+    Returns JSON { success: bool, fiscal_year: int|null, message: str }
+    """
+    try:
+        # accept JSON or form
+        data = request.get_json(silent=True) or request.form or {}
+        fy = data.get('fiscal_year') or data.get('year') or None
+        if fy is None:
+            return jsonify(success=False, message='Missing fiscal_year'), 400
+        try:
+            fy_int = int(fy)
+        except Exception:
+            return jsonify(success=False, message='Invalid fiscal_year'), 400
+
+        ok = set_active_fiscal_year(fy_int)
+        if not ok:
+            return jsonify(success=False, message='Could not persist fiscal year'), 500
+        return jsonify(success=True, fiscal_year=fy_int, message='Fiscal year updated'), 200
+    except Exception:
+        log.exception("Failed in set_fiscal_year")
+        return jsonify(success=False, message='Server error'), 500
+
+# ---------- validation helpers ----------
+def parse_date_str_to_utc(date_str):
+    """
+    Try parse a date string (ISO-ish or dd/mm/yyyy or yyyy-mm-dd).
+    Returns a datetime in UTC (naive or tz aware converted to UTC) or None.
+    """
+    if not date_str:
+        return None
+    # try ISO first
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            dt = _dt.strptime(date_str, fmt)
+            # naive -> assume local? we'll treat naive as UTC to be strict
+            if dt.tzinfo is None:
+                # treat as UTC for server-side canonicalization
+                dt = dt.replace(tzinfo=timezone.utc)
+            else:
+                dt = dt.astimezone(timezone.utc)
+            return dt
+        except Exception:
+            continue
+    # last resort: try dateutil if available
+    try:
+        from dateutil import parser as _parser
+        dt = _parser.parse(date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+def is_date_within_fiscal_year(dt_utc, fiscal_year):
+    """
+    dt_utc: datetime with tzinfo=UTC
+    fiscal_year: int (e.g. 2025)
+    Assumes fiscal year = calendar year (Jan 1 - Dec 31).
+    If your fiscal year differs, adapt start/end calculation here.
+    """
+    if not dt_utc or fiscal_year is None:
+        return False
+    start = _dt(fiscal_year, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    end = _dt(fiscal_year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    return start <= dt_utc <= end
+
+def validate_date_field_against_active_fiscal(date_str, field_name='date'):
+    """
+    Centralized server-side check. Returns (ok:bool, message:str).
+    Use this in any route that receives date strings from user.
+    """
+    fiscal_year = get_active_fiscal_year()
+    if fiscal_year is None:
+        return True, "No active fiscal year set"  # if no selection, don't block
+    dt = parse_date_str_to_utc(date_str)
+    if dt is None:
+        return False, f"Δεν αναγνώστηκε σωστά η ημερομηνία στο πεδίο {field_name}."
+    if not is_date_within_fiscal_year(dt, fiscal_year):
+        # produce message with allowed year info
+        return False, f"Η επιλεγμένη χρήση είναι {fiscal_year}. Η ημερομηνία στο πεδίο {field_name} ({date_str}) δεν ανήκει στη χρήση αυτή."
+    return True, "OK"
+
 @app.route('/api/repeat_entry/get', methods=['GET'])
 def api_repeat_entry_get():
     creds = read_credentials_list()
@@ -619,6 +774,94 @@ def credentials_save_settings():
         save_settings(data)
         return jsonify({'status':'ok'})
     return jsonify({'status':'error'}), 400
+
+@app.route('/upload_client_db', methods=['POST'])
+def upload_client_db():
+    """
+    Accept multipart/form-data with field 'client_file' and save it into DATA_DIR
+    as client_db{.ext}. Existing client_db* files are moved to backups with a UTC timestamp.
+    Also writes client_db.meta.json with original filename + uploaded_at.
+    Returns JSON { success: bool, message: str }.
+    """
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+
+        if 'client_file' not in request.files:
+            return jsonify(success=False, message='Δεν βρέθηκε το πεδίο client_file στο αίτημα.'), 400
+
+        f = request.files['client_file']
+        if not f or not getattr(f, 'filename', '').strip():
+            return jsonify(success=False, message='Δεν επιλέχθηκε αρχείο.'), 400
+
+        filename = secure_filename(f.filename)
+        base, ext = os.path.splitext(filename)
+        ext = ext.lower()
+        if ext not in ALLOWED_CLIENT_EXT:
+            return jsonify(success=False, message='Μη επιτρεπτή επέκταση. Χρήση .xlsx, .xls ή .csv'), 400
+
+        dest_name = f'client_db{ext}'
+        dest_path = os.path.join(DATA_DIR, dest_name)
+
+        # Backup existing client_db.* files (if any)
+        try:
+            for existing in os.listdir(DATA_DIR):
+                if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
+                    existing_path = os.path.join(DATA_DIR, existing)
+                    ts = _dt.utcnow().strftime('%Y%m%dT%H%M%SZ')
+                    backup_name = f"{existing}.bak.{ts}"
+                    backup_path = os.path.join(DATA_DIR, backup_name)
+                    os.rename(existing_path, backup_path)
+                    log.info("Backed up previous client_db: %s -> %s", existing, backup_name)
+        except Exception:
+            log.exception("Failed to backup existing client_db files (continuing)")
+
+        # Save uploaded file
+        try:
+            f.save(dest_path)
+        except Exception:
+            log.exception("Failed to save uploaded client_db to %s", dest_path)
+            return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
+
+        # write meta with original filename + uploaded timestamp (UTC ISO)
+        try:
+            uploaded_at_iso = _dt.utcnow().replace(microsecond=0).isoformat() + 'Z'
+            write_client_meta(filename, uploaded_at_iso)
+        except Exception:
+            log.exception("Failed to write client_db metadata (continuing)")
+
+        return jsonify(success=True, message=f'Αποθηκεύτηκε: {dest_name}', filename=filename, uploaded_at=uploaded_at_iso), 200
+
+    except Exception:
+        log.exception("Unhandled exception in upload_client_db")
+        return jsonify(success=False, message='Εσωτερικό σφάλμα server.'), 500
+
+
+@app.route('/client_db_info', methods=['GET'])
+def client_db_info():
+    """
+    Return JSON with metadata about current client_db (if exists).
+    { exists: bool, filename: str|null, uploaded_at: str|null }
+    """
+    try:
+        meta = read_client_meta()
+        if meta:
+            return jsonify(exists=True, filename=meta.get('filename'), uploaded_at=meta.get('uploaded_at')), 200
+
+        # fallback: if any client_db.* exists but no meta file, infer using file mtime
+        for existing in os.listdir(DATA_DIR):
+            if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
+                p = os.path.join(DATA_DIR, existing)
+                try:
+                    mtime = _dt.utcfromtimestamp(os.path.getmtime(p)).replace(microsecond=0).isoformat() + 'Z'
+                    return jsonify(exists=True, filename=existing, uploaded_at=mtime), 200
+                except Exception:
+                    continue
+
+        return jsonify(exists=False, filename=None, uploaded_at=None), 200
+    except Exception:
+        log.exception("Failed to read client_db info")
+        return jsonify(exists=False, filename=None, uploaded_at=None), 500
+# ---------- end client_db helpers + routes ----------
 
 # credentials CRUD (unchanged behaviour) but pass active credential to template
 @app.route("/credentials", methods=["GET", "POST"])

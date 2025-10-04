@@ -5,27 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}myDATA{% endblock %}</title>
 
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- jQuery & DataTables (kept for pages that need it) -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <style>
-    body {
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: #f3f4f6;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 28px auto;
-      padding: 16px;
-    }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; }
+    .container { max-width: 1100px; margin: 28px auto; padding: 16px; }
     .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
-    /* Flash banner styles */
     .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
     .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
@@ -42,7 +31,7 @@
           <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-start gap-4">
           <nav class="flex gap-3 items-center">
             <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
             <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
@@ -51,24 +40,33 @@
             <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
           </nav>
 
-          <!-- Active credential badge (now shows VAT if available) -->
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-500">Active:</span>
-            {% if active_credential %}
-              {% if active_credential_vat %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+          <div class="flex flex-col gap-2 ml-4">
+            <!-- Active credential badge -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-500">Active:</span>
+              {% if active_credential %}
+                {% if active_credential_vat %}
+                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+                {% else %}
+                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+                {% endif %}
               {% else %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
               {% endif %}
-            {% else %}
-              <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
-            {% endif %}
+            </div>
+
+            <!-- Fiscal year selector -->
+            <div id="globalFiscalSelector" class="flex items-center gap-2">
+              <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
+              <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
+              <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
+              <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- Flash messages as top banner -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-2 mb-4">
@@ -85,12 +83,62 @@
   {% block scripts %}{% endblock %}
 
   <script>
-    // Auto-remove flash banners after 6 seconds
     document.addEventListener('DOMContentLoaded', function(){
-      setTimeout(() => {
-        document.querySelectorAll('.flash-banner').forEach(el => el.remove());
-      }, 6000);
+      setTimeout(()=>document.querySelectorAll('.flash-banner').forEach(el=>el.remove()),6000);
     });
+
+    (function(){
+      const now = new Date();
+      const thisYear = now.getFullYear();
+
+      function populateFiscalSelect(selected){
+        const sel = document.getElementById('fiscalYearSelect');
+        if(!sel) return;
+        sel.innerHTML='';
+        for(let y=thisYear-1; y<=thisYear+2; y++){
+          const opt=document.createElement('option');
+          opt.value=String(y);
+          opt.textContent=String(y);
+          if(selected && Number(selected)===y) opt.selected=true;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function loadFiscalYearIntoUi(){
+        try{
+          const r = await fetch('/get_fiscal_year', { credentials:'same-origin' });
+          const j = await r.json();
+          populateFiscalSelect(j.fiscal_year || thisYear);
+          document.getElementById('fiscalYearMsg').textContent = j.fiscal_year ? `Τρέχουσα χρήση: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
+        } catch(err){
+          console.error(err);
+          populateFiscalSelect(thisYear);
+          document.getElementById('fiscalYearMsg').textContent='Σφάλμα ανάγνωσης χρήσης';
+        }
+      }
+
+      async function saveFiscalYear(e){
+        e.preventDefault();
+        const sel=document.getElementById('fiscalYearSelect');
+        const year=Number(sel.value);
+        try{
+          const r=await fetch('/set_fiscal_year',{ method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ fiscal_year: year })});
+          const j=await r.json();
+          if(j.success){
+            document.getElementById('fiscalYearMsg').textContent=`Ορίστηκε χρήση ${j.fiscal_year}`;
+            window.APP_SETTINGS={ fiscal_year: j.fiscal_year };
+          } else document.getElementById('fiscalYearMsg').textContent=j.message;
+        } catch(err){
+          console.error(err);
+          document.getElementById('fiscalYearMsg').textContent='Σφάλμα δικτύου';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        loadFiscalYearIntoUi();
+        document.getElementById('fiscalYearSaveBtn').addEventListener('click', saveFiscalYear);
+      });
+    })();
   </script>
 </body>
 </html>
