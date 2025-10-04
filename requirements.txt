@@ -9,3 +9,5 @@ markupsafe>=2.1
 Pillow>=9.0
 pyzbar>=0.1.9
 xsdata>=24.0
+beautifulsoup4>=4.12
+lxml>=4.9
