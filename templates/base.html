@@ -25,47 +25,50 @@
 <body>
   <div class="container">
     <header class="mb-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
-          <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
-        </div>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
+      <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
+    </div>
 
-        <div class="flex items-start gap-4">
-          <nav class="flex gap-3 items-center">
-            <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
-            <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
-            <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
-            <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
-            <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
-          </nav>
+    <div class="flex flex-col items-end gap-2">
+      <!-- 1η γραμμή: Menu buttons + Active credential -->
+      <div class="flex items-center gap-4">
+        <!-- Menu buttons -->
+        <nav class="flex gap-3 items-center">
+          <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
+          <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
+          <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
+          <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
+          <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
+        </nav>
 
-          <div class="flex flex-col gap-2 ml-4">
-            <!-- Active credential badge -->
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-500">Active:</span>
-              {% if active_credential %}
-                {% if active_credential_vat %}
-                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
-                {% else %}
-                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
-                {% endif %}
-              {% else %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
-              {% endif %}
-            </div>
-
-            <!-- Fiscal year selector -->
-            <div id="globalFiscalSelector" class="flex items-center gap-2">
-              <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
-              <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
-              <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
-              <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
-            </div>
-          </div>
+        <!-- Active credential badge -->
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500">Active:</span>
+          {% if active_credential %}
+            {% if active_credential_vat %}
+              <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+            {% else %}
+              <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+            {% endif %}
+          {% else %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+          {% endif %}
         </div>
       </div>
-    </header>
+
+      <!-- 2η γραμμή: Fiscal year selector κάτω από το badge -->
+      <div class="flex items-center gap-2 w-max">
+        <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
+        <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
+        <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
+        <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
+      </div>
+    </div>
+  </div>
+</header>
+
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}

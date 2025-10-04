@@ -83,6 +83,11 @@ VAT_MAP = {
 def _fiscal_meta_path():
     return os.path.join(DATA_DIR, FISCAL_META)
 
+
+def is_fiscal_year_set():
+    settings = load_settings()
+    return settings.get("fiscal_year") is not None
+
 def get_active_fiscal_year():
     """Return currently selected fiscal year as int, or None."""
     try:
