@@ -1,3 +1,4 @@
+scraper_receipt= epsilon, mydata, einvoice, wedoconnect, 
 επιβεβαιωση στηλων excel συναλλασομενων
 σετ χαρακτηρισμων
 αποδειξακια toggle switch

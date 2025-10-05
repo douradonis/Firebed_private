@@ -126,3 +126,61 @@
 
 2025-10-04 17:50:45,930 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
 
+2025-10-04 17:58:02,824 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 17:58:02,835 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:21,292 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-04 20:15:21,885 INFO Starting app - MYDATA_ENV=production
+
+2025-10-04 20:15:27,004 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9.github.dev/
+
+2025-10-04 20:15:27,866 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-04 20:15:27,894 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-04 20:15:30,177 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-04 20:15:30,777 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:30,804 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:39,722 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:39,810 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:40,289 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:40,309 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:42,237 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-04 20:15:42,886 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:43,026 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:43,065 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:45,575 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:46,154 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:46,204 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:15:46,229 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:16:08,672 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:33:34,280 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:33:34,894 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:33:34,986 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:33:35,004 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-04 20:34:46,415 INFO Starting app - MYDATA_ENV=production
+
+2025-10-04 20:34:52,404 INFO Starting app - MYDATA_ENV=production
+
