@@ -109,7 +109,7 @@ def _normalize_summary_row_for_excel(summary):
     return {
         "MARK": str(summary.get("mark","") or ""),
         "AA": str(summary.get("AA","") or ""),
-        "AFM": str(summary.get("AFM","") or ""),
+        "AFM": str(summary.get("AFM_issuer","") or ""),
         "Name": str(summary.get("Name","") or ""),
         "issueDate": str(summary.get("issueDate","") or ""),
         "totalValue": str(summary.get("totalValue","") or ""),
@@ -757,7 +757,7 @@ def build_epsilon_from_invoices(vat: str) -> List[Dict]:
             mark = str(pick(doc, "identifier", "id", default="")).strip()
         if not mark:
             continue
-        vat_doc = pick(doc, "AFM", "AFM_issuer", default="")
+        vat_doc = pick(doc, "AFM_issuer", "AFM_issuer", default="")
         aa = pick(doc, "AA", "aa", default="")
         raw_lines = doc.get("lines") or doc.get("Lines") or doc.get("Positions") or []
         prepared = []
@@ -1499,7 +1499,7 @@ def fetch():
             added_summaries = 0
             for d in all_rows:
                 if vat:
-                    d["AFM"] = vat  # προσθέτουμε AFM
+                    d["AFM_counterpart"] = vat  # προσθέτουμε AFM
                 if append_doc_to_customer_file(d, vat):
                     added_docs += 1
 
@@ -2349,7 +2349,7 @@ def save_summary():
             summary = {}
             if request.form.get("mark"):
                 summary["mark"] = request.form.get("mark")
-                summary["AFM"] = request.form.get("vat") or request.form.get("AFM") or ""
+                summary["AFM_issuer"] = request.form.get("vat") or request.form.get("AFM_issuer") or ""
     except Exception:
         log.exception("save_summary: cannot parse payload")
         flash("Invalid summary payload", "error")
@@ -2764,7 +2764,7 @@ def save_summary():
             "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
             "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
             "Name_issuer": summary.get("Name_issuer", "") or summary.get("Name", ""),
-            "AFM": summary.get("AFM", "") or vat,
+            "AFM": summary.get("AFM_counterpart", "") or vat,
             "lines": []
         }
         for ln in normalized_lines:
