@@ -1974,7 +1974,7 @@ def search():
                         modal_summary = {
                             "mark": mark,
                             "AA": pick(first, "AA", "aa", default=""),
-                            "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                            "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
                             "Name": pick(first, "Name", "Name_issuer", default=""),
                             "series": pick(first, "series", "Series", "serie", default=""),
                             "number": pick(first, "number", "aa", "AA", default=""),
@@ -1990,7 +1990,7 @@ def search():
                         modal_summary = {
                             "mark": mark,
                             "AA": pick(first, "AA", "aa", default=""),
-                            "AFM": pick(first, "AFM", "AFM_issuer", default=vat),
+                            "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
                             "Name": pick(first, "Name", "Name_issuer", default=""),
                             "series": pick(first, "series", "Series", "serie", default=""),
                             "number": pick(first, "number", "aa", "AA", default=""),
