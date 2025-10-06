@@ -109,7 +109,13 @@ def _normalize_summary_row_for_excel(summary):
     return {
         "MARK": str(summary.get("mark","") or ""),
         "AA": str(summary.get("AA","") or ""),
-        "AFM": str(summary.get("AFM_issuer","") or ""),
+        "AFM": str(
+        summary.get("issuer_vat")
+        or summary.get("AFM_issuer")
+        or summary.get("AFM_counterparty")
+        or summary.get("AFM")
+        or ""
+        ),
         "Name": str(summary.get("Name","") or ""),
         "issueDate": str(summary.get("issueDate","") or ""),
         "totalValue": str(summary.get("totalValue","") or ""),
@@ -212,9 +218,19 @@ def _normalize_receipt_summary(summary: dict) -> dict:
     out['MARK'] = (s.get('MARK') or s.get('mark') or '').strip()
     out['AA'] = (s.get('AA') or s.get('progressive_aa') or s.get('id') or '').strip()
     # prefer issuer_vat, but normalize to AFM field (9 digits)
-    raw_vat = (s.get('issuer_vat') or s.get('AFM') or s.get('vat') or s.get('issuerVat') or '')
+    raw_vat = (
+    s.get('issuer_vat')
+    or s.get('AFM_issuer')
+    or s.get('AFM_counterparty')   # αν το invoices.json έχει αυτό το πεδίο
+    or s.get('AFM')
+    or s.get('vat')
+    or s.get('issuerVat')
+    or ''
+    )
     out['AFM'] = _normalize_afm(raw_vat) or ''
     out['issuer_vat_raw'] = (raw_vat or '').strip()
+    # (διατήρησα issuer_vat_raw για συμβατότητα με υπάρχον code)
+
     out['Name'] = (s.get('issuer_name') or s.get('Name') or s.get('company') or '').strip()
     # date normalization: keep raw (you may reformat if you want)
     out['issueDate'] = (s.get('issue_date') or s.get('issueDate') or s.get('date') or '').strip()
@@ -246,7 +262,15 @@ def _append_to_excel(rec_dict):
         'saved_at': rec_dict.get('_saved_at'),
         'MARK': rec_dict.get('MARK'),
         'AA': rec_dict.get('AA'),
-        'AFM': rec_dict.get('AFM') or rec_dict.get('issuer_vat_raw') or '',
+        'AFM': (
+        rec_dict.get('issuer_vat')
+        or rec_dict.get('AFM_issuer')
+        or rec_dict.get('AFM_counterparty')
+        or rec_dict.get('AFM')
+        or rec_dict.get('issuer_vat_raw')
+        or ''
+        ),
+
         'Name': rec_dict.get('Name'),
         'issueDate': rec_dict.get('issueDate'),
         'totalValue': rec_dict.get('totalValue'),
@@ -306,32 +330,7 @@ def get_active_fiscal_year():
     except Exception:
         log.exception("Failed to read fiscal meta")
     return None
-def _normalize_receipt_summary(summary: dict) -> dict:
-    """
-    Ensure canonical keys for storage.
-    Prefer MARK, AA, AFM/issuer_vat, Name, issueDate, totalValue, lines.
-    """
-    s = dict(summary or {})
-    out = {}
-    out['MARK'] = s.get('MARK') or s.get('mark') or ''
-    out['AA'] = s.get('AA') or s.get('progressive_aa') or s.get('id') or ''
-    out['AFM'] = s.get('AFM') or s.get('issuer_vat') or s.get('vat') or s.get('issuer_vat') or ''
-    out['Name'] = s.get('Name') or s.get('issuer_name') or s.get('company') or ''
-    out['issueDate'] = s.get('issueDate') or s.get('issue_date') or s.get('date') or ''
-    out['totalValue'] = s.get('totalValue') or s.get('total_amount') or s.get('total') or ''
-    out['type_name'] = s.get('type_name') or 'Απόδειξη'
-    out['lines'] = s.get('lines') or []
-    out['_saved_at'] = datetime.utcnow().isoformat() + 'Z'
-    # optional: determine summary category (if lines have category, use first non-empty)
-    out['category'] = ''
-    try:
-        for ln in out['lines']:
-            if isinstance(ln, dict) and ln.get('category'):
-                out['category'] = ln.get('category')
-                break
-    except Exception:
-        out['category'] = ''
-    return out
+
 
 def _is_duplicate_in_epsilon(epsilon_list, rec):
     """
@@ -351,7 +350,7 @@ def _is_duplicate_in_epsilon(epsilon_list, rec):
         if mk and imk and mk == imk:
             return True
         iaa = (item.get('AA') or item.get('progressive_aa') or item.get('id') or '').strip()
-        iafm = (item.get('AFM') or item.get('issuer_vat') or item.get('vat') or '').strip()
+        iafm = (item.get('AFM') or item.get('AFM_issuer') or item.get('AFM_counterparty') or item.get('issuer_vat') or item.get('vat') or '').strip()
         itot = str(item.get('totalValue') or item.get('total') or '').strip()
         if aa and iaa and afm and iafm and total and itot:
             if aa == iaa and afm == iafm and total == itot:
@@ -371,34 +370,7 @@ def _write_epsilon_json(list_objs):
     with open(EPSILON_JSON, 'w', encoding='utf-8') as f:
         json.dump(list_objs, f, ensure_ascii=False, indent=2)
 
-def _append_to_excel(rec_dict):
-    """
-    Append a single record as a row to EXCEL_FILE.
-    Columns: saved_at, MARK, AA, AFM, Name, issueDate, totalValue, category
-    Uses pandas (openpyxl engine).
-    """
-    row = {
-        'saved_at': rec_dict.get('_saved_at'),
-        'MARK': rec_dict.get('MARK'),
-        'AA': rec_dict.get('AA'),
-        'AFM': rec_dict.get('AFM'),
-        'Name': rec_dict.get('Name'),
-        'issueDate': rec_dict.get('issueDate'),
-        'totalValue': rec_dict.get('totalValue'),
-        'category': rec_dict.get('category') or ''
-    }
-    try:
-        if os.path.exists(EXCEL_FILE):
-            df_existing = pd.read_excel(EXCEL_FILE, engine='openpyxl')
-        else:
-            df_existing = pd.DataFrame(columns=list(row.keys()))
-        df_new = pd.DataFrame([row])
-        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-        df_concat.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
-        return True
-    except Exception as e:
-        current_app.logger.exception("excel append failed: %s", e)
-        return False
+
 
 
 def set_active_fiscal_year(year):
@@ -776,7 +748,7 @@ def build_epsilon_from_invoices(vat: str) -> List[Dict]:
         epsilon_list.append({
             "mark": mark,
             "AA": aa,
-            "AFM": vat_doc,
+            "AFM_issuer": vat_doc,
             "lines": prepared
         })
     return epsilon_list
@@ -1974,7 +1946,7 @@ def search():
                         modal_summary = {
                             "mark": mark,
                             "AA": pick(first, "AA", "aa", default=""),
-                            "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
+                            "AFM": pick(first, "issuer_vat", "AFM_issuer", "AFM_counterparty", "AFM", default=vat),
                             "Name": pick(first, "Name", "Name_issuer", default=""),
                             "series": pick(first, "series", "Series", "serie", default=""),
                             "number": pick(first, "number", "aa", "AA", default=""),
