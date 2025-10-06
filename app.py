@@ -2331,11 +2331,10 @@ def save_accounts():
 def save_summary():
     """
     Save summary and update epsilon:
-      - αν υπάρχει ήδη εγγραφή στο epsilon για το mark -> update per-line category AND update/create Excel row
+      - αν υπάρχει ήδη εγγραφή στο epsilon για το mark -> update ONLY per-line category (no Excel write)
       - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
 
-    ΣΗΜΕΙΩΣΗ: Πλέον το epsilon cache θα περιέχει ΜΟΝΟ εγγραφές που έχουν τουλάχιστον μία γραμμή
-    με μη-κενό πεδίο 'category' (δηλ. όσα τιμολόγια ΟΝΤΩΣ χαρακτηρίστηκαν).
+    Ενσωματώνει ασφαλή αποθήκευση epsilon (atomic write + diagnostics).
     """
     try:
         raw = request.form.get("summary_json") or request.get_data(as_text=True)
@@ -2350,6 +2349,7 @@ def save_summary():
             if request.form.get("mark"):
                 summary["mark"] = request.form.get("mark")
                 summary["AFM"] = request.form.get("vat") or request.form.get("AFM") or ""
+
     except Exception:
         log.exception("save_summary: cannot parse payload")
         flash("Invalid summary payload", "error")
@@ -2372,38 +2372,14 @@ def save_summary():
         except Exception:
             return 0.0
 
-    import re
-    def normalize_vat_key(raw):
-        if raw is None:
-            return ""
-        s = str(raw).strip().lower()
-        if not s:
-            return ""
-        s = re.sub(r'φπα|\bvat\b|\bpercent\b', '', s, flags=re.IGNORECASE).strip()
-        m = re.search(r'(\d+(?:[.,]\d+)?)', s)
-        if m:
-            num = m.group(1).replace(',', '.')
-            try:
-                f = float(num)
-                if f.is_integer():
-                    num_str = str(int(f))
-                else:
-                    num_str = num.rstrip('0').rstrip('.') if '.' in num else num
-            except Exception:
-                num_str = num
-            return f"{num_str}%"
-        if re.search(r'0|μηδ', s):
-            return "0%"
-        return ""
-
     # --- Ensure lines are present (reconstruct if needed) ---
     lines = summary.get("lines", []) or []
     if not lines:
         try:
             mark = str(summary.get("mark", "")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
-            all_docs = json_read(docs_file) or []
-            docs_for_mark = [d for d in all_docs if str(d.get("mark", "")).strip() == mark]
+            all_docs = json_read(docs_file)
+            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
             reconstructed = []
             for idx, inst in enumerate(docs_for_mark):
                 ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
@@ -2437,59 +2413,15 @@ def save_summary():
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
-            "description": ln.get("description", "") or ln.get("desc", "") or "",
-            "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
-            "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
-            "category": ln.get("category", "") or "",
+            "description": ln.get("description","") or ln.get("desc","") or "",
+            "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
+            "vat": ln.get("vat","") or ln.get("vatRate","") or "",
+            "category": ln.get("category","") or "",
             "vatCategory": vcat_mapped
         })
     summary["lines"] = normalized_lines
 
-    # --- Load repeat_entry mapping from credentials and normalize its keys ---
-    try:
-        creds = read_credentials_list() or []
-        idx_cred = find_active_client_index(creds, vat=vat)
-        repeat_map = {}
-        if idx_cred is not None:
-            repeat_entry = creds[idx_cred].get("repeat_entry", {}) or {}
-            raw_map = repeat_entry.get("mapping", {}) or {}
-            for k, v in raw_map.items():
-                if str(k) == "__default":
-                    if v:
-                        repeat_map["__default"] = str(v)
-                    continue
-                nk = normalize_vat_key(k)
-                if nk:
-                    repeat_map[nk] = str(v)
-            if "__default" not in repeat_map and repeat_entry.get("mapping", {}).get("__default"):
-                repeat_map["__default"] = repeat_entry["mapping"].get("__default")
-    except Exception:
-        log.exception("save_summary: failed to load repeat_entry mapping")
-        repeat_map = {}
-
-    # --- If repeat_map present, apply mapping to any lines missing category ---
-    try:
-        applied_count = 0
-        if repeat_map and isinstance(repeat_map, dict):
-            for ln in normalized_lines:
-                if not ln:
-                    continue
-                if ln.get("category"):
-                    continue
-                raw_vcat = ln.get("vatCategory") or ln.get("vat") or ""
-                nk = normalize_vat_key(raw_vcat)
-                if nk and nk in repeat_map:
-                    ln["category"] = repeat_map[nk]
-                    applied_count += 1
-                elif repeat_map.get("__default"):
-                    ln["category"] = repeat_map["__default"]
-                    applied_count += 1
-        if applied_count:
-            flash(f"Εφαρμόσθηκαν αυτόματες επαναληπτικές κατηγορίες σε {applied_count} γραμμές.", "success")
-    except Exception:
-        log.exception("save_summary: failed applying repeat_map")
-
-    # --- Append summary to per-customer summary JSON (existing behavior) ---
+    # --- Append summary to per-customer summary JSON (keep existing behavior) ---
     try:
         append_summary_to_customer_file(summary, vat)
     except Exception:
@@ -2497,7 +2429,11 @@ def save_summary():
 
     # --- Helper: safe atomic save for epsilon cache --------------------------------
     def _safe_save_epsilon_cache(vat_code, epsilon_list):
+        """
+        Atomic save of epsilon cache with diagnostics. Raises on failure.
+        """
         try:
+            # normalize epsilon_list to list
             if epsilon_list is None:
                 epsilon_list = []
             if not isinstance(epsilon_list, list):
@@ -2512,18 +2448,21 @@ def save_summary():
             safe_vat = secure_filename(str(vat_code))
             epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
 
+            # pre-serialize to catch issues
             try:
                 epsilon_text = json.dumps(epsilon_list, ensure_ascii=False, indent=2)
-            except Exception:
+            except Exception as e_serialize:
                 log.exception("_safe_save_epsilon_cache: serialization failed")
                 raise
 
+            # atomic write via tmp file
             fd, tmp_path = tempfile.mkstemp(prefix=".tmp_epsilon_", dir=epsilon_dir)
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     f.write(epsilon_text)
                 os.replace(tmp_path, epsilon_path)
-            except Exception:
+            except Exception as e_write:
+                # cleanup tmp
                 try:
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
@@ -2536,89 +2475,18 @@ def save_summary():
             return epsilon_path
 
         except Exception:
+            # re-raise to be handled by caller
             raise
 
-    # --- Helper: update or append one row into excel (MARK match strategy) ----------
-    def _update_or_create_excel_row(summary_row, excel_path):
-        try:
-            import pandas as _pd
-            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-            df_new = _pd.DataFrame([summary_row]).astype(str).fillna("")
-
-            if os.path.exists(excel_path):
-                try:
-                    df_existing = _pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                except Exception:
-                    df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                    return
-
-                for col in df_new.columns:
-                    if col not in df_existing.columns:
-                        df_existing[col] = ""
-
-                mark_val = (summary_row.get("MARK") or "").strip()
-                matched_idx = None
-                if mark_val:
-                    if "MARK" in df_existing.columns:
-                        try:
-                            mask = df_existing["MARK"].fillna("").astype(str).str.strip() == mark_val
-                            if mask.any():
-                                matched_idx = mask[mask].index[0]
-                        except Exception:
-                            for ridx, cell in df_existing["MARK"].fillna("").astype(str).iteritems():
-                                if str(cell).strip() == mark_val:
-                                    matched_idx = ridx
-                                    break
-                    if matched_idx is None:
-                        for c in df_existing.columns:
-                            try:
-                                if df_existing[c].dtype == 'O' or df_existing[c].dtype == 'string':
-                                    mask = df_existing[c].fillna("").astype(str).str.strip() == mark_val
-                                    if mask.any():
-                                        matched_idx = mask[mask].index[0]
-                                        break
-                            except Exception:
-                                continue
-
-                if matched_idx is not None:
-                    for k, v in summary_row.items():
-                        try:
-                            df_existing.at[matched_idx, k] = v
-                        except Exception:
-                            df_existing.loc[matched_idx, k] = v
-                    try:
-                        df_existing.to_excel(excel_path, index=False, engine="openpyxl")
-                    except Exception:
-                        tmp = excel_path + ".tmp.xlsx"
-                        df_existing.to_excel(tmp, index=False, engine="openpyxl")
-                        os.replace(tmp, excel_path)
-                else:
-                    df_concat = _pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-                    try:
-                        df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-                    except Exception:
-                        tmp = excel_path + ".tmp.xlsx"
-                        df_concat.to_excel(tmp, index=False, engine="openpyxl")
-                        os.replace(tmp, excel_path)
-            else:
-                try:
-                    df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                except Exception:
-                    tmp = excel_path + ".tmp.xlsx"
-                    df_new.to_excel(tmp, index=False, engine="openpyxl")
-                    os.replace(tmp, excel_path)
-        except Exception:
-            log.exception("_update_or_create_excel_row failed for %s", excel_path)
-            raise
-
-    # --- Load epsilon cache and proceed ---
+    # --- Load epsilon cache and decide: update-lines-only OR write-excel+append-epsilon ---
     try:
         epsilon_cache = load_epsilon_cache_for_vat(vat)  # returns list or None
+        # defensive: coerce None -> []
         if epsilon_cache is None:
             epsilon_cache = []
-        mark = str(summary.get("mark", "")).strip()
+        mark = str(summary.get("mark","")).strip()
 
-        # find existing epsilon entry by mark
+        # find existing epsilon entry by mark (robust)
         existing_index = None
         for i, d in enumerate(epsilon_cache):
             try:
@@ -2629,49 +2497,40 @@ def save_summary():
             except Exception:
                 continue
 
-        # helper: determine if normalized_lines contains at least one categorized line
-        def _has_categorized_line(lines_list):
-            if not lines_list:
-                return False
-            for L in lines_list:
-                try:
-                    if L and str(L.get("category", "")).strip():
-                        return True
-                except Exception:
-                    continue
-            return False
-
-        has_categories_now = _has_categorized_line(normalized_lines)
-
         if existing_index is not None:
-            # update existing epsilon entry (re-characterisation)
+            # --- RE-CHARACTERISATION path: update ONLY per-line category (and vat_category if present) ---
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
-            existing_by_id = { str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None }
+            # index existing lines by id
+            existing_by_id = { str(l.get("id","")): l for l in existing_lines if l.get("id") is not None }
 
             updated = False
             for ln in normalized_lines:
-                lid = str(ln.get("id", ""))
+                lid = str(ln.get("id",""))
                 if not lid:
                     continue
                 if lid in existing_by_id:
                     el = existing_by_id[lid]
-                    new_cat = ln.get("category", "") or ""
-                    if new_cat and str(el.get("category", "")) != new_cat:
+                    new_cat = ln.get("category","") or ""
+                    # update category only if different and non-empty
+                    if new_cat and str(el.get("category","")) != new_cat:
                         el["category"] = new_cat
-                        el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
+                        # keep backward-compatible key names
+                        el["vat_category"] = ln.get("vatCategory","") or el.get("vat_category","")
                         updated = True
-                    elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
+                    # if vatCategory present in normalized_lines and differs, update it too
+                    elif ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
                         el["vat_category"] = ln.get("vatCategory")
                         updated = True
                 else:
+                    # new line not present in epsilon -> append minimal line preserving category
                     new_el = {
                         "id": lid,
-                        "description": ln.get("description", ""),
-                        "amount": ln.get("amount", ""),
-                        "vat": ln.get("vat", ""),
-                        "category": ln.get("category", "") or "",
-                        "vat_category": ln.get("vatCategory", "") or ""
+                        "description": ln.get("description",""),
+                        "amount": ln.get("amount",""),
+                        "vat": ln.get("vat",""),
+                        "category": ln.get("category","") or "",
+                        "vat_category": ln.get("vatCategory","") or ""
                     }
                     existing_lines.append(new_el)
                     existing_by_id[lid] = new_el
@@ -2681,47 +2540,23 @@ def save_summary():
                 existing["_updated_at"] = _dt.now(timezone.utc).isoformat()
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
-                # Before saving: prune epsilon_cache to keep only entries that have at least one categorized line
+                # safe save
                 try:
-                    filtered = [e for e in epsilon_cache if _has_categorized_line(e.get("lines", []))]
-                    _safe_save_epsilon_cache(vat, filtered)
-                    log.info(f"epsilon: updated and pruned cache for mark {mark} (vat {vat})")
+                    _safe_save_epsilon_cache(vat, epsilon_cache)
+                    log.info(f"epsilon: updated per-line categories for mark {mark} (vat {vat})")
                     flash("Ενημερώθηκε ο χαρακτηρισμός στο cache (epsilon).", "success")
                 except Exception:
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
-
-                # also ensure Excel row updated/created
-                try:
-                    excel_path = excel_path_for(vat=vat)
-                    aa_val = existing.get("AA") or existing.get("aa") or summary.get("number") or summary.get("AA") or ""
-                    total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", 0)))
-                    total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", 0)))
-                    total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
-                    summary_row = {
-                        "MARK": mark or existing.get("mark", ""),
-                        "ΑΦΜ": vat,
-                        "Επωνυμία": summary.get("Name", "") or existing.get("Name_issuer", "") or existing.get("Name", ""),
-                        "Σειρά": summary.get("series", "") or existing.get("series", ""),
-                        "Αριθμός": aa_val,
-                        "Ημερομηνία": summary.get("issueDate", "") or existing.get("issueDate", ""),
-                        "Είδος": summary.get("type", "") or existing.get("type", ""),
-                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", "") or existing.get("vatCategory", ""),
-                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-                        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-                        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
-                    }
-                    _update_or_create_excel_row(summary_row, excel_path)
-                except Exception:
-                    log.exception("save_summary: failed updating/creating excel row after re-characterisation")
-                    flash("Αποθηκεύτηκε το cache αλλά αποτυχία ενημέρωσης Excel (έλεγξε logs).", "warning")
-
+                # IMPORTANT: skip Excel rewrite on re-characterisation
                 return redirect(url_for("search"))
             else:
+                log.info(f"epsilon: no per-line changes for mark {mark} (vat {vat})")
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
                 return redirect(url_for("search"))
 
         # --- ELSE: no existing record in epsilon -> proceed to write Excel and append new epsilon entry ---
+        # Excel write (unchanged behavior)
         excel_path = excel_path_for(vat=vat)
         try:
             total_net = float_from_comma(summary.get("totalNetValue", 0))
@@ -2733,7 +2568,7 @@ def save_summary():
                 "ΑΦΜ": vat,
                 "Επωνυμία": summary.get("Name", ""),
                 "Σειρά": summary.get("series", ""),
-                "Αριθμός": summary.get("number", "") or summary.get("AA", "") or "",
+                "Αριθμός": summary.get("number", ""),
                 "Ημερομηνία": summary.get("issueDate", ""),
                 "Είδος": summary.get("type", ""),
                 "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
@@ -2742,55 +2577,55 @@ def save_summary():
                 "Σύνολο": f"{total_value:.2f}".replace(".", ",")
             }
 
-            _update_or_create_excel_row(row, excel_path)
+            df_new = pd.DataFrame([row]).astype(str).fillna("")
+            if os.path.exists(excel_path):
+                df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+                df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+            else:
+                os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                df_new.to_excel(excel_path, index=False, engine="openpyxl")
         except Exception:
             log.exception("save_summary: Excel write failed")
             flash("Excel save failed", "error")
 
-        # Build full epsilon entry but append ONLY if there is at least one categorized line
+        # Build full epsilon entry and append
         epsilon_entry = {
             "mark": mark,
-            "issueDate": summary.get("issueDate", ""),
-            "series": summary.get("series", ""),
-            "aa": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "AA": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "type": summary.get("type", ""),
-            "vatCategory": summary.get("vatCategory", ""),
-            "totalNetValue": summary.get("totalNetValue", ""),
-            "totalVatAmount": summary.get("totalVatAmount", ""),
-            "totalValue": summary.get("totalValue", ""),
-            "classification": summary.get("classification", ""),
+            "issueDate": summary.get("issueDate",""),
+            "series": summary.get("series",""),
+            "aa": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "AA": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "type": summary.get("type",""),
+            "vatCategory": summary.get("vatCategory",""),
+            "totalNetValue": summary.get("totalNetValue",""),
+            "totalVatAmount": summary.get("totalVatAmount",""),
+            "totalValue": summary.get("totalValue",""),
+            "classification": summary.get("classification",""),
             "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
             "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
-            "Name_issuer": summary.get("Name_issuer", "") or summary.get("Name", ""),
-            "AFM": summary.get("AFM", "") or vat,
+            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
+            "Name_issuer": summary.get("Name_issuer","") or summary.get("Name",""),
+            "AFM": summary.get("AFM","") or vat,
             "lines": []
         }
         for ln in normalized_lines:
             epsilon_entry["lines"].append({
-                "id": ln.get("id", ""),
-                "description": ln.get("description", ""),
-                "amount": ln.get("amount", ""),
-                "vat": ln.get("vat", ""),
-                "category": ln.get("category", "") or "",
-                "vat_category": ln.get("vatCategory", "") or ""
+                "id": ln.get("id",""),
+                "description": ln.get("description",""),
+                "amount": ln.get("amount",""),
+                "vat": ln.get("vat",""),
+                "category": ln.get("category","") or "",
+                "vat_category": ln.get("vatCategory","") or ""
             })
 
-        # Only append if we have at least one categorized line
-        if _has_categorized_line(epsilon_entry.get("lines", [])):
-            epsilon_cache.append(epsilon_entry)
-            try:
-                # prune BEFORE saving: keep only entries that have at least one categorized line
-                filtered = [e for e in epsilon_cache if _has_categorized_line(e.get("lines", []))]
-                _safe_save_epsilon_cache(vat, filtered)
-                flash("Saved summary and appended new epsilon entry.", "success")
-            except Exception:
-                log.exception("save_summary: failed saving new epsilon cache")
-                flash("Failed updating epsilon cache (see server logs)", "error")
-        else:
-            # don't append to epsilon cache; notify user (info)
-            flash("Δεν προστέθηκε στο cache (epsilon) — δεν υπήρξε χαρακτηρισμός γραμμών.", "info")
+        epsilon_cache.append(epsilon_entry)
+        try:
+            _safe_save_epsilon_cache(vat, epsilon_cache)
+            flash("Saved summary and appended new epsilon entry.", "success")
+        except Exception:
+            log.exception("save_summary: failed saving new epsilon cache")
+            flash("Failed updating epsilon cache (see server logs)", "error")
     except Exception:
         log.exception("save_summary: failed saving epsilon cache")
         flash("Failed updating epsilon cache", "error")

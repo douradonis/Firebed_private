@@ -1,15 +1,15 @@
 [
   {
-    "mark": "400011199848735",
-    "issueDate": "06/10/2025",
+    "mark": "400011184830173",
+    "issueDate": "04/10/2025",
     "series": "TΔA",
-    "aa": "60072",
-    "AA": "60072",
+    "aa": "60038",
+    "AA": "60038",
     "type": "1.1",
     "vatCategory": "",
-    "totalNetValue": "74,36",
-    "totalVatAmount": "17,85",
-    "totalValue": "92,21",
+    "totalNetValue": "18,30",
+    "totalVatAmount": "4,39",
+    "totalValue": "22,69",
     "classification": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
@@ -18,10 +18,10 @@
     "AFM": "800916954",
     "lines": [
       {
-        "id": "400011199848735_inst0",
+        "id": "400011184830173_inst0",
         "description": "Instance #1",
-        "amount": "74,36",
-        "vat": "17,85",
+        "amount": "18,30",
+        "vat": "4,39",
         "category": "αγορες_εμπορευματων",
         "vat_category": "ΦΠΑ 24%"
       }

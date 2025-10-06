@@ -13,7 +13,7 @@
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011160853234",
@@ -29,7 +29,7 @@
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "996763330",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011161858609",
@@ -45,7 +45,7 @@
     "classification": "χαρακτηρισμενο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011172559639",
@@ -61,7 +61,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011174046739",
@@ -77,7 +77,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011184084271",
@@ -93,7 +93,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011184530011",
@@ -109,7 +109,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011184830173",
@@ -125,7 +125,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011185773449",
@@ -141,7 +141,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011185784064",
@@ -157,7 +157,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011185825004",
@@ -173,7 +173,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011185853502",
@@ -189,7 +189,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011185872109",
@@ -205,7 +205,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011186892779",
@@ -221,7 +221,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011188416256",
@@ -237,7 +237,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011199547299",
@@ -253,7 +253,7 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   },
   {
     "mark": "400011199848735",
@@ -269,6 +269,6 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": "",
-    "AFM_counterpart": "802576637"
+    "AFM": "802576637"
   }
 ]
