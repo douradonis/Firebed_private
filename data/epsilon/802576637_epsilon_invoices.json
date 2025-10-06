@@ -1,44 +1,31 @@
 [
   {
-    "mark": "400010850816176",
-    "issueDate": "06/09/2025",
-    "series": "TΔA",
-    "aa": "59341",
-    "AA": "59341",
-    "type": "5.1",
-    "vatCategory": "",
-    "totalNetValue": "-20,16",
-    "totalVatAmount": "-4,84",
-    "totalValue": "-25,00",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "802576637",
-    "Name_issuer": "",
+    "mark": "400011174046739",
+    "AA": "60008",
     "AFM": "802576637",
     "lines": [
       {
-        "id": "400010850816176_inst0",
+        "id": "400011174046739_inst0",
         "description": "Instance #1",
-        "amount": "-20,16",
-        "vat": "-4,84",
+        "amount": "28,86",
+        "vat": "6,93",
         "category": "αγορες_α_υλων",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-02T19:58:05.186680+00:00"
+    "_updated_at": "2025-10-06T11:39:42.043387+00:00"
   },
   {
-    "mark": "400011062938530",
-    "issueDate": "24/09/2025",
-    "series": "11Μ0ΤΔΑ",
-    "aa": "7836",
-    "AA": "7836",
+    "mark": "400011184530011",
+    "issueDate": "04/10/2025",
+    "series": "5Μ0ΤΔΑ",
+    "aa": "4626",
+    "AA": "4626",
     "type": "1.1",
     "vatCategory": "",
-    "totalNetValue": "41,57",
-    "totalVatAmount": "9,98",
-    "totalValue": "51,55",
+    "totalNetValue": "45,54",
+    "totalVatAmount": "10,93",
+    "totalValue": "56,47",
     "classification": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
@@ -47,11 +34,39 @@
     "AFM": "802576637",
     "lines": [
       {
-        "id": "400011062938530_inst0",
+        "id": "400011184530011_inst0",
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "41,57",
-        "vat": "9,98",
-        "category": "αγορες_α_υλων",
+        "amount": "45,54",
+        "vat": "10,93",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400011184830173",
+    "issueDate": "04/10/2025",
+    "series": "TΔA",
+    "aa": "60038",
+    "AA": "60038",
+    "type": "1.1",
+    "vatCategory": "",
+    "totalNetValue": "18,30",
+    "totalVatAmount": "4,39",
+    "totalValue": "22,69",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "802576637",
+    "Name_issuer": "",
+    "AFM": "802576637",
+    "lines": [
+      {
+        "id": "400011184830173_inst0",
+        "description": "Instance #1",
+        "amount": "18,30",
+        "vat": "4,39",
+        "category": "αγορες_εμπορευματων",
         "vat_category": "ΦΠΑ 24%"
       }
     ]

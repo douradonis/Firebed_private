@@ -17,6 +17,8 @@ from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape
 import re
 import requests
 import pandas as pd
+from shutil import move
+import importlib
 
 # local mydata helper
 from fetch import request_docs
@@ -41,10 +43,12 @@ MYDATA_ENV = (os.getenv("MYDATA_ENV") or "sandbox").lower()
 ALLOWED_CLIENT_EXT = {'.xlsx', '.xls', '.csv'}
 
 
+
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
+
 
 
 @app.before_request
@@ -83,6 +87,206 @@ VAT_MAP = {
 def _fiscal_meta_path():
     return os.path.join(DATA_DIR, FISCAL_META)
 
+import re
+
+# ---------------- normalize helper (paste/replace existing) ----------------
+def _normalize_afm(raw):
+    """Καθαρίζει AFM: κρατά μόνο digits, κόβει περιττά και επιστρέφει None αν άδειο."""
+    if not raw:
+        return None
+    s = str(raw).strip()
+    # extract digits
+    digits = re.sub(r'\D', '', s)
+    if not digits:
+        return None
+    # common AFM length = 9, but αν έχει περισσότερα κρατάμε τα *πρώτα* 9 (αν αυτό θέλεις)
+    if len(digits) > 9:
+        digits = digits[-9:]  # καλύτερο να πάρουμε τα **τελευταία 9** (συχνά οι σελίδες έχουν πρόσθετα prefix)
+    return digits
+# --- νέο helper: update or append a summary row into excel ---
+def _normalize_summary_row_for_excel(summary):
+    """Return dict with keys aligned to DEFAULT EXCEL columns used in your app."""
+    return {
+        "MARK": str(summary.get("mark","") or ""),
+        "AA": str(summary.get("AA","") or ""),
+        "AFM": str(summary.get("AFM","") or ""),
+        "Name": str(summary.get("Name","") or ""),
+        "issueDate": str(summary.get("issueDate","") or ""),
+        "totalValue": str(summary.get("totalValue","") or ""),
+        "category": str(summary.get("category","") or ""),
+        "note": str(summary.get("note","") or ""),
+        "created_at": str(summary.get("created_at","") or ""),
+    }
+
+def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None, cred_name: Optional[str] = None):
+    """
+    Ensure an excel exists (create if missing) and either update existing row matching mark or append new row.
+    Uses pandas to load/edit/save — simpler and reliable for small files.
+    """
+    path = excel_path_for(cred_name=cred_name, vat=vat)
+    # headers consistent with DEFAULT_EXCEL_FILE usage above
+    headers = ["MARK","AA","AFM","Name","issueDate","totalValue","category","note","created_at"]
+
+    # create file if missing with headers
+    if not os.path.exists(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        df = pd.DataFrame(columns=headers)
+        df.to_excel(path, index=False)
+    # load existing
+    try:
+        df = pd.read_excel(path, dtype=str)
+    except Exception:
+        # fallback: make empty DF with headers
+        df = pd.DataFrame(columns=headers)
+
+    # normalize types: ensure all header cols exist
+    for h in headers:
+        if h not in df.columns:
+            df[h] = ""
+
+    row = _normalize_summary_row_for_excel(summary)
+    mark_val = str(row.get("MARK","")).strip()
+
+    # try to find existing row by mark (use _match_row_by_mark logic)
+    found = False
+    if mark_val:
+        # use vectorized comparison across likely colnames
+        mask = pd.Series([False]*len(df), index=df.index)
+        # prefer 'MARK' column, else try any object/string column
+        if "MARK" in df.columns:
+            try:
+                mask = df["MARK"].fillna("").astype(str).str.strip() == mark_val
+            except Exception:
+                mask = (df["MARK"].fillna("") == mark_val)
+        if not mask.any():
+            # scan other string columns
+            for c in df.columns:
+                try:
+                    if df[c].dtype == 'O' or df[c].dtype == 'string':
+                        m2 = df[c].fillna("").astype(str).str.strip() == mark_val
+                        if m2.any():
+                            mask = m2
+                            break
+                except Exception:
+                    continue
+
+        if mask.any():
+            # update first match
+            idx = mask[mask].index[0]
+            for h in headers:
+                # don't overwrite MARK,AA if blank in new row? We'll overwrite with new data
+                df.at[idx, h] = row.get(h,"")
+            found = True
+
+    if not found:
+        # append new row
+        df = df.append(row, ignore_index=True)
+
+    # ensure AFM and MARK are saved as text in Excel: pandas will save as strings; that's OK
+    try:
+        df.to_excel(path, index=False)
+    except Exception:
+        # final fallback - try openpyxl write: create workbook with headers then append row
+        try:
+            from openpyxl import Workbook, load_workbook
+            if not os.path.exists(path):
+                wb = Workbook()
+                ws = wb.active
+                ws.append(headers)
+                wb.save(path)
+            wb = load_workbook(path)
+            ws = wb.active
+            # if updated, easier to rewrite entire excel from df
+            for r in dataframe_to_rows(df, index=False, header=True):
+                pass
+            # simpler: use pandas to_excel in a temp file and replace
+            tmp = path + ".tmp.xlsx"
+            df.to_excel(tmp, index=False)
+            os.replace(tmp, path)
+        except Exception:
+            log.exception("Failed to write excel for summary for mark=%s", mark_val)
+
+def _normalize_receipt_summary(summary: dict) -> dict:
+    s = dict(summary or {})
+    out = {}
+    out['MARK'] = (s.get('MARK') or s.get('mark') or '').strip()
+    out['AA'] = (s.get('AA') or s.get('progressive_aa') or s.get('id') or '').strip()
+    # prefer issuer_vat, but normalize to AFM field (9 digits)
+    raw_vat = (s.get('issuer_vat') or s.get('AFM') or s.get('vat') or s.get('issuerVat') or '')
+    out['AFM'] = _normalize_afm(raw_vat) or ''
+    out['issuer_vat_raw'] = (raw_vat or '').strip()
+    out['Name'] = (s.get('issuer_name') or s.get('Name') or s.get('company') or '').strip()
+    # date normalization: keep raw (you may reformat if you want)
+    out['issueDate'] = (s.get('issue_date') or s.get('issueDate') or s.get('date') or '').strip()
+    # total amount normalization: reuse your existing _clean_amount_to_comma if present
+    total = s.get('total_amount') or s.get('totalValue') or s.get('total') or ''
+    try:
+        # try to keep same formatting used in invoices (comma decimal)
+        out['totalValue'] = _clean_amount_to_comma(total) or str(total)
+    except Exception:
+        out['totalValue'] = str(total)
+    out['type_name'] = (s.get('type_name') or s.get('doc_type') or 'Απόδειξη').strip()
+    out['lines'] = s.get('lines') or []
+    out['_saved_at'] = datetime.utcnow().isoformat() + 'Z'
+    # keep category if any line already had it
+    out['category'] = ''
+    for ln in out['lines']:
+        if isinstance(ln, dict) and ln.get('category'):
+            out['category'] = ln.get('category')
+            break
+    return out
+
+# ---------------- ensure excel append uses AFM ----------------
+def _append_to_excel(rec_dict):
+    """
+    Append a single record as a row to EXCEL_FILE using pandas + openpyxl (if available).
+    Ensure AFM column uses rec_dict['AFM'] (normalized digits).
+    """
+    row = {
+        'saved_at': rec_dict.get('_saved_at'),
+        'MARK': rec_dict.get('MARK'),
+        'AA': rec_dict.get('AA'),
+        'AFM': rec_dict.get('AFM') or rec_dict.get('issuer_vat_raw') or '',
+        'Name': rec_dict.get('Name'),
+        'issueDate': rec_dict.get('issueDate'),
+        'totalValue': rec_dict.get('totalValue'),
+        'category': rec_dict.get('category') or ''
+    }
+    try:
+        import pandas as pd
+        if os.path.exists(EXCEL_FILE):
+            df_existing = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+        else:
+            df_existing = pd.DataFrame(columns=list(row.keys()))
+        df_new = pd.DataFrame([row])
+        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+        df_concat.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
+        return True
+    except Exception as e:
+        # fallback: try openpyxl minimal append if pandas not available or failed
+        try:
+            from openpyxl import load_workbook, Workbook
+            if not os.path.exists(EXCEL_FILE):
+                wb = Workbook()
+                ws = wb.active
+                ws.append(list(row.keys()))
+                ws.append(list(row.values()))
+                wb.save(EXCEL_FILE)
+                return True
+            wb = load_workbook(EXCEL_FILE)
+            ws = wb.active
+            # check header exists; if not, write header
+            if ws.max_row == 0:
+                ws.append(list(row.keys()))
+            ws.append([row.get(k, '') for k in list(row.keys())])
+            wb.save(EXCEL_FILE)
+            return True
+        except Exception as e2:
+            try:
+                current_app.logger.exception("excel append fallback failed: %s ; %s", e, e2)
+            except Exception:
+                print("excel append fallback failed:", e, e2)
+            return False
 
 def is_fiscal_year_set():
     settings = load_settings()
@@ -102,6 +306,100 @@ def get_active_fiscal_year():
     except Exception:
         log.exception("Failed to read fiscal meta")
     return None
+def _normalize_receipt_summary(summary: dict) -> dict:
+    """
+    Ensure canonical keys for storage.
+    Prefer MARK, AA, AFM/issuer_vat, Name, issueDate, totalValue, lines.
+    """
+    s = dict(summary or {})
+    out = {}
+    out['MARK'] = s.get('MARK') or s.get('mark') or ''
+    out['AA'] = s.get('AA') or s.get('progressive_aa') or s.get('id') or ''
+    out['AFM'] = s.get('AFM') or s.get('issuer_vat') or s.get('vat') or s.get('issuer_vat') or ''
+    out['Name'] = s.get('Name') or s.get('issuer_name') or s.get('company') or ''
+    out['issueDate'] = s.get('issueDate') or s.get('issue_date') or s.get('date') or ''
+    out['totalValue'] = s.get('totalValue') or s.get('total_amount') or s.get('total') or ''
+    out['type_name'] = s.get('type_name') or 'Απόδειξη'
+    out['lines'] = s.get('lines') or []
+    out['_saved_at'] = datetime.utcnow().isoformat() + 'Z'
+    # optional: determine summary category (if lines have category, use first non-empty)
+    out['category'] = ''
+    try:
+        for ln in out['lines']:
+            if isinstance(ln, dict) and ln.get('category'):
+                out['category'] = ln.get('category')
+                break
+    except Exception:
+        out['category'] = ''
+    return out
+
+def _is_duplicate_in_epsilon(epsilon_list, rec):
+    """
+    Determine if rec is duplicate of any item in epsilon_list.
+    Criteria:
+      - If MARK exists and equals -> duplicate
+      - else if AA + AFM + totalValue equal -> duplicate
+    """
+    mk = (rec.get('MARK') or '').strip()
+    aa = (rec.get('AA') or '').strip()
+    afm = (rec.get('AFM') or '').strip()
+    total = str(rec.get('totalValue') or '').strip()
+
+    for item in epsilon_list:
+        # normalize keys for comparison
+        imk = (item.get('MARK') or item.get('mark') or '').strip()
+        if mk and imk and mk == imk:
+            return True
+        iaa = (item.get('AA') or item.get('progressive_aa') or item.get('id') or '').strip()
+        iafm = (item.get('AFM') or item.get('issuer_vat') or item.get('vat') or '').strip()
+        itot = str(item.get('totalValue') or item.get('total') or '').strip()
+        if aa and iaa and afm and iafm and total and itot:
+            if aa == iaa and afm == iafm and total == itot:
+                return True
+    return False
+
+def _read_epsilon_json():
+    if not os.path.exists(EPSILON_JSON):
+        return []
+    try:
+        with open(EPSILON_JSON, 'r', encoding='utf-8') as f:
+            return json.load(f) or []
+    except Exception:
+        return []
+
+def _write_epsilon_json(list_objs):
+    with open(EPSILON_JSON, 'w', encoding='utf-8') as f:
+        json.dump(list_objs, f, ensure_ascii=False, indent=2)
+
+def _append_to_excel(rec_dict):
+    """
+    Append a single record as a row to EXCEL_FILE.
+    Columns: saved_at, MARK, AA, AFM, Name, issueDate, totalValue, category
+    Uses pandas (openpyxl engine).
+    """
+    row = {
+        'saved_at': rec_dict.get('_saved_at'),
+        'MARK': rec_dict.get('MARK'),
+        'AA': rec_dict.get('AA'),
+        'AFM': rec_dict.get('AFM'),
+        'Name': rec_dict.get('Name'),
+        'issueDate': rec_dict.get('issueDate'),
+        'totalValue': rec_dict.get('totalValue'),
+        'category': rec_dict.get('category') or ''
+    }
+    try:
+        if os.path.exists(EXCEL_FILE):
+            df_existing = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+        else:
+            df_existing = pd.DataFrame(columns=list(row.keys()))
+        df_new = pd.DataFrame([row])
+        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+        df_concat.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
+        return True
+    except Exception as e:
+        current_app.logger.exception("excel append failed: %s", e)
+        return False
+
 
 def set_active_fiscal_year(year):
     """Persist fiscal year (int)."""
@@ -779,6 +1077,50 @@ def credentials_save_settings():
         save_settings(data)
         return jsonify({'status':'ok'})
     return jsonify({'status':'error'}), 400
+
+@app.route('/api/save_receipt', methods=['POST'])
+def api_save_receipt():
+    """
+    Expects JSON { "summary": {...} }
+    Writes ONLY to epsilon_invoices.json and to Excel.
+    Returns JSON { ok: True, duplicate: Bool, message: str }
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        summary = payload.get('summary') or {}
+        if not summary:
+            return jsonify(ok=False, error='no summary provided'), 400
+
+        rec = _normalize_receipt_summary(summary)
+
+        # Acquire JSON lock and check duplicates & append
+        json_lock = FileLock(EPSILON_JSON_LOCK, timeout=10)
+        with json_lock:
+            epsilon_list = _read_epsilon_json()
+            if _is_duplicate_in_epsilon(epsilon_list, rec):
+                return jsonify(ok=True, duplicate=True, message='duplicate entry'), 200
+            # append and write
+            epsilon_list.append(rec)
+            try:
+                _write_epsilon_json(epsilon_list)
+            except Exception as e:
+                current_app.logger.exception("failed writing epsilon json: %s", e)
+                return jsonify(ok=False, error='write epsilon json failed'), 500
+
+        # Append to Excel with separate lock
+        excel_lock = FileLock(EXCEL_FILE_LOCK, timeout=10)
+        with excel_lock:
+            ok_excel = _append_to_excel(rec)
+            if not ok_excel:
+                current_app.logger.warning("Excel append failed for record: %s", rec)
+                # we proceed since epsilon json already saved - but inform client
+                return jsonify(ok=True, duplicate=False, warning='excel_append_failed', message='saved to epsilon json but excel append failed'), 200
+
+        return jsonify(ok=True, duplicate=False, message='saved'), 200
+
+    except Exception as e:
+        current_app.logger.exception("api_save_receipt error: %s", e)
+        return jsonify(ok=False, error=str(e)), 500
 
 @app.route('/upload_client_db', methods=['POST'])
 def upload_client_db():
@@ -1769,16 +2111,128 @@ def search():
     )
 
 
+@app.route('/api/scrape_receipt', methods=['POST'])
+def api_scrape_receipt():
+    """
+    POST JSON { "url": "<url>" }
+    Καλεί το module scraper_receipt και επιστρέφει standardized JSON.
+    Αν το αποτέλεσμα είναι ΑΠΟΔΕΙΞΗ (δηλ. όχι τιμολόγιο) αποθηκεύει και σε epsilon_invoices.json
+    και επιστρέφει το JSON προς το frontend.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        url = payload.get('url') or request.form.get('url') or ''
+        url = (url or '').strip()
+        if not url:
+            return jsonify(ok=False, error='no url provided'), 400
 
+        # import scraper_receipt
+        try:
+            mod = importlib.import_module('scraper_receipt')
+        except Exception as e:
+            return jsonify(ok=False, error=f'cannot import scraper_receipt: {e}'), 500
 
+        # πιθανά ονόματα συνάρτησης που μπορεί να έχει το module
+        candidate_fn_names = [
+            'scrape_receipt', 'scrape', 'extract_receipt', 'extract', 'scrape_url',
+            'scrape_receipt_url', 'detect_and_scrape'
+        ]
+        fn = None
+        for n in candidate_fn_names:
+            if hasattr(mod, n):
+                fn = getattr(mod, n)
+                break
 
+        if fn is None:
+            return jsonify(ok=False, error='no scraping function found in scraper_receipt module'), 500
 
+        # προσπάθησε να τρέξεις την συνάρτηση με διάφορα signatures
+        result = None
+        try:
+            result = fn(url)
+        except TypeError:
+            try:
+                result = fn(url, timeout=15)
+            except Exception as ee:
+                return jsonify(ok=False, error=f'scraper function raised: {ee}'), 500
+        except Exception as e:
+            return jsonify(ok=False, error=f'scraper function raised: {e}'), 500
 
+        if not isinstance(result, dict):
+            return jsonify(ok=False, error='scraper returned non-dict result'), 500
 
+        # normalize fields
+        r = result
+        is_invoice = bool(r.get('is_invoice') or r.get('invoice', False))
+        doc_type_val = str(r.get('doc_type') or r.get('type') or r.get('type_name') or '')
+        if not is_invoice and re.search(r"τιμολό?γιο|τιμολογιο|invoice", doc_type_val, flags=re.I):
+            is_invoice = True
 
+        out = {
+            'ok': True,
+            'is_invoice': bool(is_invoice),
+            'issuer_vat': r.get('issuer_vat') or r.get('AFM') or r.get('vat') or None,
+            'issuer_name': r.get('issuer_name') or r.get('Name') or r.get('company') or None,
+            'issue_date': r.get('issue_date') or r.get('issueDate') or r.get('date') or None,
+            'progressive_aa': r.get('progressive_aa') or r.get('AA') or r.get('id') or None,
+            'total_amount': r.get('total_amount') or r.get('totalValue') or r.get('total') or None,
+            'MARK': r.get('MARK') or None,
+            'raw': r
+        }
 
+        # αν είναι τιμολόγιο -> ενημέρωση frontend και σταματάμε
+        if out['is_invoice']:
+            return jsonify(ok=True, is_invoice=True, message='Detected invoice'), 200
 
+        # ---------- ΑΠΟΘΗΚΕΥΣΗ ΑΠΟΔΕΙΞΗΣ ----------
+        # Αποθήκευση σε epsilon_invoices.json (append)
+        try:
+            json_path = EPSILON_JSON_PATH
+            lock_path = json_path + '.lock'
+            lock = FileLock(lock_path, timeout=10)
+            with lock:
+                # αν δεν υπάρχει αρχείο, φτιάξτο με λίστα
+                if not os.path.exists(json_path):
+                    with open(json_path, 'w', encoding='utf-8') as f:
+                        json.dump([], f, ensure_ascii=False, indent=2)
+                # διάβασε, πρόσθεσε και γράψε
+                with open(json_path, 'r+', encoding='utf-8') as f:
+                    try:
+                        data = json.load(f)
+                        if not isinstance(data, list):
+                            data = []
+                    except Exception:
+                        data = []
+                    # συμπλήρωμα με όσα έχουμε στο out
+                    entry = {
+                        'url': url,
+                        'saved_at': datetime.utcnow().isoformat() + 'Z',
+                        'issuer_vat': out['issuer_vat'],
+                        'issuer_name': out['issuer_name'],
+                        'issue_date': out['issue_date'],
+                        'progressive_aa': out['progressive_aa'],
+                        'total_amount': out['total_amount'],
+                        'MARK': out['MARK'],
+                        'raw': out['raw']
+                    }
+                    data.append(entry)
+                    f.seek(0)
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    f.truncate()
+        except Exception as e:
+            # δεν αποτυγχάνουμε ολόκληρο request λόγω αποτυχίας αποθήκευσης — log μόνο
+            try:
+                current_app.logger.exception("failed saving receipt to epsilon json: %s", e)
+            except Exception:
+                pass
 
+        # TODO: αποθήκευση και σε Excel (EXCEL_PATH) — αν θέλεις, μπορώ να σου δώσω snippet με openpyxl/pandas + filelock
+        # για να κρατάμε τον ίδιο χώρο αποθήκευσης με τα τιμολόγια. Κάνε μου know αν το θέλεις.
+
+        return jsonify(out), 200
+
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
 
 
 @app.route("/save_epsilon", methods=["POST"])
@@ -1877,10 +2331,11 @@ def save_accounts():
 def save_summary():
     """
     Save summary and update epsilon:
-      - αν υπάρχει ήδη εγγραφή στο epsilon για το mark -> update ONLY per-line category (no Excel write)
+      - αν υπάρχει ήδη εγγραφή στο epsilon για το mark -> update per-line category AND update/create Excel row
       - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
 
-    Ενσωματώνει ασφαλή αποθήκευση epsilon (atomic write + diagnostics).
+    ΣΗΜΕΙΩΣΗ: Πλέον το epsilon cache θα περιέχει ΜΟΝΟ εγγραφές που έχουν τουλάχιστον μία γραμμή
+    με μη-κενό πεδίο 'category' (δηλ. όσα τιμολόγια ΟΝΤΩΣ χαρακτηρίστηκαν).
     """
     try:
         raw = request.form.get("summary_json") or request.get_data(as_text=True)
@@ -1895,7 +2350,6 @@ def save_summary():
             if request.form.get("mark"):
                 summary["mark"] = request.form.get("mark")
                 summary["AFM"] = request.form.get("vat") or request.form.get("AFM") or ""
-
     except Exception:
         log.exception("save_summary: cannot parse payload")
         flash("Invalid summary payload", "error")
@@ -1918,27 +2372,14 @@ def save_summary():
         except Exception:
             return 0.0
 
-    # normalize vat-key helper
     import re
     def normalize_vat_key(raw):
-        """
-        Normalize various representations to canonical 'NN%' style strings.
-        Examples:
-          'ΦΠΑ 24%' -> '24%'
-          '24' -> '24%'
-          '24,00%' -> '24%'
-          'VAT 13%' -> '13%'
-          'μηδεν' -> '0%'
-        Returns '' if cannot extract.
-        """
         if raw is None:
             return ""
         s = str(raw).strip().lower()
         if not s:
             return ""
-        # remove common words
-        s = re.sub(r'φπα|\bvat\b|\bpercent\b|\b%$', '', s, flags=re.IGNORECASE).strip()
-        # try to find a number
+        s = re.sub(r'φπα|\bvat\b|\bpercent\b', '', s, flags=re.IGNORECASE).strip()
         m = re.search(r'(\d+(?:[.,]\d+)?)', s)
         if m:
             num = m.group(1).replace(',', '.')
@@ -1947,12 +2388,10 @@ def save_summary():
                 if f.is_integer():
                     num_str = str(int(f))
                 else:
-                    # keep minimal decimals trimmed
                     num_str = num.rstrip('0').rstrip('.') if '.' in num else num
             except Exception:
                 num_str = num
             return f"{num_str}%"
-        # special-case zero words
         if re.search(r'0|μηδ', s):
             return "0%"
         return ""
@@ -1995,7 +2434,6 @@ def save_summary():
             continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
         raw_vcat = ln.get("vatCategory") or ln.get("vat_category") or ln.get("vatCat") or ln.get("vat_cat") or ""
-        # map via VAT_MAP if possible, else leave raw
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
@@ -2015,7 +2453,6 @@ def save_summary():
         if idx_cred is not None:
             repeat_entry = creds[idx_cred].get("repeat_entry", {}) or {}
             raw_map = repeat_entry.get("mapping", {}) or {}
-            # normalize keys, keep __default if present
             for k, v in raw_map.items():
                 if str(k) == "__default":
                     if v:
@@ -2024,7 +2461,6 @@ def save_summary():
                 nk = normalize_vat_key(k)
                 if nk:
                     repeat_map[nk] = str(v)
-            # also accept '__default' stored in top-level repeat_entry
             if "__default" not in repeat_map and repeat_entry.get("mapping", {}).get("__default"):
                 repeat_map["__default"] = repeat_entry["mapping"].get("__default")
     except Exception:
@@ -2039,7 +2475,7 @@ def save_summary():
                 if not ln:
                     continue
                 if ln.get("category"):
-                    continue  # already set by user
+                    continue
                 raw_vcat = ln.get("vatCategory") or ln.get("vat") or ""
                 nk = normalize_vat_key(raw_vcat)
                 if nk and nk in repeat_map:
@@ -2052,9 +2488,8 @@ def save_summary():
             flash(f"Εφαρμόσθηκαν αυτόματες επαναληπτικές κατηγορίες σε {applied_count} γραμμές.", "success")
     except Exception:
         log.exception("save_summary: failed applying repeat_map")
-        # don't block saving; proceed
 
-    # --- Append summary to per-customer summary JSON (keep existing behavior) ---
+    # --- Append summary to per-customer summary JSON (existing behavior) ---
     try:
         append_summary_to_customer_file(summary, vat)
     except Exception:
@@ -2062,11 +2497,7 @@ def save_summary():
 
     # --- Helper: safe atomic save for epsilon cache --------------------------------
     def _safe_save_epsilon_cache(vat_code, epsilon_list):
-        """
-        Atomic save of epsilon cache with diagnostics. Raises on failure.
-        """
         try:
-            # normalize epsilon_list to list
             if epsilon_list is None:
                 epsilon_list = []
             if not isinstance(epsilon_list, list):
@@ -2081,21 +2512,18 @@ def save_summary():
             safe_vat = secure_filename(str(vat_code))
             epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
 
-            # pre-serialize to catch issues
             try:
                 epsilon_text = json.dumps(epsilon_list, ensure_ascii=False, indent=2)
-            except Exception as e_serialize:
+            except Exception:
                 log.exception("_safe_save_epsilon_cache: serialization failed")
                 raise
 
-            # atomic write via tmp file
             fd, tmp_path = tempfile.mkstemp(prefix=".tmp_epsilon_", dir=epsilon_dir)
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     f.write(epsilon_text)
                 os.replace(tmp_path, epsilon_path)
-            except Exception as e_write:
-                # cleanup tmp
+            except Exception:
                 try:
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
@@ -2108,18 +2536,89 @@ def save_summary():
             return epsilon_path
 
         except Exception:
-            # re-raise to be handled by caller
             raise
 
-    # --- Load epsilon cache and decide: update-lines-only OR write-excel+append-epsilon ---
+    # --- Helper: update or append one row into excel (MARK match strategy) ----------
+    def _update_or_create_excel_row(summary_row, excel_path):
+        try:
+            import pandas as _pd
+            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+            df_new = _pd.DataFrame([summary_row]).astype(str).fillna("")
+
+            if os.path.exists(excel_path):
+                try:
+                    df_existing = _pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                except Exception:
+                    df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                    return
+
+                for col in df_new.columns:
+                    if col not in df_existing.columns:
+                        df_existing[col] = ""
+
+                mark_val = (summary_row.get("MARK") or "").strip()
+                matched_idx = None
+                if mark_val:
+                    if "MARK" in df_existing.columns:
+                        try:
+                            mask = df_existing["MARK"].fillna("").astype(str).str.strip() == mark_val
+                            if mask.any():
+                                matched_idx = mask[mask].index[0]
+                        except Exception:
+                            for ridx, cell in df_existing["MARK"].fillna("").astype(str).iteritems():
+                                if str(cell).strip() == mark_val:
+                                    matched_idx = ridx
+                                    break
+                    if matched_idx is None:
+                        for c in df_existing.columns:
+                            try:
+                                if df_existing[c].dtype == 'O' or df_existing[c].dtype == 'string':
+                                    mask = df_existing[c].fillna("").astype(str).str.strip() == mark_val
+                                    if mask.any():
+                                        matched_idx = mask[mask].index[0]
+                                        break
+                            except Exception:
+                                continue
+
+                if matched_idx is not None:
+                    for k, v in summary_row.items():
+                        try:
+                            df_existing.at[matched_idx, k] = v
+                        except Exception:
+                            df_existing.loc[matched_idx, k] = v
+                    try:
+                        df_existing.to_excel(excel_path, index=False, engine="openpyxl")
+                    except Exception:
+                        tmp = excel_path + ".tmp.xlsx"
+                        df_existing.to_excel(tmp, index=False, engine="openpyxl")
+                        os.replace(tmp, excel_path)
+                else:
+                    df_concat = _pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+                    try:
+                        df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+                    except Exception:
+                        tmp = excel_path + ".tmp.xlsx"
+                        df_concat.to_excel(tmp, index=False, engine="openpyxl")
+                        os.replace(tmp, excel_path)
+            else:
+                try:
+                    df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                except Exception:
+                    tmp = excel_path + ".tmp.xlsx"
+                    df_new.to_excel(tmp, index=False, engine="openpyxl")
+                    os.replace(tmp, excel_path)
+        except Exception:
+            log.exception("_update_or_create_excel_row failed for %s", excel_path)
+            raise
+
+    # --- Load epsilon cache and proceed ---
     try:
         epsilon_cache = load_epsilon_cache_for_vat(vat)  # returns list or None
-        # defensive: coerce None -> []
         if epsilon_cache is None:
             epsilon_cache = []
         mark = str(summary.get("mark", "")).strip()
 
-        # find existing epsilon entry by mark (robust)
+        # find existing epsilon entry by mark
         existing_index = None
         for i, d in enumerate(epsilon_cache):
             try:
@@ -2130,11 +2629,24 @@ def save_summary():
             except Exception:
                 continue
 
+        # helper: determine if normalized_lines contains at least one categorized line
+        def _has_categorized_line(lines_list):
+            if not lines_list:
+                return False
+            for L in lines_list:
+                try:
+                    if L and str(L.get("category", "")).strip():
+                        return True
+                except Exception:
+                    continue
+            return False
+
+        has_categories_now = _has_categorized_line(normalized_lines)
+
         if existing_index is not None:
-            # --- RE-CHARACTERISATION path: update ONLY per-line category (and vat_category if present) ---
+            # update existing epsilon entry (re-characterisation)
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
-            # index existing lines by id
             existing_by_id = { str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None }
 
             updated = False
@@ -2145,18 +2657,14 @@ def save_summary():
                 if lid in existing_by_id:
                     el = existing_by_id[lid]
                     new_cat = ln.get("category", "") or ""
-                    # update category only if different and non-empty
                     if new_cat and str(el.get("category", "")) != new_cat:
                         el["category"] = new_cat
-                        # keep backward-compatible key names
                         el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
                         updated = True
-                    # if vatCategory present in normalized_lines and differs, update it too
                     elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
                         el["vat_category"] = ln.get("vatCategory")
                         updated = True
                 else:
-                    # new line not present in epsilon -> append minimal line preserving category
                     new_el = {
                         "id": lid,
                         "description": ln.get("description", ""),
@@ -2173,23 +2681,47 @@ def save_summary():
                 existing["_updated_at"] = _dt.now(timezone.utc).isoformat()
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
-                # safe save
+                # Before saving: prune epsilon_cache to keep only entries that have at least one categorized line
                 try:
-                    _safe_save_epsilon_cache(vat, epsilon_cache)
-                    log.info(f"epsilon: updated per-line categories for mark {mark} (vat {vat})")
+                    filtered = [e for e in epsilon_cache if _has_categorized_line(e.get("lines", []))]
+                    _safe_save_epsilon_cache(vat, filtered)
+                    log.info(f"epsilon: updated and pruned cache for mark {mark} (vat {vat})")
                     flash("Ενημερώθηκε ο χαρακτηρισμός στο cache (epsilon).", "success")
                 except Exception:
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
-                # IMPORTANT: skip Excel rewrite on re-characterisation
+
+                # also ensure Excel row updated/created
+                try:
+                    excel_path = excel_path_for(vat=vat)
+                    aa_val = existing.get("AA") or existing.get("aa") or summary.get("number") or summary.get("AA") or ""
+                    total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", 0)))
+                    total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", 0)))
+                    total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
+                    summary_row = {
+                        "MARK": mark or existing.get("mark", ""),
+                        "ΑΦΜ": vat,
+                        "Επωνυμία": summary.get("Name", "") or existing.get("Name_issuer", "") or existing.get("Name", ""),
+                        "Σειρά": summary.get("series", "") or existing.get("series", ""),
+                        "Αριθμός": aa_val,
+                        "Ημερομηνία": summary.get("issueDate", "") or existing.get("issueDate", ""),
+                        "Είδος": summary.get("type", "") or existing.get("type", ""),
+                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", "") or existing.get("vatCategory", ""),
+                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+                        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+                        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                    }
+                    _update_or_create_excel_row(summary_row, excel_path)
+                except Exception:
+                    log.exception("save_summary: failed updating/creating excel row after re-characterisation")
+                    flash("Αποθηκεύτηκε το cache αλλά αποτυχία ενημέρωσης Excel (έλεγξε logs).", "warning")
+
                 return redirect(url_for("search"))
             else:
-                log.info(f"epsilon: no per-line changes for mark {mark} (vat {vat})")
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
                 return redirect(url_for("search"))
 
         # --- ELSE: no existing record in epsilon -> proceed to write Excel and append new epsilon entry ---
-        # Excel write (unchanged behavior)
         excel_path = excel_path_for(vat=vat)
         try:
             total_net = float_from_comma(summary.get("totalNetValue", 0))
@@ -2201,7 +2733,7 @@ def save_summary():
                 "ΑΦΜ": vat,
                 "Επωνυμία": summary.get("Name", ""),
                 "Σειρά": summary.get("series", ""),
-                "Αριθμός": summary.get("number", ""),
+                "Αριθμός": summary.get("number", "") or summary.get("AA", "") or "",
                 "Ημερομηνία": summary.get("issueDate", ""),
                 "Είδος": summary.get("type", ""),
                 "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
@@ -2210,19 +2742,12 @@ def save_summary():
                 "Σύνολο": f"{total_value:.2f}".replace(".", ",")
             }
 
-            df_new = pd.DataFrame([row]).astype(str).fillna("")
-            if os.path.exists(excel_path):
-                df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-                df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-            else:
-                os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                df_new.to_excel(excel_path, index=False, engine="openpyxl")
+            _update_or_create_excel_row(row, excel_path)
         except Exception:
             log.exception("save_summary: Excel write failed")
             flash("Excel save failed", "error")
 
-        # Build full epsilon entry and append
+        # Build full epsilon entry but append ONLY if there is at least one categorized line
         epsilon_entry = {
             "mark": mark,
             "issueDate": summary.get("issueDate", ""),
@@ -2243,7 +2768,6 @@ def save_summary():
             "lines": []
         }
         for ln in normalized_lines:
-            # ensure category already possibly filled by repeat_map application earlier
             epsilon_entry["lines"].append({
                 "id": ln.get("id", ""),
                 "description": ln.get("description", ""),
@@ -2253,13 +2777,20 @@ def save_summary():
                 "vat_category": ln.get("vatCategory", "") or ""
             })
 
-        epsilon_cache.append(epsilon_entry)
-        try:
-            _safe_save_epsilon_cache(vat, epsilon_cache)
-            flash("Saved summary and appended new epsilon entry.", "success")
-        except Exception:
-            log.exception("save_summary: failed saving new epsilon cache")
-            flash("Failed updating epsilon cache (see server logs)", "error")
+        # Only append if we have at least one categorized line
+        if _has_categorized_line(epsilon_entry.get("lines", [])):
+            epsilon_cache.append(epsilon_entry)
+            try:
+                # prune BEFORE saving: keep only entries that have at least one categorized line
+                filtered = [e for e in epsilon_cache if _has_categorized_line(e.get("lines", []))]
+                _safe_save_epsilon_cache(vat, filtered)
+                flash("Saved summary and appended new epsilon entry.", "success")
+            except Exception:
+                log.exception("save_summary: failed saving new epsilon cache")
+                flash("Failed updating epsilon cache (see server logs)", "error")
+        else:
+            # don't append to epsilon cache; notify user (info)
+            flash("Δεν προστέθηκε στο cache (epsilon) — δεν υπήρξε χαρακτηρισμός γραμμών.", "info")
     except Exception:
         log.exception("save_summary: failed saving epsilon cache")
         flash("Failed updating epsilon cache", "error")
