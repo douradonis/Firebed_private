@@ -1,3 +1,5 @@
+εμφανιση αφμ προμηθευτη στον πινακα αν το αφμ του πινακα excel ερχεται απο το summary.json αρχειο;;
+reload αυτοματο μετα την επεξεργασια επαναληψιμης
 scraper_receipt= epsilon, mydata, einvoice, wedoconnect, www1.aade.gr
 επιβεβαιωση στηλων excel συναλλασομενων
 σετ χαρακτηρισμων
