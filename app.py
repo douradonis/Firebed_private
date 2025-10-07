@@ -82,18 +82,78 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+def _get_mark_from_epsilon_item(item):
+    # normalize possible keys that may hold the mark
+    for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
+        if k in item and item.get(k) not in (None, ""):
+            return str(item.get(k)).strip()
+    return ""
+
+def sync_epsilon_with_excel(vat):
+    """
+    Sync per-vat epsilon cache with the Excel file for vat:
+      - Keep only epsilon entries whose mark exists in the Excel MARK column.
+      - If Excel exists but has zero rows (no MARKs), epsilon will be truncated to [].
+    Returns a tuple (changed: bool, removed_count: int).
+    """
+    try:
+        excel_path = excel_path_for(vat=vat)
+        if not os.path.exists(excel_path):
+            log.info("sync_epsilon_with_excel: excel not found for vat %s -> skipping sync", vat)
+            return False, 0
+
+        try:
+            df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+        except Exception as e:
+            log.exception("sync_epsilon_with_excel: failed reading excel %s", excel_path)
+            return False, 0
+
+        if "MARK" in df.columns:
+            marks_in_excel = set(df["MARK"].astype(str).str.strip().tolist())
+        else:
+            # no MARK column -> treat as empty set (remove all)
+            marks_in_excel = set()
+
+        eps_list = load_epsilon_cache_for_vat(vat) or []
+        # keep only those whose normalized mark is present in marks_in_excel
+        kept = []
+        removed = []
+        for it in eps_list:
+            try:
+                m = _get_mark_from_epsilon_item(it)
+                if m and m in marks_in_excel:
+                    kept.append(it)
+                else:
+                    removed.append(it)
+            except Exception:
+                # if something weird, keep item (safer) OR you can choose to remove; here we keep
+                kept.append(it)
+
+        if len(removed) == 0:
+            log.debug("sync_epsilon_with_excel: nothing to remove for vat %s (marks kept=%d)", vat, len(kept))
+            return False, 0
+
+        # persist truncated cache
+        try:
+            _safe_save_epsilon_cache(vat, kept)
+            log.info("sync_epsilon_with_excel: removed %d epsilon entries for vat %s (kept=%d)", len(removed), vat, len(kept))
+            return True, len(removed)
+        except Exception:
+            log.exception("sync_epsilon_with_excel: failed saving epsilon after sync for vat %s", vat)
+            return False, 0
+
+    except Exception:
+        log.exception("sync_epsilon_with_excel: unexpected error for vat %s", vat)
+        return False, 0
+
 def create_empty_excel_for_vat(vat, fiscal_year=None):
-    """
-    Ensure an empty excel file exists for the given VAT and fiscal_year.
-    Filename: <safe_vat>_<fiscal_year>_invoices.xlsx, placed under DATA_DIR/excel (created if missing).
-    Returns the path created (or existing).
-    """
+    """Create an empty excel file with standard headers for given vat + fiscal_year."""
     try:
         safe_vat = secure_filename(str(vat))
     except Exception:
         safe_vat = str(vat)
 
-    # try to resolve fiscal_year from existing function if available, else current year
+    # prefer get_active_fiscal_year if fiscal_year not passed
     if fiscal_year is None:
         getter = globals().get("get_active_fiscal_year")
         try:
@@ -105,47 +165,28 @@ def create_empty_excel_for_vat(vat, fiscal_year=None):
         from datetime import datetime
         fiscal_year = datetime.now().year
 
-    # prefer an "excel" subdir inside DATA_DIR (keeps things tidy)
-    excel_dir = os.path.join(DATA_DIR, "excel")
-    os.makedirs(excel_dir, exist_ok=True)
-
-    excel_fname = f"{safe_vat}_{fiscal_year}_invoices.xlsx"
-    excel_path = os.path.join(excel_dir, excel_fname)
-
+    # Use excel_path_for to keep filename consistent
+    excel_path = excel_path_for(vat=vat)
     if os.path.exists(excel_path):
         log.debug("create_empty_excel_for_vat: excel already exists: %s", excel_path)
         return excel_path
 
-    # create an empty dataframe with the columns your app expects
-    try:
-        import pandas as pd
-    except Exception:
-        log.exception("create_empty_excel_for_vat: pandas not available")
-        raise
-
     cols = [
-        "MARK",
-        "ΑΦΜ",
-        "Επωνυμία",
-        "Σειρά",
-        "Αριθμός",
-        "Ημερομηνία",
-        "Είδος",
-        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ",
-        "Καθαρή Αξία",
-        "ΦΠΑ",
-        "Σύνολο"
+        "MARK", "ΑΦΜ", "Επωνυμία", "Σειρά", "Αριθμός",
+        "Ημερομηνία", "Είδος", "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ",
+        "Καθαρή Αξία", "ΦΠΑ", "Σύνολο"
     ]
+    import pandas as pd
     df = pd.DataFrame(columns=cols).astype(str)
-
     try:
+        os.makedirs(os.path.dirname(excel_path), exist_ok=True)
         df.to_excel(excel_path, index=False, engine="openpyxl")
         log.info("create_empty_excel_for_vat: created empty excel %s", excel_path)
     except Exception:
         log.exception("create_empty_excel_for_vat: failed creating excel %s", excel_path)
         raise
-
     return excel_path
+
 
 
 
@@ -960,51 +1001,46 @@ def get_cred_by_name(name: str) -> Optional[Dict]:
     creds = load_credentials()
     return next((c for c in creds if c.get("name") == name), None)
 
-def excel_path_for(cred_name: Optional[str] = None, vat: Optional[str] = None) -> str:
+# --- Excel path helper: πάντα με VAT + fiscal_year ---
+def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -> str:
     """
-    Return the best path for the excel summary for a client.
-    Prefers file with fiscal year: <vat>_<fiscal_year>_invoices.xlsx, then <vat>_invoices.xlsx, then DEFAULT_EXCEL_FILE.
+    Return path to per-vat excel file: DATA_DIR/excel/<safe_vat>_<fiscal_year>_invoices.xlsx
+    Fallback: if vat/cred_name missing return DEFAULT_EXCEL_FILE.
     """
-    try:
-        safe_vat = secure_filename(str(vat)) if vat else None
-    except Exception:
-        safe_vat = str(vat) if vat else None
+    excel_dir = os.path.join(DATA_DIR, "excel")
+    os.makedirs(excel_dir, exist_ok=True)
 
-    # determine fiscal year
+    # resolve fiscal year
     fy = None
-    getter = globals().get("get_active_fiscal_year")
     try:
+        getter = globals().get("get_active_fiscal_year")
         if callable(getter):
             fy = getter()
     except Exception:
         fy = None
-    if not fy:
+    if fy is None:
         from datetime import datetime
         fy = datetime.now().year
 
-    # directory to store excels (same as create_empty_excel_for_vat)
-    excel_dir = os.path.join(DATA_DIR, "excel")
-    os.makedirs(excel_dir, exist_ok=True)
+    if vat:
+        try:
+            safe_vat = secure_filename(str(vat))
+        except Exception:
+            safe_vat = str(vat)
+        fname = f"{safe_vat}_{fy}_invoices.xlsx"
+        return os.path.join(excel_dir, fname)
 
-    if safe_vat:
-        # 1) prefer vat + fiscal year
-        candidate1 = os.path.join(excel_dir, f"{safe_vat}_{fy}_invoices.xlsx")
-        if os.path.exists(candidate1):
-            return candidate1
-        # 2) fallback to vat only (older pattern)
-        candidate2 = os.path.join(excel_dir, f"{safe_vat}_invoices.xlsx")
-        if os.path.exists(candidate2):
-            return candidate2
+    if cred_name:
+        try:
+            safe_name = secure_filename(str(cred_name))
+        except Exception:
+            safe_name = str(cred_name)
+        fname = f"{safe_name}_{fy}_invoices.xlsx"
+        return os.path.join(excel_dir, fname)
 
-    # 3) fallback to DEFAULT_EXCEL_FILE if present
-    if "DEFAULT_EXCEL_FILE" in globals() and globals().get("DEFAULT_EXCEL_FILE"):
-        return globals()["DEFAULT_EXCEL_FILE"]
+    # fallback
+    return DEFAULT_EXCEL_FILE
 
-    # 4) last-resort: return candidate1 path (where we would create the fiscal-year file)
-    if safe_vat:
-        return os.path.join(excel_dir, f"{safe_vat}_{fy}_invoices.xlsx")
-    # if nothing else, return some default in DATA_DIR
-    return os.path.join(DATA_DIR, f"unknown_{fy}_invoices.xlsx")
 
 def _atomic_write(path, data_text):
     dirn = os.path.dirname(path)
@@ -2051,7 +2087,7 @@ def fetch():
             added_summaries = 0
             for d in all_rows:
                 if vat:
-                    d["AFM"] = vat  # προσθέτουμε AFM
+                    d["AFM_counterpart"] = vat  # προσθέτουμε AFM
                 if append_doc_to_customer_file(d, vat):
                     added_docs += 1
 
@@ -2267,7 +2303,7 @@ def search():
             "14.2": "Τιμολόγιο / Αποκτήσεις Τρίτων Χωρών",
             "14.3": "Τιμολόγιο / Ενδοκοινοτική Λήψη Υπηρεσιών",
             "14.4": "Τιμολόγιο / Λήψη Υπηρεσιών Τρίτων Χωρών",
-            "14.5": "ΕΦΚΑ και λοιποί Ασφαλιστικοί Οργανισμοί",
+            "14.5": "ΕΦΚΑ και λοιποί Ασφαλιστικοί Οργανισμοι",
             "14.30": "Παραστατικά Οντότητας ως Αναγράφονται από την ίδια (Δυναμικό)",
             "14.31": "Πιστωτικό ημεδαπής / αλλοδαπής",
             "15.1": "Συμβόλαιο - Έξοδο",
@@ -2307,50 +2343,45 @@ def search():
     def read_credentials_list_local():
         try:
             p = credentials_path()
-            if not os.path.exists(p):
-                return []
-            with open(p, "r", encoding="utf-8") as f:
-                return json.load(f) or []
+            return json_read(p) or []
         except Exception:
             log.exception("read_credentials_list_local failed")
             return []
 
     def write_credentials_list_local(creds_list):
         """
-        Persist credentials list and ensure each credential that has a VAT gets an empty excel file.
-        Returns True on success, False on failure.
+        Persist credentials list using json_write and ensure a per-VAT excel exists (if helper available).
         """
         try:
             p = credentials_path()
-            tmp = p + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(creds_list, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, p)
-
-            # ensure excel exists for each credential entry that has a VAT
+            # use central json_write helper for atomic write if available
             try:
-                for c in (creds_list or []):
-                    try:
-                        if not isinstance(c, dict):
-                            continue
-                        vat = c.get("vat") or c.get("AFM") or c.get("tax_number") or None
-                        if vat:
-                        # safe: create only if missing
-                            try:
-                                create_empty_excel_for_vat(vat)
-                            except Exception:
-                                # don't fail the whole write just because excel creation failed
-                                log.exception("write_credentials_list_local: failed to create excel for VAT %s", vat)
-                    except Exception:
-                        log.exception("write_credentials_list_local: error while ensuring excel for one credential")
+                json_write(p, creds_list)
             except Exception:
-                log.exception("write_credentials_list_local: bulk excel ensure failed")
+                # fallback to simple write (shouldn't happen if json_write exists)
+                tmp = p + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump(creds_list, f, ensure_ascii=False, indent=2)
+                os.replace(tmp, p)
 
+            # ensure excel exists for each credential entry that has a VAT (best-effort)
+            create_excel_fn = globals().get("create_empty_excel_for_vat")
+            for c in (creds_list or []):
+                try:
+                    if not isinstance(c, dict):
+                        continue
+                    vat_c = c.get("vat") or c.get("AFM") or c.get("tax_number")
+                    if vat_c and create_excel_fn and callable(create_excel_fn):
+                        try:
+                            create_excel_fn(vat_c)
+                        except Exception:
+                            log.exception("write_credentials_list_local: create_empty_excel_for_vat failed for %s", vat_c)
+                except Exception:
+                    log.exception("write_credentials_list_local: error ensuring excel for one credential")
             return True
         except Exception:
             log.exception("write_credentials_list_local failed")
             return False
-
 
     def find_active_client_index_local(creds_list, vat_to_match=None):
         if not creds_list:
@@ -2378,19 +2409,15 @@ def search():
         if data.get("action") == "save_repeat_entry":
             enabled = bool(data.get("enabled", False))
             mapping = data.get("mapping", {}) or {}
-            # read creds, locate active client, set repeat_entry, write back
             creds = read_credentials_list_local()
             idx = find_active_client_index_local(creds, vat_to_match=vat)
             if idx is None:
                 return jsonify({"ok": False, "error": "No credentials found to save."}), 400
             try:
-                # ensure structure
                 creds[idx]["repeat_entry"] = {"enabled": enabled, "mapping": mapping}
                 ok = write_credentials_list_local(creds)
                 if not ok:
                     return jsonify({"ok": False, "error": "Failed to write credentials file."}), 500
-                # also update session active_cred if needed (so frontend sees the change on reload)
-                # (Assuming existence of helper to refresh active credential in session; otherwise next request will read file)
                 return jsonify({"ok": True})
             except Exception as e:
                 log.exception("Failed saving repeat entry mapping")
@@ -2403,7 +2430,6 @@ def search():
         emulate_post = True
 
     if request.method == "POST" or emulate_post:
-        # If this was not JSON-save, normal form handling below
         if request.method == "POST" and not request.is_json:
             mark = request.form.get("mark", "").strip()
 
@@ -2435,49 +2461,43 @@ def search():
                 else:
                     error = "Άγνωστο URL για scraping."
             except Exception as e:
-                log.exception(f"Scraping failed for URL {mark}")
+                log.exception("Scraping failed for URL %s", mark)
                 error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            # --- Έλεγχος AFM με ενεργό πελάτη ---
             if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
                 modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
 
-            # εισαγωγή MARK που επιστράφηκε από scraper
             if scraped_marks:
                 mark = scraped_marks[0]
 
-        # --- Έλεγχος MARK αν δεν είναι URL ---
         if not input_is_url:
             if not vat:
                 error = "Επέλεξε πρώτα έναν πελάτη (ΑΦΜ) για αναζήτηση."
             elif not mark or not mark.isdigit() or len(mark) != 15:
                 error = "Πρέπει να δώσεις έγκυρο 15ψήφιο MARK."
 
-        # --- συνέχεια της υπάρχουσας λογικής με cache, Excel, modal_summary ---
         if not error:
             # --- φορτώνουμε cache invoices ---
             customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             try:
                 cache = json_read(customer_file) or []
             except Exception:
+                log.exception("Failed to read customer_file %s", customer_file)
                 cache = []
             docs_for_mark = [d for d in cache if str(d.get("mark", "")).strip() == mark]
 
-            # flag για ήδη χαρακτηρισμένα docs — δεν κάνουμε return εδώ, μόνο θα εμφανίσουμε μήνυμα
+            # flag for already classified docs
             classified_flag = False
-            classified_docs = [
-                d for d in docs_for_mark
-                if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"
-            ]
+            classified_docs = [d for d in docs_for_mark if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"]
             if classified_docs:
                 error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
                 classified_flag = True
-                # δεν χτίζουμε modal_summary ούτε τα invoice_lines — αλλά αφήνουμε να εμφανιστεί ο πίνακας
 
-            # --- Έλεγχος διπλοκαταχώρησης στο Excel για yellow box ---
+            # check duplicate in excel
             try:
                 excel_path = excel_path_for(vat=vat)
                 if os.path.exists(excel_path):
+                    import pandas as pd
                     df_check = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
                     if "MARK" in df_check.columns:
                         marks_in_excel = df_check["MARK"].astype(str).str.strip().tolist()
@@ -2486,11 +2506,9 @@ def search():
             except Exception:
                 log.exception("Could not read Excel to check duplicate MARK")
 
-            # Αν δεν έχουμε docs για το MARK στην cache -> άλλο μήνυμα
             if not docs_for_mark:
                 error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
-                # build modal_summary unless classified_flag
                 if not classified_flag:
                     invoice_lines = []
                     for idx, inst in enumerate(docs_for_mark):
@@ -2498,12 +2516,9 @@ def search():
                         description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
                         amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
                         vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
-
                         raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
                         mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-
                         category = ""
-
                         invoice_lines.append({
                             "id": line_id,
                             "description": description,
@@ -2522,86 +2537,50 @@ def search():
                     inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
                     is_negative = inv_type in NEGATIVE_TYPES
 
-                    if is_negative:
-                        for ml in invoice_lines:
-                            try:
-                                v = float_from_comma(ml.get("amount", 0))
-                                ml["amount"] = f"-{abs(v):.2f}".replace(".", ",")
-                            except Exception:
-                                ml["amount"] = ml.get("amount", "")
-                            try:
-                                vv = float_from_comma(ml.get("vat", 0))
-                                ml["vat"] = f"-{abs(vv):.2f}".replace(".", ",")
-                            except Exception:
-                                ml["vat"] = ml.get("vat", "")
-                    else:
-                        for ml in invoice_lines:
-                            try:
-                                v = float_from_comma(ml.get("amount", 0))
-                                ml["amount"] = f"{v:.2f}".replace(".", ",")
-                            except Exception:
-                                ml["amount"] = ml.get("amount", "")
-                            try:
-                                vv = float_from_comma(ml.get("vat", 0))
-                                ml["vat"] = f"{vv:.2f}".replace(".", ",")
-                            except Exception:
-                                ml["vat"] = ml.get("vat", "")
+                    # format amounts for display
+                    for ml in invoice_lines:
+                        try:
+                            v = float_from_comma(ml.get("amount", 0))
+                            ml["amount"] = f"{-abs(v):.2f}".replace(".", ",") if is_negative else f"{v:.2f}".replace(".", ",")
+                        except Exception:
+                            pass
+                        try:
+                            vv = float_from_comma(ml.get("vat", 0))
+                            ml["vat"] = f"{-abs(vv):.2f}".replace(".", ",") if is_negative else f"{vv:.2f}".replace(".", ",")
+                        except Exception:
+                            pass
 
-                    if is_negative:
-                        modal_summary = {
-                            "mark": mark,
-                            "AA": pick(first, "AA", "aa", default=""),
-                            "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
-                            "Name": pick(first, "Name", "Name_issuer", default=""),
-                            "series": pick(first, "series", "Series", "serie", default=""),
-                            "number": pick(first, "number", "aa", "AA", default=""),
-                            "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
-                            "totalNetValue": f"-{abs(total_net):.2f}".replace(".", ","),
-                            "totalVatAmount": f"-{abs(total_vat):.2f}".replace(".", ","),
-                            "totalValue": f"-{abs(total_value):.2f}".replace(".", ","),
-                            "type": inv_type,
-                            "type_name": mapper(inv_type),
-                            "lines": invoice_lines
-                        }
-                    else:
-                        modal_summary = {
-                            "mark": mark,
-                            "AA": pick(first, "AA", "aa", default=""),
-                            "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
-                            "Name": pick(first, "Name", "Name_issuer", default=""),
-                            "series": pick(first, "series", "Series", "serie", default=""),
-                            "number": pick(first, "number", "aa", "AA", default=""),
-                            "issueDate": pick(first, "issueDate", "issue_date", default=pick(first,"issueDate","issue_date","")),
-                            "totalNetValue": f"{total_net:.2f}".replace(".", ","),
-                            "totalVatAmount": f"{total_vat:.2f}".replace(".", ","),
-                            "totalValue": f"{total_value:.2f}".replace(".", ","),
-                            "type": inv_type,
-                            "type_name": mapper(inv_type),
-                            "lines": invoice_lines
-                        }
+                    modal_summary = {
+                        "mark": mark,
+                        "AA": pick(first, "AA", "aa", default=""),
+                        "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
+                        "Name": pick(first, "Name", "Name_issuer", default=""),
+                        "series": pick(first, "series", "Series", "serie", default=""),
+                        "number": pick(first, "number", "aa", "AA", default=""),
+                        "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
+                        "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
+                        "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
+                        "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
+                        "type": inv_type,
+                        "type_name": mapper(inv_type),
+                        "lines": invoice_lines
+                    }
 
                     # Εισαγωγή προφόρτωσης χαρακτηρισμού από epsilon cache (όπως πριν)
-                                        # Εισαγωγή προφόρτωσης χαρακτηρισμού από epsilon cache (όπως πριν)
                     try:
                         epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                        # read existing epsilon cache safely
-                        eps_list = json_read(epsilon_path, default=[]) or []
+                        eps_list = json_read(epsilon_path) or []
 
-                        # If there is no epsilon cache yet, *do not* blindly build full cache from invoices.json.
-                        # Instead: build and persist only a per-mark detailed entry (if we have details for this mark).
+                        # If eps_list is empty, avoid blindly building full cache.
+                        # Only build per-mark epsilon entry if modal_summary contains meaningful data.
                         if not eps_list:
                             try:
-                                # Only build an epsilon entry for the current mark if modal_summary has meaningful data
-                                # modal_summary was created above and invoice_lines contains per-line items
                                 has_detail = False
-                                # prefer issueDate OR non-empty lines OR AFM issuer info
                                 if modal_summary and (modal_summary.get("issueDate") or modal_summary.get("AFM") or modal_summary.get("AFM_issuer")):
                                     has_detail = True
                                 if invoice_lines and any((ln.get("description") or ln.get("amount") or ln.get("vat")) for ln in invoice_lines):
                                     has_detail = True
-
                                 if has_detail and modal_summary:
-                                    # construct epsilon-format entry from modal_summary + invoice_lines
                                     epsilon_entry = {
                                         "mark": str(modal_summary.get("mark", "")).strip(),
                                         "issueDate": modal_summary.get("issueDate", "") or "",
@@ -2621,7 +2600,6 @@ def search():
                                         "AFM": modal_summary.get("AFM", "") or vat,
                                         "lines": []
                                     }
-                                    # normalize lines into epsilon shape (vat_category key)
                                     for ln in invoice_lines:
                                         epsilon_entry["lines"].append({
                                             "id": ln.get("id", ""),
@@ -2631,25 +2609,22 @@ def search():
                                             "category": ln.get("category", "") or "",
                                             "vat_category": ln.get("vatCategory", "") or ""
                                         })
-                                    # append to eps_list and persist atomically (use your safe writer)
                                     eps_list.append(epsilon_entry)
                                     try:
                                         _safe_save_epsilon_cache(vat, eps_list)
                                         log.info("Built per-mark epsilon entry for mark %s (vat %s)", epsilon_entry.get("mark"), vat)
                                     except Exception:
                                         log.exception("Failed to save newly built per-mark epsilon entry")
-                                else:
-                                    # nothing to build: keep eps_list empty (do not create placeholder entries)
-                                    pass
                             except Exception:
                                 log.exception("Failed building per-mark epsilon entry")
-                                # fallthrough: eps_list may still be empty
-                        # now attempt to match an existing epsilon entry for the mark (if any)
+
+                        # now prefill modal_summary if we match an eps entry
                         def match_epsilon_item(item, mark_val):
-                            for k in ('mark','MARK','invoice_id','Αριθμός Μητρώου','id'):
+                            for k in ('mark', 'MARK', 'invoice_id', 'Αριθμός Μητρώου', 'id'):
                                 if k in item and str(item[k]).strip() == str(mark_val).strip():
                                     return True
                             return False
+
                         matched = None
                         for it in (eps_list or []):
                             try:
@@ -2658,27 +2633,28 @@ def search():
                                     break
                             except Exception:
                                 continue
+
                         if matched:
-                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός','') or ""
+                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
                             try:
                                 eps_lines = matched.get("lines", []) or []
-                                eps_by_id = { str(l.get("id","")): l for l in eps_lines if l.get("id") is not None }
+                                eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
                                 for ml in modal_summary.get("lines", []):
-                                    lid = str(ml.get("id",""))
+                                    lid = str(ml.get("id", ""))
                                     if not lid:
                                         continue
                                     eps_line = eps_by_id.get(lid)
                                     if eps_line:
                                         if not ml.get("category") and eps_line.get("category"):
                                             ml["category"] = eps_line.get("category")
-                                        if (not ml.get("vatCategory") or ml.get("vatCategory")== "") and eps_line.get("vat_category"):
+                                        if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
                                             ml["vatCategory"] = eps_line.get("vat_category")
                             except Exception:
                                 log.exception("Failed to merge per-line categories from epsilon")
                     except Exception:
                         log.exception("Could not read epsilon cache for prefill")
 
-
+                    # load customer-specific tags
                     raw_tags = active_cred.get("expense_tags") or []
                     if isinstance(raw_tags, str):
                         customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
@@ -2717,11 +2693,11 @@ def search():
             excel_path = excel_path_for(cred_name=active.get("name"))
         if os.path.exists(excel_path):
             file_exists = True
+            import pandas as pd
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
-            # insert checkbox column as first column
             checkbox_html = '<input type="checkbox" name="delete_mark" />'
             df.insert(0, "✓", [checkbox_html] * len(df))
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
@@ -2751,6 +2727,7 @@ def search():
         # για frontend repeat modal
         repeat_entry_conf=repeat_entry_conf
     )
+
 
 
 @app.route('/api/scrape_receipt', methods=['POST'])
@@ -2974,22 +2951,29 @@ def save_summary():
     """
     Save summary and update epsilon:
       - αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
-      - αν υπάρχει μόνο placeholder για το mark -> ΔΙΑΓΡΑΦΟΥΜΕ τα placeholders και ΠΙΕΖΟΥΜΕ δημιουργία Excel + append
+      - αν υπάρχει μόνο placeholder για το mark -> διαγράφουμε τα placeholders και δημιουργούμε Excel + append
       - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
-    Έχει εκτενή debug logging για να δούμε ακριβώς τι συμβαίνει.
+
+    Η υλοποίηση περιλαμβάνει εκτενή logging για debugging.
     """
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+    except Exception:
+        _dt = None
+        _tz = None
+
     try:
         log.info("save_summary: start request from %s", request.remote_addr)
         raw = request.form.get("summary_json") or request.get_data(as_text=True)
         if not raw:
-            flash("No summary provided", "error")
             log.warning("save_summary: no payload")
+            flash("No summary provided", "error")
             return redirect(url_for("search"))
+
         try:
             summary = json.loads(raw)
             log.debug("save_summary: parsed JSON summary keys: %s", list(summary.keys()))
         except Exception:
-            # fallback: try building minimal summary from form
             log.warning("save_summary: failed json.loads(payload) - building minimal from form")
             summary = {}
             if request.form.get("mark"):
@@ -3000,13 +2984,15 @@ def save_summary():
         flash("Invalid summary payload", "error")
         return redirect(url_for("search"))
 
+    # active VAT
     active = get_active_credential_from_session()
     vat = (active.get("vat") if active else None) or summary.get("AFM") or summary.get("AFM_issuer") or summary.get("AFM")
     if not vat:
-        flash("No active customer selected (VAT)", "error")
         log.error("save_summary: missing vat - active=%s summary_afm=%s", bool(active), summary.get("AFM"))
+        flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
+    # helper to convert numeric strings like "1.234,56"
     def float_from_comma(value):
         if value is None:
             return 0.0
@@ -3018,14 +3004,14 @@ def save_summary():
         except Exception:
             return 0.0
 
-    # ensure lines
+    # --- ensure lines exist (reconstruct from per-customer invoices if needed) ---
     lines = summary.get("lines", []) or []
     if not lines:
         try:
             mark = str(summary.get("mark", "")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             all_docs = json_read(docs_file) or []
-            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
+            docs_for_mark = [d for d in all_docs if str(d.get("mark", "")).strip() == mark]
             reconstructed = []
             for idx, inst in enumerate(docs_for_mark):
                 ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
@@ -3050,7 +3036,7 @@ def save_summary():
             log.exception("save_summary: failed to reconstruct lines")
             lines = []
 
-    # normalize lines
+    # --- normalize lines ---
     normalized_lines = []
     for idx, ln in enumerate(lines):
         if not isinstance(ln, dict):
@@ -3060,21 +3046,21 @@ def save_summary():
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
-            "description": ln.get("description","") or ln.get("desc","") or "",
-            "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
-            "vat": ln.get("vat","") or ln.get("vatRate","") or "",
-            "category": ln.get("category","") or "",
+            "description": ln.get("description", "") or ln.get("desc", "") or "",
+            "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
+            "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
+            "category": ln.get("category", "") or "",
             "vatCategory": vcat_mapped
         })
     summary["lines"] = normalized_lines
 
-    # append to per-customer summary JSON (best-effort)
+    # --- append to per-customer summary JSON (best-effort) ---
     try:
         append_summary_to_customer_file(summary, vat)
     except Exception:
         log.exception("save_summary: append_summary_to_customer_file failed")
 
-    # helper to detect placeholder/detailed epsilon item
+    # --- helper to detect placeholder vs detailed epsilon item ---
     def epsilon_item_has_detail(item):
         try:
             if not item or not isinstance(item, dict):
@@ -3095,7 +3081,7 @@ def save_summary():
             pass
         return False
 
-    # load epsilon cache for vat
+    # --- load epsilon cache for vat ---
     try:
         epsilon_cache = load_epsilon_cache_for_vat(vat)  # returns list or None
         if epsilon_cache is None:
@@ -3105,9 +3091,9 @@ def save_summary():
         log.exception("save_summary: failed loading epsilon cache")
         epsilon_cache = []
 
-    mark = str(summary.get("mark","")).strip()
+    mark = str(summary.get("mark", "")).strip()
 
-    # find existing detailed entry, but collect placeholders
+    # --- locate existing detailed entry + collect placeholders ---
     existing_index = None
     placeholder_indices = []
     try:
@@ -3129,7 +3115,7 @@ def save_summary():
     except Exception:
         log.exception("save_summary: scanning epsilon_cache failed unexpectedly")
 
-    # if placeholders exist, remove them (so we will create excel)
+    # --- if placeholders exist, remove them so we force Excel creation ---
     if placeholder_indices:
         try:
             for idx in sorted(placeholder_indices, reverse=True):
@@ -3138,54 +3124,58 @@ def save_summary():
                     log.info("save_summary: removed placeholder epsilon entry idx=%d mark=%s vat=%s keys=%s", idx, mark, vat, list(removed.keys())[:6])
                 except Exception:
                     log.exception("save_summary: failed to pop placeholder idx=%s", idx)
-            # persist truncated cache
             try:
                 _safe_save_epsilon_cache(vat, epsilon_cache)
                 log.info("save_summary: persisted epsilon cache after removing placeholders for vat=%s", vat)
             except Exception:
                 log.exception("save_summary: failed persisting epsilon cache after placeholder removal")
-            # ensure existing_index treated as None so we proceed to Excel write
             existing_index = None
         except Exception:
             log.exception("save_summary: error removing placeholders")
 
-    # if existing detailed entry found -> updated-only path
+    # --- if existing detailed entry -> update per-line categories only ---
     if existing_index is not None:
         try:
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
-            existing_by_id = { str(l.get("id","")): l for l in existing_lines if l.get("id") is not None }
+            existing_by_id = {str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None}
             updated = False
             for ln in normalized_lines:
-                lid = str(ln.get("id",""))
+                lid = str(ln.get("id", ""))
                 if not lid:
                     continue
                 if lid in existing_by_id:
                     el = existing_by_id[lid]
-                    new_cat = ln.get("category","") or ""
-                    if new_cat and str(el.get("category","")) != new_cat:
+                    new_cat = ln.get("category", "") or ""
+                    if new_cat and str(el.get("category", "")) != new_cat:
                         el["category"] = new_cat
-                        el["vat_category"] = ln.get("vatCategory","") or el.get("vat_category","")
+                        el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
                         updated = True
-                    elif ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
+                    elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
                         el["vat_category"] = ln.get("vatCategory")
                         updated = True
                 else:
                     new_el = {
                         "id": lid,
-                        "description": ln.get("description",""),
-                        "amount": ln.get("amount",""),
-                        "vat": ln.get("vat",""),
-                        "category": ln.get("category","") or "",
-                        "vat_category": ln.get("vatCategory","") or ""
+                        "description": ln.get("description", ""),
+                        "amount": ln.get("amount", ""),
+                        "vat": ln.get("vat", ""),
+                        "category": ln.get("category", "") or "",
+                        "vat_category": ln.get("vatCategory", "") or ""
                     }
                     existing_lines.append(new_el)
                     existing_by_id[lid] = new_el
                     updated = True
+
             if updated:
-                existing["_updated_at"] = _dt.now(timezone.utc).isoformat()
+                try:
+                    if _dt and _tz:
+                        existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
+                except Exception:
+                    existing["_updated_at"] = existing.get("_updated_at", "")
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
+
                 try:
                     _safe_save_epsilon_cache(vat, epsilon_cache)
                     log.info("save_summary: updated epsilon per-line categories for mark=%s vat=%s", mark, vat)
@@ -3193,6 +3183,41 @@ def save_summary():
                 except Exception:
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
+
+                # ---- ensure Excel exists (if not, create it from summary/existing) ----
+                try:
+                    excel_path = excel_path_for(vat=vat)
+                    if not os.path.exists(excel_path):
+                        try:
+                            total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
+                            total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
+                        except Exception:
+                            total_net = 0.0
+                            total_vat = 0.0
+                        total_value = total_net + total_vat
+                        row = {
+                            "MARK": str(summary.get("mark", existing.get("mark", ""))),
+                            "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
+                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
+                            "Σειρά": summary.get("series", existing.get("series", "") or ""),
+                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
+                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
+                            "Είδος": summary.get("type", existing.get("type", "")),
+                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
+                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+                            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+                            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                        }
+                        import pandas as pd
+                        df_new = pd.DataFrame([row]).astype(str).fillna("")
+                        os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                        df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                        log.info("save_summary: existing epsilon updated but excel was missing -> created excel %s", excel_path)
+                    else:
+                        log.debug("save_summary: epsilon updated and excel already exists at %s; not re-writing", excel_path)
+                except Exception:
+                    log.exception("save_summary: failed ensuring/creating excel after epsilon update")
+
                 return redirect(url_for("search"))
             else:
                 log.info("save_summary: no per-line changes for mark=%s vat=%s", mark, vat)
@@ -3203,8 +3228,9 @@ def save_summary():
             flash("Server error while processing update", "error")
             return redirect(url_for("search"))
 
-    # ELSE -> No existing detailed entry => we must write Excel + append new epsilon entry
+    # --- ELSE: no existing detailed entry -> create/write excel + append epsilon entry ---
     excel_path = excel_path_for(vat=vat)
+    excel_written = False
     try:
         total_net = float_from_comma(summary.get("totalNetValue", 0))
         total_vat = float_from_comma(summary.get("totalVatAmount", 0))
@@ -3212,7 +3238,7 @@ def save_summary():
 
         row = {
             "MARK": str(summary.get("mark", "")),
-            "ΑΦΜ": vat,
+            "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
             "Επωνυμία": summary.get("Name", ""),
             "Σειρά": summary.get("series", ""),
             "Αριθμός": summary.get("number", ""),
@@ -3224,50 +3250,76 @@ def save_summary():
             "Σύνολο": f"{total_value:.2f}".replace(".", ",")
         }
 
+        import pandas as pd
         df_new = pd.DataFrame([row]).astype(str).fillna("")
-        if os.path.exists(excel_path):
-            df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-            df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-            df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-            log.info("save_summary: appended row to existing excel %s", excel_path)
-        else:
-            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-            df_new.to_excel(excel_path, index=False, engine="openpyxl")
-            log.info("save_summary: created new excel and wrote row %s", excel_path)
-        flash("Saved to Excel.", "success")
+
+        # if there's a higher-level helper, prefer calling it (backward compat)
+        helper = globals().get("_ensure_excel_and_update_or_append") or globals().get("_append_to_excel")
+        if helper and callable(helper):
+            try:
+                log.debug("save_summary: calling helper %s for excel update", helper.__name__)
+                # prefer passing summary if helper expects it, otherwise pass row+vat
+                try:
+                    helper(summary, vat=vat)
+                except TypeError:
+                    helper(row, vat=vat)
+                excel_written = True
+                log.info("save_summary: helper %s completed", helper.__name__)
+            except Exception:
+                log.exception("save_summary: helper %s failed; falling back to inline Excel write", helper.__name__)
+
+        if not excel_written:
+            if os.path.exists(excel_path):
+                try:
+                    df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                    df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+                    df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+                    log.info("save_summary: appended row to existing excel %s", excel_path)
+                except Exception:
+                    log.exception("save_summary: failed to append to existing excel %s", excel_path)
+                    raise
+            else:
+                try:
+                    os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                    df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                    log.info("save_summary: created new excel and wrote row %s", excel_path)
+                except Exception:
+                    log.exception("save_summary: failed to create/write new excel %s", excel_path)
+                    raise
+            flash("Saved to Excel.", "success")
     except Exception:
         log.exception("save_summary: Excel write failed")
         flash("Excel save failed", "error")
 
-    # build epsilon entry and append
+    # --- Build epsilon entry and append it to cache ---
     try:
         epsilon_entry = {
             "mark": mark,
-            "issueDate": summary.get("issueDate",""),
-            "series": summary.get("series",""),
-            "aa": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
-            "AA": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
-            "type": summary.get("type",""),
-            "vatCategory": summary.get("vatCategory",""),
-            "totalNetValue": summary.get("totalNetValue",""),
-            "totalVatAmount": summary.get("totalVatAmount",""),
-            "totalValue": summary.get("totalValue",""),
-            "classification": summary.get("classification",""),
+            "issueDate": summary.get("issueDate", ""),
+            "series": summary.get("series", ""),
+            "aa": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
+            "AA": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
+            "type": summary.get("type", ""),
+            "vatCategory": summary.get("vatCategory", ""),
+            "totalNetValue": summary.get("totalNetValue", ""),
+            "totalVatAmount": summary.get("totalVatAmount", ""),
+            "totalValue": summary.get("totalValue", ""),
+            "classification": summary.get("classification", ""),
             "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
             "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
-            "Name_issuer": summary.get("Name_issuer","") or summary.get("Name",""),
-            "AFM": summary.get("AFM","") or vat,
+            "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
+            "Name_issuer": summary.get("Name_issuer", "") or summary.get("Name", ""),
+            "AFM": summary.get("AFM", "") or vat,
             "lines": []
         }
         for ln in normalized_lines:
             epsilon_entry["lines"].append({
-                "id": ln.get("id",""),
-                "description": ln.get("description",""),
-                "amount": ln.get("amount",""),
-                "vat": ln.get("vat",""),
-                "category": ln.get("category","") or "",
-                "vat_category": ln.get("vatCategory","") or ""
+                "id": ln.get("id", ""),
+                "description": ln.get("description", ""),
+                "amount": ln.get("amount", ""),
+                "vat": ln.get("vat", ""),
+                "category": ln.get("category", "") or "",
+                "vat_category": ln.get("vatCategory", "") or ""
             })
 
         epsilon_cache.append(epsilon_entry)
@@ -3283,6 +3335,8 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
+
+
 
 
 
@@ -3354,15 +3408,73 @@ def list_invoices():
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
 def delete_invoices():
-    # collect and normalize marks
-    marks_to_delete = request.form.getlist("delete_mark")
-    marks_to_delete = [str(m).strip() for m in marks_to_delete if str(m).strip()]
+    """
+    Delete selected marks from the active customer's Excel and from the per-VAT epsilon cache.
+    Robust extraction of marks from the submitted form:
+      - checkboxes with name="delete_mark" and value="<MARK>"
+      - inputs named "delete_mark_<MARK>" (value often "on")
+      - single field "delete_mark" with comma-separated marks
+      - fallback: any posted values that look like 15-digit marks
+    Writes Excel back even if all rows are removed.
+    Removes matching epsilon entries using _safe_save_epsilon_cache (preferred) or json_write.
+    """
+    import re
 
+    # --- collect marks from form (robust) ---
+    marks_to_delete = []
+
+    # 1) common case: multiple checkboxes with same name and value set to MARK
+    try:
+        marks_to_delete.extend([str(m).strip() for m in request.form.getlist("delete_mark") if str(m).strip()])
+    except Exception:
+        pass
+
+    # 2) single comma-separated field named "delete_mark" (some forms do this)
     if not marks_to_delete:
-        flash("No marks selected", "error")
-        return redirect(url_for("list_invoices"))
+        try:
+            single = request.form.get("delete_mark")
+            if single and isinstance(single, str) and "," in single:
+                marks_to_delete.extend([s.strip() for s in single.split(",") if s.strip()])
+            elif single and isinstance(single, str) and re.fullmatch(r"\d{15}", single.strip()):
+                marks_to_delete.append(single.strip())
+        except Exception:
+            pass
 
-    # determine active client's excel file
+    # 3) check for keys like "delete_mark_<MARK>" (checkboxes that encode the mark in the name)
+    if not marks_to_delete:
+        try:
+            for key, val in request.form.items():
+                if key.startswith("delete_mark_"):
+                    # suffix is the mark (or some identifier)
+                    suffix = key.split("delete_mark_", 1)[1].strip()
+                    if suffix:
+                        marks_to_delete.append(suffix)
+                else:
+                    # fallback: sometimes the UI sends inputs named like "mark_0" with value equal to MARK
+                    if re.fullmatch(r"\d{15}", str(val).strip()):
+                        marks_to_delete.append(str(val).strip())
+        except Exception:
+            pass
+
+    # 4) final fallback: scan all form values for anything that *looks* like a 15-digit mark
+    if not marks_to_delete:
+        try:
+            for _, v in request.form.items():
+                if v and isinstance(v, str):
+                    vstrip = v.strip()
+                    if re.fullmatch(r"\d{15}", vstrip):
+                        marks_to_delete.append(vstrip)
+        except Exception:
+            pass
+
+    # normalize & unique
+    marks_to_delete = list({m for m in (marks_to_delete or []) if m})
+    if not marks_to_delete:
+        flash("No marks selected for deletion.", "error")
+        log.warning("delete_invoices: no marks extracted from form data")
+        return redirect(url_for("search"))
+
+    # --- determine active customer's excel file ---
     active = get_active_credential_from_session()
     excel_path = DEFAULT_EXCEL_FILE
     if active and active.get("vat"):
@@ -3374,51 +3486,126 @@ def delete_invoices():
     try:
         if os.path.exists(excel_path):
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+            # ensure strings
+            df = df.astype(str)
             if "MARK" in df.columns:
                 marks_series = df["MARK"].astype(str).str.strip()
                 mask = marks_series.isin(marks_to_delete)
                 num_matches = int(mask.sum())
                 if num_matches > 0:
                     df_remaining = df[~mask].copy()
-                    # Write back even αν df_remaining είναι κενό
+                    # always write back (even if df_remaining is empty) to persist deletion
                     df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
                     deleted_from_excel = num_matches
-                    log.info("Deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
+                    log.info("delete_invoices: Deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
                 else:
-                    log.info("No matching MARKs found in Excel %s for deletion: %s", excel_path, marks_to_delete)
+                    log.info("delete_invoices: No matching MARKs found in Excel %s for deletion: %s", excel_path, marks_to_delete)
             else:
-                log.warning("Excel file %s does not contain a MARK column; skipping Excel deletion.", excel_path)
+                # If no MARK column, try fallback match on 'Αριθμός' or 'ΑΦΜ' if appropriate
+                fallback_matched = 0
+                for col in ("Αριθμός", "ΑΦΜ", "ΑΦΜ_ΠΕΛΑΤΗ", "ΑΦΜ_Πελάτη", "ΑΦΜ_issuer"):
+                    if col in df.columns:
+                        series = df[col].astype(str).str.strip()
+                        mask = series.isin(marks_to_delete)
+                        cnt = int(mask.sum())
+                        if cnt > 0:
+                            df_remaining = df[~mask].copy()
+                            df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
+                            fallback_matched = cnt
+                            deleted_from_excel = cnt
+                            log.info("delete_invoices: Deleted %d rows from Excel %s by column %s", cnt, excel_path, col)
+                            break
+                if fallback_matched == 0:
+                    log.warning("delete_invoices: Excel file %s does not contain MARK or fallback columns; skipping Excel deletion.", excel_path)
         else:
-            log.info("Excel path %s does not exist; skipping Excel deletion.", excel_path)
+            log.info("delete_invoices: Excel path %s does not exist; skipping Excel deletion.", excel_path)
     except Exception:
-        log.exception("Error while deleting from Excel")
+        log.exception("delete_invoices: Error while deleting from Excel")
 
-    # delete matching entries from per-VAT epsilon cache
+    # --- delete matching entries from per-VAT epsilon cache (use helpers if available) ---
     deleted_from_epsilon = 0
     try:
         vat = active.get("vat") if active else None
         if vat:
-            epsilon_path = epsilon_file_path_for(vat)
+            # prefer load helper if present
+            epsilon_path = None
+            try:
+                # try helper that returns epsilon path
+                epsilon_path = epsilon_file_path_for(vat)
+            except Exception:
+                try:
+                    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+                    os.makedirs(epsilon_dir, exist_ok=True)
+                    safe_vat = secure_filename(str(vat))
+                    epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
+                except Exception:
+                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{secure_filename(str(vat))}_epsilon_invoices.json")
+
             if os.path.exists(epsilon_path):
-                epsilon_cache = json_read(epsilon_path) or []
+                # read using json_read
+                try:
+                    epsilon_cache = json_read(epsilon_path) or []
+                except Exception:
+                    log.exception("delete_invoices: json_read failed for %s", epsilon_path)
+                    epsilon_cache = []
+
                 before_len = len(epsilon_cache)
-                new_cache = [e for e in epsilon_cache if str(e.get("mark", "")).strip() not in marks_to_delete]
+                # normalize get_mark function to support multiple key names
+                def _get_mark(item):
+                    if not item or not isinstance(item, dict):
+                        return ""
+                    for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
+                        if k in item and item.get(k) not in (None, ""):
+                            return str(item.get(k)).strip()
+                    return ""
+
+                new_cache = [e for e in epsilon_cache if _get_mark(e) not in marks_to_delete]
                 after_len = len(new_cache)
                 deleted_from_epsilon = before_len - after_len
+
                 if deleted_from_epsilon > 0:
-                    json_write(epsilon_path, new_cache)
-                    log.info("Deleted %d marks from epsilon cache %s for VAT %s", deleted_from_epsilon, epsilon_path, vat)
+                    # prefer safe writer if available
+                    try:
+                        if "_safe_save_epsilon_cache" in globals() and callable(globals()["_safe_save_epsilon_cache"]):
+                            _safe_save_epsilon_cache(vat, new_cache)
+                        else:
+                            # fallback to json_write if provided
+                            if "json_write" in globals() and callable(globals()["json_write"]):
+                                json_write(epsilon_path, new_cache)
+                            else:
+                                # final fallback: atomic write to tmp then replace
+                                tmp = epsilon_path + ".tmp"
+                                with open(tmp, "w", encoding="utf-8") as fh:
+                                    json.dump(new_cache, fh, ensure_ascii=False, indent=2)
+                                os.replace(tmp, epsilon_path)
+                        log.info("delete_invoices: Deleted %d marks from epsilon cache %s for VAT %s", deleted_from_epsilon, epsilon_path, vat)
+                    except Exception:
+                        log.exception("delete_invoices: failed saving epsilon cache after deletion for %s", epsilon_path)
                 else:
-                    log.info("No matching marks found in epsilon cache %s for deletion.", epsilon_path)
+                    log.info("delete_invoices: No matching marks found in epsilon cache %s for deletion.", epsilon_path)
             else:
-                log.info("Epsilon cache %s does not exist for VAT %s; skipping epsilon deletion.", epsilon_file_path_for(vat), vat)
+                log.info("delete_invoices: Epsilon cache %s does not exist for VAT %s; skipping epsilon deletion.", epsilon_path, vat)
         else:
-            log.info("No active VAT available; skipped epsilon deletion.")
+            log.info("delete_invoices: No active VAT available; skipped epsilon deletion.")
     except Exception:
-        log.exception("Error while deleting from epsilon cache")
+        log.exception("delete_invoices: Error while deleting from epsilon cache")
+
+    # --- Optionally call coarse sync helper if present to ensure full parity ---
+    try:
+        if active and active.get("vat"):
+            if "sync_epsilon_with_excel" in globals() and callable(globals()["sync_epsilon_with_excel"]):
+                try:
+                    changed, removed = sync_epsilon_with_excel(active.get("vat"))
+                    if changed:
+                        log.info("delete_invoices: sync_epsilon_with_excel removed %d additional entries for vat %s", removed, active.get("vat"))
+                except Exception:
+                    log.exception("delete_invoices: sync_epsilon_with_excel failed")
+    except Exception:
+        log.exception("delete_invoices: unexpected error calling sync helper")
 
     flash(f"Deleted {len(marks_to_delete)} selected mark(s). Removed from Excel: {deleted_from_excel}, from Epsilon cache: {deleted_from_epsilon}", "success")
     return redirect(url_for("search"))
+
 
 
 
