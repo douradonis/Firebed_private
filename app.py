@@ -84,11 +84,61 @@ VAT_MAP = {
 }
 
 
-def _fiscal_meta_path():
-    return os.path.join(DATA_DIR, FISCAL_META)
+
 
 import re
+def _fiscal_meta_path():
+    """Return path to fiscal meta file inside DATA_DIR."""
+    return os.path.join(DATA_DIR, "fiscal_meta.json")
 
+
+def get_active_fiscal_year():
+    """
+    Read persisted fiscal year (int) from DATA_DIR/fiscal_meta.json.
+    Returns integer fiscal year or None if not found / on error.
+    """
+    try:
+        p = _fiscal_meta_path()
+        if not os.path.exists(p):
+            return None
+        with open(p, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        if not data:
+            return None
+        fy = data.get("fiscal_year")
+        if fy is None:
+            return None
+        try:
+            return int(fy)
+        except Exception:
+            # stored value not an int
+            return None
+    except Exception:
+        try:
+            log.exception("get_active_fiscal_year: failed to read fiscal meta")
+        except Exception:
+            pass
+        return None
+
+
+def set_active_fiscal_year(year):
+    """Persist fiscal year (int). Returns True on success, False on failure."""
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        p = _fiscal_meta_path()
+        with open(p, "w", encoding="utf-8") as fh:
+            json.dump({"fiscal_year": int(year)}, fh)
+        try:
+            log.info("Set active fiscal year: %s", year)
+        except Exception:
+            pass
+        return True
+    except Exception:
+        try:
+            log.exception("Failed to write fiscal meta")
+        except Exception:
+            pass
+        return False
 # ---------------- normalize helper (paste/replace existing) ----------------
 def _normalize_afm(raw):
     """Καθαρίζει AFM: κρατά μόνο digits, κόβει περιττά και επιστρέφει None αν άδειο."""
@@ -236,10 +286,151 @@ def _normalize_receipt_summary(summary: dict) -> dict:
             break
     return out
 
-# ---------------- ensure excel append uses AFM ----------------
-  
 
-def _append_to_excel(rec_dict):
+def _normalize_key_val(x):
+    try:
+        if x is None:
+            return ""
+        # convert numbers to str, strip whitespace, lower-case for robust comparison
+        return str(x).strip()
+    except Exception:
+        return ""
+
+def _find_afm_in_epsilon(mark: str = None, aa: str = None) -> str:
+    """
+    Search data/epsilon/*.json for an invoice matching mark or AA.
+    Return AFM_issuer or AFM if found, else empty string.
+    """
+    try:
+        epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+        if not os.path.isdir(epsilon_dir):
+            return ""
+        for fname in os.listdir(epsilon_dir):
+            if not fname.endswith("_epsilon_invoices.json"):
+                continue
+            try:
+                path = os.path.join(epsilon_dir, fname)
+                with open(path, "r", encoding="utf-8") as fh:
+                    items = json.load(fh)
+                if not isinstance(items, list):
+                    continue
+                for it in items:
+                    try:
+                        if mark and str(it.get("mark", "")).strip() and str(it.get("mark", "")).strip() == str(mark).strip():
+                            return (it.get("AFM_issuer") or it.get("AFM") or "").strip()
+                        if aa and str(it.get("AA", "")).strip() and str(it.get("AA", "")).strip() == str(aa).strip():
+                            return (it.get("AFM_issuer") or it.get("AFM") or "").strip()
+                    except Exception:
+                        continue
+            except Exception:
+                # ignore corrupt epsilon files
+                continue
+    except Exception:
+        try:
+            log.exception("_find_afm_in_epsilon failed")
+        except Exception:
+            pass
+    return ""
+
+
+
+def _append_to_excel(rec_dict, vat: Optional[str] = None, cred_name: Optional[str] = None):
+    """
+    Append a single record as a row to the per-vat Excel file determined by excel_path_for().
+    Uses AFM from rec_dict first, otherwise looks into epsilon cache (by mark / AA).
+    """
+    # determine vat to use for per-vat excel filename (fallbacks)
+    vat_candidate = vat or rec_dict.get('issuer_vat') or rec_dict.get('issuer_vat_raw') or rec_dict.get('AFM') or ""
+    safe_vat = secure_filename(str(vat_candidate)) if vat_candidate else ""
+    path = excel_path_for(cred_name=cred_name, vat=safe_vat)
+
+    # ensure directory exists
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    # Try to resolve AFM: prefer explicit issuer fields, else search epsilon cache by mark/AA
+    afm = (
+        (rec_dict.get('issuer_vat') or rec_dict.get('AFM_issuer') or rec_dict.get('AFM') or rec_dict.get('issuer_vat_raw') or "")
+        .strip()
+    )
+    if not afm:
+        # attempt to find AFM in epsilon cache using mark / AA
+        mark = rec_dict.get("MARK") or rec_dict.get("mark") or rec_dict.get("mark_id") or ""
+        aa = rec_dict.get("AA") or rec_dict.get("aa") or rec_dict.get("invoice_number") or ""
+        found = _find_afm_in_epsilon(mark=mark, aa=aa)
+        if found:
+            afm = found.strip()
+
+    # build row (add/adjust fields as your app expects)
+    row = {
+        'saved_at': rec_dict.get('_saved_at'),
+        'MARK': rec_dict.get('MARK') or rec_dict.get('mark'),
+        'AA': rec_dict.get('AA') or rec_dict.get('aa'),
+        'AFM': afm,
+        'Name': rec_dict.get('Name') or rec_dict.get('Name_issuer') or rec_dict.get('Name_counterparty') or "",
+        'issueDate': rec_dict.get('issueDate') or rec_dict.get('issueDate_raw') or rec_dict.get('issue_date') or "",
+        'totalValue': rec_dict.get('totalValue') or rec_dict.get('total_value') or rec_dict.get('total') or "",
+        'category': rec_dict.get('category') or rec_dict.get('classification') or ""
+    }
+
+    headers = list(row.keys())
+
+    # debug log
+    try:
+        log.info("append_to_excel -> path=%s vat_candidate=%s resolved_afm=%s mark=%s AA=%s",
+                 path, safe_vat, row['AFM'], row.get('MARK'), row.get('AA'))
+    except Exception:
+        pass
+
+    # Try pandas path first (preferred)
+    try:
+        import pandas as pd
+        if os.path.exists(path):
+            df_existing = pd.read_excel(path, engine='openpyxl', dtype=str)
+        else:
+            df_existing = pd.DataFrame(columns=headers)
+
+        df_new = pd.DataFrame([row])
+        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+
+        # Ensure all headers exist (order)
+        for h in headers:
+            if h not in df_concat.columns:
+                df_concat[h] = ""
+
+        df_concat.to_excel(path, index=False, engine='openpyxl')
+        return True
+
+    except Exception as e_pandas:
+        # Fallback to openpyxl direct append/create
+        try:
+            from openpyxl import load_workbook, Workbook
+            if not os.path.exists(path):
+                wb = Workbook()
+                ws = wb.active
+                ws.append(headers)
+                ws.append([row.get(k, '') for k in headers])
+                wb.save(path)
+                return True
+
+            wb = load_workbook(path)
+            ws = wb.active
+            # ensure header row exists and matches headers; if not, add header if missing
+            existing_headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+            if not existing_headers or all(h is None for h in existing_headers):
+                # insert header then continue
+                ws.insert_rows(1)
+                for idx, h in enumerate(headers, start=1):
+                    ws.cell(row=1, column=idx, value=h)
+            ws.append([row.get(k, '') for k in headers])
+            wb.save(path)
+            return True
+
+        except Exception as e_openpyxl:
+            try:
+                log.exception("append_to_excel failed (pandas err=%s, openpyxl err=%s)", e_pandas, e_openpyxl)
+            except Exception:
+                print("append_to_excel failed:", e_pandas, e_openpyxl)
+            return False
     """
     Append a single record as a row to EXCEL_FILE.
     Columns: saved_at, MARK, AA, AFM, Name, issueDate, totalValue, category
@@ -735,13 +926,17 @@ def home():
 
 @app.route('/get_fiscal_year', methods=['GET'])
 def route_get_fiscal_year():
+    """
+    GET -> return current fiscal year if present:
+    { exists: bool, fiscal_year: int|null }
+    """
     y = get_active_fiscal_year()
     return jsonify(exists=(y is not None), fiscal_year=y), 200
 
 @app.route('/set_fiscal_year', methods=['POST'])
 def route_set_fiscal_year():
     """
-    POST JSON or form: { fiscal_year: 2025 }
+    POST JSON or form: { fiscal_year: 2025 } or { year: 2025 }
     Returns JSON { success: bool, fiscal_year: int|null, message: str }
     """
     try:
@@ -760,8 +955,224 @@ def route_set_fiscal_year():
             return jsonify(success=False, message='Could not persist fiscal year'), 500
         return jsonify(success=True, fiscal_year=fy_int, message='Fiscal year updated'), 200
     except Exception:
-        log.exception("Failed in set_fiscal_year")
+        try:
+            log.exception("Failed in set_fiscal_year")
+        except Exception:
+            pass
         return jsonify(success=False, message='Server error'), 500
+
+# --- helpers για upsert / merge epsilon invoices -------------------------------
+import uuid
+from collections import OrderedDict
+
+def _normalize_val(v):
+    try:
+        return "" if v is None else str(v).strip()
+    except Exception:
+        return ""
+
+def _make_id_inv():
+    return uuid.uuid4().hex
+
+def _write_json_atomic(path, obj):
+    """Atomic write (utf-8, indent=2)."""
+    import tempfile
+    dirn = os.path.dirname(path)
+    os.makedirs(dirn, exist_ok=True)
+    text = json.dumps(obj, ensure_ascii=False, indent=2)
+    fd, tmp = tempfile.mkstemp(prefix=".tmp_json_", dir=dirn)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+def _upsert_epsilon_invoice(new_doc: dict):
+    """
+    Insert or update a detailed invoice record into the proper data/epsilon/*_epsilon_invoices.json.
+    - Matches by mark (preferred) or AA.
+    - If it finds an existing placeholder it replaces/merges it and preserves id_inv (or creates one).
+    - If not found, it creates a per-vat file using AFM_issuer/AFM (if available) or 'unknown'.
+    Returns (path_written, id_inv).
+    """
+    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+    os.makedirs(epsilon_dir, exist_ok=True)
+
+    mark = _normalize_val(new_doc.get("mark") or new_doc.get("MARK"))
+    aa = _normalize_val(new_doc.get("AA") or new_doc.get("aa"))
+    target_vat = _normalize_val(new_doc.get("AFM_issuer") or new_doc.get("AFM") or new_doc.get("issuer_vat"))
+
+    # build candidate list: prefer per-vat file if target_vat present, then all others
+    candidates = []
+    if target_vat:
+        candidates.append(os.path.join(epsilon_dir, f"{secure_filename(target_vat)}_epsilon_invoices.json"))
+    for fname in sorted(os.listdir(epsilon_dir)):
+        if not fname.endswith("_epsilon_invoices.json"):
+            continue
+        full = os.path.join(epsilon_dir, fname)
+        if full not in candidates:
+            candidates.append(full)
+
+    # helper to extract list container & container_key info
+    def _extract_items_and_container(raw):
+        if isinstance(raw, list):
+            return raw, True, None, raw  # items, is_root_list, key, root_container
+        if isinstance(raw, dict):
+            for k in ("items", "invoices", "data", "records"):
+                if k in raw and isinstance(raw[k], list):
+                    return raw[k], False, k, raw
+            # maybe single invoice dict
+            if any(k in raw for k in ("mark", "AA", "AFM", "AFM_issuer")):
+                return [raw], False, None, raw
+        return [], False, None, raw
+
+    # try to find & replace/merge
+    for path in candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = json.load(fh)
+        except Exception:
+            # ignore unreadable files
+            continue
+
+        items, is_list, container_key, root_container = _extract_items_and_container(raw)
+        if not items:
+            continue
+
+        changed = False
+        for idx, it in enumerate(items):
+            try:
+                it_mark = _normalize_val(it.get("mark") or it.get("MARK"))
+                it_aa = _normalize_val(it.get("AA") or it.get("aa"))
+                # match exact or substring (covers small formatting diffs)
+                matched = False
+                if mark and it_mark and (mark == it_mark or mark in it_mark or it_mark in mark):
+                    matched = True
+                elif aa and it_aa and aa == it_aa:
+                    matched = True
+
+                if not matched:
+                    continue
+
+                # found matching existing item -> merge/replace
+                existing = dict(it) if isinstance(it, dict) else {}
+                # preserve existing id_inv if present, else take from new_doc, else create one
+                id_inv = _normalize_val(existing.get("id_inv") or new_doc.get("id_inv") or new_doc.get("id") or "")
+                if not id_inv:
+                    id_inv = _make_id_inv()
+
+                # merge: new_doc fields override existing ones; keep any remaining existing keys if not present in new_doc
+                merged = dict(existing)
+                merged.update(new_doc)  # new_doc wins
+                merged["id_inv"] = id_inv
+
+                # ensure id_inv appears BEFORE 'lines' key in JSON order
+                new_ordered = OrderedDict()
+                inserted = False
+                for k, v in list(merged.items()):
+                    if k == "lines" and not inserted:
+                        new_ordered["id_inv"] = id_inv
+                        inserted = True
+                    new_ordered[k] = v
+                if not inserted:
+                    # append id_inv at start (or end - we put at start to be "before lines")
+                    od = OrderedDict()
+                    od["id_inv"] = id_inv
+                    for k,v in new_ordered.items():
+                        od[k] = v
+                    new_ordered = od
+
+                # replace the item in the list
+                items[idx] = dict(new_ordered)
+                changed = True
+                # write back updated container
+                if changed:
+                    if is_list:
+                        to_write = items
+                    else:
+                        if container_key:
+                            root_container[container_key] = items
+                            to_write = root_container
+                        else:
+                            # single dict root replaced by this new item
+                            to_write = items[0]
+                    _write_json_atomic(path, to_write)
+                    try:
+                        log.info("_upsert_epsilon_invoice: updated %s (mark=%s AA=%s id_inv=%s)", path, mark, aa, id_inv)
+                    except Exception:
+                        pass
+                    return path, id_inv
+
+            except Exception:
+                continue
+
+    # not found anywhere -> create per-vat file (prefer AFM_issuer/AFM), else 'unknown'
+    safe_vat = secure_filename(target_vat) if target_vat else "unknown"
+    new_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
+    id_inv = _normalize_val(new_doc.get("id_inv") or new_doc.get("id") or "")
+    if not id_inv:
+        id_inv = _make_id_inv()
+
+    # ensure id_inv before lines
+    merged = dict(new_doc)
+    merged["id_inv"] = id_inv
+    new_ordered = OrderedDict()
+    inserted = False
+    for k, v in list(merged.items()):
+        if k == "lines" and not inserted:
+            new_ordered["id_inv"] = id_inv
+            inserted = True
+        new_ordered[k] = v
+    if not inserted:
+        od = OrderedDict()
+        od["id_inv"] = id_inv
+        for k,v in new_ordered.items():
+            od[k] = v
+        new_ordered = od
+
+    # write single-element list to new_path (or append if file exists and is a list)
+    try:
+        if os.path.exists(new_path):
+            # if file exists and is a list, load & append
+            with open(new_path, "r", encoding="utf-8") as fh:
+                raw = json.load(fh)
+            if isinstance(raw, list):
+                raw.append(dict(new_ordered))
+                _write_json_atomic(new_path, raw)
+            elif isinstance(raw, dict):
+                # try to append into detected container key if possible, else rewrite as list
+                appended = False
+                for k in ("items","invoices","data","records"):
+                    if k in raw and isinstance(raw[k], list):
+                        raw[k].append(dict(new_ordered))
+                        _write_json_atomic(new_path, raw)
+                        appended = True
+                        break
+                if not appended:
+                    # convert to list form
+                    _write_json_atomic(new_path, [dict(new_ordered)])
+            else:
+                _write_json_atomic(new_path, [dict(new_ordered)])
+        else:
+            _write_json_atomic(new_path, [dict(new_ordered)])
+        try:
+            log.info("_upsert_epsilon_invoice: created %s (mark=%s AA=%s id_inv=%s)", new_path, mark, aa, id_inv)
+        except Exception:
+            pass
+        return new_path, id_inv
+    except Exception:
+        try:
+            log.exception("_upsert_epsilon_invoice: write failed for %s", new_path)
+        except Exception:
+            pass
+        return "", ""
+# -------------------------------------------------------------------------------
 
 # ---------- validation helpers ----------
 def parse_date_str_to_utc(date_str):
