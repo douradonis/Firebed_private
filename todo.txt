@@ -7,3 +7,17 @@ scraper_receipt= epsilon, mydata, einvoice, wedoconnect, www1.aade.gr
 ελεγχος εισαγωγης εγγραφων συμφωνες με της χρησης
 αποθηκευση τιμων στο excel ως αριθμοι
 γραμμογραφηση epsilon + αρχειο ect
+
+
+def excel_path_for(cred_name: Optional[str] = None, vat: Optional[str] = None) -> str:
+    """
+    Return path to excel file for given credential. Priority: vat -> cred_name -> default.
+    Filenames: {vat}_invoices.xlsx  OR  {cred_name}_invoices.xlsx  OR default invoices.xlsx
+    """
+    if vat:
+        fn = f"{vat}_invoices.xlsx"
+        return os.path.join(UPLOADS_DIR, secure_filename(fn))
+    if cred_name:
+        fn = f"{cred_name}_invoices.xlsx"
+        return os.path.join(UPLOADS_DIR, secure_filename(fn))
+    return DEFAULT_EXCEL_FILE τι κανω εδω;

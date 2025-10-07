@@ -253,5 +253,35 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "800916954",
     "Name_issuer": ""
+  },
+  {
+    "mark": "400011213160102",
+    "issueDate": "07/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "9036",
+    "AA": "9036",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "64,52",
+    "totalVatAmount": "15,48",
+    "totalValue": "80,00",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
+  },
+  {
+    "mark": "400011219241351",
+    "issueDate": "07/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "9063",
+    "AA": "9063",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "132,88",
+    "totalVatAmount": "31,89",
+    "totalValue": "164,77",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
   }
 ]
