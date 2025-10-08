@@ -19,7 +19,8 @@ import requests
 import pandas as pd
 from shutil import move
 import importlib
-
+import io
+import csv
 # local mydata helper
 from fetch import request_docs
 
@@ -48,6 +49,8 @@ app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
+REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
+
 
 
 
@@ -82,6 +85,32 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+def get_existing_client_ids() -> set:
+    """
+    Return a set of existing client IDs (ΑΦΜ) from current client_db (if any).
+    Falls back to empty set if no client_db exists.
+    """
+    client_ids = set()
+    try:
+        # αναζήτηση τρέχοντος client_db
+        for existing in os.listdir(DATA_DIR):
+            if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
+                path = os.path.join(DATA_DIR, existing)
+                ext = os.path.splitext(path)[1].lower()
+                if ext in ['.xls', '.xlsx']:
+                    df = pd.read_excel(path, dtype=str)
+                else:
+                    df = pd.read_csv(path, dtype=str)
+                df.fillna('', inplace=True)
+                for afm in df.get("ΑΦΜ", []):
+                    afm_str = str(afm).strip()
+                    if afm_str:
+                        client_ids.add(afm_str)
+                break  # παίρνουμε μόνο το πρώτο υπάρχον client_db
+    except Exception:
+        log.exception("Failed to get existing client IDs from client_db")
+    return client_ids
+
 def _get_mark_from_epsilon_item(item):
     # normalize possible keys that may hold the mark
     for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
@@ -481,6 +510,45 @@ def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None,
         except Exception:
             log.exception("Failed to write excel for summary for mark=%s", mark_val)
 
+def _extract_headers_from_upload(file_stream, ext):
+    """
+    Προσπαθεί να διαβάσει τα headers από το uploaded file_stream.
+    - file_stream: κινούμενο binary stream στη θέση αρχής (file.read()-compatible).
+    - ext: '.xlsx' / '.xls' / '.csv'
+    Επιστρέφει (success: bool, headers: list[str] or None, error_msg: str or None)
+    """
+    # ensure stream at start
+    try:
+        file_stream.seek(0)
+    except Exception:
+        pass
+
+    if ext == '.csv':
+        # fallback χωρίς pandas: διαβάζουμε μόνο την πρώτη γραμμή
+        try:
+            text = file_stream.read().decode('utf-8-sig')  # handle BOM
+            # move back in case caller wants to re-read
+            file_stream.seek(0)
+            reader = csv.reader(io.StringIO(text))
+            first = next(reader, None)
+            if first is None:
+                return False, None, 'Το CSV φαίνεται άδειο.'
+            headers = [h.strip() for h in first]
+            return True, headers, None
+        except Exception as e:
+            return False, None, f'Σφάλμα κατά την ανάγνωση CSV headers: {e}'
+    else:
+        # προσπαθούμε με pandas για excel/xls
+        try:
+            # pandas θα διαβάσει μόνο τα headers (nrows=0) — γρήγορο
+            file_stream.seek(0)
+            df = pd.read_excel(file_stream, nrows=0, engine='openpyxl' if ext == '.xlsx' else None)
+            headers = [str(h).strip() for h in df.columns.tolist()]
+            file_stream.seek(0)
+            return True, headers, None
+        except Exception as e:
+            # αν pandas δεν εγκατεστημένο ή άλλο σφάλμα
+            return False, None, f'Αποτυχία ανάγνωσης Excel (pandas/openpyxl απαιτείται): {e}'
 def _normalize_receipt_summary(summary: dict) -> dict:
     s = dict(summary or {})
     out = {}
@@ -1716,7 +1784,8 @@ def upload_client_db():
     Accept multipart/form-data with field 'client_file' and save it into DATA_DIR
     as client_db{.ext}. Existing client_db* files are moved to backups with a UTC timestamp.
     Also writes client_db.meta.json with original filename + uploaded_at.
-    Returns JSON { success: bool, message: str }.
+    Returns JSON { success: bool, message: str, missing_columns: [...], detected_columns: [...],
+                   uploaded_at: str, total_rows: int, new_clients: int, existing_clients: int }
     """
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -1734,10 +1803,52 @@ def upload_client_db():
         if ext not in ALLOWED_CLIENT_EXT:
             return jsonify(success=False, message='Μη επιτρεπτή επέκταση. Χρήση .xlsx, .xls ή .csv'), 400
 
+        # --- Έλεγχος headers ---
+        try:
+            stream = f.stream
+            success, headers, err = _extract_headers_from_upload(stream, ext)
+            if not success:
+                return jsonify(success=False, message=err or 'Αποτυχία ανάγνωσης αρχείου για έλεγχο headers.'), 400
+
+            headers_set = {str(h).strip() for h in headers}
+            missing = sorted(list(REQUIRED_CLIENT_COLUMNS - headers_set))
+            if missing:
+                return jsonify(success=False,
+                               message='Λείπουν υποχρεωτικές στήλες.',
+                               missing_columns=missing,
+                               detected_columns=sorted(list(headers_set))), 400
+        except Exception as e:
+            log.exception("Error while extracting headers from uploaded client_file")
+            return jsonify(success=False, message=f'Σφάλμα κατά τον έλεγχο των στηλών: {e}'), 500
+
+        # --- Ανάγνωση client_file για επεξεργασία πελατών ---
+        try:
+            f.stream.seek(0)
+            if ext in ['.xls', '.xlsx']:
+                df = pd.read_excel(f.stream, dtype=str)
+            else:
+                df = pd.read_csv(f.stream, dtype=str)
+            df.fillna('', inplace=True)
+        except Exception as e:
+            log.exception("Failed to read uploaded client_file")
+            return jsonify(success=False, message=f'Σφάλμα κατά την ανάγνωση του αρχείου: {e}'), 500
+
+        total_rows = len(df)
+        existing_clients_set = get_existing_client_ids()
+        new_clients_set = set()
+        already_existing_set = set()
+
+        for afm in df.get("ΑΦΜ", []):
+            afm_str = str(afm).strip()
+            if afm_str:
+                if afm_str in existing_clients_set:
+                    already_existing_set.add(afm_str)
+                else:
+                    new_clients_set.add(afm_str)
+
+        # --- Backup προηγούμενων και αποθήκευση ---
         dest_name = f'client_db{ext}'
         dest_path = os.path.join(DATA_DIR, dest_name)
-
-        # Backup existing client_db.* files (if any)
         try:
             for existing in os.listdir(DATA_DIR):
                 if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
@@ -1750,52 +1861,94 @@ def upload_client_db():
         except Exception:
             log.exception("Failed to backup existing client_db files (continuing)")
 
-        # Save uploaded file
         try:
+            f.stream.seek(0)
             f.save(dest_path)
         except Exception:
             log.exception("Failed to save uploaded client_db to %s", dest_path)
             return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
 
-        # write meta with original filename + uploaded timestamp (UTC ISO)
+        # --- Meta info ---
         try:
             uploaded_at_iso = _dt.utcnow().replace(microsecond=0).isoformat() + 'Z'
             write_client_meta(filename, uploaded_at_iso)
         except Exception:
             log.exception("Failed to write client_db metadata (continuing)")
 
-        return jsonify(success=True, message=f'Αποθηκεύτηκε: {dest_name}', filename=filename, uploaded_at=uploaded_at_iso), 200
+        return jsonify(
+            success=True,
+            message=f'Αποθηκεύτηκε: {dest_name}',
+            filename=filename,
+            uploaded_at=uploaded_at_iso,
+            detected_columns=sorted(list(headers_set)),
+            total_rows=total_rows,
+            new_clients=len(new_clients_set),
+            existing_clients=len(already_existing_set)
+        ), 200
 
     except Exception:
         log.exception("Unhandled exception in upload_client_db")
         return jsonify(success=False, message='Εσωτερικό σφάλμα server.'), 500
 
 
+
+# --- client_db_info route ---
 @app.route('/client_db_info', methods=['GET'])
 def client_db_info():
     """
     Return JSON with metadata about current client_db (if exists).
-    { exists: bool, filename: str|null, uploaded_at: str|null }
+    { exists: bool, filename: str|null, uploaded_at: str|null, total_rows: int, new_rows: int, updated_rows: int }
     """
     try:
         meta = read_client_meta()
-        if meta:
-            return jsonify(exists=True, filename=meta.get('filename'), uploaded_at=meta.get('uploaded_at')), 200
+        counts = {'total_rows': 0, 'new_rows': 0, 'updated_rows': 0}
 
-        # fallback: if any client_db.* exists but no meta file, infer using file mtime
+        if meta:
+            # αν υπάρχει client_db, διαβάζουμε για μέτρηση
+            p = os.path.join(DATA_DIR, f"client_db{os.path.splitext(meta.get('filename',''))[1]}")
+            if os.path.exists(p):
+                try:
+                    ext = os.path.splitext(p)[1].lower()
+                    if ext in ['.xls', '.xlsx']:
+                        df = pd.read_excel(p, dtype=str)
+                    else:
+                        df = pd.read_csv(p, dtype=str)
+                    df.fillna('', inplace=True)
+                    total_rows = len(df)
+                    existing_clients_set = set(get_existing_client_ids())
+                    new_rows = updated_rows = 0
+                    for idx, row in df.iterrows():
+                        client_id = str(row.get("ΑΦΜ", "")).strip()
+                        if not client_id:
+                            continue
+                        if client_id in existing_clients_set:
+                            updated_rows += 1
+                        else:
+                            new_rows += 1
+                            existing_clients_set.add(client_id)
+                    counts.update({'total_rows': total_rows, 'new_rows': new_rows, 'updated_rows': updated_rows})
+                except Exception:
+                    log.exception("Failed to count client_db rows")
+
+            return jsonify(exists=True, filename=meta.get('filename'),
+                           uploaded_at=meta.get('uploaded_at'),
+                           **counts), 200
+
+        # fallback: if any client_db.* exists but no meta file
         for existing in os.listdir(DATA_DIR):
             if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
                 p = os.path.join(DATA_DIR, existing)
                 try:
                     mtime = _dt.utcfromtimestamp(os.path.getmtime(p)).replace(microsecond=0).isoformat() + 'Z'
-                    return jsonify(exists=True, filename=existing, uploaded_at=mtime), 200
+                    counts.update({'total_rows': 0, 'new_rows': 0, 'updated_rows': 0})
+                    return jsonify(exists=True, filename=existing, uploaded_at=mtime, **counts), 200
                 except Exception:
                     continue
 
-        return jsonify(exists=False, filename=None, uploaded_at=None), 200
+        return jsonify(exists=False, filename=None, uploaded_at=None, **counts), 200
     except Exception:
         log.exception("Failed to read client_db info")
-        return jsonify(exists=False, filename=None, uploaded_at=None), 500
+        return jsonify(exists=False, filename=None, uploaded_at=None, total_rows=0, new_rows=0, updated_rows=0), 500
 # ---------- end client_db helpers + routes ----------
 
 # credentials CRUD (unchanged behaviour) but pass active credential to template
