@@ -513,29 +513,37 @@ document.addEventListener('DOMContentLoaded', function(){
   repeatModalCancel?.addEventListener('click', closeRepeatModal);
 
   repeatModalSave?.addEventListener('click', async function(){
-    // collect mapping
-    const mapping = collectMappingFromModal();
-    // persist to backend and enable repeat
-    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
-    if(resp && resp.ok){
-      // update categories if server returned expense_tags
-      if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
-        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-      }
-      // make sure switch is on and edit button visible
-      if(repeatSwitch) repeatSwitch.checked = true;
-      editRepeatBtn.classList.remove('hidden');
-      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής.', 'success');
-      closeRepeatModal();
-      // if there's a modal_summary currently open, apply mapping immediately
-      if(summaryInput){
-        applyMappingToSummaryAndSubmitUsingMapping(mapping);
-      }
-    } else {
-      // log and notify user minimally
-      console.warn('Failed saving repeat mapping', resp);
-      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
+  // collect mapping
+  const mapping = collectMappingFromModal();
+  // persist to backend and enable repeat
+  const resp = await apiSaveRepeatEntry(true, mapping, VAT);
+  if (resp && resp.ok) {
+    // update categories if server returned expense_tags
+    if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
+      CUSTOMER_CATEGORIES = resp.expense_tags.slice();
     }
+    // make sure switch is on and edit button visible
+    if (repeatSwitch) repeatSwitch.checked = true;
+    editRepeatBtn.classList.remove('hidden');
+
+    // optional: show a flash so user sees success before reload (short)
+    showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
+
+    // close modal and reload page so UI reflects νέες ρυθμίσεις αμέσως
+    closeRepeatModal();
+
+    // μικρή καθυστέρηση για να δει ο χρήστης το flash και να ολοκληρωθεί πιθανή επεξεργασία server-side
+    setTimeout(function(){
+      try { window.location.reload(); } catch(e){ console.warn('reload failed', e); }
+    }, 600);
+
+    return;
+  } else {
+    console.warn('Failed saving repeat mapping', resp);
+    showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
+  }
+
+
   });
 
   // ---------- existing original JS (dismiss banner, force edit, summary modal wiring, etc) ----------
