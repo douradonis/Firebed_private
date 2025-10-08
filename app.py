@@ -1782,8 +1782,8 @@ def api_save_receipt():
 def upload_client_db():
     """
     Accept multipart/form-data with field 'client_file' and save it into DATA_DIR
-    as client_db{.ext}. Existing client_db* files are moved to backups with a UTC timestamp.
-    Also writes client_db.meta.json with original filename + uploaded_at.
+    as client_db{.ext}. Existing client_db* files are moved to a single backup
+    (previous backups removed), and client_db.meta.json is written.
     Returns JSON { success: bool, message: str, missing_columns: [...], detected_columns: [...],
                    uploaded_at: str, total_rows: int, new_clients: int, existing_clients: int }
     """
@@ -1846,21 +1846,41 @@ def upload_client_db():
                 else:
                     new_clients_set.add(afm_str)
 
-        # --- Backup προηγούμενων και αποθήκευση ---
+        # --- Backup: keep only one backup ---
         dest_name = f'client_db{ext}'
         dest_path = os.path.join(DATA_DIR, dest_name)
-        try:
-            for existing in os.listdir(DATA_DIR):
-                if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
-                    existing_path = os.path.join(DATA_DIR, existing)
-                    ts = _dt.utcnow().strftime('%Y%m%dT%H%M%SZ')
-                    backup_name = f"{existing}.bak.{ts}"
-                    backup_path = os.path.join(DATA_DIR, backup_name)
-                    os.rename(existing_path, backup_path)
-                    log.info("Backed up previous client_db: %s -> %s", existing, backup_name)
-        except Exception:
-            log.exception("Failed to backup existing client_db files (continuing)")
 
+        try:
+            # 1) remove any previous backups (files that contain ".bak." or end with ".bak")
+            for existing in os.listdir(DATA_DIR):
+                if not existing.startswith('client_db'):
+                    continue
+                # consider files like client_db.xlsx.bak.20250101T000000Z or client_db.bak
+                if '.bak.' in existing or existing.endswith('.bak'):
+                    try:
+                        os.remove(os.path.join(DATA_DIR, existing))
+                        log.info("Removed old client_db backup: %s", existing)
+                    except Exception:
+                        log.exception("Failed to remove old backup %s (continuing)", existing)
+
+            # 2) move current client_db.* (if any) to a new single backup (timestamped)
+            for existing in os.listdir(DATA_DIR):
+                if existing.startswith('client_db'):
+                    existing_ext = os.path.splitext(existing)[1].lower()
+                    if existing_ext in ALLOWED_CLIENT_EXT:
+                        existing_path = os.path.join(DATA_DIR, existing)
+                        ts = _dt.utcnow().strftime('%Y%m%dT%H%M%SZ')
+                        backup_name = f"{existing}.bak.{ts}"
+                        backup_path = os.path.join(DATA_DIR, backup_name)
+                        try:
+                            os.rename(existing_path, backup_path)
+                            log.info("Backed up previous client_db: %s -> %s", existing, backup_name)
+                        except Exception:
+                            log.exception("Failed to backup previous client_db %s (continuing)", existing)
+        except Exception:
+            log.exception("Failed while rotating client_db backups (continuing)")
+
+        # --- Save uploaded file to destination path ---
         try:
             f.stream.seek(0)
             f.save(dest_path)
@@ -1889,6 +1909,7 @@ def upload_client_db():
     except Exception:
         log.exception("Unhandled exception in upload_client_db")
         return jsonify(success=False, message='Εσωτερικό σφάλμα server.'), 500
+
 
 
 

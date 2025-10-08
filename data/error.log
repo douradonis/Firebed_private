@@ -130,3 +130,25 @@
 
 2025-10-08 19:26:46,003 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
 
+2025-10-08 19:32:21,674 INFO Starting app - MYDATA_ENV=production
+
+2025-10-08 19:32:30,452 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:32:36,178 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:32:40,295 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:32:40,311 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T193240Z
+
+2025-10-08 19:32:42,501 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:33:03,649 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:33:06,917 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:33:06,932 INFO Removed old client_db backup: client_db.xls.bak.20251008T193240Z
+
+2025-10-08 19:33:06,933 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T193306Z
+
+2025-10-08 19:33:08,385 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
