@@ -302,5 +302,37 @@
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
     "AFM_counterpart": "802576637"
+  },
+  {
+    "mark": "400008169441425",
+    "issueDate": "31/12/2024",
+    "series": "ΤΠΥ",
+    "aa": "3476",
+    "AA": "3476",
+    "type": "2.1",
+    "vatCategory": "1",
+    "totalNetValue": "150,00",
+    "totalVatAmount": "36,00",
+    "totalValue": "186,00",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "159712098",
+    "Name_issuer": "",
+    "AFM_counterpart": "802576637"
+  },
+  {
+    "mark": "400008181854848",
+    "issueDate": "31/12/2024",
+    "series": "S",
+    "aa": "11072043",
+    "AA": "11072043",
+    "type": "2.1",
+    "vatCategory": "7",
+    "totalNetValue": "30,00",
+    "totalVatAmount": "0,00",
+    "totalValue": "30,00",
+    "classification": "χαρακτηρισμενο",
+    "AFM_issuer": "996763330",
+    "Name_issuer": "",
+    "AFM_counterpart": "802576637"
   }
 ]

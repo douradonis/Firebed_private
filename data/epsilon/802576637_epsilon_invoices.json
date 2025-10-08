@@ -27,5 +27,33 @@
       }
     ],
     "_updated_at": "2025-10-08T14:06:24.267942+00:00"
+  },
+  {
+    "mark": "400008169441425",
+    "issueDate": "31/12/2024",
+    "series": "ΤΠΥ",
+    "aa": "3476",
+    "AA": "3476",
+    "type": "2.1",
+    "vatCategory": "",
+    "totalNetValue": "150,00",
+    "totalVatAmount": "36,00",
+    "totalValue": "186,00",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "159712098",
+    "Name_issuer": "",
+    "AFM": "159712098",
+    "lines": [
+      {
+        "id": "400008169441425_inst0",
+        "description": "Instance #1",
+        "amount": "150,00",
+        "vat": "36,00",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]
