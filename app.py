@@ -3006,13 +3006,28 @@ def save_summary():
       - αν υπάρχει μόνο placeholder για το mark -> διαγράφουμε τα placeholders και δημιουργούμε Excel + append
       - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
 
-    Η υλοποίηση περιλαμβάνει εκτενή logging για debugging.
+    Προσθήκη: canonical EXCEL_COLUMNS για να αποφεύγονται ανεπιθύμητες στήλες στο xlsx.
     """
     try:
         from datetime import datetime as _dt, timezone as _tz
     except Exception:
         _dt = None
         _tz = None
+
+    # canonical columns που θέλεις να εμφανίζονται στο Excel (προσαρμοσέ τες αν χρειάζεται)
+    EXCEL_COLUMNS = [
+        "MARK",
+        "ΑΦΜ",
+        "Επωνυμία",
+        "Σειρά",
+        "Αριθμός",
+        "Ημερομηνία",
+        "Είδος",
+        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ",
+        "Καθαρή Αξία",
+        "ΦΠΑ",
+        "Σύνολο"
+    ]
 
     try:
         log.info("save_summary: start request from %s", request.remote_addr)
@@ -3236,96 +3251,42 @@ def save_summary():
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
 
-                # ---- IMPROVED: ensure Excel exists and contains the MARK (append if missing) ----
+                # ---- ensure Excel exists (if not, create it from summary/existing) ----
                 try:
-                    import pandas as pd
                     excel_path = excel_path_for(vat=vat)
-
-                    # build canonical row from summary (fall back to 'existing' values if needed)
-                    try:
-                        total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
-                    except Exception:
-                        total_net = 0.0
-                    try:
-                        total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
-                    except Exception:
-                        total_vat = 0.0
-                    total_value = total_net + total_vat
-
-                    row = {
-                        "MARK": str(summary.get("mark", existing.get("mark", ""))),
-                        # prefer AFM_issuer for the AFM column
-                        "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or existing.get("AFM_issuer") or existing.get("AFM") or vat,
-                        "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
-                        "Σειρά": summary.get("series", existing.get("series", "") or ""),
-                        "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
-                        "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
-                        "Είδος": summary.get("type", existing.get("type", "")),
-                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
-                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-                        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-                        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
-                    }
-
-                    if os.path.exists(excel_path):
+                    if not os.path.exists(excel_path):
                         try:
-                            df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                            # normalize column names
-                            df_existing.columns = [str(c).strip() for c in df_existing.columns.astype(str)]
+                            total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
+                            total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
                         except Exception:
-                            log.exception("save_summary: failed to read existing excel %s", excel_path)
-                            df_existing = None
-
-                        if df_existing is None:
-                            # fallback: create new file with the single row
-                            try:
-                                df_new = pd.DataFrame([row]).astype(str).fillna("")
-                                os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                                df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                                log.info("save_summary: created excel (fallback) %s", excel_path)
-                            except Exception:
-                                log.exception("save_summary: failed to create excel in fallback for %s", excel_path)
-                        else:
-                            if "MARK" in df_existing.columns:
-                                marks_here = df_existing["MARK"].astype(str).str.strip().tolist()
-                                if str(row["MARK"]).strip() in marks_here:
-                                    log.debug("save_summary: MARK %s already present in excel %s; not appending", row["MARK"], excel_path)
-                                else:
-                                    try:
-                                        df_new = pd.DataFrame([row]).astype(str).fillna("")
-                                        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-                                        df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-                                        log.info("save_summary: appended missing MARK %s to existing excel %s", row["MARK"], excel_path)
-                                    except Exception:
-                                        log.exception("save_summary: failed appending missing MARK %s to excel %s", row["MARK"], excel_path)
-                            else:
-                                # Excel exists but doesn't have MARK column: append row preserving existing columns
-                                try:
-                                    df_row = pd.DataFrame([row]).astype(str).fillna("")
-                                    for c in df_existing.columns:
-                                        if c not in df_row.columns:
-                                            df_row[c] = ""
-                                    # Reorder columns: existing first, then any new
-                                    final_cols = df_existing.columns.tolist() + [c for c in df_row.columns if c not in df_existing.columns]
-                                    df_row = df_row.reindex(columns=final_cols, fill_value="")
-                                    df_concat = pd.concat([df_existing, df_row], ignore_index=True, sort=False)
-                                    df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-                                    log.info("save_summary: excel had no MARK column; appended row to %s", excel_path)
-                                except Exception:
-                                    log.exception("save_summary: failed to append row to excel without MARK column %s", excel_path)
+                            total_net = 0.0
+                            total_vat = 0.0
+                        total_value = total_net + total_vat
+                        row = {
+                            "MARK": str(summary.get("mark", existing.get("mark", ""))),
+                            "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
+                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
+                            "Σειρά": summary.get("series", existing.get("series", "") or ""),
+                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
+                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
+                            "Είδος": summary.get("type", existing.get("type", "")),
+                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
+                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+                            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+                            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                        }
+                        import pandas as pd
+                        df_new = pd.DataFrame([row]).astype(str).fillna("")
+                        # ensure canonical columns only
+                        df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
+                        os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                        df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                        log.info("save_summary: existing epsilon updated but excel was missing -> created excel %s", excel_path)
                     else:
-                        # excel doesn't exist -> create
-                        try:
-                            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                            df_new = pd.DataFrame([row]).astype(str).fillna("")
-                            df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                            log.info("save_summary: created new excel and wrote row %s", excel_path)
-                        except Exception:
-                            log.exception("save_summary: failed to create/write new excel %s", excel_path)
+                        log.debug("save_summary: epsilon updated and excel already exists at %s; not re-writing", excel_path)
                 except Exception:
-                    log.exception("save_summary: failed ensuring/creating/appending excel after epsilon update")
+                    log.exception("save_summary: failed ensuring/creating excel after epsilon update")
 
-                # end updated branch -> redirect back
                 return redirect(url_for("search"))
             else:
                 log.info("save_summary: no per-line changes for mark=%s vat=%s", mark, vat)
@@ -3360,6 +3321,8 @@ def save_summary():
 
         import pandas as pd
         df_new = pd.DataFrame([row]).astype(str).fillna("")
+        # ensure df_new has only canonical columns (and in correct order)
+        df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
 
         # if there's a higher-level helper, prefer calling it (backward compat)
         helper = globals().get("_ensure_excel_and_update_or_append") or globals().get("_append_to_excel")
@@ -3380,7 +3343,13 @@ def save_summary():
             if os.path.exists(excel_path):
                 try:
                     df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                    # coerce to strings and remove any non-canonical columns
+                    df_existing = df_existing.astype(str).fillna("")
+                    # keep only canonical columns and in canonical order (drops anything else)
+                    df_existing = df_existing.reindex(columns=EXCEL_COLUMNS, fill_value="")
+                    # concat and ensure final has canonical columns only
                     df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+                    df_concat = df_concat.reindex(columns=EXCEL_COLUMNS, fill_value="")
                     df_concat.to_excel(excel_path, index=False, engine="openpyxl")
                     log.info("save_summary: appended row to existing excel %s", excel_path)
                 except Exception:
@@ -3443,6 +3412,7 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
+
 
 
 
