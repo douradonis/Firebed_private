@@ -14,3 +14,119 @@
 
 2025-10-08 19:09:43,505 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
 
+2025-10-08 19:12:35,700 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-08 19:12:36,204 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:12:36,243 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:13:43,241 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:13:43,831 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-08 19:13:43,837 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-08 19:13:44,605 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+
+2025-10-08 19:13:44,977 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:13:44,997 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:13:50,601 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:05,903 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:13,446 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:13,461 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191413Z
+
+2025-10-08 19:14:24,799 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:29,750 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:29,763 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191429Z
+
+2025-10-08 19:14:32,515 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:32,530 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191432Z
+
+2025-10-08 19:14:35,771 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:36,868 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:42,048 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:42,066 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191442Z
+
+2025-10-08 19:14:44,487 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:44,501 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191444Z
+
+2025-10-08 19:14:45,827 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:14:45,841 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191445Z
+
+2025-10-08 19:14:47,810 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:15:41,822 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:15:42,309 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-08 19:15:42,449 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-08 19:15:42,462 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-08 19:15:43,674 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+
+2025-10-08 19:15:44,064 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:15:44,125 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:15:46,622 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:16:06,950 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:16:08,629 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:16:15,191 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:16:15,206 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T191615Z
+
+2025-10-08 19:21:24,653 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:21:24,667 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T192124Z
+
+2025-10-08 19:21:28,802 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:21:32,794 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:21:32,808 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T192132Z
+
+2025-10-08 19:22:27,336 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:24:34,660 INFO Incoming request: method=POST path=/credentials/save_settings remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:05,182 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:06,280 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-10-08 19:26:06,346 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-10-08 19:26:07,431 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+
+2025-10-08 19:26:07,958 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:07,968 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:15,704 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:22,539 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:26,655 INFO Incoming request: method=POST path=/upload_client_db remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:26,668 INFO Backed up previous client_db: client_db.xls -> client_db.xls.bak.20251008T192626Z
+
+2025-10-08 19:26:35,229 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
+2025-10-08 19:26:46,003 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/credentials
+
