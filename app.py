@@ -3184,40 +3184,96 @@ def save_summary():
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
 
-                # ---- ensure Excel exists (if not, create it from summary/existing) ----
+                # ---- IMPROVED: ensure Excel exists and contains the MARK (append if missing) ----
                 try:
+                    import pandas as pd
                     excel_path = excel_path_for(vat=vat)
-                    if not os.path.exists(excel_path):
-                        try:
-                            total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
-                            total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
-                        except Exception:
-                            total_net = 0.0
-                            total_vat = 0.0
-                        total_value = total_net + total_vat
-                        row = {
-                            "MARK": str(summary.get("mark", existing.get("mark", ""))),
-                            "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
-                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
-                            "Σειρά": summary.get("series", existing.get("series", "") or ""),
-                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
-                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
-                            "Είδος": summary.get("type", existing.get("type", "")),
-                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
-                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-                            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-                            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
-                        }
-                        import pandas as pd
-                        df_new = pd.DataFrame([row]).astype(str).fillna("")
-                        os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                        df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                        log.info("save_summary: existing epsilon updated but excel was missing -> created excel %s", excel_path)
-                    else:
-                        log.debug("save_summary: epsilon updated and excel already exists at %s; not re-writing", excel_path)
-                except Exception:
-                    log.exception("save_summary: failed ensuring/creating excel after epsilon update")
 
+                    # build canonical row from summary (fall back to 'existing' values if needed)
+                    try:
+                        total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
+                    except Exception:
+                        total_net = 0.0
+                    try:
+                        total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
+                    except Exception:
+                        total_vat = 0.0
+                    total_value = total_net + total_vat
+
+                    row = {
+                        "MARK": str(summary.get("mark", existing.get("mark", ""))),
+                        # prefer AFM_issuer for the AFM column
+                        "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or existing.get("AFM_issuer") or existing.get("AFM") or vat,
+                        "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
+                        "Σειρά": summary.get("series", existing.get("series", "") or ""),
+                        "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
+                        "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
+                        "Είδος": summary.get("type", existing.get("type", "")),
+                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
+                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
+                        "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
+                        "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                    }
+
+                    if os.path.exists(excel_path):
+                        try:
+                            df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+                            # normalize column names
+                            df_existing.columns = [str(c).strip() for c in df_existing.columns.astype(str)]
+                        except Exception:
+                            log.exception("save_summary: failed to read existing excel %s", excel_path)
+                            df_existing = None
+
+                        if df_existing is None:
+                            # fallback: create new file with the single row
+                            try:
+                                df_new = pd.DataFrame([row]).astype(str).fillna("")
+                                os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                                df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                                log.info("save_summary: created excel (fallback) %s", excel_path)
+                            except Exception:
+                                log.exception("save_summary: failed to create excel in fallback for %s", excel_path)
+                        else:
+                            if "MARK" in df_existing.columns:
+                                marks_here = df_existing["MARK"].astype(str).str.strip().tolist()
+                                if str(row["MARK"]).strip() in marks_here:
+                                    log.debug("save_summary: MARK %s already present in excel %s; not appending", row["MARK"], excel_path)
+                                else:
+                                    try:
+                                        df_new = pd.DataFrame([row]).astype(str).fillna("")
+                                        df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
+                                        df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+                                        log.info("save_summary: appended missing MARK %s to existing excel %s", row["MARK"], excel_path)
+                                    except Exception:
+                                        log.exception("save_summary: failed appending missing MARK %s to excel %s", row["MARK"], excel_path)
+                            else:
+                                # Excel exists but doesn't have MARK column: append row preserving existing columns
+                                try:
+                                    df_row = pd.DataFrame([row]).astype(str).fillna("")
+                                    for c in df_existing.columns:
+                                        if c not in df_row.columns:
+                                            df_row[c] = ""
+                                    # Reorder columns: existing first, then any new
+                                    final_cols = df_existing.columns.tolist() + [c for c in df_row.columns if c not in df_existing.columns]
+                                    df_row = df_row.reindex(columns=final_cols, fill_value="")
+                                    df_concat = pd.concat([df_existing, df_row], ignore_index=True, sort=False)
+                                    df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+                                    log.info("save_summary: excel had no MARK column; appended row to %s", excel_path)
+                                except Exception:
+                                    log.exception("save_summary: failed to append row to excel without MARK column %s", excel_path)
+                    else:
+                        # excel doesn't exist -> create
+                        try:
+                            os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
+                            df_new = pd.DataFrame([row]).astype(str).fillna("")
+                            df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                            log.info("save_summary: created new excel and wrote row %s", excel_path)
+                        except Exception:
+                            log.exception("save_summary: failed to create/write new excel %s", excel_path)
+                except Exception:
+                    log.exception("save_summary: failed ensuring/creating/appending excel after epsilon update")
+
+                # end updated branch -> redirect back
                 return redirect(url_for("search"))
             else:
                 log.info("save_summary: no per-line changes for mark=%s vat=%s", mark, vat)
@@ -3340,6 +3396,7 @@ def save_summary():
 
 
 
+
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
 def list_invoices():
@@ -3409,72 +3466,42 @@ def list_invoices():
 @app.route("/delete", methods=["POST"])
 def delete_invoices():
     """
-    Delete selected marks from the active customer's Excel and from the per-VAT epsilon cache.
-    Robust extraction of marks from the submitted form:
-      - checkboxes with name="delete_mark" and value="<MARK>"
-      - inputs named "delete_mark_<MARK>" (value often "on")
-      - single field "delete_mark" with comma-separated marks
-      - fallback: any posted values that look like 15-digit marks
-    Writes Excel back even if all rows are removed.
-    Removes matching epsilon entries using _safe_save_epsilon_cache (preferred) or json_write.
+    Delete selected MARKs:
+      - removes rows from active customer's Excel file (if MARK column exists)
+      - removes matching entries from per-VAT epsilon cache (epsilon/..._epsilon_invoices.json)
+    DOES NOT modify the per-customer invoices.json file.
+    Extensive logging for debugging.
     """
-    import re
-
-    # --- collect marks from form (robust) ---
-    marks_to_delete = []
-
-    # 1) common case: multiple checkboxes with same name and value set to MARK
     try:
-        marks_to_delete.extend([str(m).strip() for m in request.form.getlist("delete_mark") if str(m).strip()])
+        log.info("delete_invoices: request from %s form_keys=%s", request.remote_addr, list(request.form.keys()))
     except Exception:
         pass
 
-    # 2) single comma-separated field named "delete_mark" (some forms do this)
+    # collect and normalize marks (primary)
+    marks_to_delete = request.form.getlist("delete_mark") or []
+    # fallback: maybe frontend sent JSON or comma-separated
     if not marks_to_delete:
-        try:
-            single = request.form.get("delete_mark")
-            if single and isinstance(single, str) and "," in single:
-                marks_to_delete.extend([s.strip() for s in single.split(",") if s.strip()])
-            elif single and isinstance(single, str) and re.fullmatch(r"\d{15}", single.strip()):
-                marks_to_delete.append(single.strip())
-        except Exception:
-            pass
+        raw = request.form.get("delete_mark_json") or request.form.get("delete_marks") or request.form.get("marks")
+        if raw:
+            try:
+                import json as _json
+                parsed = _json.loads(raw)
+                if isinstance(parsed, list):
+                    marks_to_delete = parsed
+            except Exception:
+                marks_to_delete = [m.strip() for m in str(raw).split(",") if m.strip()]
 
-    # 3) check for keys like "delete_mark_<MARK>" (checkboxes that encode the mark in the name)
-    if not marks_to_delete:
-        try:
-            for key, val in request.form.items():
-                if key.startswith("delete_mark_"):
-                    # suffix is the mark (or some identifier)
-                    suffix = key.split("delete_mark_", 1)[1].strip()
-                    if suffix:
-                        marks_to_delete.append(suffix)
-                else:
-                    # fallback: sometimes the UI sends inputs named like "mark_0" with value equal to MARK
-                    if re.fullmatch(r"\d{15}", str(val).strip()):
-                        marks_to_delete.append(str(val).strip())
-        except Exception:
-            pass
+    # normalize to strings and dedupe
+    marks_to_delete = [str(m).strip() for m in marks_to_delete if str(m).strip()]
+    marks_to_delete = list(dict.fromkeys(marks_to_delete))  # preserve order, dedupe
 
-    # 4) final fallback: scan all form values for anything that *looks* like a 15-digit mark
-    if not marks_to_delete:
-        try:
-            for _, v in request.form.items():
-                if v and isinstance(v, str):
-                    vstrip = v.strip()
-                    if re.fullmatch(r"\d{15}", vstrip):
-                        marks_to_delete.append(vstrip)
-        except Exception:
-            pass
+    log.info("delete_invoices: marks_to_delete resolved = %s", marks_to_delete)
 
-    # normalize & unique
-    marks_to_delete = list({m for m in (marks_to_delete or []) if m})
     if not marks_to_delete:
-        flash("No marks selected for deletion.", "error")
-        log.warning("delete_invoices: no marks extracted from form data")
+        flash("Δεν επιλέχθηκε κανένα MARK για διαγραφή.", "error")
         return redirect(url_for("search"))
 
-    # --- determine active customer's excel file ---
+    # determine active customer's excel file
     active = get_active_credential_from_session()
     excel_path = DEFAULT_EXCEL_FILE
     if active and active.get("vat"):
@@ -3485,126 +3512,104 @@ def delete_invoices():
     deleted_from_excel = 0
     try:
         if os.path.exists(excel_path):
+            import pandas as pd
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-            # ensure strings
-            df = df.astype(str)
+            # normalize column names
+            cols = [c.strip() for c in df.columns.astype(str)]
+            df.columns = cols
+
             if "MARK" in df.columns:
                 marks_series = df["MARK"].astype(str).str.strip()
                 mask = marks_series.isin(marks_to_delete)
                 num_matches = int(mask.sum())
                 if num_matches > 0:
                     df_remaining = df[~mask].copy()
-                    # always write back (even if df_remaining is empty) to persist deletion
-                    df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
-                    deleted_from_excel = num_matches
-                    log.info("delete_invoices: Deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
-                else:
-                    log.info("delete_invoices: No matching MARKs found in Excel %s for deletion: %s", excel_path, marks_to_delete)
-            else:
-                # If no MARK column, try fallback match on 'Αριθμός' or 'ΑΦΜ' if appropriate
-                fallback_matched = 0
-                for col in ("Αριθμός", "ΑΦΜ", "ΑΦΜ_ΠΕΛΑΤΗ", "ΑΦΜ_Πελάτη", "ΑΦΜ_issuer"):
-                    if col in df.columns:
-                        series = df[col].astype(str).str.strip()
-                        mask = series.isin(marks_to_delete)
-                        cnt = int(mask.sum())
-                        if cnt > 0:
-                            df_remaining = df[~mask].copy()
+                    try:
+                        # If no rows remain, write an empty dataframe (preserving columns)
+                        if df_remaining.shape[0] == 0:
+                            empty_df = df.iloc[0:0].copy()
+                            empty_df.to_excel(excel_path, index=False, engine="openpyxl")
+                        else:
                             df_remaining.to_excel(excel_path, index=False, engine="openpyxl")
-                            fallback_matched = cnt
-                            deleted_from_excel = cnt
-                            log.info("delete_invoices: Deleted %d rows from Excel %s by column %s", cnt, excel_path, col)
-                            break
-                if fallback_matched == 0:
-                    log.warning("delete_invoices: Excel file %s does not contain MARK or fallback columns; skipping Excel deletion.", excel_path)
+                        deleted_from_excel = num_matches
+                        log.info("delete_invoices: deleted %d marks from Excel %s: %s", num_matches, excel_path, marks_to_delete)
+                    except Exception:
+                        log.exception("delete_invoices: failed writing Excel after deletion %s", excel_path)
+                else:
+                    log.info("delete_invoices: no matching MARKs found in Excel %s for deletion: %s", excel_path, marks_to_delete)
+            else:
+                log.warning("delete_invoices: Excel file %s does not contain a 'MARK' column; skipping Excel deletion", excel_path)
         else:
             log.info("delete_invoices: Excel path %s does not exist; skipping Excel deletion.", excel_path)
     except Exception:
         log.exception("delete_invoices: Error while deleting from Excel")
 
-    # --- delete matching entries from per-VAT epsilon cache (use helpers if available) ---
+    # delete matching entries from per-VAT epsilon cache ONLY
     deleted_from_epsilon = 0
     try:
         vat = active.get("vat") if active else None
         if vat:
-            # prefer load helper if present
-            epsilon_path = None
+            # try helper to get epsilon path, else guess
             try:
-                # try helper that returns epsilon path
                 epsilon_path = epsilon_file_path_for(vat)
             except Exception:
-                try:
-                    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
-                    os.makedirs(epsilon_dir, exist_ok=True)
-                    safe_vat = secure_filename(str(vat))
-                    epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
-                except Exception:
-                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{secure_filename(str(vat))}_epsilon_invoices.json")
+                epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
 
             if os.path.exists(epsilon_path):
-                # read using json_read
                 try:
-                    epsilon_cache = json_read(epsilon_path) or []
+                    eps_cache = json_read(epsilon_path) or []
                 except Exception:
-                    log.exception("delete_invoices: json_read failed for %s", epsilon_path)
-                    epsilon_cache = []
+                    try:
+                        with open(epsilon_path, "r", encoding="utf-8") as f:
+                            eps_cache = json.load(f) or []
+                    except Exception:
+                        eps_cache = []
 
-                before_len = len(epsilon_cache)
-                # normalize get_mark function to support multiple key names
-                def _get_mark(item):
-                    if not item or not isinstance(item, dict):
-                        return ""
+                before_len = len(eps_cache)
+
+                def item_mark_val(it):
                     for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
-                        if k in item and item.get(k) not in (None, ""):
-                            return str(item.get(k)).strip()
+                        if isinstance(it, dict) and k in it and it.get(k) not in (None, ""):
+                            return str(it.get(k)).strip()
                     return ""
 
-                new_cache = [e for e in epsilon_cache if _get_mark(e) not in marks_to_delete]
+                new_cache = [e for e in eps_cache if item_mark_val(e) not in marks_to_delete]
                 after_len = len(new_cache)
                 deleted_from_epsilon = before_len - after_len
 
                 if deleted_from_epsilon > 0:
-                    # prefer safe writer if available
                     try:
-                        if "_safe_save_epsilon_cache" in globals() and callable(globals()["_safe_save_epsilon_cache"]):
+                        # Prefer safe helper if available
+                        if globals().get("_safe_save_epsilon_cache"):
                             _safe_save_epsilon_cache(vat, new_cache)
                         else:
-                            # fallback to json_write if provided
-                            if "json_write" in globals() and callable(globals()["json_write"]):
+                            try:
                                 json_write(epsilon_path, new_cache)
-                            else:
-                                # final fallback: atomic write to tmp then replace
+                            except Exception:
                                 tmp = epsilon_path + ".tmp"
-                                with open(tmp, "w", encoding="utf-8") as fh:
-                                    json.dump(new_cache, fh, ensure_ascii=False, indent=2)
+                                with open(tmp, "w", encoding="utf-8") as f:
+                                    json.dump(new_cache, f, ensure_ascii=False, indent=2)
                                 os.replace(tmp, epsilon_path)
                         log.info("delete_invoices: Deleted %d marks from epsilon cache %s for VAT %s", deleted_from_epsilon, epsilon_path, vat)
                     except Exception:
-                        log.exception("delete_invoices: failed saving epsilon cache after deletion for %s", epsilon_path)
+                        log.exception("delete_invoices: failed to persist epsilon cache after deletion")
                 else:
                     log.info("delete_invoices: No matching marks found in epsilon cache %s for deletion.", epsilon_path)
             else:
-                log.info("delete_invoices: Epsilon cache %s does not exist for VAT %s; skipping epsilon deletion.", epsilon_path, vat)
+                log.info("delete_invoices: Epsilon cache does not exist at %s; skipping epsilon deletion.", epsilon_path)
         else:
             log.info("delete_invoices: No active VAT available; skipped epsilon deletion.")
     except Exception:
         log.exception("delete_invoices: Error while deleting from epsilon cache")
 
-    # --- Optionally call coarse sync helper if present to ensure full parity ---
-    try:
-        if active and active.get("vat"):
-            if "sync_epsilon_with_excel" in globals() and callable(globals()["sync_epsilon_with_excel"]):
-                try:
-                    changed, removed = sync_epsilon_with_excel(active.get("vat"))
-                    if changed:
-                        log.info("delete_invoices: sync_epsilon_with_excel removed %d additional entries for vat %s", removed, active.get("vat"))
-                except Exception:
-                    log.exception("delete_invoices: sync_epsilon_with_excel failed")
-    except Exception:
-        log.exception("delete_invoices: unexpected error calling sync helper")
+    # Final summary
+    total_requested = len(marks_to_delete)
+    flash(f"Διαγράφηκαν {total_requested} επιλεγμένα mark(s). Αφαιρέθηκαν από Excel: {deleted_from_excel}, από Epsilon cache: {deleted_from_epsilon}", "success")
+    log.info("delete_invoices: finished request. requested=%d excel=%d epsilon=%d", total_requested, deleted_from_excel, deleted_from_epsilon)
 
-    flash(f"Deleted {len(marks_to_delete)} selected mark(s). Removed from Excel: {deleted_from_excel}, from Epsilon cache: {deleted_from_epsilon}", "success")
     return redirect(url_for("search"))
+
+
 
 
 
