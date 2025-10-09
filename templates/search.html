@@ -19,6 +19,12 @@
       <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
       <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
     </div>
+
+    <!-- Toggle switch for receipts scrape -->
+    <div class="flex items-center gap-2 ml-4">
+      <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις (scrape URL)</label>
+      <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
+    </div>
   </form>
 </div>
 
@@ -150,6 +156,11 @@
         <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
           <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
           <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
+
+          <!-- Hidden fields used by js when scraping receipts -->
+          <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
+          <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
+          <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
         </form>
         <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
       </div>
@@ -206,7 +217,9 @@
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
- // initial categories passed from server as fallback; will be overridden if API returns expense_tags
+const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
+
+// initial categories passed from server as fallback; will be overridden if API returns expense_tags
 let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
 
 // Helper: show transient flash (client-side)
@@ -278,62 +291,63 @@ document.addEventListener('DOMContentLoaded', function(){
   const summaryInput = document.getElementById('summaryJsonInput'); // may be null
   const saveSummaryForm = document.getElementById('saveSummaryForm');
 
+  // New: receipts switch + url input
+  const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+  // find or create an URL input (if not present in template we create one dynamically)
+  let urlInput = document.getElementById('scrapeUrlInput');
+  if(!urlInput){
+    urlInput = document.createElement('input');
+    urlInput.id = 'scrapeUrlInput';
+    urlInput.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
+    urlInput.className = 'p-2 border rounded w-2/4 hidden';
+    urlInput.type = 'text';
+    // insert after markInput
+    const mi = document.getElementById('markInput');
+    if(mi && mi.parentElement) mi.parentElement.insertBefore(urlInput, mi.nextSibling);
+  }
+
   // --- ensure search icon behaves same as input clear/submit ---
-(function wireSearchIconBehavior(){
-  const mi = document.getElementById('markInput');
-  if (!mi) return;
+  (function wireSearchIconBehavior(){
+    const mi = document.getElementById('markInput');
+    if (!mi) return;
 
-  // πιθανές selectors για το icon — πρόσθεσε εδώ άλλους αν το HTML σου χρησιμοποιεί διαφορετικό
-  const possibleSelectors = [
-    '.icon-search',      // συνηθισμένο custom class
-    '.btn-search',       // γενικό
-    '#searchIcon',       // id
-    '.fa-search',        // font-awesome icon
-    '.magnifier',        // άλλο πιθανό
-    'button[aria-label="search"]',
-    'button[data-action="search"]'
-  ];
+    const possibleSelectors = [
+      '.icon-search', '.btn-search', '#searchIcon', '.fa-search', '.magnifier',
+      'button[aria-label="search"]', 'button[data-action="search"]'
+    ];
 
-  let found = null;
-  for (const sel of possibleSelectors) {
-    const el = document.querySelector(sel);
-    if (el) { found = el; break; }
-  }
-
-  // αν δεν βρέθηκε κανένα, δοκίμασε να βρεις το icon δίπλα στο κουμπί "διαγραφή επιλεγμένων"
-  if (!found) {
-    const delBtn = document.querySelector('button#deleteSelected, button.delete-selected, button[data-action="delete-selected"]');
-    if (delBtn && delBtn.parentElement) {
-      // ψάχνουμε για ένα button/img/svg δίπλα του
-      const sibling = delBtn.parentElement.querySelector('button, a, svg, i');
-      if (sibling && sibling !== delBtn) found = sibling;
+    let found = null;
+    for (const sel of possibleSelectors) {
+      const el = document.querySelector(sel);
+      if (el) { found = el; break; }
     }
-  }
 
-  if (!found) return; // τίποτα να συλλάβουμε
-
-  found.addEventListener('click', function(e){
-    try {
-      // Αν το icon πρέπει να *καθαρίσει* το πεδίο:
-      // α) καθάρισε την τιμή
-      mi.value = '';
-      // β) εκπέμπουμε input/keyup events ώστε οποιοδήποτε listener (το maybeRestore) να τρέξει
-      mi.dispatchEvent(new Event('input', { bubbles: true }));
-      mi.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Backspace' }));
-
-      // γ) επιπλέον: αν υπάρχει DataTables active search, καθάρισε και την DataTables αναζήτηση
-      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-        try {
-          const dt = $('.summary-table').DataTable();
-          dt.search('').columns().search('').draw();
-        } catch(ignore){}
+    if (!found) {
+      const delBtn = document.querySelector('button#deleteSelected, button.delete-selected, button[data-action="delete-selected"]');
+      if (delBtn && delBtn.parentElement) {
+        const sibling = delBtn.parentElement.querySelector('button, a, svg, i');
+        if (sibling && sibling !== delBtn) found = sibling;
       }
-    } catch(err){
-      console.warn('search icon handler failed', err);
     }
-    // αν το icon κανονικά υποβάλλει φόρμα, αφήνουμε την default συμπεριφορά να τρέξει
-  });
-})();
+
+    if (!found) return;
+
+    found.addEventListener('click', function(e){
+      try {
+        mi.value = '';
+        mi.dispatchEvent(new Event('input', { bubbles: true }));
+        mi.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Backspace' }));
+        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+          try {
+            const dt = $('.summary-table').DataTable();
+            dt.search('').columns().search('').draw();
+          } catch(ignore){}
+        }
+      } catch(err){
+        console.warn('search icon handler failed', err);
+      }
+    });
+  })();
 
 
   // detect vat keys in summary
@@ -394,6 +408,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function openRepeatModalWithMapping(mapping){
+    // If receipts mode is on, block editing mapping because receipts get fixed category
+    if(useReceiptsSwitch && useReceiptsSwitch.checked){
+      alert('Όταν είναι επιλεγμένες οι Αποδείξεις, δεν επιτρέπεται η επεξεργασία χαρακτηρισμών — οι αποδείξεις παίρνουν μόνο την κατηγορία "αποδειξακια".');
+      return;
+    }
     buildRepeatModalUI(mapping || {});
     repeatModal.style.display = 'flex';
   }
@@ -443,7 +462,6 @@ document.addEventListener('DOMContentLoaded', function(){
       const resp = await apiGetRepeatEntry(VAT);
       if(resp && resp.ok){
         const repeat = resp.repeat_entry || { enabled: false, mapping: {} };
-        // if server provided expense_tags (e.g. from save), update categories
         if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
           CUSTOMER_CATEGORIES = resp.expense_tags.slice();
         }
@@ -452,18 +470,27 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if(repeatSwitch){
           repeatSwitch.checked = enabled;
-          // show edit button if mapping exists
-          if(mapping && Object.keys(mapping).length) editRepeatBtn.classList.remove('hidden');
+          // show edit button if mapping exists and receipts not selected
+          if(mapping && Object.keys(mapping).length && !(useReceiptsSwitch && useReceiptsSwitch.checked)) editRepeatBtn.classList.remove('hidden');
           repeatSwitch.addEventListener('change', async function(){
             const now = this.checked;
             // if enabling and no mapping -> open modal to create mapping
             if(now){
               if(!mapping || Object.keys(mapping).length === 0){
-                // open modal letting user create mapping
-                openRepeatModalWithMapping({});
+                // open modal letting user create mapping (but only if receipts not selected)
+                if(useReceiptsSwitch && useReceiptsSwitch.checked){
+                  // do not open — receipts use only αποδειξακια
+                  editRepeatBtn.classList.add('hidden');
+                } else {
+                  openRepeatModalWithMapping({});
+                }
               } else {
-                // mapping exists -> keep edit button visible
-                editRepeatBtn.classList.remove('hidden');
+                if(useReceiptsSwitch && useReceiptsSwitch.checked){
+                  // receipts + repeat -> hide edit button
+                  editRepeatBtn.classList.add('hidden');
+                } else {
+                  editRepeatBtn.classList.remove('hidden');
+                }
               }
             } else {
               editRepeatBtn.classList.add('hidden');
@@ -472,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function(){
             const saveResp = await apiSaveRepeatEntry(now, mapping, VAT);
             if(saveResp && saveResp.ok){
               showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
-              // if server returned expense_tags update local categories
               if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
                 CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
               }
@@ -484,23 +510,24 @@ document.addEventListener('DOMContentLoaded', function(){
 
         // If repeat enabled and mapping exists and modal_summary present -> auto apply mapping now
         if(enabled && mapping && Object.keys(mapping).length && summaryInput){
-          const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
-          if(did){
-            // hide summary modal if it would open
-            const sm = document.getElementById('summaryModal');
-            if(sm) sm.style.display = 'none';
+          // If receipts is ON, do NOT auto-apply mapping
+          if(!(useReceiptsSwitch && useReceiptsSwitch.checked)){
+            const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
+            if(did){
+              const sm = document.getElementById('summaryModal');
+              if(sm) sm.style.display = 'none';
+            }
           }
         }
 
         // Wire edit button
         if(editRepeatBtn){
-          editRepeatBtn.classList.toggle('hidden', !mapping || Object.keys(mapping).length===0);
+          editRepeatBtn.classList.toggle('hidden', !mapping || Object.keys(mapping).length===0 || (useReceiptsSwitch && useReceiptsSwitch.checked));
           editRepeatBtn.addEventListener('click', function(){
             openRepeatModalWithMapping(mapping);
           });
         }
       } else {
-        // fallback: switch off
         if(repeatSwitch) repeatSwitch.checked = false;
       }
     } catch(e){
@@ -508,42 +535,66 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   })();
 
-  // ---------- modal handlers ----------
+  // wire receipts switch to show/hide url input and to enforce mapping rule
+  if(useReceiptsSwitch){
+    useReceiptsSwitch.addEventListener('change', function(){
+      const on = !!this.checked;
+      // UI: swap inputs
+      if(on){
+        document.getElementById('markInput')?.classList.add('hidden');
+        urlInput?.classList.remove('hidden');
+        urlInput?.focus();
+        // when receipts are active, edit button must be hidden (even if repeat on)
+        if(editRepeatBtn) editRepeatBtn.classList.add('hidden');
+      } else {
+        document.getElementById('markInput')?.classList.remove('hidden');
+        urlInput?.classList.add('hidden');
+        document.getElementById('markInput')?.focus();
+        // restore edit button visibility based on repeatSwitch/mapping
+        // re-init repeat button visibility by calling initRepeatEntry lightly:
+        (async function(){
+          try {
+            const resp = await apiGetRepeatEntry(VAT);
+            if(resp && resp.ok){
+              const mapping = (resp.repeat_entry && resp.repeat_entry.mapping) ? resp.repeat_entry.mapping : {};
+              if(mapping && Object.keys(mapping).length && repeatSwitch && repeatSwitch.checked){
+                editRepeatBtn.classList.remove('hidden');
+              } else {
+                editRepeatBtn.classList.add('hidden');
+              }
+            }
+          } catch(e){}
+        })();
+      }
+    });
+  }
+
+  // repeat modal handlers
   repeatModalCloseX?.addEventListener('click', closeRepeatModal);
   repeatModalCancel?.addEventListener('click', closeRepeatModal);
 
   repeatModalSave?.addEventListener('click', async function(){
-  // collect mapping
-  const mapping = collectMappingFromModal();
-  // persist to backend and enable repeat
-  const resp = await apiSaveRepeatEntry(true, mapping, VAT);
-  if (resp && resp.ok) {
-    // update categories if server returned expense_tags
-    if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
-      CUSTOMER_CATEGORIES = resp.expense_tags.slice();
+    // collect mapping
+    const mapping = collectMappingFromModal();
+    // persist to backend and enable repeat
+    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
+    if (resp && resp.ok) {
+      if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
+        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
+      }
+      if (repeatSwitch) repeatSwitch.checked = true;
+      // if receipts mode is on, edited mapping should not be used—hide edit button
+      if (useReceiptsSwitch && useReceiptsSwitch.checked) editRepeatBtn.classList.add('hidden');
+      else editRepeatBtn.classList.remove('hidden');
+
+      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
+      closeRepeatModal();
+      setTimeout(function(){ try { window.location.reload(); } catch(e){ console.warn('reload failed', e); } }, 600);
+      return;
+    } else {
+      console.warn('Failed saving repeat mapping', resp);
+      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
     }
-    // make sure switch is on and edit button visible
-    if (repeatSwitch) repeatSwitch.checked = true;
-    editRepeatBtn.classList.remove('hidden');
-
-    // optional: show a flash so user sees success before reload (short)
-    showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
-
-    // close modal and reload page so UI reflects νέες ρυθμίσεις αμέσως
-    closeRepeatModal();
-
-    // μικρή καθυστέρηση για να δει ο χρήστης το flash και να ολοκληρωθεί πιθανή επεξεργασία server-side
-    setTimeout(function(){
-      try { window.location.reload(); } catch(e){ console.warn('reload failed', e); }
-    }, 600);
-
-    return;
-  } else {
-    console.warn('Failed saving repeat mapping', resp);
-    showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
-  }
-
-
   });
 
   // ---------- existing original JS (dismiss banner, force edit, summary modal wiring, etc) ----------
@@ -653,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // the table / datatables logic code (kept unchanged)
+  // --- the table / datatables logic code (kept unchanged) ---
   const hasTable = document.querySelector('.summary-table') !== null;
   if (hasTable){
     const jq = window.jQuery;
@@ -724,107 +775,296 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   // --- new: restore table / reload when markInput cleared ---
-// restore full table + selection/checkbox state when search input is cleared
-// --- new: restore table / reload when markInput cleared ---
-(function wireRobustClearRestore(){
-  // reuse already-declared markInput if present, otherwise query it
-  const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
-  if (!mi) return;
+  (function wireRobustClearRestore(){
+    const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
+    if (!mi) return;
 
-  // debounce timer
-  let t = null;
-  // store last observed value to detect programmatic clears as well
-  let lastVal = mi.value || '';
+    let t = null;
+    let lastVal = mi.value || '';
 
-  function restoreAllRowsAndUi(){
-    try {
-      if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-        try {
-          const dt = $('.summary-table').DataTable();
-          dt.search('').columns().search('').draw();
-          // ensure nodes visible
+    function restoreAllRowsAndUi(){
+      try {
+        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
           try {
-            dt.rows().nodes().to$().each(function(){ this.style.display = ''; });
-          } catch(e){ /* ignore */ }
-          try { dt.columns.adjust().draw(false); } catch(e){ /* ignore */ }
-        } catch(e) {
-          console.warn('DataTables restore failed, falling back to DOM restore', e);
+            const dt = $('.summary-table').DataTable();
+            dt.search('').columns().search('').draw();
+            try {
+              dt.rows().nodes().to$().each(function(){ this.style.display = ''; });
+            } catch(e){ /* ignore */ }
+            try { dt.columns.adjust().draw(false); } catch(e){ /* ignore */ }
+          } catch(e) {
+            console.warn('DataTables restore failed, falling back to DOM restore', e);
+            document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
+          }
+        } else {
           document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
         }
-      } else {
-        document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
+
+        const selectAll = document.getElementById('selectAll') || document.querySelector('.summary-table thead input[type="checkbox"]#selectAll');
+        if (selectAll) selectAll.checked = false;
+
+        const evt = new Event('tableRestored');
+        document.querySelectorAll('.summary-table').forEach(t => t.dispatchEvent(evt));
+      } catch(err){
+        console.warn('restoreAllRowsAndUi failed', err);
       }
-
-      // reset select-all checkbox if exists
-      const selectAll = document.getElementById('selectAll') || document.querySelector('.summary-table thead input[type="checkbox"]#selectAll');
-      if (selectAll) selectAll.checked = false;
-
-      // dispatch event so other code can react
-      const evt = new Event('tableRestored');
-      document.querySelectorAll('.summary-table').forEach(t => t.dispatchEvent(evt));
-    } catch(err){
-      console.warn('restoreAllRowsAndUi failed', err);
     }
-  }
 
-  function maybeRestore(){
-    clearTimeout(t);
-    t = setTimeout(()=>{
-      try {
-        const v = (mi.value || '').trim();
-        // only trigger when field became empty (either by user or programmatic change)
-        if (v === '' && (lastVal && lastVal.trim() !== '')) {
-          // If page initially had a server-side MARK, do a reload to fetch full table
-          try {
-            if (typeof INITIAL_MARK !== 'undefined' && INITIAL_MARK && INITIAL_MARK.trim() !== '') {
-              // if current URL already has mark param, go to base search (no params)
-              const cur = new URL(window.location.href);
-              if (cur.searchParams.has('mark') || cur.searchParams.has('force_edit')) {
-                window.location = SEARCH_BASE_URL;
-                return;
+    function maybeRestore(){
+      clearTimeout(t);
+      t = setTimeout(()=>{
+        try {
+          const v = (mi.value || '').trim();
+          if (v === '' && (lastVal && lastVal.trim() !== '')) {
+            try {
+              if (typeof INITIAL_MARK !== 'undefined' && INITIAL_MARK && INITIAL_MARK.trim() !== '') {
+                const cur = new URL(window.location.href);
+                if (cur.searchParams.has('mark') || cur.searchParams.has('force_edit')) {
+                  window.location = SEARCH_BASE_URL;
+                  return;
+                }
               }
-            }
-          } catch(e){ /* ignore URL errors and fallthrough to client restore */ }
+            } catch(e){ /* ignore URL errors and fallthrough to client restore */ }
 
-          // fallback to client-side restore
-          restoreAllRowsAndUi();
+            restoreAllRowsAndUi();
+          }
+          lastVal = v;
+        } catch(e){
+          console.warn(e);
         }
-        lastVal = v;
-      } catch(e){
-        console.warn(e);
+      }, 150);
+    }
+
+    mi.addEventListener('input', maybeRestore);
+    mi.addEventListener('keyup', maybeRestore);
+    mi.addEventListener('paste', function(){ setTimeout(maybeRestore, 50); });
+    mi.addEventListener('cut', function(){ setTimeout(maybeRestore, 50); });
+    mi.addEventListener('blur', maybeRestore);
+
+    let pollInterval = null;
+    try {
+      pollInterval = setInterval(() => {
+        const current = (mi.value || '').trim();
+        if (current !== (lastVal || '').trim()) {
+          maybeRestore();
+        }
+      }, 300);
+
+      window.addEventListener('beforeunload', () => {
+        if (pollInterval) clearInterval(pollInterval);
+      });
+    } catch(e){
+    }
+  })();
+
+  // ----- SCRAPER integration: auto call endpoint when URL provided and show modal -----
+  // Add a handler: when receipts switch ON and user submits form -> call /api/scrape_receipt and show modal
+  document.getElementById('markSearchForm')?.addEventListener('submit', async function(evt){
+    // if receipts mode active, intercept
+    if(useReceiptsSwitch && useReceiptsSwitch.checked){
+      evt.preventDefault();
+      const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
+      if(!url){ showFlash('Εισάγετε URL για αποδείξεις.', 'error'); return; }
+
+      try {
+        const res = await fetch('/api/scrape_receipt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+          body: JSON.stringify({ url: url })
+        });
+        const j = await res.json().catch(()=>null);
+        if(!res.ok || !j || j.ok === false){
+          const msg = j && (j.error||j.message) ? (j.error||j.message) : ('Server ' + (res.status||''));
+          showFlash('Σφάλμα scraper: '+msg, 'error', 6000);
+          return;
+        }
+
+        if(j.is_invoice === true){
+          showFlash('Το URL περιέχει τιμολόγιο — δεν θα αποθηκευτεί ως απόδειξη.', 'info', 6000);
+          return;
+        }
+
+        // populate modal and show it (same logic as earlier)
+        // prepare summary JSON from scraper result
+        const summaryObj = {
+          mark: j.MARK || '',
+          AA: j.progressive_aa || '',
+          AFM_issuer: j.issuer_vat || '',
+          Name: j.issuer_name || '',
+          issueDate: j.issue_date || '',
+          type_name: 'ΑΠΟΔΕΙΞΗ',
+          totalValue: j.total_amount || '',
+          totalNetValue: j.total_amount || '',
+          totalVatAmount: (j.raw && (j.raw.totalVatAmount || j.raw.totalVat)) || '',
+          lines: []
+        };
+        if(j.raw && Array.isArray(j.raw.lines) && j.raw.lines.length){
+          j.raw.lines.forEach((l, idx) => {
+            summaryObj.lines.push({
+              id: l.id || ('r'+idx),
+              amount: l.amount || l.lineTotal || '',
+              vat: l.vat || l.vatRate || '',
+              vatCategory: l.vatCategory || l.vat_category || '',
+              description: l.description || l.desc || ''
+            });
+          });
+        } else {
+          summaryObj.lines.push({
+            id: 'r0',
+            amount: j.total_amount || '',
+            vat: (j.raw && (j.raw.vat||'')) || '',
+            vatCategory: (j.raw && (j.raw.vatCategory||'')) || '',
+            description: (j.raw && (j.raw.description||'')) || ''
+          });
+        }
+
+        // populate modal input and show
+        document.getElementById('summaryJsonInput') && (document.getElementById('summaryJsonInput').value = JSON.stringify(summaryObj));
+        // hidden fields to indicate scrape-flow
+        document.getElementById('scrapeUrlField') && (document.getElementById('scrapeUrlField').value = url);
+        // choose category: forced to 'αποδειξακια' if present in credentials categories, else first available
+        const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια') ? 'αποδειξακια' : (CUSTOMER_CATEGORIES[0] || '');
+        document.getElementById('scrapeCategoryField') && (document.getElementById('scrapeCategoryField').value = desiredCat || '');
+        document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value = 'false');
+
+        // If repeat mapping is ON and receipts mode is ON -> enforce that edit button is hidden (already handled on toggle)
+        if(useReceiptsSwitch && useReceiptsSwitch.checked && repeatSwitch && repeatSwitch.checked){
+          // we explicitly DO NOT apply mapping for receipts
+          showFlash('Επισημαίνεται: επειδή οι Αποδείξεις είναι ενεργές, δεν θα εφαρμοστεί το repeat-mapping. Θα χρησιμοποιηθεί κατηγορία "αποδειξακια".', 'info', 5000);
+        }
+
+        // show modal
+        const m = document.getElementById('summaryModal');
+        if(m) m.style.display='flex';
+        showFlash('Λήφθηκε απόδειξη — επαληθεύστε τη συνοψή και πατήστε "Αποθήκευση στο Cache".', 'success', 4000);
+      } catch(err){
+        console.error('scrape error', err);
+        showFlash('Σφάλμα scraper: ' + (err.message||err), 'error', 6000);
       }
-    }, 150);
-  }
+    } else {
+      // normal submission for MARK search -> let form submit
+    }
+  });
 
-  // wire events likely to change input value
-  mi.addEventListener('input', maybeRestore);
-  mi.addEventListener('keyup', maybeRestore);
-  mi.addEventListener('paste', function(){ setTimeout(maybeRestore, 50); });
-  mi.addEventListener('cut', function(){ setTimeout(maybeRestore, 50); });
-  mi.addEventListener('blur', maybeRestore);
+  // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
+  document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
+    const url = (document.getElementById('scrapeUrlField') && document.getElementById('scrapeUrlField').value) ? document.getElementById('scrapeUrlField').value.trim() : '';
+    if(!url){
+      // normal server save flow: let it submit
+      return;
+    }
+    e.preventDefault();
 
-  // also poll occasionally for programmatic changes (lightweight)
-  let pollInterval = null;
-  try {
-    pollInterval = setInterval(() => {
-      const current = (mi.value || '').trim();
-      if (current !== (lastVal || '').trim()) {
-        maybeRestore();
+    let summaryObj = {};
+    try { summaryObj = JSON.parse(document.getElementById('summaryJsonInput').value || '{}'); } catch(e){ showFlash('Σφάλμα στο summary JSON', 'error'); return; }
+
+    // check year if active
+    let issueDateStr = summaryObj.issueDate || summaryObj.issue_date || '';
+    if(issueDateStr && ACTIVE_YEAR){
+      let y = null;
+      try {
+        const m1 = issueDateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if(m1){ y = parseInt(m1[3],10); }
+        else {
+          const dt = new Date(issueDateStr);
+          if(!isNaN(dt.getTime())) y = dt.getUTCFullYear();
+        }
+      } catch(e){}
+      if(y && Number(y) !== Number(ACTIVE_YEAR)){
+        if(!confirm(`Η ημερομηνία έκδοσης (${issueDateStr}) δεν ανήκει στο έτος χρήσης ${ACTIVE_YEAR}. Θες να προχωρήσεις και να αποθηκεύσεις;`)){
+          return;
+        } else {
+          document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value = 'true');
+        }
       }
-    }, 300);
+    }
 
-    window.addEventListener('beforeunload', () => {
-      if (pollInterval) clearInterval(pollInterval);
+    // When saving a scraped receipt, we MUST use category 'αποδειξακια' (if available)
+    const forcedCat = CUSTOMER_CATEGORIES.includes('αποδειξακια') ? 'αποδειξακια' : (CUSTOMER_CATEGORIES[0]||'');
+    const payload = {
+      url: url,
+      category: forcedCat,
+      save_excel: true,
+      summary: summaryObj,
+      force: (document.getElementById('scrapeForceField') && document.getElementById('scrapeForceField').value === 'true')
+    };
+
+    try {
+      const res = await fetch('/api/scrape_receipt', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json().catch(()=>null);
+      if(!res.ok || !j || j.ok === false){
+        const msg = j && (j.error||j.message) ? (j.error||j.message) : ('Server ' + (res.status||''));
+        showFlash('Σφάλμα αποθήκευσης: '+msg, 'error', 7000);
+        return;
+      }
+
+      showFlash('Αποθηκεύτηκε η απόδειξη (epsilon + excel).', 'success', 4000);
+      const m = document.getElementById('summaryModal');
+      if(m) m.style.display='none';
+      // clear hidden fields
+      document.getElementById('scrapeUrlField') && (document.getElementById('scrapeUrlField').value='');
+      document.getElementById('scrapeCategoryField') && (document.getElementById('scrapeCategoryField').value='');
+      document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value='false');
+      return;
+    } catch(err){
+      console.error('save receipt failed', err);
+      showFlash('Αποτυχία αποθήκευσης: ' + (err.message||err), 'error', 7000);
+    }
+  });
+
+  // --- rest unchanged (repeat modal already wired above) ---
+
+  // --- DOUBLE-CLICK on credentials rows to select radio (you asked earlier) ---
+  // This expects rows to have 'input[type="radio"][name="active_name"]' and row id pattern cred-row-<name>
+  document.querySelectorAll('tr[id^="cred-row-"]').forEach(tr=>{
+    tr.addEventListener('dblclick', function(e){
+      try {
+        const radio = tr.querySelector('input[type="radio"][name="active_name"]');
+        if(radio){
+          radio.checked = true;
+          // also give visual feedback (optional)
+          tr.classList.add('bg-gray-100');
+          setTimeout(()=>tr.classList.remove('bg-gray-100'), 600);
+        }
+      } catch(err){ console.warn('dblclick select radio failed', err); }
     });
-  } catch(e){
-    // ignore poll setup errors
-  }
-})();
-
-
-
+  });
 
 });
 </script>
 
+<style>
+/* minimal styling for the toggle switch */
+.toggle-switch {
+  width: 42px;
+  height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e7eb;
+  border-radius: 999px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.toggle-switch:checked { background: #0ea5a4; }
+.toggle-switch::after{
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: white;
+  transition: transform .15s ease;
+}
+.toggle-switch:checked::after { transform: translateX(18px); }
+</style>
 {% endblock %}
