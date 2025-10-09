@@ -28,26 +28,7 @@
   </form>
 </div>
 
-<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="confirmationModalLabel">Επιβεβαίωση Αποθήκευσης</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Είστε βέβαιοι ότι θέλετε να αποθηκεύσετε τα παρακάτω στοιχεία;</p>
-        <ul id="receiptDetails">
-          <!-- Receipt details will be populated here -->
-        </ul>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ακύρωση</button>
-        <button type="button" class="btn btn-primary" id="saveReceiptButton">Αποθήκευση</button>
-      </div>
-    </div>
-  </div>
-</div>
+{# ΣΗΜΕΙΩΣΗ: το στατικό confirmation modal που υπήρχε εδώ αφαιρέθηκε όπως ζήτησες. Χρησιμοποιείται πλέον το summaryModal για όλες τις περιπτώσεις. #}
 
 {# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
 {% if allow_edit_existing and not request.args.get('force_edit') %}
@@ -215,9 +196,9 @@
 <div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση AFM</h3>
+      <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
     </div>
-    <div class="mb-4 text-gray-700">
+    <div id="afmWarningBody" class="mb-4 text-gray-700">
       {{ modal_warning }}
     </div>
     <div class="flex justify-end gap-2">
@@ -242,45 +223,6 @@ const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }};
 
 // initial categories passed from server as fallback; will be overridden if API returns expense_tags
 let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
-
-function showConfirmationModal(receipt) {
-    const detailsList = document.getElementById('receiptDetails');
-    detailsList.innerHTML = '';
-    for (const [key, value] of Object.entries(receipt)) {
-      const listItem = document.createElement('li');
-      listItem.textContent = `${key}: ${value}`;
-      detailsList.appendChild(listItem);
-    }
-    const saveButton = document.getElementById('saveReceiptButton');
-    saveButton.onclick = function() {
-      saveReceipt(receipt);
-    };
-    new bootstrap.Modal(document.getElementById('confirmationModal')).show();
-  }
-
-  // Function to save receipt
-  function saveReceipt(receipt) {
-    fetch('/api/scrape_receipt', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(receipt)
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.ok) {
-        alert('Η απόδειξη αποθηκεύτηκε επιτυχώς!');
-        location.reload();
-      } else {
-        alert('Σφάλμα κατά την αποθήκευση: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Σφάλμα κατά την αποθήκευση.');
-    });
-  }
 
 // Helper: show transient flash (client-side)
 function showFlash(message, type='info', timeout=3000){
@@ -919,168 +861,144 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // ----- SCRAPER integration: auto call endpoint when URL provided and show modal -----
   // Add a handler: when receipts switch ON and user submits form -> call /api/scrape_receipt and show modal
-  document.getElementById('markSearchForm')?.addEventListener('submit', async function(evt){
-    // if receipts mode active, intercept
-    if(useReceiptsSwitch && useReceiptsSwitch.checked){
-      evt.preventDefault();
-      const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
-      if(!url){ showFlash('Εισάγετε URL για αποδείξεις.', 'error'); return; }
-
-      try {
-        const res = await fetch('/api/scrape_receipt', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-          body: JSON.stringify({ url: url })
-        });
-        const j = await res.json().catch(()=>null);
-        if(!res.ok || !j || j.ok === false){
-          const msg = j && (j.error||j.message) ? (j.error||j.message) : ('Server ' + (res.status||''));
-          showFlash('Σφάλμα scraper: '+msg, 'error', 6000);
-          return;
-        }
-
-        if(j.is_invoice === true){
-          showFlash('Το URL περιέχει τιμολόγιο — δεν θα αποθηκευτεί ως απόδειξη.', 'info', 6000);
-          return;
-        }
-
-        // populate modal and show it (same logic as earlier)
-        // prepare summary JSON from scraper result
-        const summaryObj = {
-          mark: j.MARK || '',
-          AA: j.progressive_aa || '',
-          AFM_issuer: j.issuer_vat || '',
-          Name: j.issuer_name || '',
-          issueDate: j.issue_date || '',
-          type_name: 'ΑΠΟΔΕΙΞΗ',
-          totalValue: j.total_amount || '',
-          totalNetValue: j.total_amount || '',
-          totalVatAmount: (j.raw && (j.raw.totalVatAmount || j.raw.totalVat)) || '',
-          lines: []
-        };
-        if(j.raw && Array.isArray(j.raw.lines) && j.raw.lines.length){
-          j.raw.lines.forEach((l, idx) => {
-            summaryObj.lines.push({
-              id: l.id || ('r'+idx),
-              amount: l.amount || l.lineTotal || '',
-              vat: l.vat || l.vatRate || '',
-              vatCategory: l.vatCategory || l.vat_category || '',
-              description: l.description || l.desc || ''
-            });
-          });
-        } else {
-          summaryObj.lines.push({
-            id: 'r0',
-            amount: j.total_amount || '',
-            vat: (j.raw && (j.raw.vat||'')) || '',
-            vatCategory: (j.raw && (j.raw.vatCategory||'')) || '',
-            description: (j.raw && (j.raw.description||'')) || ''
-          });
-        }
-
-        // populate modal input and show
-        document.getElementById('summaryJsonInput') && (document.getElementById('summaryJsonInput').value = JSON.stringify(summaryObj));
-        // hidden fields to indicate scrape-flow
-        document.getElementById('scrapeUrlField') && (document.getElementById('scrapeUrlField').value = url);
-        // choose category: forced to 'αποδειξακια' if present in credentials categories, else first available
-        const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια') ? 'αποδειξακια' : (CUSTOMER_CATEGORIES[0] || '');
-        document.getElementById('scrapeCategoryField') && (document.getElementById('scrapeCategoryField').value = desiredCat || '');
-        document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value = 'false');
-
-        // If repeat mapping is ON and receipts mode is ON -> enforce that edit button is hidden (already handled on toggle)
-        if(useReceiptsSwitch && useReceiptsSwitch.checked && repeatSwitch && repeatSwitch.checked){
-          // we explicitly DO NOT apply mapping for receipts
-          showFlash('Επισημαίνεται: επειδή οι Αποδείξεις είναι ενεργές, δεν θα εφαρμοστεί το repeat-mapping. Θα χρησιμοποιηθεί κατηγορία "αποδειξακια".', 'info', 5000);
-        }
-
-        // show modal
-        const m = document.getElementById('summaryModal');
-        if(m) m.style.display='flex';
-        showFlash('Λήφθηκε απόδειξη — επαληθεύστε τη συνοψή και πατήστε "Αποθήκευση στο Cache".', 'success', 4000);
-      } catch(err){
-        console.error('scrape error', err);
-        showFlash('Σφάλμα scraper: ' + (err.message||err), 'error', 6000);
-      }
-    } else {
-      // normal submission for MARK search -> let form submit
-    }
-  });
-
-  // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
-  document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
-    const url = (document.getElementById('scrapeUrlField') && document.getElementById('scrapeUrlField').value) ? document.getElementById('scrapeUrlField').value.trim() : '';
-    if(!url){
-      // normal server save flow: let it submit
+  // ====================== RECEIPTS SCRAPE FLOW ======================
+document.getElementById('markSearchForm')?.addEventListener('submit', async function (evt) {
+  if (useReceiptsSwitch && useReceiptsSwitch.checked) {
+    evt.preventDefault();
+    const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
+    if (!url) {
+      showFlash('Εισάγετε URL για αποδείξεις.', 'error');
       return;
     }
-    e.preventDefault();
-
-    let summaryObj = {};
-    try { summaryObj = JSON.parse(document.getElementById('summaryJsonInput').value || '{}'); } catch(e){ showFlash('Σφάλμα στο summary JSON', 'error'); return; }
-
-    // check year if active
-    let issueDateStr = summaryObj.issueDate || summaryObj.issue_date || '';
-    if(issueDateStr && ACTIVE_YEAR){
-      let y = null;
-      try {
-        const m1 = issueDateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-        if(m1){ y = parseInt(m1[3],10); }
-        else {
-          const dt = new Date(issueDateStr);
-          if(!isNaN(dt.getTime())) y = dt.getUTCFullYear();
-        }
-      } catch(e){}
-      if(y && Number(y) !== Number(ACTIVE_YEAR)){
-        if(!confirm(`Η ημερομηνία έκδοσης (${issueDateStr}) δεν ανήκει στο έτος χρήσης ${ACTIVE_YEAR}. Θες να προχωρήσεις και να αποθηκεύσεις;`)){
-          return;
-        } else {
-          document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value = 'true');
-        }
-      }
-    }
-
-    // When saving a scraped receipt, we MUST use category 'αποδειξακια' (if available)
-    const forcedCat = CUSTOMER_CATEGORIES.includes('αποδειξακια') ? 'αποδειξακια' : (CUSTOMER_CATEGORIES[0]||'');
-    const payload = {
-      url: url,
-      category: forcedCat,
-      save_excel: true,
-      summary: summaryObj,
-      force: (document.getElementById('scrapeForceField') && document.getElementById('scrapeForceField').value === 'true')
-    };
 
     try {
       const res = await fetch('/api/scrape_receipt', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ url: url })
       });
-      const j = await res.json().catch(()=>null);
-      if(!res.ok || !j || j.ok === false){
-        const msg = j && (j.error||j.message) ? (j.error||j.message) : ('Server ' + (res.status||''));
-        showFlash('Σφάλμα αποθήκευσης: '+msg, 'error', 7000);
+
+      const j = await res.json().catch(() => null);
+      if (!res.ok || !j || j.ok === false) {
+        const msg = j && (j.error || j.message) ? (j.error || j.message) : ('Server ' + (res.status || ''));
+        showFlash('Σφάλμα scraper: ' + msg, 'error', 6000);
         return;
       }
 
-      showFlash('Αποθηκεύτηκε η απόδειξη (epsilon + excel).', 'success', 4000);
-      const m = document.getElementById('summaryModal');
-      if(m) m.style.display='none';
-      // clear hidden fields
-      document.getElementById('scrapeUrlField') && (document.getElementById('scrapeUrlField').value='');
-      document.getElementById('scrapeCategoryField') && (document.getElementById('scrapeCategoryField').value='');
-      document.getElementById('scrapeForceField') && (document.getElementById('scrapeForceField').value='false');
-      return;
-    } catch(err){
-      console.error('save receipt failed', err);
-      showFlash('Αποτυχία αποθήκευσης: ' + (err.message||err), 'error', 7000);
+      if (j.is_invoice === true) {
+        // show modal warning (like year-mismatch modal)
+        const body = document.getElementById('afmWarningBody');
+        if (body) {
+          body.innerText = 'Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.';
+        }
+        const afmModal = document.getElementById('afmWarningModal');
+        if (afmModal) afmModal.style.display = 'flex';
+        return;
+      }
+
+      // Δημιουργία αυξανόμενου MARK 15 ψηφίων (από το backend)
+      const markRes = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
+      const markData = await markRes.json().catch(() => null);
+      const nextMark = (markData && markData.mark) ? markData.mark : '';
+
+      // Prepare summary object για modal
+      const summaryObj = {
+        mark: nextMark,
+        AA: j.progressive_aa || '',
+        AFM_issuer: j.issuer_vat || '',
+        Name: j.issuer_name || '',
+        issueDate: j.issue_date || '',
+        type_name: 'ΑΠΟΔΕΙΞΗ',
+        totalValue: j.total_amount || '',
+        totalNetValue: j.total_amount || '',
+        totalVatAmount: (j.raw && (j.raw.totalVatAmount || j.raw.totalVat)) || '',
+        lines: []
+      };
+
+      if (j.raw && Array.isArray(j.raw.lines) && j.raw.lines.length) {
+        j.raw.lines.forEach((l, idx) => {
+          summaryObj.lines.push({
+            id: l.id || ('r' + idx),
+            amount: l.amount || l.lineTotal || '',
+            vat: l.vat || l.vatRate || '',
+            vatCategory: l.vatCategory || l.vat_category || '',
+            description: l.description || l.desc || ''
+          });
+        });
+      } else {
+        summaryObj.lines.push({
+          id: 'r0',
+          amount: j.total_amount || '',
+          vat: (j.raw && (j.raw.vat || '')) || '',
+          vatCategory: (j.raw && (j.raw.vatCategory || '')) || '',
+          description: (j.raw && (j.raw.description || '')) || ''
+        });
+      }
+
+      // Populate modal inputs
+      const summaryInput = document.getElementById('summaryJsonInput');
+      if (summaryInput) summaryInput.value = JSON.stringify(summaryObj);
+
+      document.getElementById('scrapeUrlField')?.setAttribute('value', url);
+      const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια')
+        ? 'αποδειξακια'
+        : (CUSTOMER_CATEGORIES[0] || '');
+      document.getElementById('scrapeCategoryField')?.setAttribute('value', desiredCat);
+      document.getElementById('scrapeForceField')?.setAttribute('value', 'false');
+
+      // Ενημέρωση modal
+      const modal = document.getElementById('summaryModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        showFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
+      }
+
+    } catch (err) {
+      console.error('scrape_receipt error', err);
+      showFlash('Σφάλμα scraper: ' + (err.message || err), 'error', 6000);
     }
+  }
+});
+
+
+  // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
+  // intercept saveSummaryForm submit when scrapeUrlField is present
+document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
+  const scrapeUrl = document.getElementById('scrapeUrlField').value || '';
+  if(!scrapeUrl) return; // allow normal server flow for invoice flow
+  e.preventDefault();
+
+  const summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
+  const payload = {
+    url: scrapeUrl,
+    summary: summary,
+    force: (document.getElementById('scrapeForceField').value === 'true'),
+    category: 'αποδειξακια',
+    // add afm/year/mark for backend mapping
+    afm: VAT || (summary.AFM_issuer || summary.AFM || ''),
+    year: (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR) ? ACTIVE_YEAR : (new Date()).getUTCFullYear(),
+    mark: summary.mark || ''
+  };
+  const res = await fetch('/api/confirm_receipt', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+    body: JSON.stringify(payload)
   });
+  const j = await res.json().catch(()=>null);
+  if(!res.ok || !j || !j.ok){
+    showFlash('Σφάλμα αποθήκευσης: ' + (j && j.error || res.status), 'error');
+    return;
+  }
+  showFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
+  document.getElementById('summaryModal').style.display = 'none';
+  // clean hidden fields
+  document.getElementById('scrapeUrlField').value = '';
+  document.getElementById('scrapeForceField').value = 'false';
+});
 
-  // --- rest unchanged (repeat modal already wired above) ---
 
-  // --- DOUBLE-CLICK on credentials rows to select radio (you asked earlier) ---
   // This expects rows to have 'input[type="radio"][name="active_name"]' and row id pattern cred-row-<name>
   document.querySelectorAll('tr[id^="cred-row-"]').forEach(tr=>{
     tr.addEventListener('dblclick', function(e){
