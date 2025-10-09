@@ -28,6 +28,27 @@
   </form>
 </div>
 
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmationModalLabel">Επιβεβαίωση Αποθήκευσης</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Είστε βέβαιοι ότι θέλετε να αποθηκεύσετε τα παρακάτω στοιχεία;</p>
+        <ul id="receiptDetails">
+          <!-- Receipt details will be populated here -->
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ακύρωση</button>
+        <button type="button" class="btn btn-primary" id="saveReceiptButton">Αποθήκευση</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
 {% if allow_edit_existing and not request.args.get('force_edit') %}
 <div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
@@ -221,6 +242,45 @@ const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }};
 
 // initial categories passed from server as fallback; will be overridden if API returns expense_tags
 let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
+
+function showConfirmationModal(receipt) {
+    const detailsList = document.getElementById('receiptDetails');
+    detailsList.innerHTML = '';
+    for (const [key, value] of Object.entries(receipt)) {
+      const listItem = document.createElement('li');
+      listItem.textContent = `${key}: ${value}`;
+      detailsList.appendChild(listItem);
+    }
+    const saveButton = document.getElementById('saveReceiptButton');
+    saveButton.onclick = function() {
+      saveReceipt(receipt);
+    };
+    new bootstrap.Modal(document.getElementById('confirmationModal')).show();
+  }
+
+  // Function to save receipt
+  function saveReceipt(receipt) {
+    fetch('/api/scrape_receipt', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(receipt)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.ok) {
+        alert('Η απόδειξη αποθηκεύτηκε επιτυχώς!');
+        location.reload();
+      } else {
+        alert('Σφάλμα κατά την αποθήκευση: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Σφάλμα κατά την αποθήκευση.');
+    });
+  }
 
 // Helper: show transient flash (client-side)
 function showFlash(message, type='info', timeout=3000){

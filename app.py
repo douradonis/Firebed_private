@@ -124,7 +124,44 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+
 # --- helper: parse year from a variety of date strings ---
+
+def get_excel_path(afm, year):
+    return os.path.join(BASE_DIR, f"{afm}_{year}_invoices.xlsx")
+
+def get_json_path(afm):
+    return os.path.join(BASE_DIR, f"{afm}_epsilon_invoices.json")
+
+def load_json(path):
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_excel(path):
+    if os.path.exists(path):
+        return load_workbook(path)
+    else:
+        wb = Workbook()
+        ws = wb.active
+        ws.append(["MARK", "Issue Date", "Total Amount", "Type"])  # header
+        return wb
+
+def save_excel(wb, path):
+    wb.save(path)
+
+def mark_matches_year(receipt, year):
+    """Check if issue_date matches selected year"""
+    try:
+        issue_year = dt.strptime(receipt["issue_date"], "%d/%m/%Y").year
+        return issue_year == int(year)
+    except:
+        return False
 def parse_year_from_date_string(s):
     if not s:
         return None
@@ -3069,181 +3106,117 @@ def search():
 
 
 
-@app.route('/api/scrape_receipt', methods=['POST'])
+@app.route("/api/scrape_receipt", methods=["POST"])
 def api_scrape_receipt():
-    """
-    Accept JSON payload that may contain:
-      { "url": "<url>", "category": "αποδειξακια", "save_excel": true, "summary": {...}, "force": false }
-    Calls scraper_receipt and returns normalized JSON.
-    If not invoice, appends into epsilon_invoices.json (with 'category').
-    If save_excel true => append to EXCEL_PATH (basic row).
-    If ACTIVE_YEAR is configured and issueDate does not match and force is false -> return 400 with message.
-    """
     try:
-        payload = request.get_json(silent=True) or {}
-        # accept form too (fallback)
-        url = (payload.get('url') or request.form.get('url') or '').strip()
-        category = payload.get('category') or request.form.get('category') or ''
-        save_excel = bool(payload.get('save_excel') or request.form.get('save_excel') or False)
-        summary_from_client = payload.get('summary') or {}
-        force_flag = bool(payload.get('force') or request.form.get('force') in ('1','true','True'))
+        afm = request.form.get("afm")
+        mark = request.form.get("mark")
+        year = int(request.form.get("year"))
+        toggle_receipts = request.form.get("toggle_receipts") == "true"
 
-        if not url:
-            return jsonify(ok=False, error='no url provided'), 400
+        # --- scrape logic ---
+        receipt_data = scrape_receipt(mark)  # η υπάρχουσα helper function
+        if not receipt_data["ok"]:
+            return jsonify({"success": False, "error": "Απέτυχε το scrape"}), 400
 
-        # import scraper_receipt
-        try:
-            mod = importlib.import_module('scraper_receipt')
-        except Exception as e:
-            return jsonify(ok=False, error=f'cannot import scraper_receipt: {e}'), 500
+        # έλεγχος έτους
+        issue_year = int(receipt_data["issue_date"].split("/")[2])
+        if issue_year != year:
+            return jsonify({"success": False, "error": "Έτος χρήσης δεν ταιριάζει"}), 400
 
-        # find function
-        candidate_fn_names = [
-            'scrape_receipt', 'scrape', 'extract_receipt', 'extract', 'scrape_url',
-            'scrape_receipt_url', 'detect_and_scrape'
-        ]
-        fn = None
-        for n in candidate_fn_names:
-            if hasattr(mod, n):
-                fn = getattr(mod, n)
-                break
-        if fn is None:
-            return jsonify(ok=False, error='no scraping function found in scraper_receipt module'), 500
-
-        # run scraper
-        try:
-            result = None
-            try:
-                result = fn(url)
-            except TypeError:
-                try:
-                    result = fn(url, timeout=15)
-                except Exception as ee:
-                    return jsonify(ok=False, error=f'scraper function raised: {ee}'), 500
-        except Exception as e:
-            return jsonify(ok=False, error=f'scraper function raised: {e}'), 500
-
-        if not isinstance(result, dict):
-            return jsonify(ok=False, error='scraper returned non-dict result'), 500
-
-        # normalize
-        r = result
-        is_invoice = bool(r.get('is_invoice') or r.get('invoice', False))
-        doc_type_val = str(r.get('doc_type') or r.get('type') or r.get('type_name') or '')
-        if not is_invoice and re.search(r"τιμολό?γιο|τιμολογιο|invoice", doc_type_val, flags=re.I):
-            is_invoice = True
-
-        out = {
-            'ok': True,
-            'is_invoice': bool(is_invoice),
-            'issuer_vat': r.get('issuer_vat') or r.get('AFM') or r.get('vat') or None,
-            'issuer_name': r.get('issuer_name') or r.get('Name') or r.get('company') or None,
-            'issue_date': r.get('issue_date') or r.get('issueDate') or r.get('date') or None,
-            'progressive_aa': r.get('progressive_aa') or r.get('AA') or r.get('id') or None,
-            'total_amount': r.get('total_amount') or r.get('totalValue') or r.get('total') or None,
-            'MARK': r.get('MARK') or None,
-            'raw': r
+        # Προετοιμασία modal
+        modal_data = {
+            "MARK": receipt_data["MARK"],
+            "issue_date": receipt_data["issue_date"],
+            "total_amount": receipt_data["total_amount"],
+            "character": "αποδειξακια" if toggle_receipts else "",
+            "toggle_receipts": toggle_receipts
         }
 
-        # if invoice -> return early (frontend will handle)
-        if out['is_invoice']:
-            return jsonify(ok=True, is_invoice=True, message='Detected invoice'), 200
-
-        # --- year check: if we have ACTIVE_YEAR configured, and there is an issue_date, verify it
-        issue_date = out.get('issue_date') or (summary_from_client.get('issueDate') if isinstance(summary_from_client, dict) else None)
-        if issue_date:
-            try:
-                m = re.search(r'(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})', str(issue_date))
-                year = None
-                if m:
-                    year = int(m.group(3))
-                else:
-                    # try ISO parse
-                    dt = datetime.fromisoformat(str(issue_date))
-                    year = dt.year
-                cfg_year = app.config.get('ACTIVE_YEAR', None)
-                if cfg_year is not None and not force_flag:
-                    if year is not None and int(year) != int(cfg_year):
-                        return jsonify(ok=False, error=f'issue date year {year} != active year {cfg_year}; resend with force=true to override'), 400
-            except Exception:
-                # cannot parse date -> ignore year check
-                pass
-
-        # ---------- append to epsilon_invoices.json (thread-safe) ----------
-        try:
-            json_path = EPSILON_JSON_PATH
-            lock_path = json_path + '.lock'
-            lock = FileLock(lock_path, timeout=10)
-            with lock:
-                if not os.path.exists(json_path):
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump([], f, ensure_ascii=False, indent=2)
-                with open(json_path, 'r+', encoding='utf-8') as f:
-                    try:
-                        data = json.load(f)
-                        if not isinstance(data, list):
-                            data = []
-                    except Exception:
-                        data = []
-                    entry = {
-                        'url': url,
-                        'saved_at': datetime.utcnow().isoformat() + 'Z',
-                        'issuer_vat': out['issuer_vat'],
-                        'issuer_name': out['issuer_name'],
-                        'issue_date': out['issue_date'],
-                        'progressive_aa': out['progressive_aa'],
-                        'total_amount': out['total_amount'],
-                        'MARK': out['MARK'],
-                        'category': category or '',
-                        'raw': out['raw']
-                    }
-                    data.append(entry)
-                    f.seek(0)
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                    f.truncate()
-        except Exception as e:
-            current_app.logger.exception("failed saving receipt to epsilon json: %s", e)
-            # do not fail request for epsilon write failure
-
-        # ---------- optional: append to Excel if requested ----------
-        if save_excel:
-            try:
-                excel_path = EXCEL_PATH
-                lock_path = excel_path + '.lock'
-                lock = FileLock(lock_path, timeout=10)
-                with lock:
-                    # create row dict
-                    row = {
-                        'MARK': out.get('MARK'),
-                        'issue_date': out.get('issue_date'),
-                        'issuer_vat': out.get('issuer_vat'),
-                        'issuer_name': out.get('issuer_name'),
-                        'progressive_aa': out.get('progressive_aa'),
-                        'total_amount': out.get('total_amount'),
-                        'category': category or '',
-                        'saved_at': datetime.utcnow().isoformat() + 'Z',
-                        'url': url
-                    }
-                    if os.path.exists(excel_path):
-                        try:
-                            df = pd.read_excel(excel_path, dtype=str)
-                        except Exception:
-                            df = pd.DataFrame()
-                    else:
-                        df = pd.DataFrame()
-                    df = df.fillna('')
-                    df = df.append(row, ignore_index=True, sort=False)
-                    # write back
-                    df.to_excel(excel_path, index=False, engine='openpyxl')
-            except Exception:
-                current_app.logger.exception("failed appending to excel for receipt (continuing)")
-
-        # respond with normalized out
-        return jsonify(out), 200
-
+        return jsonify({"success": True, "modal_data": modal_data})
     except Exception as e:
-        current_app.logger.exception("Unhandled exception in api/scrape_receipt: %s", e)
-        return jsonify(ok=False, error=str(e)), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/confirm_receipt", methods=["POST"])
+def api_confirm_receipt():
+    try:
+        afm = request.form.get("afm")
+        year = request.form.get("year")
+        mark = request.form.get("mark")
+        issue_date = request.form.get("issue_date")
+        total_amount = request.form.get("total_amount")
+        character = request.form.get("character")
+
+        # Paths
+        excel_path = f"uploads/{afm}_{year}_invoices.xlsx"
+        json_path = f"data/{afm}_epsilon_invoices.json"
+
+        # --- Excel ---
+        lock_excel = FileLock(excel_path + ".lock")
+        with lock_excel:
+            try:
+                df = pd.read_excel(excel_path)
+            except FileNotFoundError:
+                df = pd.DataFrame(columns=["MARK","issue_date","total_amount","character"])
+            # προσθήκη ή update
+            df = df[df["MARK"] != mark]  # remove αν υπάρχει
+            df = pd.concat([df, pd.DataFrame([{
+                "MARK": mark,
+                "issue_date": issue_date,
+                "total_amount": total_amount,
+                "character": character
+            }])], ignore_index=True)
+            df.to_excel(excel_path, index=False)
+
+        # --- JSON ---
+        lock_json = FileLock(json_path + ".lock")
+        with lock_json:
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    json_data = json.load(f)
+            except FileNotFoundError:
+                json_data = {}
+            json_data[mark] = {
+                "issue_date": issue_date,
+                "total_amount": total_amount,
+                "character": character
+            }
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/delete_mark", methods=["POST"])
+def api_delete_mark():
+    try:
+        afm = request.form.get("afm")
+        year = request.form.get("year")
+        mark = request.form.get("mark")
+        excel_path = f"uploads/{afm}_{year}_invoices.xlsx"
+        json_path = f"data/{afm}_epsilon_invoices.json"
+
+        # --- Excel ---
+        lock_excel = FileLock(excel_path + ".lock")
+        with lock_excel:
+            df = pd.read_excel(excel_path)
+            df = df[df["MARK"] != mark]
+            df.to_excel(excel_path, index=False)
+
+        # --- JSON ---
+        lock_json = FileLock(json_path + ".lock")
+        with lock_json:
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+            if mark in json_data:
+                del json_data[mark]
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 

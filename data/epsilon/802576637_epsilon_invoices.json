@@ -26,6 +26,34 @@
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-09T10:30:02.954245+00:00"
+    "_updated_at": "2025-10-09T10:54:39.297855+00:00"
+  },
+  {
+    "mark": "400011213160102",
+    "issueDate": "07/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "9036",
+    "AA": "9036",
+    "type": "1.1",
+    "vatCategory": "",
+    "totalNetValue": "64,52",
+    "totalVatAmount": "15,48",
+    "totalValue": "80,00",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011213160102_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "64,52",
+        "vat": "15,48",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]
