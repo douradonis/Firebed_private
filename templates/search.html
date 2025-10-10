@@ -2,6 +2,7 @@
 {% block title %}Αναζήτηση MARK{% endblock %}
 
 {% block content %}
+
 <div class="bg-white rounded shadow p-6">
   <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
 
@@ -77,7 +78,7 @@
 
     <div class="mt-4 flex justify-between items-center">
       <div class="text-sm text-gray-600">
-        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείς να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
+        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείτε να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
       </div>
 
       <div class="flex justify-end gap-2">
@@ -879,6 +880,11 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
       // Ενημέρωση modal
       const modal = document.getElementById('summaryModal');
       if (modal) {
+        // ensure populate code runs (some populate watchers poll or listen for modal display)
+        // prefer calling RC_forcePopulateSummaryModal if present
+        if (window.RC_forcePopulateSummaryModal) {
+          try { window.RC_forcePopulateSummaryModal(); } catch(e){ console.warn('RC_forcePopulateSummaryModal failed', e); }
+        }
         modal.style.display = 'flex';
         showFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
       }
@@ -974,18 +980,66 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     showFlash('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
   }
 });
-document.addEventListener("DOMContentLoaded", function(){
-    // Φορτώνουμε μόνο αν υπάρχει summary
-    const summaryStr = document.getElementById("summaryJsonInput")?.value || "{}";
-    let summary = {};
-    try {
-        summary = JSON.parse(summaryStr);
-    } catch(e){ console.warn("Invalid summary JSON", e); }
 
-    if(summary && Object.keys(summary).length > 0){
-        populateSummaryModal(summary); // η function που γεμίζει τα πεδία του modal
-        document.getElementById("summaryModal").style.display = "block";
+// --- Fix: on page load, populate modal if summaryJsonInput already contains summary JSON ---
+// This replaces a missing populateSummaryModal call and uses the populate watcher (RC_forcePopulateSummaryModal) if available.
+// Robust startup: only show summary modal if summaryJsonInput actually contains meaningful data
+document.addEventListener("DOMContentLoaded", function(){
+  try {
+    const summaryEl = document.getElementById("summaryJsonInput");
+    const modal = document.getElementById("summaryModal");
+    if (!summaryEl) return;
+
+    let obj = {};
+    try { obj = JSON.parse(summaryEl.value || '{}'); } catch(e){ obj = {}; }
+
+    function isMeaningful(o){
+      if (!o || typeof o !== 'object') return false;
+
+      // quick acceptors: important single fields
+      const important = ['mark','MARK','AFM_issuer','AFM','totalValue','totalNetValue','total_amount','issueDate','issue_date','progressive_aa','AA'];
+      for (const k of important) {
+        if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return true;
+      }
+
+      // if lines array exists and has at least one line with some non-empty field -> accept
+      if (Array.isArray(o.lines) && o.lines.length) {
+        for (const ln of o.lines) {
+          if (!ln) continue;
+          if ( (ln.description && String(ln.description).trim() !== '') ||
+               (ln.amount && String(ln.amount).trim() !== '') ||
+               (ln.id && String(ln.id).trim() !== '') ) return true;
+        }
+      }
+
+      // fallback: if object has more than one non-empty key -> accept
+      const nonEmptyKeys = Object.keys(o).filter(k => {
+        try { return o[k] !== null && o[k] !== undefined && String(o[k]).trim() !== ''; } catch(e){ return false; }
+      });
+      if (nonEmptyKeys.length > 1) return true;
+
+      return false;
     }
+
+    if (isMeaningful(obj)) {
+      // ask the populate watcher to run (if available), else run a safe local populate
+      if (window.RC_forcePopulateSummaryModal) {
+        try { window.RC_forcePopulateSummaryModal(); } catch(e){ console.warn('RC_forcePopulateSummaryModal failed', e); }
+      } else {
+        // try to populate basic fields if populate function not present
+        try {
+          if (typeof populateSummaryModal === 'function') try { populateSummaryModal(obj); } catch(_) {}
+        } catch(_) {}
+      }
+
+      if (modal) modal.style.display = 'flex';
+    } else {
+      // ensure modal remains hidden on load
+      if (modal) modal.style.display = 'none';
+    }
+  } catch(e){
+    console.warn('startup populate summary failed', e);
+  }
 });
 
 
@@ -1343,6 +1397,129 @@ document.addEventListener("DOMContentLoaded", function(){
 
   } catch (err) {
     console.error('[RC-DEBUG] summary-populate init failed', err);
+  }
+})();
+
+(function RC_FORCE_MODAL_GUARD(){
+  try {
+    const dbg = (...a) => { try { console.log('[RC-MODAL-GUARD]', ...a); } catch(e) {} };
+
+    function parseSummary() {
+      const el = document.getElementById('summaryJsonInput');
+      if (!el) return {};
+      try { return JSON.parse(el.value || '{}') || {}; } catch(e){ dbg('parseSummary JSON error', e); return {}; }
+    }
+
+    function hasMeaningfulSummary(obj) {
+      if (!obj || typeof obj !== 'object') return false;
+      // important single fields that guarantee modal should open
+      const keys = ['mark','MARK','AFM_issuer','AFM','totalValue','totalNetValue','total_amount','issueDate','issue_date','progressive_aa','AA'];
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') return true;
+      }
+      // check raw.* fields if present
+      if (obj.raw && typeof obj.raw === 'object') {
+        for (const k of ['MARK','issuer_vat','total_amount','issue_date','progressive_aa']) {
+          if (obj.raw[k] !== undefined && obj.raw[k] !== null && String(obj.raw[k]).trim() !== '') return true;
+        }
+      }
+      // lines array with at least one non-empty line
+      if (Array.isArray(obj.lines) && obj.lines.length) {
+        for (const ln of obj.lines) {
+          if (!ln) continue;
+          if ((ln.description && String(ln.description).trim() !== '') ||
+              (ln.amount && String(ln.amount).trim() !== '') ||
+              (ln.id && String(ln.id).trim() !== '')) return true;
+        }
+      }
+      // fallback: object with >1 non-empty keys
+      const nonEmpty = Object.keys(obj).filter(k=>{
+        try { return obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== ''; } catch(e){ return false; }
+      });
+      return nonEmpty.length > 1;
+    }
+
+    function ensureModalHiddenUnlessMeaningful() {
+      const modal = document.getElementById('summaryModal');
+      const summaryEl = document.getElementById('summaryJsonInput');
+      if (!modal || !summaryEl) { dbg('no modal/summaryEl present'); return; }
+
+      // Force-hide now (neutralize server/client auto-show)
+      try { modal.style.display = 'none'; } catch(_) {}
+
+      // If summary becomes meaningful, show it (and populate watcher should fill fields)
+      const checkAndMaybeShow = () => {
+        const obj = parseSummary();
+        if (hasMeaningfulSummary(obj)) {
+          dbg('summary meaningful -> showing modal', obj);
+          try {
+            // try to trigger your populate logic if present
+            if (window.RC_forcePopulateSummaryModal) {
+              try { window.RC_forcePopulateSummaryModal(); } catch(e){ dbg('RC_forcePopulateSummaryModal failed', e); }
+            } else if (typeof populateSummaryModal === 'function') {
+              try { populateSummaryModal(obj); } catch(e){ dbg('populateSummaryModal failed', e); }
+            }
+            modal.style.display = 'flex';
+          } catch(e){ dbg('show modal failed', e); }
+        } else {
+          // keep hidden
+          dbg('summary not meaningful -> keep modal hidden');
+          try { modal.style.display = 'none'; } catch(_) {}
+        }
+      };
+
+      // run immediate check after tiny delay (let other init finish)
+      setTimeout(checkAndMaybeShow, 60);
+
+      // observe changes to summaryJsonInput.value (detect writes by other code)
+      try {
+        let lastVal = summaryEl.value || '';
+        const poll = setInterval(() => {
+          try {
+            const cur = summaryEl.value || '';
+            if (cur !== lastVal) {
+              lastVal = cur;
+              dbg('summaryJsonInput changed -> recheck');
+              checkAndMaybeShow();
+            }
+          } catch(e){ dbg('poll error', e); }
+        }, 200);
+        // auto-stop polling after 60s
+        setTimeout(()=>clearInterval(poll), 60*1000);
+      } catch(e){ dbg('poll install failed', e); }
+
+      // observe modal style changes by others: if someone tries to open it while summary not meaningful, immediately hide
+      try {
+        const mo = new MutationObserver(muts => {
+          try {
+            const obj = parseSummary();
+            if (!hasMeaningfulSummary(obj)) {
+              const modalEl = document.getElementById('summaryModal');
+              if (modalEl) {
+                const disp = window.getComputedStyle(modalEl).display;
+                if (disp !== 'none') {
+                  dbg('modal was opened by other code while summary not meaningful -> hiding it');
+                  modalEl.style.display = 'none';
+                }
+              }
+            }
+          } catch(e){ dbg('mutation observer callback error', e); }
+        });
+        const modalNode = document.getElementById('summaryModal');
+        if (modalNode) mo.observe(modalNode, { attributes: true, attributeFilter: ['style', 'class'] });
+      } catch(e){ dbg('mutation observer install failed', e); }
+    }
+
+    // Run after DOM ready (also run if DOM already ready)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureModalHiddenUnlessMeaningful);
+    } else {
+      setTimeout(ensureModalHiddenUnlessMeaningful, 10);
+    }
+
+    dbg('RC_FORCE_MODAL_GUARD installed');
+  } catch(err) {
+    try { console.error('[RC-MODAL-GUARD] init failed', err); } catch(e){}
   }
 })();
 
