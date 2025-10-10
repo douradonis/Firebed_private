@@ -776,6 +776,204 @@ document.addEventListener('DOMContentLoaded', function(){
   const saveSummaryForm = document.getElementById('saveSummaryForm');
 
   // New: receipts switch + url input
+  // ---------- Μικρή, local επιδιόρθωση για τα κουμπιά/Select στο modal summary ----------
+// ----- Prefill modal fields & categories from summaryJsonInput -----
+function prefillSummaryModal(){
+  try {
+    const input = document.getElementById('summaryJsonInput');
+    if(!input) return;
+    let data = {};
+    try { data = JSON.parse(input.value || '{}'); } catch(e) { data = {}; }
+
+    // Header fields mapping
+    const map = {
+      mark: 'summaryModalMark',
+      AA: 'summary_AA',
+      AFM_issuer: 'summary_AFM',
+      AFM: 'summary_AFM',
+      Name: 'summary_Name',
+      issuer_name: 'summary_Name',
+      issueDate: 'summary_issueDate',
+      type_name: 'summary_type_name',
+      totalNetValue: 'summary_totalNetValue',
+      totalVatAmount: 'summary_totalVatAmount',
+      totalValue: 'summary_totalValue'
+    };
+    Object.keys(map).forEach(k => {
+      const el = document.getElementById(map[k]);
+      if(!el) return;
+      el.innerText = (data[k] !== undefined && data[k] !== null) ? String(data[k]) : (data[k.toUpperCase()] || '');
+    });
+
+    // Ensure container exists
+    const container = document.getElementById('summaryLinesContainer') || document;
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+
+    // For each line, set select/button states
+    lines.forEach(line => {
+      const lid = String(line.id || line.line_id || '').trim();
+      if(!lid) return;
+
+      // Try to find matching element inside modal (row or singleLine)
+      let row = container.querySelector('[data-line-id="'+lid+'"]');
+      if(!row){
+        // fallback: global lookup
+        row = document.querySelector('[data-line-id="'+lid+'"]');
+      }
+      if(!row) return;
+
+      const cat = line.category || line.cat || '';
+      // set select if present
+      const sel = row.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+      if(sel){
+        try { sel.value = cat || ''; } catch(e){ /* ignore */ }
+      }
+      // set button states if buttons present
+      const btns = row.querySelectorAll('.category-btn[data-line-id="'+lid+'"]');
+      if(btns && btns.length){
+        btns.forEach(b => b.classList.remove('bg-sky-600','text-white'));
+        if(cat){
+          // try to find exact button
+          const esc = (window.CSS && CSS.escape) ? CSS.escape(cat) : cat.replace(/"/g,'\\"');
+          const target = row.querySelector('.category-btn[data-line-id="'+lid+'"][data-cat="'+cat+'"]') ||
+                         row.querySelector('.category-btn[data-line-id="'+lid+'"][data-cat="'+esc+'"]');
+          if(target) target.classList.add('bg-sky-600','text-white');
+        }
+      }
+    });
+  } catch(err){
+    console.warn('prefillSummaryModal error', err);
+  }
+}
+
+// Call prefill when modal gets shown by your existing code.
+// Find the places where you do: modal.style.display = 'flex' and add prefillSummaryModal().
+
+  (function(){
+  // helper: ασφαλής update του hidden json από το DOM
+  function updateSummaryFromDom(){
+    try {
+      const input = document.getElementById('summaryJsonInput');
+      if(!input) return;
+      let data = {};
+      try { data = JSON.parse(input.value || '{}'); } catch(e){ data = {}; }
+      data.lines = Array.isArray(data.lines) ? data.lines.slice() : [];
+
+      // For every element that has data-line-id inside the modal container, read category
+      const container = document.getElementById('summaryLinesContainer') || document;
+      container.querySelectorAll('[data-line-id]').forEach(el => {
+        const lid = String(el.dataset.lineId || '').trim();
+        if(!lid) return;
+        // prefer select.expense-category if present
+        let chosen = '';
+        const sel = el.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+        if(sel && sel.value) chosen = sel.value;
+        else {
+          // else look for active category button in same element
+          const btn = el.querySelector('.category-btn.bg-sky-600');
+          if(btn) chosen = btn.dataset.cat || '';
+        }
+        // find or create line entry
+        let found = data.lines.find(x => String(x.id) === lid);
+        if(!found){
+          found = { id: lid, category: '' };
+          data.lines.push(found);
+        }
+        found.category = chosen || '';
+      });
+
+      input.value = JSON.stringify(data);
+    } catch(err){
+      console.warn('updateSummaryFromDom error', err);
+    }
+  }
+
+  // only operate inside the modal area to avoid interfering globally
+  const container = document.getElementById('summaryLinesContainer');
+  if(!container) {
+    // fallback: attach to document but remain minimal
+    console.warn('summaryLinesContainer not found — fix handlers limitedly');
+  }
+
+  // Event delegation: capture clicks on category buttons and selects inside modal
+  const targetRoot = container || document;
+  // Use capture true so we intercept before other handlers
+  targetRoot.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('.category-btn');
+    if(btn && (container ? container.contains(btn) : true)){
+      // Prevent bubbling to other global handlers that open the receipts-modal
+      e.preventDefault();
+      e.stopPropagation();
+
+      // ensure it's not treated as a submit (defensive): set type=button if missing
+      try { if(btn.tagName === 'BUTTON' && !btn.hasAttribute('type')) btn.setAttribute('type','button'); } catch(_) {}
+
+      // determine line id: prefer dataset, else find closest ancestor with data-line-id
+      const lineEl = btn.closest('[data-line-id]');
+      const lineId = lineEl ? (lineEl.dataset.lineId || '') : (btn.dataset.lineId || '');
+
+      // Toggle active class for buttons of the same line only
+      if(lineId){
+        const group = (container || document).querySelectorAll('.category-btn[data-line-id="'+lineId+'"]');
+        group.forEach(b => { b.classList.remove('bg-sky-600','text-white'); });
+      } else {
+        // fallback: toggle only this button
+      }
+      const isActive = !btn.classList.contains('bg-sky-600');
+      if(isActive) btn.classList.add('bg-sky-600','text-white');
+      else btn.classList.remove('bg-sky-600','text-white');
+
+      // if there's a select corresponding to this line, keep it in sync
+      if(lineId){
+        const sel = (container || document).querySelector('select.expense-category[data-line-id="'+lineId+'"]');
+        if(sel) sel.value = isActive ? (btn.dataset.cat || '') : '';
+      }
+
+      // update hidden JSON immediately
+      updateSummaryFromDom();
+      return;
+    }
+
+    // if clicking on a select inside modal, prevent bubbling too
+    const sel = e.target.closest && e.target.closest('select.expense-category');
+    if(sel && (container ? container.contains(sel) : true)){
+      e.stopPropagation();
+      // let change event handle updating (below we also listen change)
+      return;
+    }
+  }, true);
+
+  // Listen change events on selects inside container and update JSON
+  (container || document).addEventListener('change', function(e){
+    const sel = e.target.closest && e.target.closest('select.expense-category');
+    if(sel && (container ? container.contains(sel) : true)){
+      e.stopPropagation();
+      // sync any visual button states (remove active if select chosen)
+      const lid = sel.dataset.lineId || (sel.closest('[data-line-id]') && sel.closest('[data-line-id]').dataset.lineId) || '';
+      if(lid){
+        // clear buttons for that line
+        const group = (container || document).querySelectorAll('.category-btn[data-line-id="'+lid+'"]');
+        group.forEach(b => b.classList.remove('bg-sky-600','text-white'));
+      }
+      updateSummaryFromDom();
+    }
+  }, true);
+
+  // Ensure Save form updates JSON right before submit (defensive)
+  const saveForm = document.getElementById('saveSummaryForm');
+  if(saveForm){
+    saveForm.addEventListener('submit', function(e){
+      try {
+        updateSummaryFromDom();
+        // small synchronous update only; let the submit continue
+      } catch(err){ console.warn('pre-submit update failed', err); }
+    });
+  }
+
+  // Expose helper in case other code wants to call it
+  window.updateSummaryFromDom = updateSummaryFromDom;
+})();
+
   const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
   // find or create an URL input (if not present in template we create one dynamically)
   let urlInput = document.getElementById('scrapeUrlInput');
