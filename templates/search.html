@@ -1509,6 +1509,134 @@ function prefillSummaryModal(){
       }
     }
 
+    function prefillSummaryModal(){
+  try {
+    const input = document.getElementById('summaryJsonInput');
+    if(!input) return;
+    let data = {};
+    try { data = JSON.parse(input.value || '{}'); } catch(e) { data = {}; }
+
+    // Map server keys -> DOM ids (header)
+    const map = {
+      mark: 'summaryModalMark',
+      AA: 'summary_AA',
+      AFM_issuer: 'summary_AFM',
+      AFM: 'summary_AFM',
+      Name: 'summary_Name',
+      issuer_name: 'summary_Name',
+      issueDate: 'summary_issueDate',
+      type_name: 'summary_type_name',
+      totalNetValue: 'summary_totalNetValue',
+      totalVatAmount: 'summary_totalVatAmount',
+      totalValue: 'summary_totalValue'
+    };
+
+    Object.keys(map).forEach(k => {
+      const el = document.getElementById(map[k]);
+      if(!el) return;
+      // prefer exact key, fallback to uppercase key or empty
+      const v = (data[k] !== undefined && data[k] !== null) ? data[k] : (data[k && k.toUpperCase()] || '');
+      el.innerText = (v === null || v === undefined) ? '' : String(v);
+    });
+
+    // container inside modal where rows / single-line are rendered
+    const container = document.getElementById('summaryLinesContainer');
+    if(!container) return;
+
+    // normalize lines
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+
+    // For each line try to set matching select/button
+    lines.forEach(line => {
+      const lid = String(line.id || line.line_id || '').trim();
+      if(!lid) return;
+
+      // find element by data-line-id inside modal container
+      let row = container.querySelector('[data-line-id="'+lid+'"]');
+      if(!row){
+        // fallback to global search if not found in container (defensive)
+        row = document.querySelector('#summaryLinesContainer [data-line-id="'+lid+'"]') ||
+              document.querySelector('[data-line-id="'+lid+'"]');
+      }
+      if(!row) return;
+
+      const cat = (line.category || line.cat || '').toString();
+
+      // if there is a select.expense-category for this line, set its value
+      const sel = row.querySelector('select.expense-category');
+      if(sel){
+        try { sel.value = cat || ''; } catch(e){ /* ignore */ }
+        // also update hidden summaryJsonInput lines to be consistent
+      }
+
+      // if there are category buttons, update active class
+      const btns = row.querySelectorAll('.category-btn');
+      if(btns && btns.length){
+        btns.forEach(b => {
+          b.classList.remove('bg-sky-600','text-white');
+        });
+        if(cat){
+          // find exact matching button with same data-cat (exact string match)
+          const target = Array.from(btns).find(b => (b.dataset.cat||'') === cat);
+          if(target){
+            target.classList.add('bg-sky-600','text-white');
+          } else {
+            // try loose match (trim)
+            const target2 = Array.from(btns).find(b => (b.dataset.cat||'').trim() === cat.trim());
+            if(target2) target2.classList.add('bg-sky-600','text-white');
+          }
+        }
+      }
+    });
+
+  } catch(err){
+    console.warn('prefillSummaryModal error', err);
+  }
+}
+
+/* --- small helper: when modal shown automatically by server-side flag,
+   call prefillSummaryModal() right after you set modal visible.
+   In case your other JS already has a setTimeout that does:
+     m.style.display = 'flex';
+   replace or augment that line with:
+     m.style.display = 'flex';
+     prefillSummaryModal();
+*/
+
+/* Example: if you have a server-side block that runs client code like:
+   setTimeout(()=>{ const m = document.getElementById('summaryModal'); if(m){ m.style.display='flex'; removeForceEditParamFromUrl(); } }, 80);
+
+   replace the inner if(m) body with:
+     if(m){
+       m.style.display='flex';
+       removeForceEditParamFromUrl();
+       // ensure modal DOM is rendered then prefill:
+       try { prefillSummaryModal(); } catch(e){ console.warn(e); }
+     }
+*/
+
+/* ALSO: when you open the modal from other client flows (e.g. after scrape fetch)
+   wherever your code does `modal.style.display = 'flex'` add `prefillSummaryModal();`
+   immediately afterwards, e.g.:
+
+     modal.style.display = 'flex';
+     try{ prefillSummaryModal(); }catch(e){}
+
+   This ensures selects/buttons get pre-filled EVERY time modal opens.
+*/
+
+//
+// Optionally: auto-prefill when DOM ready **if modal already visible**
+// (defensive: only run if modal is visible)
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    const m = document.getElementById('summaryModal');
+    if(m && (m.style.display === 'flex' || getComputedStyle(m).display !== 'none')){
+      // small timeout to let template-rendered inner HTML settle
+      setTimeout(()=>{ try { prefillSummaryModal(); } catch(e){ console.warn(e); } }, 40);
+    }
+  } catch(e){ /* ignore */ }
+});
     function maybeRestore(){
       clearTimeout(t);
       t = setTimeout(()=>{
@@ -1943,6 +2071,130 @@ document.addEventListener("DOMContentLoaded", function(){
 
   safeLog('RC-DEBUG injected');
 })();
+(function(){
+  function getSummaryData(){
+    const input = document.getElementById('summaryJsonInput');
+    if(!input) return null;
+    try {
+      const data = JSON.parse(input.value || '{}');
+      if(!Array.isArray(data.lines)) data.lines = [];
+      return { input, data };
+    } catch(e) {
+      return { input, data: { lines: [] } };
+    }
+  }
+
+  function saveSummaryData(obj){
+    if(!obj || !obj.input) return;
+    obj.input.value = JSON.stringify(obj.data);
+  }
+
+  // Click on category buttons (delegation)
+  document.addEventListener('click', function(ev){
+    const btn = ev.target.closest && ev.target.closest('.category-btn');
+    if(!btn) return;
+    ev.preventDefault();
+    // prevent other handlers (the "other modal" that opened)
+    try { ev.stopImmediatePropagation(); } catch(e){}
+    try { ev.stopPropagation(); } catch(e){}
+
+    const lid = btn.dataset.lineId || (btn.closest('[data-line-id]') && btn.closest('[data-line-id]').dataset.lineId) || '';
+    const cat = btn.dataset.cat || '';
+    if(!lid) return;
+
+    const state = getSummaryData();
+    if(!state) return;
+    let { data } = state;
+    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
+    if(!line){
+      line = { id: lid, category: '' };
+      data.lines.push(line);
+    }
+
+    // toggle: if already set -> clear, else set
+    line.category = (String(line.category || '') === String(cat)) ? '' : String(cat);
+
+    // update button classes for that line
+    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
+      b.classList.toggle('bg-sky-600', (b.dataset.cat === line.category));
+      b.classList.toggle('text-white', (b.dataset.cat === line.category));
+    });
+
+    // also update corresponding select if present
+    const sel = document.querySelector('select.expense-category[data-line-id="'+CSSescape(lid)+'"]');
+    if(sel) try { sel.value = line.category || ''; } catch(e){}
+
+    saveSummaryData(state);
+  }, true);
+
+  // change on line-selects
+  document.addEventListener('change', function(ev){
+    const sel = ev.target;
+    if(!sel || !sel.matches || !sel.matches('select.expense-category')) return;
+    const lid = sel.dataset.lineId || (sel.closest('[data-line-id]') && sel.closest('[data-line-id]').dataset.lineId) || '';
+    if(!lid) return;
+    const state = getSummaryData();
+    if(!state) return;
+    let { data } = state;
+    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
+    if(!line){
+      line = { id: lid, category: '' };
+      data.lines.push(line);
+    }
+    line.category = String(sel.value || '');
+    // update any buttons
+    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
+      b.classList.toggle('bg-sky-600', (b.dataset.cat === line.category));
+      b.classList.toggle('text-white', (b.dataset.cat === line.category));
+    });
+    saveSummaryData(state);
+  }, true);
+
+  // clear button (if exists)
+  document.addEventListener('click', function(ev){
+    const cb = ev.target.closest && ev.target.closest('#clearCategory');
+    if(!cb) return;
+    ev.preventDefault();
+    try { ev.stopImmediatePropagation(); } catch(e){}
+    const container = cb.closest('[data-line-id]') || document;
+    const lid = container && container.dataset && container.dataset.lineId ? container.dataset.lineId : '';
+    if(!lid) return;
+    const state = getSummaryData();
+    if(!state) return;
+    let { data } = state;
+    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
+    if(!line){
+      line = { id: lid, category: '' };
+      data.lines.push(line);
+    }
+    line.category = '';
+    // update UI
+    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
+      b.classList.remove('bg-sky-600','text-white');
+    });
+    const sel = document.querySelector('select.expense-category[data-line-id="'+CSSescape(lid)+'"]');
+    if(sel) sel.value = '';
+    saveSummaryData(state);
+  }, true);
+
+  // Ensure hidden input is up-to-date before normal form submit
+  const saveForm = document.getElementById('saveSummaryForm');
+  if(saveForm){
+    saveForm.addEventListener('submit', function(ev){
+      // just ensure input is stringified (handlers already update it live)
+      const s = getSummaryData();
+      if(s) saveSummaryData(s);
+      // allow normal submit (server-side will persist)
+    });
+  }
+
+  // small CSS.escape fallback used above
+  function CSSescape(s){
+    if(window.CSS && CSS.escape) return CSS.escape(s);
+    return String(s).replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g,'\\$1');
+  }
+})();
+
 (function RC_AUTO_INJECT_SUMMARY_MODAL(){
   try {
     console.log('[RC-DEBUG] periodic-dom-check starting');
@@ -2289,6 +2541,89 @@ document.addEventListener("DOMContentLoaded", function(){
     try { console.error('[RC-MODAL-GUARD] init failed', err); } catch(e){}
   }
 })();
+
+document.addEventListener('click', function(ev){
+  const btn = ev.target.closest('.category-btn');
+  if(!btn) return;
+
+  // 1) Αποτροπή bubbling για να μην ανοίγει άλλο modal
+  ev.preventDefault();
+  try { ev.stopImmediatePropagation(); } catch(e){}
+  try { ev.stopPropagation(); } catch(e){}
+
+  // 2) Ενημέρωση κουμπιών (UI)
+  const lineId = btn.dataset.lineId;
+  const cat = btn.dataset.cat;
+  const siblings = btn.parentElement.querySelectorAll('.category-btn');
+  siblings.forEach(s => s.classList.remove('bg-sky-600','text-white'));
+  btn.classList.add('bg-sky-600','text-white');
+
+  // 3) Ενημέρωση του select για compatibility
+  const sel = document.querySelector('select.expense-category[data-line-id="'+lineId+'"]');
+  if(sel) sel.value = cat;
+
+  // 4) Ενημέρωση του hidden JSON input
+  const input = document.getElementById('summaryJsonInput');
+  if(!input) return;
+  let data = {};
+  try { data = JSON.parse(input.value || '{}'); } catch(e){ data = {}; }
+
+  // Ensure lines array exists
+  if(!Array.isArray(data.lines)) data.lines = [];
+
+  // Update or add line
+  let line = data.lines.find(l => String(l.id || l.line_id || '') === lineId);
+  if(!line){
+    line = {id: lineId};
+    data.lines.push(line);
+  }
+  line.category = cat; // <--- εδώ γράφεται η κατηγορία
+
+  // Save back
+  input.value = JSON.stringify(data);
+});
+
+document.querySelectorAll('.category-btn').forEach(btn=>{
+  btn.addEventListener('click', function(ev){
+    ev.preventDefault(); // δεν χρειάζεται stopPropagation
+
+    const lineId = this.dataset.lineId;
+    const cat = this.dataset.cat;
+
+    // Αποτύπωση UI
+    const siblings = this.parentElement.querySelectorAll('.category-btn');
+    siblings.forEach(s => s.classList.remove('bg-sky-600','text-white'));
+    this.classList.add('bg-sky-600','text-white');
+
+    // Ενημέρωση select για συμβατότητα
+    const sel = document.querySelector('select.expense-category[data-line-id="'+lineId+'"]');
+    if(sel) sel.value = cat;
+
+    // Ενημέρωση summaryJsonInput
+    const input = document.getElementById('summaryJsonInput');
+    if(!input) return;
+    let data = {};
+    try { data = JSON.parse(input.value || '{}'); } catch(e){ data={}; }
+    if(!Array.isArray(data.lines)) data.lines = [];
+    let line = data.lines.find(l => String(l.id||l.line_id||'')===lineId);
+    if(!line){
+      line = {id: lineId};
+      data.lines.push(line);
+    }
+    line.category = cat;
+    input.value = JSON.stringify(data);
+
+    // !!! Σημαντικό: μην καλείς stopPropagation εδώ !!!
+    // Άλλο modal handler θα πρέπει να φιλτράρει ποιο στοιχείο το ενεργοποιεί
+  });
+});
+document.addEventListener('click', function(ev){
+  // Αν το click προέρχεται από κουμπί category, αγνόησε
+  if(ev.target.closest('.category-btn')) return;
+
+  // άλλος κώδικας που ανοίγει modal
+});
+
 
 </script>
 
