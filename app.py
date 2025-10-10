@@ -4187,108 +4187,111 @@ def save_receipt():
 def api_confirm_receipt():
     import traceback
     from datetime import datetime
-    from filelock import FileLock
-    import pandas as pd
-    import json
-    import os
 
     debug_dump_path = "/tmp/confirm_receipt_debug.json"
-
     try:
-        # --- Load payload ---
+        # Accept JSON or form
         payload = request.get_json(silent=True)
         if not payload:
             payload = request.form.to_dict() or {}
 
-        # Save debug dump
+        # Save debug dump for inspection
         try:
             with open(debug_dump_path, "w", encoding="utf-8") as df:
                 json.dump({"received_at": datetime.utcnow().isoformat()+"Z", "payload": payload}, df, ensure_ascii=False, indent=2)
         except Exception as e:
             app.logger.warning("Could not write debug dump: %s", e)
 
-        # --- Normalize top-level values ---
-        summary = payload.get("summary") or {}
-        afm = (payload.get("afm") or summary.get("AFM_issuer") or "").strip()
-        year = str(payload.get("year") or summary.get("year") or "").strip()
-        mark = (payload.get("mark") or summary.get("mark") or "").strip()
-        issue_date = (summary.get("issueDate") or "").strip()
-        total_value = (summary.get("totalValue") or "").strip()
-        character = (payload.get("category") or summary.get("χαρακτηρισμός") or "αποδειξακια").strip()
-        progressive_aa = (summary.get("AA") or "").strip()
-        issuer_vat = (summary.get("AFM_issuer") or afm).strip()
-        issuer_name = (summary.get("Name") or "").strip()
-        doc_type = (summary.get("type") or "").strip()
+        app.logger.info("api_confirm_receipt: payload keys: %s", list(payload.keys()))
 
-        # --- Fallback AFM/year ---
-        if not afm:
+        # Normalise summary and top-level values
+        summary = payload.get("summary") or {}
+        # issuer (from scraped doc) — αυτό μπορεί να είναι ο εκδότης του παραστατικού
+        issuer_vat = (summary.get("AFM_issuer") or summary.get("AFM") or payload.get("issuer_vat") or "").strip()
+        issuer_name = (summary.get("Name") or summary.get("Name_issuer") or summary.get("issuer_name") or "").strip()
+
+        # Determine client (active credential) AFM — THIS MUST BE USED for file names
+        client_afm = None
+        try:
             active = session.get("active_credential") if session else None
             if active and active.get("vat"):
-                afm = str(active.get("vat"))
+                client_afm = str(active.get("vat")).strip()
+        except Exception:
+            client_afm = None
 
-        if not afm:
-            return jsonify({"ok": False, "error": "Missing AFM"}), 400
+        # fallback: if payload explicitly provided 'afm' and no active session, allow it (but log)
+        if not client_afm:
+            client_afm = (payload.get("afm") or payload.get("AFM") or "").strip()
 
-        if not year:
-            if issue_date:
-                try:
-                    parts = issue_date.split("/")
-                    if len(parts) >= 3:
-                        year = parts[-1]
-                except Exception:
-                    pass
-            if not year:
-                year = str(datetime.utcnow().year)
+        app.logger.info("api_confirm_receipt: client_afm(from session or payload)=%s issuer_vat=%s", client_afm, issuer_vat)
 
-        # --- Prepare file paths ---
+        if not client_afm:
+            return jsonify({"ok": False, "error": "Missing AFM for active client (session)."}), 400
+
+        # year, mark, dates, amounts
+        year = str(payload.get("year") or summary.get("year") or summary.get("issueDate", "")[-4:] or datetime.utcnow().year)
+        mark = (payload.get("mark") or summary.get("mark") or "").strip()
+        issue_date = (summary.get("issueDate") or payload.get("issue_date") or payload.get("issueDate") or "").strip()
+        total_amount = (summary.get("totalValue") or summary.get("total_amount") or payload.get("total_amount") or payload.get("totalValue") or "").strip()
+        character = (payload.get("category") or payload.get("character") or summary.get("χαρακτηρισμός") or summary.get("characteristic") or "").strip()
+        progressive_aa = (summary.get("AA") or summary.get("aa") or "").strip()
+        doc_type = (summary.get("type") or summary.get("type_name") or "").strip()
+
         base_uploads = os.path.join("uploads")
         base_data = os.path.join("data")
         os.makedirs(base_uploads, exist_ok=True)
         os.makedirs(base_data, exist_ok=True)
 
-        excel_path = os.path.join(base_uploads, f"{afm}_{year}_invoices.xlsx")
-        json_path = os.path.join(base_data, f"{afm}_epsilon_invoices.json")
+        # IMPORTANT: use client_afm (active customer's AFM) for filenames
+        excel_path = os.path.join(base_uploads, f"{client_afm}_{year}_invoices.xlsx")
+        json_path = os.path.join(base_data, f"{client_afm}_epsilon_invoices.json")
 
-        # --- Write Excel ---
+        app.logger.info("api_confirm_receipt: writing to excel=%s json=%s (mark=%s, issuer_vat=%s)", excel_path, json_path, mark, issuer_vat)
+
+        # --- Write Excel (append/replace row for MARK) ---
         try:
             lock_excel = FileLock(excel_path + ".lock")
             with lock_excel:
                 if os.path.exists(excel_path):
                     try:
                         df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                    except Exception:
+                    except Exception as e:
+                        app.logger.warning("Failed reading existing excel, creating new. err=%s", e)
                         df = pd.DataFrame()
                 else:
                     df = pd.DataFrame()
 
-                desired_cols = ["MARK", "issueDate", "AFM_issuer", "AA", "series",
-                                "totalNetValue", "totalVatAmount", "totalValue", "character"]
+                # Map desired headers (match your invoices headers)
+                desired_cols = ["MARK", "issueDate", "AFM_issuer", "AA", "series", "totalNetValue", "totalVatAmount", "totalValue", "character"]
                 for c in desired_cols:
                     if c not in df.columns:
                         df[c] = ""
 
-                # Remove existing same MARK
-                df = df[~(df["MARK"].astype(str).fillna("").str.strip() == mark)]
+                # Remove existing same MARK rows
+                try:
+                    df = df[~(df["MARK"].astype(str).fillna("").str.strip() == str(mark).strip())]
+                except Exception:
+                    df = df[df["MARK"].astype(str).fillna("") != str(mark)]
 
-                # Add new row
                 row = {
                     "MARK": mark,
                     "issueDate": issue_date,
-                    "AFM_issuer": issuer_vat,
-                    "AA": progressive_aa,
+                    "AFM_issuer": issuer_vat or client_afm,
+                    "AA": progressive_aa or "",
                     "series": summary.get("series") or "",
-                    "totalNetValue": total_value,
-                    "totalVatAmount": summary.get("totalVatAmount") or "",
-                    "totalValue": total_value,
-                    "character": character
+                    "totalNetValue": (summary.get("totalNetValue") or total_amount or ""),
+                    "totalVatAmount": (summary.get("totalVatAmount") or ""),
+                    "totalValue": (summary.get("totalValue") or total_amount or ""),
+                    "character": character or ""
                 }
                 df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
                 df.to_excel(excel_path, index=False)
-                app.logger.info("Excel saved: %s", excel_path)
+                app.logger.info("api_confirm_receipt: excel saved ok -> %s", excel_path)
         except Exception as e:
-            app.logger.exception("Excel write failed: %s", e)
+            app.logger.exception("api_confirm_receipt: excel write failed: %s", e)
+            # continue to attempt json write
 
-        # --- Write JSON ---
+        # --- Write JSON (list) ---
         try:
             lock_json = FileLock(json_path + ".lock")
             with lock_json:
@@ -4297,11 +4300,17 @@ def api_confirm_receipt():
                     try:
                         with open(json_path, "r", encoding="utf-8") as f:
                             existing = json.load(f)
-                    except Exception:
+                    except Exception as e:
+                        app.logger.warning("Existing json parse failed, will reset to empty list. err=%s", e)
                         existing = []
 
+                # Normalize to list
                 if isinstance(existing, dict):
-                    existing = [v for v in existing.values() if isinstance(v, dict)]
+                    converted = []
+                    for k, v in existing.items():
+                        if isinstance(v, dict):
+                            converted.append(v)
+                    existing = converted
                 if not isinstance(existing, list):
                     existing = []
 
@@ -4310,42 +4319,63 @@ def api_confirm_receipt():
                     "mark": mark,
                     "issueDate": issue_date,
                     "series": summary.get("series") or "",
-                    "aa": progressive_aa,
-                    "type": doc_type,
-                    "totalNetValue": total_value,
-                    "totalVatAmount": summary.get("totalVatAmount") or "",
-                    "totalValue": total_value,
-                    "χαρακτηρισμός": character,
-                    "characteristic": character,
-                    "AFM_issuer": issuer_vat,
-                    "Name_issuer": issuer_name,
-                    "AFM": issuer_vat,
-                    "Name": issuer_name,
-                    "lines": summary.get("lines") or [],
-                    "_updated_at": datetime.utcnow().isoformat() + "+00:00"
+                    "aa": progressive_aa or "",
+                    "AA": progressive_aa or "",
+                    "type": doc_type or "",
+                    "vatCategory": "",
+                    "totalNetValue": (summary.get("totalNetValue") or total_amount or ""),
+                    "totalVatAmount": (summary.get("totalVatAmount") or ""),
+                    "totalValue": (summary.get("totalValue") or total_amount or ""),
+                    "classification": "",
+                    "χαρακτηρισμός": character or "",
+                    "characteristic": character or "",
+                    "AFM_issuer": issuer_vat or client_afm,
+                    "Name_issuer": issuer_name or "",
+                    "AFM": issuer_vat or client_afm,
+                    "Name": issuer_name or "",
+                    "lines": []
                 }
+
+                # lines
+                for ln in (summary.get("lines") or []):
+                    try:
+                        entry["lines"].append({
+                            "id": ln.get("id") or ln.get("line_id") or ln.get("LineId") or "",
+                            "description": ln.get("description") or ln.get("desc") or "",
+                            "amount": ln.get("amount") or ln.get("lineTotal") or "",
+                            "vat": ln.get("vat") or ln.get("vatRate") or "",
+                            "category": ln.get("category") or "",
+                            "vat_category": ln.get("vatCategory") or ln.get("vat_category") or ""
+                        })
+                    except Exception:
+                        continue
+
+                entry["_updated_at"] = datetime.utcnow().isoformat() + "+00:00"
 
                 # Replace or append
                 replaced = False
                 for i, it in enumerate(existing):
-                    if str(it.get("mark") or "").strip() == mark:
-                        existing[i] = entry
-                        replaced = True
-                        break
+                    try:
+                        if str((it.get("mark") or it.get("MARK") or "")).strip() == str(mark).strip():
+                            existing[i] = entry
+                            replaced = True
+                            break
+                    except Exception:
+                        continue
                 if not replaced:
                     existing.append(entry)
 
                 with open(json_path, "w", encoding="utf-8") as f:
                     json.dump(existing, f, ensure_ascii=False, indent=2)
-                app.logger.info("JSON saved: %s (entries=%d)", json_path, len(existing))
+                app.logger.info("api_confirm_receipt: json saved ok (entries=%d) -> %s", len(existing), json_path)
         except Exception as e:
-            app.logger.exception("JSON write failed: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            app.logger.exception("api_confirm_receipt: json write failed: %s", e)
+            return jsonify({"ok": False, "error": "json write failed: " + str(e)}), 500
 
-        return jsonify({"ok": True})
-
+        # return also the paths for debugging
+        return jsonify({"ok": True, "excel": excel_path, "json": json_path})
     except Exception as e:
-        app.logger.exception("Unexpected error: %s", e)
+        app.logger.exception("api_confirm_receipt: unexpected error: %s", e)
         tb = traceback.format_exc()
         try:
             with open(debug_dump_path, "a", encoding="utf-8") as df:
@@ -4354,6 +4384,7 @@ def api_confirm_receipt():
         except Exception:
             pass
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 
@@ -4601,6 +4632,6 @@ def favicon():
     return '', 204
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5001"))
+    port = int(os.getenv("PORT", "5000"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)

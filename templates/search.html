@@ -47,116 +47,43 @@
 {% endif %}
 
 {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
+<!-- UNCONDITIONAL summaryModal (always present, initially hidden) -->
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">
-        Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}
+        Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
       </h3>
       <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      <div><strong>Α/Α Παραστατικού</strong><div>{{ modal_summary.AA or modal_summary.get('AA','') }}</div></div>
-      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.AFM or modal_summary.get('AFM_issuer','') }}</div></div>
-      <div><strong>Επωνυμία</strong><div>{{ modal_summary.Name or modal_summary.get('Name','') }}</div></div>
-      <div><strong>Ημερομηνία</strong><div>{{ modal_summary.issueDate or modal_summary.get('issueDate','') }}</div></div>
-      <div><strong>Τύπος Παραστατικού</strong><div>{{ modal_summary.type_name or modal_summary.get('type_name','') }}</div></div>
-      <div><strong>Καθαρή Αξία</strong><div>{{ modal_summary.totalNetValue or modal_summary.get('totalNetValue','') }}</div></div>
-      <div><strong>ΦΠΑ</strong><div>{{ modal_summary.totalVatAmount or modal_summary.get('totalVatAmount','') }}</div></div>
-      <div><strong>Σύνολο</strong><div>{{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div></div>
+      <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
+      <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
+      <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
+      <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
+      <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
+      <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
+      <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
+      <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
     </div>
-
-    {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
 
     <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
 
-    {% if _lines|length > 1 %}
-    <div class="overflow-auto max-h-96 border rounded">
-      <table class="w-full border-collapse">
-        <thead class="bg-gray-100 sticky top-0">
-          <tr>
-            <th class="p-2 border text-left">#</th>
-            <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
-            <th class="p-2 border text-right">Ποσό</th>
-            <th class="p-2 border text-right">ΦΠΑ</th>
-            <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
-          </tr>
-        </thead>
-        <tbody id="linesTableBody">
-          {% for line in _lines %}
-          {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
-          {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else '') %}
-          {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else '') %}
-          {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
-          {% set cat = line.category if line.category is defined else '' %}
-          <tr data-line-id="{{ lid }}" data-vat="{{ vat_cat }}">
-            <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
-            <td class="p-2 border break-words">{{ vat_cat }}</td>
-            <td class="p-2 border text-right">{{ amt }}</td>
-            <td class="p-2 border text-right">{{ vatv }}</td>
-            <td class="p-2 border">
-              <select class="expense-category p-1 border rounded w-full" data-line-id="{{ lid }}">
-                <option value="">-- επίλεξε --</option>
-                {% for c in customer_categories %}
-                  <option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2">
+      <!-- JS will render either table or single-line view here.
+           Keep container empty by default so client-side code fills it. -->
     </div>
-
-    {% elif _lines|length == 1 %}
-      {% set single = _lines[0] %}
-      {% set lid = single.id if single.id is defined else (single.line_id if single.line_id is defined else 'l0') %}
-      {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else '') %}
-      {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else '') %}
-      {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
-      {% set selected_cat = single.category if single.category is defined else '' %}
-
-      <div id="singleLine"
-           class="border rounded p-4"
-           data-line-id="{{ lid }}"
-           data-amount="{{ amt }}"
-           data-vat="{{ vatv }}"
-           data-vatcat="{{ vat_cat|e }}">
-        <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div><strong>ΦΠΑ Κατηγορία</strong><div>{{ vat_cat }}</div></div>
-          <div><strong>Ποσό</strong><div>{{ amt }}</div></div>
-          <div><strong>ΦΠΑ</strong><div>{{ vatv }}</div></div>
-        </div>
-
-        <div class="mb-3">
-          <strong>Επίλεξε Κατηγορία Εξόδου</strong>
-          <div id="categoryButtons" class="mt-2 flex flex-wrap gap-2">
-            {% for c in customer_categories %}
-              <button type="button"
-                      class="category-btn px-3 py-2 border rounded hover:bg-sky-50 {% if c == selected_cat %}bg-sky-600 text-white{% endif %}"
-                      data-cat="{{ c }}"
-                      data-line-id="{{ lid }}">
-                {{ c }}
-              </button>
-            {% endfor %}
-            <button type="button" id="clearCategory" class="px-3 py-2 border rounded text-sm ml-2">Καθαρισμός</button>
-          </div>
-        </div>
-      </div>
-
-    {% else %}
-      <div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
-    {% endif %}
 
     <div class="mt-4 flex justify-between items-center">
       <div class="text-sm text-gray-600">
-        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείς να ορίσεις/επεξεργαστείς αυτές τις επιλογές στη σελίδα Credentials.
+        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείς να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
       </div>
 
       <div class="flex justify-end gap-2">
+        <!-- SAVE form (needed by your JS). JS will set summaryJsonInput.value before submit. -->
         <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
-          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
+          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe if modal_summary else "{}" }}'>
           <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
 
           <!-- Hidden fields used by js when scraping receipts -->
@@ -169,6 +96,8 @@
     </div>
   </div>
 </div>
+
+
 {% endif %}
 
 {# --- Repeat mapping modal (dynamic, populated by JS) --- #}
@@ -964,39 +893,101 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
 
   // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
   // intercept saveSummaryForm submit when scrapeUrlField is present
+// --- replace the previous payload construction + fetch with this robust version ---
 document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
-  const scrapeUrl = document.getElementById('scrapeUrlField').value || '';
+  const scrapeUrl = document.getElementById('scrapeUrlField')?.value || '';
   if(!scrapeUrl) return; // allow normal server flow for invoice flow
   e.preventDefault();
 
-  const summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
+  // parse summary from hidden input
+  let summary = {};
+  try {
+    summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
+  } catch(err){
+    console.warn('Failed parsing summaryJsonInput', err);
+    showFlash('Σφάλμα: άκυρα δεδομένα παραστατικού.', 'error');
+    return;
+  }
+
+  // robust AFM extraction (try many variants)
+  const afmFromSummary = (summary && (summary.AFM_issuer || summary.AFM || summary.issuer_vat || summary.issuerVat || summary.issuer_vat)) ||
+                         (summary && summary.raw && (summary.raw.issuer_vat || summary.raw.issuerVat || summary.raw.AFM || summary.raw.AFM_issuer));
+  const afmVal = (typeof VAT !== 'undefined' && VAT) ? VAT : (afmFromSummary ? String(afmFromSummary).trim() : '');
+
+  // robust year extraction: prefer ACTIVE_YEAR, then summary.year, then parse issueDate, then fallback to current year
+  let yearVal = null;
+  try {
+    if (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR) yearVal = String(ACTIVE_YEAR);
+    else if (summary && (summary.year || summary.Year)) yearVal = String(summary.year || summary.Year);
+    else if (summary && summary.issueDate) {
+      const parts = (summary.issueDate || '').split('/');
+      if (parts.length >= 3) yearVal = parts[2];
+    }
+    if (!yearVal) yearVal = String((new Date()).getUTCFullYear());
+  } catch(e){
+    yearVal = String((new Date()).getUTCFullYear());
+  }
+
+  // final mark
+  const markVal = summary.mark || document.getElementById('scrapeUrlField')?.dataset.mark || '';
+
+  // if afm missing -> abort with client message (server requires AFM or active session)
+  if (!afmVal) {
+    console.warn('confirm_receipt abort: missing AFM', { summary });
+    showFlash('Αδύνατο να αποθηκευτεί: λείπει AFM του ενεργού πελάτη. Επιλέξτε ενεργό πελάτη ή βεβαιωθείτε ότι το παραστατικό περιέχει ΑΦΜ.', 'error', 7000);
+    return;
+  }
+
   const payload = {
     url: scrapeUrl,
     summary: summary,
-    force: (document.getElementById('scrapeForceField').value === 'true'),
+    force: (document.getElementById('scrapeForceField')?.value === 'true'),
     category: 'αποδειξακια',
-    // add afm/year/mark for backend mapping
-    afm: VAT || (summary.AFM_issuer || summary.AFM || ''),
-    year: (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR) ? ACTIVE_YEAR : (new Date()).getUTCFullYear(),
-    mark: summary.mark || ''
+    afm: afmVal,
+    year: String(yearVal),
+    mark: (summary.mark || markVal || '')
   };
-  const res = await fetch('/api/confirm_receipt', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-    body: JSON.stringify(payload)
-  });
-  const j = await res.json().catch(()=>null);
-  if(!res.ok || !j || !j.ok){
-    showFlash('Σφάλμα αποθήκευσης: ' + (j && j.error || res.status), 'error');
-    return;
+
+  console.log('[RC-DEBUG] FETCH -> /api/confirm_receipt called', '/api/confirm_receipt', payload);
+
+  // send to backend
+  try {
+    const res = await fetch('/api/confirm_receipt', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json().catch(()=>null);
+    if(!res.ok || !j || !j.ok){
+      console.warn('confirm_receipt failed', res.status, j);
+      showFlash('Σφάλμα αποθήκευσης: ' + ((j && j.error) ? j.error : ('Server ' + (res.status || ''))) , 'error', 7000);
+      return;
+    }
+    showFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
+    document.getElementById('summaryModal').style.display = 'none';
+    // clean hidden fields
+    document.getElementById('scrapeUrlField').value = '';
+    document.getElementById('scrapeForceField').value = 'false';
+  } catch(err){
+    console.error('confirm_receipt fetch error', err);
+    showFlash('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
   }
-  showFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
-  document.getElementById('summaryModal').style.display = 'none';
-  // clean hidden fields
-  document.getElementById('scrapeUrlField').value = '';
-  document.getElementById('scrapeForceField').value = 'false';
 });
+document.addEventListener("DOMContentLoaded", function(){
+    // Φορτώνουμε μόνο αν υπάρχει summary
+    const summaryStr = document.getElementById("summaryJsonInput")?.value || "{}";
+    let summary = {};
+    try {
+        summary = JSON.parse(summaryStr);
+    } catch(e){ console.warn("Invalid summary JSON", e); }
+
+    if(summary && Object.keys(summary).length > 0){
+        populateSummaryModal(summary); // η function που γεμίζει τα πεδία του modal
+        document.getElementById("summaryModal").style.display = "block";
+    }
+});
+
 
 
   // This expects rows to have 'input[type="radio"][name="active_name"]' and row id pattern cred-row-<name>
@@ -1015,6 +1006,346 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
   });
 
 });
+
+// === DEBUG SNIPPET: paste near end of your existing scripts ===
+(function(){
+  function safeLog(...a){ try{ console.log('[RC-DEBUG]', ...a); }catch(e){} }
+
+  // Global JS error catcher
+  window.addEventListener('error', function(e){
+    safeLog('Window error', e.message, e.filename + ':' + e.lineno, e.error);
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    safeLog('Unhandled promise rejection', ev.reason);
+  });
+
+  // Watch important DOM elements existence
+  function checkDom(){
+    const names = [
+      'markSearchForm','useReceiptsSwitch','scrapeUrlInput',
+      'summaryModal','summaryJsonInput','saveSummaryForm',
+      'scrapeUrlField','scrapeCategoryField','scrapeForceField'
+    ];
+    const out = {};
+    names.forEach(n => out[n] = !!document.getElementById(n));
+    safeLog('DOM presence', out);
+  }
+  document.addEventListener('DOMContentLoaded', function(){ checkDom(); });
+
+  // Hook markSearchForm submit
+  const msf = document.getElementById('markSearchForm');
+  if(msf){
+    msf.addEventListener('submit', function(e){
+      try{
+        const useReceipts = !!(document.getElementById('useReceiptsSwitch') && document.getElementById('useReceiptsSwitch').checked);
+        safeLog('markSearchForm.submit fired', 'useReceipts=', useReceipts, 'mark=', (document.getElementById('markInput')?.value||''), 'urlInput=', (document.getElementById('scrapeUrlInput')?.value||''));
+      }catch(err){ safeLog('submit hook error', err); }
+    }, true);
+  } else safeLog('markSearchForm NOT FOUND');
+
+  // Hook receipts switch changes
+  const rs = document.getElementById('useReceiptsSwitch');
+  if(rs){
+    rs.addEventListener('change', function(e){
+      safeLog('useReceiptsSwitch change, checked=', rs.checked);
+      // show/hide created url input for visibility
+      const ui = document.getElementById('scrapeUrlInput');
+      if(ui) ui.style.outline = rs.checked ? '2px solid orange' : 'none';
+    });
+  } else safeLog('useReceiptsSwitch NOT FOUND');
+
+  // Monitor fetch to /api/scrape_receipt by wrapping fetch (only for debugging)
+  const origFetch = window.fetch;
+  window.fetch = async function(resource, init){
+    try{
+      if(typeof resource === 'string' && resource.indexOf('/api/scrape_receipt') !== -1){
+        safeLog('FETCH -> /api/scrape_receipt called', resource, init && init.body ? (init.body.length>100 ? init.body.slice(0,100)+'...' : init.body) : init);
+      }
+      if(typeof resource === 'string' && resource.indexOf('/api/confirm_receipt') !== -1){
+        safeLog('FETCH -> /api/confirm_receipt called', resource, init && init.body ? (function(){ try { return JSON.parse(init.body); } catch(e){ return init.body; } })() : init);
+        // Visual cue: flash border on modal
+        const m = document.getElementById('summaryModal');
+        if(m) { m.style.outline = '4px dashed lime'; setTimeout(()=>{ if(m) m.style.outline=''; }, 1200); }
+      }
+    }catch(e){ safeLog('fetch-wrap log failed', e); }
+    return origFetch.apply(this, arguments);
+  };
+
+  // Hook the saveSummaryForm submit (the interceptor should already exist in your code)
+  const ssf = document.getElementById('saveSummaryForm');
+  if(ssf){
+    ssf.addEventListener('submit', function(e){
+      try{
+        // show current fields
+        const summaryVal = (document.getElementById('summaryJsonInput')?.value) || null;
+        const scrapeUrl = document.getElementById('scrapeUrlField')?.value || null;
+        const scrapeCat = document.getElementById('scrapeCategoryField')?.value || null;
+        const scrapeForce = document.getElementById('scrapeForceField')?.value || null;
+        safeLog('saveSummaryForm.submit (intercept) summaryPresent=', !!summaryVal, 'scrapeUrl=', scrapeUrl, 'scrapeCat=', scrapeCat, 'scrapeForce=', scrapeForce);
+        // also pretty-print JSON if small
+        if(summaryVal){
+          try { safeLog('summary JSON', JSON.parse(summaryVal)); } catch(e){ safeLog('summary raw', summaryVal.slice(0,500)); }
+        }
+      }catch(err){ safeLog('saveSummaryForm submit hook error', err); }
+    }, true);
+  } else safeLog('saveSummaryForm NOT FOUND');
+
+  // When modal is shown/hidden, log it
+  const observer = new MutationObserver(function(muts){
+    try{
+      const modal = document.getElementById('summaryModal');
+      if(modal){
+        const style = window.getComputedStyle(modal);
+        if(style.display !== 'none'){
+          safeLog('summaryModal is visible');
+        } else {
+          // optional: safeLog('summaryModal is hidden');
+        }
+      }
+    }catch(e){ safeLog('mutation observer err', e); }
+  });
+  observer.observe(document.documentElement || document.body, { attributes: true, childList: true, subtree: true });
+
+  // Periodic sanity check: print whether modal and form are present every 2s for 6 checks
+  let checks = 0;
+  const interval = setInterval(function(){
+    checks++;
+    const present = {
+      modal: !!document.getElementById('summaryModal'),
+      summaryInput: !!document.getElementById('summaryJsonInput'),
+      saveForm: !!document.getElementById('saveSummaryForm'),
+      urlField: !!document.getElementById('scrapeUrlField')
+    };
+    safeLog('periodic-dom-check', present);
+    if(checks>6) clearInterval(interval);
+  }, 2000);
+
+  safeLog('RC-DEBUG injected');
+})();
+(function RC_AUTO_INJECT_SUMMARY_MODAL(){
+  try {
+    console.log('[RC-DEBUG] periodic-dom-check starting');
+
+    function exists(id){ return !!document.getElementById(id); }
+
+    const needs = {
+      modal: exists('summaryModal'),
+      summaryInput: exists('summaryJsonInput'),
+      saveForm: exists('saveSummaryForm'),
+      urlField: exists('scrapeUrlField')
+    };
+    console.log('[RC-DEBUG] DOM presence (before inject)', needs);
+
+    if (needs.modal && needs.summaryInput && needs.saveForm) {
+      console.log('[RC-DEBUG] All required DOM elements present, no injection needed');
+      return;
+    }
+
+    // Build modal HTML (minimal, matches server-side expected IDs)
+    const modalHtml = `
+<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span></h3>
+      <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
+      <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
+      <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
+      <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
+      <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
+      <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
+      <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
+      <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
+    </div>
+
+    <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
+    <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2"></div>
+
+    <div class="mt-4 flex justify-between items-center">
+      <div class="text-sm text-gray-600">Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη.</div>
+      <div class="flex justify-end gap-2">
+        <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
+          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{}'>
+          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
+          <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
+          <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
+          <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
+        </form>
+        <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
+      </div>
+    </div>
+  </div>
+</div>`.trim();
+
+    // Inject into document.body
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = modalHtml;
+    // append at end of body so it does not break layout
+    document.body.appendChild(wrapper.firstChild);
+
+    // wire close buttons to hide modal (same behavior as original)
+    function hideModal(){
+      const m = document.getElementById('summaryModal');
+      if (m) m.style.display = 'none';
+      try { history.replaceState(null, '', location.pathname + (location.search || '') + location.hash); } catch(e){}
+    }
+    document.getElementById('modalCloseX')?.addEventListener('click', hideModal);
+    document.getElementById('modalCloseBtn')?.addEventListener('click', hideModal);
+
+    // Re-check presence
+    const needs_after = {
+      modal: exists('summaryModal'),
+      summaryInput: exists('summaryJsonInput'),
+      saveForm: exists('saveSummaryForm'),
+      urlField: exists('scrapeUrlField')
+    };
+    console.log('[RC-DEBUG] DOM presence (after inject)', needs_after);
+    console.log('[RC-DEBUG] Auto-injection done — the client flow should now find the modal and form.');
+
+  } catch (e) {
+    console.error('[RC-DEBUG] auto-inject error', e);
+  }
+})();
+(function RC_POPULATE_SUMMARY_MODAL(){
+  try {
+    console.log('[RC-DEBUG] summary-populate init');
+
+    const summaryInput = document.getElementById('summaryJsonInput');
+    const modal = document.getElementById('summaryModal');
+    const markEl = document.getElementById('summaryModalMark');
+    const aaEl = document.getElementById('summary_AA');
+    const afmEl = document.getElementById('summary_AFM');
+    const nameEl = document.getElementById('summary_Name');
+    const issueEl = document.getElementById('summary_issueDate');
+    const typeEl = document.getElementById('summary_type_name');
+    const netEl = document.getElementById('summary_totalNetValue');
+    const vatEl = document.getElementById('summary_totalVatAmount');
+    const totEl = document.getElementById('summary_totalValue');
+    const linesContainer = document.getElementById('summaryLinesContainer');
+
+    if (!summaryInput) {
+      console.warn('[RC-DEBUG] summaryJsonInput NOT FOUND — modal will not populate');
+      return;
+    }
+    if (!modal) {
+      console.warn('[RC-DEBUG] summaryModal NOT FOUND — abort populate watcher');
+      return;
+    }
+
+    let lastVal = '';
+    function safeText(node, v){
+      if(!node) return;
+      node.textContent = (v === null || v === undefined) ? '' : String(v);
+    }
+
+    function renderLines(lines){
+      if(!linesContainer) return;
+      linesContainer.innerHTML = '';
+      if(!Array.isArray(lines) || lines.length === 0){
+        const p = document.createElement('div'); p.className = 'p-2 text-sm text-gray-600'; p.textContent = 'Δεν βρέθηκαν γραμμές.';
+        linesContainer.appendChild(p);
+        return;
+      }
+
+      // build a small table
+      const tbl = document.createElement('table');
+      tbl.className = 'w-full text-sm';
+      tbl.style.borderCollapse = 'collapse';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th class="p-1 border text-left">#</th><th class="p-1 border text-left">Περιγραφή</th><th class="p-1 border text-right">Ποσό</th><th class="p-1 border text-right">ΦΠΑ</th></tr>';
+      tbl.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      lines.forEach((ln, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-1 border text-left">${idx+1}</td>
+                        <td class="p-1 border text-left">${(ln.description||ln.desc||'').toString().slice(0,200)}</td>
+                        <td class="p-1 border text-right">${ln.amount||ln.lineTotal||''}</td>
+                        <td class="p-1 border text-right">${ln.vat||ln.vatRate||''}</td>`;
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      linesContainer.appendChild(tbl);
+    }
+
+    function populateOnce(){
+      try {
+        const v = (summaryInput.value || '').trim();
+        if (!v) {
+          // nothing to show
+          return;
+        }
+        if (v === lastVal) return;
+        lastVal = v;
+        let obj = {};
+        try { obj = JSON.parse(v); } catch(err){
+          console.warn('[RC-DEBUG] failed parsing summaryJsonInput JSON', err, v);
+          return;
+        }
+        console.log('[RC-DEBUG] populate modal from summary JSON', obj);
+
+        safeText(markEl, obj.mark || obj.MARK || (obj.raw && obj.raw.MARK) || '');
+        safeText(aaEl, obj.AA || obj.aa || obj.progressive_aa || (obj.raw && obj.raw.progressive_aa) || '');
+        safeText(afmEl, obj.AFM_issuer || obj.AFM || obj.issuer_vat || (obj.raw && obj.raw.issuer_vat) || '');
+        safeText(nameEl, obj.Name || obj.Name_issuer || obj.issuer_name || (obj.raw && obj.raw.issuer_name) || '');
+        safeText(issueEl, obj.issueDate || obj.issue_date || (obj.raw && obj.raw.issue_date) || '');
+        safeText(typeEl, obj.type_name || obj.type || (obj.raw && obj.raw.doc_type) || '');
+        safeText(netEl, obj.totalNetValue || obj.total_amount || obj.totalValue || (obj.raw && obj.raw.total_amount) || '');
+        safeText(vatEl, obj.totalVatAmount || (obj.raw && obj.raw.totalVatAmount) || '');
+        safeText(totEl, obj.totalValue || obj.total_amount || (obj.raw && obj.raw.total_amount) || '');
+
+        // lines
+        let lines = [];
+        if (Array.isArray(obj.lines) && obj.lines.length) lines = obj.lines;
+        else if (obj.raw && Array.isArray(obj.raw.lines) && obj.raw.lines.length) lines = obj.raw.lines;
+        else if (obj.lines && typeof obj.lines === 'object') {
+          // sometimes backend sends object: try to collect values
+          try {
+            lines = Object.values(obj.lines).filter(x => x);
+          } catch(e){}
+        }
+        renderLines(lines);
+
+        // if modal is hidden, ensure it's visible when populate invoked by scraper flow
+        try {
+          if (modal && modal.style.display === 'none') {
+            modal.style.display = 'flex';
+          }
+        } catch(e){}
+
+      } catch(e){
+        console.error('[RC-DEBUG] populateOnce error', e);
+      }
+    }
+
+    // Start polling for changes to summaryJsonInput.value
+    const poll = setInterval(populateOnce, 250);
+
+    // Also populate when modal opens (observe style attribute)
+    const obs = new MutationObserver(muts => {
+      for(const m of muts){
+        if (m.type === 'attributes' && m.attributeName === 'style'){
+          try { if (modal.style.display !== 'none') populateOnce(); } catch(e){}
+        }
+      }
+    });
+    try { obs.observe(modal, { attributes: true, attributeFilter: ['style'] }); } catch(e){}
+
+    // expose a debug function on window to force populate
+    window.RC_forcePopulateSummaryModal = populateOnce;
+
+    console.log('[RC-DEBUG] summary-populate watcher started');
+
+    // Optional: stop polling after N seconds to be tidy
+    setTimeout(()=>{ clearInterval(poll); console.log('[RC-DEBUG] stopped summary-populate polling (timeout)'); }, 60*1000);
+
+  } catch (err) {
+    console.error('[RC-DEBUG] summary-populate init failed', err);
+  }
+})();
+
 </script>
 
 <style>
