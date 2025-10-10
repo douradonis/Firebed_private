@@ -1545,3 +1545,242 @@ AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_ap
 
 2025-10-10 18:41:25,698 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
+2025-10-10 18:44:00,237 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:00,237 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+
+2025-10-10 18:44:00,362 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+
+2025-10-10 18:44:00,558 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:03,615 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:06,739 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-10 18:44:07,366 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:07,455 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:07,481 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:17,946 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:17,946 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-10 18:44:17,947 INFO delete_invoices: marks_to_delete resolved = ['400011219241352']
+
+2025-10-10 18:44:17,962 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011219241352']
+
+2025-10-10 18:44:17,964 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-10 18:44:17,964 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-10 18:44:17,964 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-10 18:44:18,046 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:18,371 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:18,441 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:44:18,508 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:12,883 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:13,450 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/
+
+2025-10-10 18:58:13,460 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/
+
+2025-10-10 18:58:14,909 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/
+
+2025-10-10 18:58:15,376 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:15,476 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:15,484 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:25,226 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:25,626 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:25,780 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:25,793 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:40,667 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:41,050 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:41,113 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:41,218 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:51,751 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:52,108 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:52,189 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 18:58:52,289 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:17,581 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:18,005 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/fetch
+
+2025-10-10 19:02:18,012 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/fetch
+
+2025-10-10 19:02:18,856 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/fetch
+
+2025-10-10 19:02:19,262 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:19,268 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:19,326 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:27,748 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:28,159 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:28,181 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:28,184 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:30,801 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:31,131 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+
+2025-10-10 19:02:31,178 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+
+2025-10-10 19:02:31,215 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+
+2025-10-10 19:02:31,303 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:02:51,335 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-10 19:02:51,883 INFO Starting app - MYDATA_ENV=production
+
+2025-10-10 19:02:56,336 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:02:56,926 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:02:56,928 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:02:56,949 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:03:00,698 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:03:00,699 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-10 19:03:00,699 INFO delete_invoices: marks_to_delete resolved = ['400011186892779']
+
+2025-10-10 19:03:00,718 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011186892779']
+
+2025-10-10 19:03:00,720 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-10 19:03:00,720 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-10 19:03:00,720 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-10 19:03:00,810 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011186892779
+
+2025-10-10 19:03:01,128 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:01,183 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:01,198 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:02,756 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:03,080 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:03,120 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:03:03,256 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:35,475 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:35,966 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:36,068 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:36,082 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:49,936 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:50,489 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:50,556 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:05:50,590 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:30,512 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:31,050 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:31,171 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:31,177 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:35,288 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:35,641 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:35,835 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:35,862 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:41,351 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:41,702 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:41,761 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:41,783 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:44,674 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:44,674 INFO save_summary: start request from 127.0.0.1
+
+2025-10-10 19:10:44,690 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-10 19:10:44,708 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-10 19:10:44,710 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-10 19:10:44,710 INFO save_summary: appended new epsilon entry for mark=400011172559639 vat=802576637
+
+2025-10-10 19:10:44,851 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:45,290 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:45,388 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:10:45,389 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:27,303 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:27,821 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:27,897 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:27,914 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:30,083 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
+
+2025-10-10 19:12:30,458 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011172559639&force_edit=1
+
+2025-10-10 19:12:30,537 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011172559639&force_edit=1
+
+2025-10-10 19:12:30,545 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011172559639&force_edit=1
+
+2025-10-10 19:12:30,736 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011172559639
+

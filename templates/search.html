@@ -78,87 +78,80 @@
     <!-- LINES -->
     <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
     <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2">
-      {% set _lines = modal_summary.lines if modal_summary.lines is defined else [] %}
+  {% set _lines = modal_summary.lines if modal_summary.lines is defined else [] %}
 
 {% if _lines|length > 1 %}
-  <div class="overflow-auto max-h-96">
-    <table class="w-full border-collapse">
-      <thead class="bg-gray-100 sticky top-0">
-        <tr>
-          <th class="p-2 border text-left">#</th>
-          <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
-          <th class="p-2 border text-right">Ποσό</th>
-          <th class="p-2 border text-right">ΦΠΑ</th>
-          <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for line in _lines %}
-          {% set lid = line.id if line.id is defined else 'l' ~ loop.index0 %}
-          {% set amt = line.amount if line.amount is defined else '' %}
-          {% set vatv = line.vat if line.vat is defined else '' %}
-          {% set vat_cat = line.vatCategory if line.vatCategory is defined else '' %}
-          {% set cat = line.category if line.category is defined else '' %}
-          <tr data-line-id="{{ lid }}" data-vat="{{ vat_cat }}">
-            <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
-            <td class="p-2 border break-words">{{ vat_cat }}</td>
-            <td class="p-2 border text-right">{{ amt }}</td>
-            <td class="p-2 border text-right">{{ vatv }}</td>
-            <td class="p-2 border">
-              <select class="expense-category p-1 border rounded w-full" data-line-id="{{ lid }}">
-                <option value="">-- επίλεξε --</option>
-                {% for c in customer_categories %}
-                  <option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<!-- Multiple lines: πίνακας με select -->
+<table class="w-full border-collapse">
+  <thead class="bg-gray-100 sticky top-0">
+    <tr>
+      <th class="p-2 border text-left">#</th>
+      <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
+      <th class="p-2 border text-right">Ποσό</th>
+      <th class="p-2 border text-right">ΦΠΑ</th>
+      <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in _lines %}
+    {% set lid = line.id if line.id is defined else 'l' ~ loop.index0 %}
+    {% set amt = line.amount if line.amount is defined else '' %}
+    {% set vatv = line.vat if line.vat is defined else '' %}
+    {% set vat_cat = line.vatCategory if line.vatCategory is defined else '' %}
+    {% set cat = line.category if line.category is defined else '' %}
+    <tr data-line-id="{{ lid }}">
+      <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
+      <td class="p-2 border break-words">{{ vat_cat }}</td>
+      <td class="p-2 border text-right">{{ amt }}</td>
+      <td class="p-2 border text-right">{{ vatv }}</td>
+      <td class="p-2 border">
+        <select class="expense-category p-1 border rounded w-full" data-line-id="{{ lid }}">
+          <option value="">-- επίλεξε --</option>
+          {% for c in customer_categories %}
+            <option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 {% elif _lines|length == 1 %}
-  {% set single = _lines[0] %}
-  {% set lid = single.id if single.id is defined else 'l0' %}
-  {% set amt = single.amount if single.amount is defined else '' %}
-  {% set vatv = single.vat if single.vat is defined else '' %}
-  {% set vat_cat = single.vatCategory if single.vatCategory is defined else '' %}
-  {% set selected_cat = single.category if single.category is defined else '' %}
+<!-- Single line: κουμπιά επιλογής -->
+{% set single = _lines[0] %}
+{% set lid = single.id if single.id is defined else 'l0' %}
+{% set amt = single.amount if single.amount is defined else '' %}
+{% set vatv = single.vat if single.vat is defined else '' %}
+{% set vat_cat = single.vatCategory if single.vatCategory is defined else '' %}
+{% set selected_cat = single.category if single.category is defined else '' %}
 
-  <div id="singleLine"
-       class="border rounded p-4"
-       data-line-id="{{ lid }}"
-       data-amount="{{ amt }}"
-       data-vat="{{ vatv }}"
-       data-vatcat="{{ vat_cat|e }}">
-    <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div><strong>ΦΠΑ Κατηγορία</strong><div>{{ vat_cat }}</div></div>
-      <div><strong>Ποσό</strong><div>{{ amt }}</div></div>
-      <div><strong>ΦΠΑ</strong><div>{{ vatv }}</div></div>
-    </div>
-
-    <div class="mb-3">
-      <strong>Επίλεξε Κατηγορία Εξόδου</strong>
-      <div id="categoryButtons" class="mt-2 flex flex-wrap gap-2">
-        {% for c in customer_categories %}
-          <button type="button"
-                  class="category-btn px-3 py-2 border rounded hover:bg-sky-50 {% if c == selected_cat %}bg-sky-600 text-white{% endif %}"
-                  data-cat="{{ c }}"
-                  data-line-id="{{ lid }}">
-            {{ c }}
-          </button>
-        {% endfor %}
-        <button type="button" id="clearCategory" class="px-3 py-2 border rounded text-sm ml-2">Καθαρισμός</button>
-      </div>
+<div class="p-4 border rounded" data-line-id="{{ lid }}">
+  <div><strong>ΦΠΑ Κατηγορία:</strong> {{ vat_cat }}</div>
+  <div><strong>Ποσό:</strong> {{ amt }}</div>
+  <div><strong>ΦΠΑ:</strong> {{ vatv }}</div>
+  <div class="mt-2">
+    <strong>Επίλεξε Κατηγορία Εξόδου:</strong>
+    <div class="flex flex-wrap gap-2 mt-1">
+      {% for c in customer_categories %}
+        <button type="button"
+                class="category-btn px-3 py-2 border rounded hover:bg-sky-50 {% if c == selected_cat %}bg-sky-600 text-white{% endif %}"
+                data-cat="{{ c }}"
+                data-line-id="{{ lid }}">
+          {{ c }}
+        </button>
+      {% endfor %}
+      <button type="button" class="px-3 py-2 border rounded text-sm ml-2 clear-category">Καθαρισμός</button>
     </div>
   </div>
+</div>
 
 {% else %}
-  <div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
+<div>Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
 {% endif %}
 
-    </div>
+</div>
+
 
     <!-- FOOTER -->
     <div class="mt-4 flex justify-between items-center">
@@ -247,6 +240,326 @@ function renderSummaryLinesFromObject(obj) {
   const lines = Array.isArray(obj.lines) ? obj.lines : [];
 
   // helper to persist back to the hidden input
+    (function(){
+  function safeParseJson(s){
+    try { return JSON.parse(s || '{}'); } catch(e){ return {}; }
+  }
+
+  const summaryInput = document.getElementById('summaryJsonInput');
+  const container = document.getElementById('summaryLinesContainer');
+
+  // fallback server-side object (if Jinja rendered modal_summary)
+  const SERVER_MODAL_SUMMARY = (function(){
+    try { return {{ modal_summary | tojson | safe if modal_summary else 'null' }}; } catch(e){ return null; }
+  })();
+
+  // helper to get current summary object (prefer hidden input, fallback server var)
+  function getSummaryObj(){
+    if(summaryInput && summaryInput.value && summaryInput.value.trim() !== ''){
+      const parsed = safeParseJson(summaryInput.value);
+      if(parsed && typeof parsed === 'object') return parsed;
+    }
+    if(SERVER_MODAL_SUMMARY) return SERVER_MODAL_SUMMARY;
+    return { lines: [] };
+  }
+
+  // ensure each line has id and normalized keys
+  function normalizeSummary(summary){
+    if(!summary) summary = {};
+    const lines = Array.isArray(summary.lines) ? summary.lines.slice() : [];
+    const norm = lines.map((l, idx) => {
+      const id = (l && (l.id || l.line_id)) ? String(l.id || l.line_id) : ('l' + idx);
+      return {
+        id: id,
+        description: l && (l.description || l.desc || '') || '',
+        amount: l && (l.amount || l.lineTotal || l.total || '') || '',
+        vat: l && (l.vat || l.vatRate || '') || '',
+        vatCategory: l && (l.vatCategory || l.vat_category || '') || '',
+        category: l && (l.category || l.cat || '') || ''
+      };
+    });
+    return { ...summary, lines: norm };
+  }
+
+  // build DOM for multiple lines (table)
+  function buildTableHTML(lines, categories){
+    const table = document.createElement('table');
+    table.className = 'w-full border-collapse';
+    const thead = document.createElement('thead');
+    thead.className = 'bg-gray-100 sticky top-0';
+    thead.innerHTML = '<tr>' +
+      '<th class="p-2 border text-left">#</th>' +
+      '<th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>' +
+      '<th class="p-2 border text-right">Ποσό</th>' +
+      '<th class="p-2 border text-right">ΦΠΑ</th>' +
+      '<th class="p-2 border text-left">Κατηγορία Εξόδου</th>' +
+      '</tr>';
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    tbody.id = 'renderedLinesTableBody';
+    lines.forEach((ln, idx) => {
+      const tr = document.createElement('tr');
+      tr.dataset.lineId = ln.id || ('l' + idx);
+      tr.dataset.vat = ln.vatCategory || ln.vat || '';
+
+      tr.innerHTML = '<td class="p-2 border text-sm text-gray-600">' + (idx+1) + '</td>' +
+        '<td class="p-2 border break-words">' + escapeHtml(ln.vatCategory || '') + '</td>' +
+        '<td class="p-2 border text-right">' + escapeHtml(String(ln.amount || '')) + '</td>' +
+        '<td class="p-2 border text-right">' + escapeHtml(String(ln.vat || '')) + '</td>' +
+        '<td class="p-2 border"></td>';
+
+      // create select
+      const select = document.createElement('select');
+      select.className = 'expense-category p-1 border rounded w-full';
+      select.dataset.lineId = ln.id || ('l' + idx);
+      const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
+      select.appendChild(emptyOpt);
+      (categories || []).forEach(c => {
+        const o = document.createElement('option'); o.value = c; o.innerText = c;
+        if(c === ln.category) o.selected = true;
+        select.appendChild(o);
+      });
+
+      tr.querySelector('td:last-child').appendChild(select);
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    return table;
+  }
+
+  // build single-line buttons UI
+  function buildSingleLineHTML(line, categories){
+    const wrapper = document.createElement('div');
+    wrapper.className = 'border rounded p-4';
+    wrapper.dataset.lineId = line.id || 'l0';
+
+    const grid = document.createElement('div');
+    grid.className = 'mb-3 grid grid-cols-1 md:grid-cols-3 gap-3';
+    grid.innerHTML = '<div><strong>ΦΠΑ Κατηγορία</strong><div>' + escapeHtml(line.vatCategory || '') + '</div></div>' +
+      '<div><strong>Ποσό</strong><div>' + escapeHtml(String(line.amount || '')) + '</div></div>' +
+      '<div><strong>ΦΠΑ</strong><div>' + escapeHtml(String(line.vat || '')) + '</div></div>';
+    wrapper.appendChild(grid);
+
+    const controls = document.createElement('div');
+    controls.className = 'mb-3';
+    const title = document.createElement('strong');
+    title.innerText = 'Επίλεξε Κατηγορία Εξόδου';
+    controls.appendChild(title);
+
+    const btnwrap = document.createElement('div');
+    btnwrap.id = 'renderedCategoryButtons';
+    btnwrap.className = 'mt-2 flex flex-wrap gap-2';
+    (categories || []).forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
+      btn.dataset.cat = c;
+      btn.dataset.lineId = line.id || 'l0';
+      btn.innerText = c;
+      if(c === line.category){
+        btn.classList.add('bg-sky-600');
+        btn.classList.add('text-white');
+      }
+      btnwrap.appendChild(btn);
+    });
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'px-3 py-2 border rounded text-sm ml-2 clear-category';
+    clearBtn.innerText = 'Καθαρισμός';
+    btnwrap.appendChild(clearBtn);
+
+    controls.appendChild(btnwrap);
+    wrapper.appendChild(controls);
+    return wrapper;
+  }
+
+  function escapeHtml(s){
+    if(!s && s !== 0) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // read categories from server-provided global or from a safe default
+  function getCategories(){
+    try {
+      const js = (function(){ try { return {{ customer_categories | tojson | safe }}; } catch(e){ return null; } })();
+      if(Array.isArray(js) && js.length) return js;
+    } catch(e){}
+    return window.CUSTOMER_CATEGORIES || [];
+  }
+
+  // render everything into the container
+  function renderSummaryLines(){
+    if(!container) return;
+    const summary = normalizeSummary(getSummaryObj());
+    const lines = summary.lines || [];
+    const categories = getCategories();
+
+    // clear container
+    container.innerHTML = '';
+
+    // Title (optional)
+    // const info = document.createElement('div'); info.className='mb-2 text-sm text-gray-700'; container.appendChild(info);
+
+    if(lines.length === 0){
+      const warn = document.createElement('div');
+      warn.className = 'mt-4 p-3 bg-yellow-50 rounded';
+      warn.innerText = 'Δεν βρέθηκαν γραμμές για αυτό το MARK.';
+      container.appendChild(warn);
+      wireInteractions(); // ensure handlers cleared
+      return;
+    }
+
+    if(lines.length === 1){
+      container.appendChild(buildSingleLineHTML(lines[0], categories));
+    } else {
+      container.appendChild(buildTableHTML(lines, categories));
+    }
+
+    // after building DOM, wire events
+    wireInteractions();
+  }
+
+  // update hidden input from current DOM selections/buttons
+  function updateSummaryFromDom(){
+    if(!summaryInput) return;
+    const summary = normalizeSummary(getSummaryObj());
+    const lines = summary.lines;
+
+    // selects (table)
+    document.querySelectorAll('select.expense-category').forEach(sel => {
+      const lid = String(sel.dataset.lineId || '');
+      const pick = sel.value || '';
+      for(let i=0;i<lines.length;i++){
+        if(String(lines[i].id) === lid){ lines[i].category = pick; break; }
+      }
+    });
+
+    // buttons (single-line)
+    document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(btn => {
+      if(btn.classList.contains('bg-sky-600')){
+        const lid = String(btn.dataset.lineId || '');
+        const pick = btn.dataset.cat || '';
+        for(let i=0;i<lines.length;i++){
+          if(String(lines[i].id) === lid){ lines[i].category = pick; break; }
+        }
+      }
+    });
+
+    // clear-button sets empty
+    document.querySelectorAll('.clear-category').forEach(cb => {
+      const parent = cb.closest('[data-line-id]');
+      if(parent){
+        const lid = parent.dataset.lineId || '';
+        for(let i=0;i<lines.length;i++){
+          if(String(lines[i].id) === lid){ lines[i].category = ''; break; }
+        }
+      }
+    });
+
+    // write back
+    try {
+      summary.lines = lines;
+      summaryInput.value = JSON.stringify(summary);
+    } catch(e){
+      console.warn('Failed to stringify summary', e);
+    }
+  }
+
+  // attach event handlers to selects & buttons
+  function wireInteractions(){
+    // remove old handlers by cloning nodes if necessary (to avoid duplicate attachments)
+    document.querySelectorAll('select.expense-category').forEach(sel => {
+      sel.addEventListener('change', function(){
+        updateSummaryFromDom();
+      });
+    });
+
+    // category buttons (single-line)
+    document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const lineId = this.dataset.lineId || '';
+        // toggle this button active/inactive
+        document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(b => {
+          if(b.dataset.lineId === lineId){
+            b.classList.remove('bg-sky-600'); b.classList.remove('text-white');
+          }
+        });
+        const isActive = !(this.classList.contains('bg-sky-600'));
+        if(isActive){
+          this.classList.add('bg-sky-600'); this.classList.add('text-white');
+        } else {
+          this.classList.remove('bg-sky-600'); this.classList.remove('text-white');
+        }
+        updateSummaryFromDom();
+      });
+    });
+
+    // clear buttons
+    document.querySelectorAll('.clear-category').forEach(cb => {
+      cb.addEventListener('click', function(){
+        const parent = cb.closest('[data-line-id]');
+        if(!parent) return;
+        const lid = parent.dataset.lineId || '';
+        // clear UI
+        document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(b => {
+          if(b.dataset.lineId === lid){ b.classList.remove('bg-sky-600'); b.classList.remove('text-white'); }
+        });
+        // if there is a select for same line (unlikely in single-line view) clear it
+        const sel = document.querySelector('select.expense-category[data-line-id="' + lid + '"]');
+        if(sel) sel.value = '';
+        updateSummaryFromDom();
+      });
+    });
+  }
+
+  // watch hidden input changes (some flows set it programmatically before opening modal)
+  let lastSummaryValue = summaryInput ? summaryInput.value : '';
+  function pollSummaryInput(){
+    const now = summaryInput ? summaryInput.value : '';
+    if(now !== lastSummaryValue){
+      lastSummaryValue = now;
+      // re-render so UI matches new data
+      renderSummaryLines();
+    }
+  }
+  let pollTimer = null;
+  try {
+    pollTimer = setInterval(pollSummaryInput, 250);
+    window.addEventListener('beforeunload', ()=> { if(pollTimer) clearInterval(pollTimer); });
+  } catch(e){ /* ignore */ }
+
+  // ensure initial render on load (modal might be shown later)
+  try { renderSummaryLines(); } catch(e){ console.warn('initial renderSummaryLines failed', e); }
+
+  // also re-render whenever modal is shown (in case show logic sets display later)
+  const modal = document.getElementById('summaryModal');
+  if(modal){
+    // intercept style changes to detect show
+    const obs = new MutationObserver(muts => {
+      muts.forEach(m => {
+        if(m.attributeName === 'style' || m.attributeName === 'class'){
+          const disp = window.getComputedStyle(modal).display;
+          if(disp !== 'none'){
+            // modal visible -> render (ensure DOM inside ready)
+            setTimeout(renderSummaryLines, 10);
+          }
+        }
+      });
+    });
+    try { obs.observe(modal, { attributes: true, attributeFilter:['style','class'] }); } catch(e){ /* ignore */ }
+  }
+
+  // expose for debug
+  window._renderSummaryLines = renderSummaryLines;
+})();
   function persist() {
     summaryInput.value = JSON.stringify(obj || {});
   }
