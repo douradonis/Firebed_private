@@ -4183,6 +4183,7 @@ def save_receipt():
     return redirect(url_for("search"))
 
 
+
 @app.route("/api/confirm_receipt", methods=["POST"])
 def api_confirm_receipt():
     import os, json, traceback
@@ -4232,7 +4233,7 @@ def api_confirm_receipt():
         # category we want receipts to have
         chosen_category = (payload.get("category") or summary.get("category") or "αποδειξακια").strip()
 
-        # if the scraped data reports an invoice, refuse (frontend usually shows warning before sending)
+        # if the scraped data reports an invoice, refuse saving as receipt (frontend usually warns)
         if (summary.get("is_invoice") is True) or (str(doc_type).lower().startswith("1") and summary.get("is_invoice") is not True):
             return jsonify({"ok": False, "error": "Document is an invoice, not a receipt (will not save as receipt)."}), 400
 
@@ -4260,8 +4261,9 @@ def api_confirm_receipt():
         os.makedirs(excel_dir, exist_ok=True)
         os.makedirs(epsilon_dir, exist_ok=True)
 
-        # Use AFM + YEAR in excel filename (afm_fiscalyear_invoices.xlsx)
-        excel_path = os.path.join(excel_dir, f"{client_afm}_{year}_invoices.xlsx")
+        # Use ONE excel per client AFM + fiscal year as you requested:
+        excel_filename = f"{client_afm}_{year}_invoices.xlsx"
+        excel_path = os.path.join(excel_dir, excel_filename)
         json_path = os.path.join(epsilon_dir, f"{client_afm}_epsilon_invoices.json")
 
         app.logger.info("api_confirm_receipt: saving for client_afm=%s year=%s mark=%s -> excel=%s json=%s",
@@ -4280,13 +4282,13 @@ def api_confirm_receipt():
                 else:
                     df = pd.DataFrame()
 
-                # Desired columns for invoices sheet (keep compatibility with invoices)
-                desired_cols = ["MARK", "issueDate", "AFM_issuer", "AA", "series", "totalNetValue", "totalVatAmount", "totalValue", "character"]
+                # Desired columns for invoices/receipts sheet (keep compatibility)
+                desired_cols = ["MARK", "issueDate", "AFM_issuer", "AA", "series", "totalNetValue", "totalVatAmount", "totalValue", "character", "type"]
                 for c in desired_cols:
                     if c not in df.columns:
                         df[c] = ""
 
-                # remove existing same MARK
+                # remove existing same MARK (robust)
                 try:
                     df = df[~(df["MARK"].astype(str).fillna("").str.strip() == str(mark).strip())]
                 except Exception:
@@ -4298,12 +4300,16 @@ def api_confirm_receipt():
                     "AFM_issuer": issuer_vat or "",
                     "AA": progressive_aa or "",
                     "series": summary.get("series") or "",
-                    "totalNetValue": total_amount or "",
+                    # For receipts we often only have total -> store both net and total same
+                    "totalNetValue": summary.get("totalNetValue") or total_amount or "",
                     "totalVatAmount": summary.get("totalVatAmount") or "",
-                    "totalValue": total_amount or "",
-                    "character": chosen_category or "αποδειξακια"
+                    "totalValue": summary.get("totalValue") or total_amount or "",
+                    "character": chosen_category or "αποδειξακια",
+                    "type": doc_type or (summary.get("type_name") or "")
                 }
+                # append keeping dataframe columns
                 df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+                # write back (index=False keeps clean excel)
                 df.to_excel(excel_path, index=False)
                 app.logger.info("api_confirm_receipt: excel saved ok (%s rows)", len(df))
         except Exception as e:
@@ -4340,7 +4346,7 @@ def api_confirm_receipt():
                     "series": summary.get("series") or "",
                     "aa": progressive_aa or "",
                     "AA": progressive_aa or "",
-                    "type": doc_type or "",
+                    "type": doc_type or summary.get("type_name") or "",
                     "vatCategory": summary.get("vatCategory") or "",
                     "totalNetValue": (summary.get("totalNetValue") or total_amount or ""),
                     "totalVatAmount": (summary.get("totalVatAmount") or ""),
@@ -4348,11 +4354,8 @@ def api_confirm_receipt():
                     "classification": "",
                     "χαρακτηρισμός": chosen_category or "αποδειξακια",
                     "characteristic": chosen_category or "αποδειξακια",
-                    # AFM/Name fields in example use issuer values for the invoice row,
-                    # but the file is per-client (client_afm) — keep issuer in AFM_issuer and Name_issuer
                     "AFM_issuer": issuer_vat or "",
                     "Name_issuer": issuer_name or "",
-                    # also include AFM/Name (mirror issuer for compatibility)
                     "AFM": issuer_vat or "",
                     "Name": issuer_name or "",
                     "lines": []
@@ -4378,6 +4381,12 @@ def api_confirm_receipt():
                     })
                 else:
                     for idx, ln in enumerate(incoming_lines):
+                        try:
+                            # accept both dict-like or objects
+                            if not isinstance(ln, dict):
+                                ln = dict(ln)
+                        except Exception:
+                            ln = {}
                         try:
                             lid = ln.get("id") or ln.get("line_id") or ln.get("LineId") or (f"{entry['mark']}_inst{idx}")
                             desc = ln.get("description") or ln.get("desc") or ln.get("descriptionText") or ""
@@ -4428,6 +4437,7 @@ def api_confirm_receipt():
         except Exception:
             pass
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 
