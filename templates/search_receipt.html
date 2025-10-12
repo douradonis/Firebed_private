@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block title %}Αναζήτηση Αποδείξεων (MARK){% endblock %}
+
+{% block content %}
+<style>
+/* ensure modal sits on top of everything */
+#receiptsModal,
+#repeatMappingModal,
+#summaryModal,
+#afmWarningModal,
+#receiptWarningModal {
+  z-index: 99999 !important;
+}
+
+/* when a modal is open we lower z-index of sticky/table headers that may overlap */
+.modal-open .summary-table thead,
+.modal-open .dataTables_scrollHead,
+.modal-open .fixedHeader-floating,
+.modal-open thead.sticky {
+  z-index: 1 !important;
+}
+</style>
+
+<div class="bg-white rounded shadow p-6">
+  <h2 class="text-lg font-semibold mb-2">Αναζήτηση Αποδείξεων</h2>
+
+  {% if error %}
+    <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
+  {% endif %}
+
+  <form method="get" class="flex gap-6 items-center flex-wrap" id="markSearchForm">
+    <div class="flex items-center gap-2 flex-1 min-w-[250px]">
+      <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK ή URL"
+             class="p-2 border rounded w-full" value="{{ request.args.get('mark','') }}">
+      <button type="submit" id="searchBtn" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <label class="flex items-center gap-2 text-sm">
+        <span>Αποδείξεις</span>
+        <div class="relative inline-block w-11 h-6">
+          <input type="checkbox" id="docsToggle" class="sr-only peer" checked>
+          <div class="w-full h-6 bg-gray-200 rounded-full peer-checked:bg-sky-600 transition-colors"></div>
+          <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
+        </div>
+      </label>
+      <a href="{{ url_for('search') }}" class="px-3 py-2 border rounded text-sm">Πίσω στα τιμολόγια</a>
+    </div>
+  </form>
+</div>
+
+<!-- Receipts modal (preview & confirm) -->
+<div id="receiptsModal" class="fixed inset-0 flex items-start justify-center bg-black/60 z-60 overflow-auto p-6" style="display:none;">
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-4 relative">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Αποδείξεις — Περίληψη</h3>
+      <button id="receiptsModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
+    </div>
+
+    <div class="overflow-auto max-h-[60vh] border rounded">
+      <table id="receiptsTable" class="w-full border-collapse text-sm">
+        <thead class="bg-gray-100 sticky top-0">
+          <tr>
+            <th class="p-2 border text-left">#</th>
+            <th class="p-2 border text-left">ΑΦΜ</th>
+            <th class="p-2 border text-left">Επωνυμία</th>
+            <th class="p-2 border text-left">Ημερομηνία</th>
+            <th class="p-2 border text-left">Τύπος</th>
+            <th class="p-2 border text-right">Καθαρή Αξία</th>
+            <th class="p-2 border text-right">ΦΠΑ</th>
+            <th class="p-2 border text-right">Σύνολο</th>
+            <th class="p-2 border text-left">Κατηγορία</th>
+            <th class="p-2 border text-left">Ενέργειες</th>
+          </tr>
+        </thead>
+        <tbody id="receiptsModalBody"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2 items-center">
+      <input type="hidden" id="receiptsJsonInput" value='{{ modal_receipts | tojson | safe if modal_receipts is defined else "{}" }}'>
+      <button id="confirmReceiptsBtn" class="bg-sky-600 text-white px-4 py-2 rounded">Επιβεβαίωση Αποδείξεων</button>
+      <button id="receiptsModalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
+    </div>
+  </div>
+</div>
+
+<div id="clientFlashContainer" class="fixed top-4 right-4 z-80"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* endpoints */
+const SCRAPER_RECEIPT_URL = "{{ url_for('api_scrape_receipt') }}";
+const NEXT_RECEIPT_MARK_URL = "{{ url_for('api_next_receipt_mark') }}";
+const CONFIRM_RECEIPT_URL = "{{ url_for('api_confirm_receipt') }}";
+const SEARCH_PAGE = "{{ url_for('search') }}";
+
+const SELECTED_YEAR = "{{ selected_year if selected_year is defined else '' }}";
+
+let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
+
+function showFlash(message, type='info', timeout=3000){
+  try {
+    const container = document.getElementById('clientFlashContainer');
+    if(!container) return;
+    const el = document.createElement('div');
+    el.className = 'mb-2 p-3 rounded shadow text-sm';
+    if(type === 'success') el.classList.add('bg-green-50','text-green-800');
+    else if(type === 'error') el.classList.add('bg-red-50','text-red-800');
+    else el.classList.add('bg-gray-50','text-gray-800');
+    el.innerText = message;
+    container.appendChild(el);
+    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(),300); }catch(e){} }, timeout);
+  } catch(e){ console.warn('showFlash failed', e); }
+}
+
+function populateReceiptsModal(lines){
+  const body = document.getElementById('receiptsModalBody');
+  if(!body) return;
+  body.innerHTML = '';
+  if(!Array.isArray(lines) || lines.length === 0){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td class="p-2 border" colspan="10">Δεν βρέθηκαν αποδείξεις.</td>';
+    body.appendChild(tr);
+    return;
+  }
+
+  lines.forEach((l, idx) => {
+    const tr = document.createElement('tr');
+
+    const categorySelect = document.createElement('select');
+    categorySelect.className = 'p-1 border rounded';
+    const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
+    categorySelect.appendChild(emptyOpt);
+    CUSTOMER_CATEGORIES.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.innerText = c;
+      if(l.category === c) o.selected = true;
+      categorySelect.appendChild(o);
+    });
+
+    tr.innerHTML = `
+      <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
+      <td class="p-2 border">${l.afm || ''}</td>
+      <td class="p-2 border">${l.name || ''}</td>
+      <td class="p-2 border">${l.date || ''}</td>
+      <td class="p-2 border">${l.type || ''}</td>
+      <td class="p-2 border text-right">${l.net || ''}</td>
+      <td class="p-2 border text-right">${l.vat_value || ''}</td>
+      <td class="p-2 border text-right">${l.total || ''}</td>
+      <td class="p-2 border"></td>
+      <td class="p-2 border text-left"></td>
+    `;
+    tr.querySelectorAll('td')[8].appendChild(categorySelect);
+
+    const actionsTd = tr.querySelectorAll('td')[9];
+    if(l.url){
+      const a = document.createElement('a');
+      a.href = l.url;
+      a.target = '_blank';
+      a.rel = 'noreferrer noopener';
+      a.className = 'px-2 py-1 border rounded text-sm mr-1';
+      a.innerText = 'Άνοιγμα';
+      actionsTd.appendChild(a);
+    }
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'px-2 py-1 bg-green-600 text-white rounded text-sm';
+    confirmBtn.innerText = 'Επιβεβαίωση';
+    confirmBtn.addEventListener('click', async function(){
+      const summary = {
+        mark: l.mark || document.getElementById('markInput')?.value || '',
+        AA: l.AA || '',
+        AFM_issuer: l.afm || l.AFM || '',
+        Name: l.name || '',
+        issueDate: l.date || '',
+        type_name: l.type || 'ΑΠΟΔΕΙΞΗ',
+        totalValue: l.total || '',
+        totalNetValue: l.net || '',
+        totalVatAmount: l.vat_value || '',
+        lines: [{ id: l.id || ('r' + idx), amount: l.net || '', vat: l.vat_value || '', vatCategory: l.vatCategory || '', description: l.description || '' }]
+      };
+
+      const payload = {
+        url: l.url || '',
+        summary: summary,
+        force: false,
+        category: (categorySelect.value || ''),
+        afm: summary.AFM_issuer || '',
+        year: (new Date().getFullYear()).toString(),
+        mark: summary.mark || ''
+      };
+
+      try {
+        const res = await fetch(CONFIRM_RECEIPT_URL , {
+          method: 'POST',
+          headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if(!res.ok){
+          const txt = await res.text().catch(()=>null);
+          showFlash('Σφάλμα server: ' + (res.status || '') + ' — ' + (txt || ''), 'error');
+          return;
+        }
+        const resp = await res.json();
+        showFlash(resp.message || 'Αποθηκεύτηκε.', resp.ok ? 'success' : 'error');
+        tr.classList.add('opacity-60');
+        if(resp.next_mark){
+          try { document.getElementById('markInput').value = resp.next_mark; } catch(e){}
+        }
+      } catch(e){
+        console.error('confirm single exception', e);
+        showFlash('Σφάλμα κατά την επιβεβαίωση.', 'error');
+      }
+    });
+    actionsTd.appendChild(confirmBtn);
+
+    body.appendChild(tr);
+  });
+}
+
+async function fetchJson(url, opts){
+  try {
+    const res = await fetch(url, opts);
+    const text = await res.text();
+    try { return { ok: res.ok, status: res.status, payload: JSON.parse(text), raw: text }; }
+    catch(e){ return { ok: res.ok, status: res.status, payload: null, raw: text }; }
+  } catch(e){
+    return { ok: false, error: String(e) };
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  const markForm = document.getElementById('markSearchForm');
+  const markInput = document.getElementById('markInput');
+  const receiptsModal = document.getElementById('receiptsModal');
+  const receiptsJsonInput = document.getElementById('receiptsJsonInput');
+  const receiptsModalCloseX = document.getElementById('receiptsModalCloseX');
+  const receiptsModalCloseBtn = document.getElementById('receiptsModalCloseBtn');
+  const confirmReceiptsBtn = document.getElementById('confirmReceiptsBtn');
+  const docsToggle = document.getElementById('docsToggle');
+
+  function doOpenModal(modalEl){
+    document.body.classList.add('modal-open');
+    if(modalEl){
+      modalEl.style.display = 'flex';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  function doCloseModal(modalEl){
+    document.body.classList.remove('modal-open');
+    if(modalEl){
+      modalEl.style.display = 'none';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+  }
+
+  receiptsModalCloseX?.addEventListener('click', ()=>{ doCloseModal(receiptsModal); });
+  receiptsModalCloseBtn?.addEventListener('click', ()=>{ doCloseModal(receiptsModal); });
+
+  {% if modal_receipts is defined %}
+    try {
+      const serverReceipts = {{ modal_receipts | tojson | safe }};
+      const canon = (serverReceipts && serverReceipts.lines) ? serverReceipts.lines : (serverReceipts || []);
+      populateReceiptsModal(canon);
+      doOpenModal(receiptsModal);
+    } catch(e){ console.warn('server modal_receipts populate failed', e); }
+  {% endif %}
+
+  markForm?.addEventListener('submit', function(evt){
+    evt.preventDefault();
+    (async ()=>{
+      try {
+        showFlash('Αναζήτηση αποδείξεων...', 'info', 1500);
+        const markValRaw = (markInput?.value || '').trim();
+        if(!markValRaw){ showFlash('Δώσε MARK ή URL.', 'error'); return; }
+        const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markValRaw) || markValRaw.indexOf('/') !== -1;
+        const bodyObj = looksLikeUrl ? { url: markValRaw } : { mark: markValRaw };
+
+        const r = await fetchJson(SCRAPER_RECEIPT_URL, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+          credentials: 'include',
+          body: JSON.stringify(bodyObj)
+        });
+        if(!r.ok){ showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error', 5000); console.error('scrape error', r); return; }
+        const payload = r.payload || {};
+
+        // robust source selection: prefer arrays, otherwise raw or payload itself
+        const srcCandidate = (payload.receipts && Array.isArray(payload.receipts)) ? payload.receipts
+                          : (payload.lines && Array.isArray(payload.lines)) ? payload.lines
+                          : (payload.data && Array.isArray(payload.data)) ? payload.data
+                          : (payload.raw && (Array.isArray(payload.raw) || typeof payload.raw === 'object')) ? payload.raw
+                          : payload;
+
+        let lines = [];
+        // if srcCandidate is an array -> use it directly (map if necessary)
+        if(Array.isArray(srcCandidate) && srcCandidate.length){
+          lines = srcCandidate;
+        } else if(typeof srcCandidate === 'object' && !Array.isArray(srcCandidate)){
+          // srcCandidate is object with single document fields (like your example)
+          const s = srcCandidate;
+          const afm = s.issuer_vat || s.issuerVat || s.AFM || s.afm || '';
+          const name = s.issuer_name || s.issuerName || s.Name || s.name || '';
+          const date = s.issue_date || s.issueDate || s.date || '';
+          const is_invoice = (s.is_invoice === true) || (s.doc_type && String(s.doc_type).toLowerCase().indexOf('invoice') !== -1);
+          const type = is_invoice ? 'ΤΙΜΟΛΟΓΙΟ' : 'ΑΠΟΔΕΙΞΗ';
+          const net = s.total_amount || s.totalAmount || s.total || '';
+          const id = s.MARK || s.mark || (s.mark_id || ('r0_' + Date.now()));
+          lines = [{ id, afm, name, date, type, net, vat_value: '', total: net, category:'', url: (s.tried_url || s.triedUrl || s.url || '') }];
+        }
+
+        // final fallback: if still empty, try NEXT_RECEIPT_MARK to produce placeholder
+        if(!lines || lines.length === 0){
+          try {
+            const r2 = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include' });
+            if(r2.ok){
+              const j2 = await r2.json();
+              const nextMark = j2 && j2.next_mark ? j2.next_mark : ('FAKE-'+Date.now());
+              lines = [{ id: nextMark, afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
+            } else {
+              lines = [{ id: ('FAKE-'+Date.now()), afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
+            }
+          } catch(e){
+            lines = [{ id: ('FAKE-'+Date.now()), afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
+          }
+        }
+
+        // Canonicalize
+        const canon = (Array.isArray(lines) ? lines : []).map((l, idx) => {
+          return {
+            id: l.id || l.line_id || l.mark || ('r' + idx),
+            afm: (l.afm || l.AFM || l.issuer_vat || '').toString(),
+            name: (l.name || l.Name || l.issuer_name || '').toString(),
+            date: (l.date || l.issue_date || l.issueDate || '').toString(),
+            type: (l.type || l.type_name || (l.is_invoice? 'ΤΙΜΟΛΟΓΙΟ':'ΑΠΟΔΕΙΞΗ')).toString(),
+            net: (l.net || l.totalNetValue || l.total_amount || '').toString(),
+            vat_value: (l.vat_value || l.totalVatAmount || '').toString(),
+            total: (l.total || l.totalValue || l.total_amount || '').toString(),
+            category: l.category || '',
+            url: l.url || (payload.raw && payload.raw.tried_url) || ''
+          };
+        });
+
+        // store raw+canon in hidden input for confirm step
+        try { document.getElementById('receiptsJsonInput').value = JSON.stringify({ mark: markValRaw, lines: canon, raw_payload: payload }); } catch(e){}
+
+        populateReceiptsModal(canon);
+        doOpenModal(receiptsModal);
+
+        // show warnings only for invoice or YEAR mismatch (no AFM mismatch)
+        try {
+          if(payload.is_invoice || (payload.raw && payload.raw.is_invoice)){
+            alert && openWarningModal && openWarningModal('Προσοχή: το έγγραφο φαίνεται να είναι ΤΙΜΟΛΟΓΙΟ. Έλεγξε πριν αποθηκεύσεις.');
+          }
+
+          (function(){
+            const issueStr = (canon && canon[0] && (canon[0].date || canon[0].issueDate)) || payload.issueDate || payload.issue_date || (payload.raw && (payload.raw.issue_date || payload.raw.issueDate)) || '';
+            const m = (issueStr || '').toString().match(/(\d{4})/);
+            const docYear = m ? parseInt(m[1], 10) : null;
+            const activeYear = (SELECTED_YEAR && SELECTED_YEAR.toString().trim() !== '') ? parseInt(SELECTED_YEAR, 10) : new Date().getFullYear();
+
+            if (docYear && activeYear && docYear !== activeYear) {
+              openWarningModal && openWarningModal('Προσοχή: το έγγραφο φαίνεται να εκδόθηκε το έτος ' + docYear + ' — διαφέρει από το επιλεγμένο έτος ' + activeYear + '.');
+            }
+          })();
+        } catch(e){ console.warn('warning logic failed', e); }
+
+        if(payload.message) showFlash(payload.message, payload.ok ? 'success' : 'error');
+      } catch(e){
+        console.error('scrape exception', e);
+        showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error');
+      }
+    })();
+  });
+
+  // confirm all receipts (bulk)
+  confirmReceiptsBtn?.addEventListener('click', async function(){
+    try {
+      let parsed = {};
+      try{ parsed = JSON.parse(document.getElementById('receiptsJsonInput').value || '{}'); } catch(e){ parsed = {}; }
+      const lines = [];
+      if(parsed && Array.isArray(parsed.lines) && parsed.lines.length){
+        parsed.lines.forEach((l, i) => {
+          const row = document.querySelectorAll('#receiptsModalBody tr')[i];
+          const sel = row ? row.querySelector('select') : null;
+          const category = sel ? sel.value : (l.category || '');
+          lines.push(Object.assign({}, l, { category: category }));
+        });
+      } else {
+        document.querySelectorAll('#receiptsModalBody tr').forEach((row, i) => {
+          const tds = row.querySelectorAll('td');
+          const afm = tds[1]?.innerText.trim() || '';
+          const name = tds[2]?.innerText.trim() || '';
+          const date = tds[3]?.innerText.trim() || '';
+          const type = tds[4]?.innerText.trim() || '';
+          const net = tds[5]?.innerText.trim() || '';
+          const vat_value = tds[6]?.innerText.trim() || '';
+          const total = tds[7]?.innerText.trim() || '';
+          const sel = row.querySelector('select');
+          const category = sel ? sel.value : '';
+          lines.push({ id: 'r'+i, afm, name, date, type, net, vat_value, total, category });
+        });
+      }
+
+      if(lines.length === 0){ showFlash('Δεν υπάρχουν γραμμές για επιβεβαίωση.', 'error'); return; }
+
+      const markVal = (markInput?.value || parsed?.mark || '') || '';
+
+      const payload = { mark: markVal, lines: lines, doc_type: 'receipt' };
+
+      const res = await fetch(CONFIRM_RECEIPT_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        const txt = await res.text().catch(()=>null);
+        showFlash('Σφάλμα server κατά την επιβεβαίωση αποδείξεων.', 'error', 5000);
+        console.error('confirm receipts error', res.status, txt);
+        return;
+      }
+      const resp = await res.json();
+      showFlash(resp.message || 'Αποθηκεύτηκαν οι αποδείξεις.', resp.ok ? 'success' : 'error', 5000);
+      if(resp.ok){ doCloseModal(receiptsModal); }
+
+      try {
+        const nextRes = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include', headers: {'X-Requested-With':'XMLHttpRequest'} });
+        if(nextRes && nextRes.ok){
+          const json = await nextRes.json().catch(()=>null);
+          if(json && json.next_mark){
+            document.getElementById('markInput').value = json.next_mark;
+          } else if(resp.next_mark){
+            document.getElementById('markInput').value = resp.next_mark;
+          }
+        } else if(resp.next_mark){
+          document.getElementById('markInput').value = resp.next_mark;
+        }
+      } catch(e){ /* ignore */ }
+
+    } catch(e){
+      console.error('confirmReceipts exception', e);
+      showFlash('Σφάλμα κατά την επιβεβαίωση αποδείξεων.', 'error');
+    }
+  });
+
+  // docsToggle when unchecked go back to main search
+  docsToggle?.addEventListener('change', function(){
+    if(!this.checked) window.location.href = SEARCH_PAGE;
+  });
+
+  // on ESC close modal
+  document.addEventListener('keydown', (ev) => {
+    if(ev.key === 'Escape'){
+      const receiptsModalEl = document.getElementById('receiptsModal');
+      if(receiptsModalEl && receiptsModalEl.style.display === 'flex'){ doCloseModal(receiptsModalEl); }
+    }
+  });
+});
+</script>
+{% endblock %}
