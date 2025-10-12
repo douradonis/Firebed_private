@@ -34,7 +34,7 @@
       <label for="repeatEntrySwitch" class="flex items-center gap-2 cursor-pointer text-sm">
         <span>Επαναληψιμη εισαγωγή</span>
         <div class="relative inline-block w-11 h-6">
-          <input type="checkbox" id="repeatEntrySwitch" class="sr-only peer">
+          <input type="checkbox" id="repeatEntrySwitch" class="sr-only peer" {% if repeat_entry_enabled %}checked{% endif %}>
           <div class="w-full h-6 bg-gray-200 rounded-full peer-checked:bg-sky-600 transition-colors"></div>
           <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
         </div>
@@ -180,6 +180,7 @@
 </div>
 {% endif %}
 
+
 {# ---------------- Receipts modal (προβολή & save) ---------------- #}
 <div id="receiptsModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-55 overflow-auto p-4" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-4">
@@ -266,7 +267,7 @@
 {% block scripts %}
 <script>
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
-const VAT = "{{ vat or '' }}"; // active vat from server
+const VAT = "{{ vat or '' }}"; // active vat from server (if any)
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
 let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
 
@@ -345,120 +346,6 @@ function safeUpdateUI() {
   }
 }
 
-// Populate receipts modal body
-function populateReceiptsModal(lines){
-  const body = document.getElementById('receiptsModalBody');
-  if(!body) return;
-  body.innerHTML = '';
-  if(!Array.isArray(lines) || lines.length === 0){
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td class="p-2 border" colspan="10">Δεν βρέθηκαν αποδείξεις.</td>';
-    body.appendChild(tr);
-    return;
-  }
-
-  lines.forEach((l, idx) => {
-    const tr = document.createElement('tr');
-
-    const categorySelect = document.createElement('select');
-    categorySelect.className = 'p-1 border rounded';
-    const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
-    categorySelect.appendChild(emptyOpt);
-    CUSTOMER_CATEGORIES.forEach(c => {
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(l.category === c) o.selected = true;
-      categorySelect.appendChild(o);
-    });
-
-    tr.innerHTML = `
-      <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
-      <td class="p-2 border">${l.afm || ''}</td>
-      <td class="p-2 border">${l.name || ''}</td>
-      <td class="p-2 border">${l.date || ''}</td>
-      <td class="p-2 border">${l.type || ''}</td>
-      <td class="p-2 border text-right">${l.net || ''}</td>
-      <td class="p-2 border text-right">${l.vat_value || ''}</td>
-      <td class="p-2 border text-right">${l.total || ''}</td>
-      <td class="p-2 border"></td>
-      <td class="p-2 border text-left"></td>
-    `;
-    // put select into 9th cell
-    tr.querySelectorAll('td')[8].appendChild(categorySelect);
-
-    // actions cell (confirm/save single / open external)
-    const actionsTd = tr.querySelectorAll('td')[9];
-    // open doc button (if url present)
-    if(l.url){
-      const a = document.createElement('a');
-      a.href = l.url;
-      a.target = '_blank';
-      a.rel = 'noreferrer noopener';
-      a.className = 'px-2 py-1 border rounded text-sm mr-1';
-      a.innerText = 'Άνοιγμα';
-      actionsTd.appendChild(a);
-    }
-    // confirm single button
-    const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'px-2 py-1 bg-green-600 text-white rounded text-sm';
-    confirmBtn.innerText = 'Επιβεβαίωση';
-    confirmBtn.addEventListener('click', async function(){
-      // collect summary for this line
-      const summary = {
-        mark: l.mark || document.getElementById('markInput')?.value || '',
-        AA: l.AA || '',
-        AFM_issuer: l.afm || l.AFM || '',
-        Name: l.name || '',
-        issueDate: l.date || '',
-        type_name: l.type || 'ΑΠΟΔΕΙΞΗ',
-        totalValue: l.total || '',
-        totalNetValue: l.net || '',
-        totalVatAmount: l.vat_value || '',
-        lines: [{ id: l.id || ('r' + idx), amount: l.net || '', vat: l.vat_value || '', vatCategory: l.vatCategory || '', description: l.description || '' }]
-      };
-
-      const payload = {
-        url: l.url || '',
-        summary: summary,
-        force: false,
-        category: (categorySelect.value || ''),
-        afm: summary.AFM_issuer || '',
-        year: (new Date().getFullYear()).toString(),
-        mark: summary.mark || ''
-      };
-
-      try {
-        const res = await fetch('{{ url_for("api_confirm_receipt") }}' , {
-          method: 'POST',
-          headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-          credentials: 'same-origin',
-          body: JSON.stringify(payload)
-        });
-        if(!res.ok){
-          const txt = await res.text().catch(()=>null);
-          showFlash('Σφάλμα server: ' + (res.status || ''), 'error');
-          console.error('confirm single error:', res.status, txt);
-          return;
-        }
-        const resp = await res.json();
-        showFlash(resp.message || 'Αποθηκεύτηκε.', resp.ok ? 'success' : 'error');
-        // optionally remove confirmed row or mark it visually
-        tr.classList.add('opacity-60');
-        // if server returns next_mark update input
-        if(resp.next_mark){
-          try { document.getElementById('markInput').value = resp.next_mark; } catch(e){}
-        }
-      } catch(e){
-        console.error('confirm single exception', e);
-        showFlash('Σφάλμα κατά την επιβεβαίωση.', 'error');
-      }
-    });
-    actionsTd.appendChild(confirmBtn);
-
-    body.appendChild(tr);
-  });
-}
-
 // fetch helper with JSON attempts
 async function fetchJson(url, opts){
   try {
@@ -494,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const receiptsModalCloseBtn = document.getElementById('receiptsModalCloseBtn');
   const confirmReceiptsBtn = document.getElementById('confirmReceiptsBtn');
 
-  // endpoints
+  // endpoints (use url_for to avoid hardcoding)
   const SCRAPER_RECEIPT_URL = "{{ url_for('api_scrape_receipt') }}";
   const NEXT_RECEIPT_MARK_URL = "{{ url_for('api_next_receipt_mark') }}";
   const CONFIRM_RECEIPT_URL = "{{ url_for('api_confirm_receipt') }}";
@@ -505,24 +392,45 @@ document.addEventListener('DOMContentLoaded', function(){
   if (repeatSwitch) repeatSwitch.addEventListener('change', safeUpdateUI);
   if (docsToggle) docsToggle.addEventListener('change', safeUpdateUI);
 
-  // wire form submit: if receipts toggle checked -> use API via fetch
+  // --- toggle behavior: redirect to same search route with use_receipts=1 (no new backend route needed)
+  function buildSearchUrl(params){
+    const u = new URL(SEARCH_BASE_URL, window.location.origin);
+    Object.keys(params || {}).forEach(k=>{
+      if(params[k] !== undefined && params[k] !== null && String(params[k]) !== '') u.searchParams.set(k, params[k]);
+    });
+    return u.toString();
+  }
+
+  if (docsToggle){
+    docsToggle.addEventListener('change', function(){
+      const markVal = (markInput && markInput.value) ? markInput.value.trim() : '';
+      if (docsToggle.checked){
+        // append use_receipts=1
+        window.location.href = buildSearchUrl({ mark: markVal, use_receipts:'1' });
+      } else {
+        // go back to search without use_receipts
+        window.location.href = buildSearchUrl({ mark: markVal });
+      }
+    });
+  }
+
+  // intercept form submit: if receipts toggle checked -> call scraper and open modal
   markForm?.addEventListener('submit', function(e){
-    if (docsToggle && docsToggle.checked){
+    const isReceiptsMode = (docsToggle && docsToggle.checked) || (new URL(window.location.href).searchParams.get('use_receipts') === '1');
+    if (isReceiptsMode){
       e.preventDefault();
-      const markValRaw = (markInput?.value || '').trim();
-      if(!markValRaw){ showFlash('Δώσε MARK ή URL για να αναζητηθούν αποδείξεις.','error'); return; }
+      const markVal = (markInput && markInput.value) ? markInput.value.trim() : '';
+      if(!markVal){ showFlash('Δώσε MARK ή URL για να αναζητηθούν αποδείξεις.','error'); return; }
 
       (async ()=>{
         try {
-          showFlash('Αναζήτηση αποδείξεων...', 'info', 1500);
-
-          // Decide payload shape: if looks like URL send { url: ... } else send { mark: ... }
-          const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markValRaw) || markValRaw.indexOf('/') !== -1;
-          const bodyObj = looksLikeUrl ? { url: markValRaw } : { mark: markValRaw };
-
+          showFlash('Αναζήτηση αποδείξεων...', 'info', 1200);
+          // decide payload shape
+          const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markVal) || markVal.indexOf('/') !== -1;
+          const bodyObj = looksLikeUrl ? { url: markVal } : { mark: markVal };
           const r = await fetchJson(SCRAPER_RECEIPT_URL, {
             method: 'POST',
-            headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
+            headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
             credentials: 'include',
             body: JSON.stringify(bodyObj)
           });
@@ -546,27 +454,138 @@ document.addEventListener('DOMContentLoaded', function(){
             url: l.url || l.document_url || ''
           })) : [];
 
-          // update hidden input and modal
-          if(receiptsJsonInput) receiptsJsonInput.value = JSON.stringify({ mark: markValRaw, lines: canon });
+          // populate receipts modal and set hidden input for save
+          if(receiptsJsonInput) receiptsJsonInput.value = JSON.stringify({ mark: markVal, lines: canon });
           populateReceiptsModal(canon);
           if(receiptsModal) receiptsModal.style.display = 'flex';
-          // keep toggle visually checked
           if(docsToggle) docsToggle.checked = true;
 
           if(payload.message) showFlash(payload.message, payload.ok ? 'success' : 'error');
-        } catch(e){
-          console.error('scrape exception', e);
+        } catch(err){
+          console.error('scrape exception', err);
           showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error');
         }
       })();
-    } else {
-      // normal server submit (invoices search)
     }
   });
 
   // receipts modal close handlers
   receiptsModalCloseX?.addEventListener('click', function(){ if(receiptsModal) receiptsModal.style.display = 'none'; });
   receiptsModalCloseBtn?.addEventListener('click', function(){ if(receiptsModal) receiptsModal.style.display = 'none'; });
+
+  // populateReceiptsModal function (renders rows + actions)
+  function populateReceiptsModal(lines){
+    const body = document.getElementById('receiptsModalBody');
+    if(!body) return;
+    body.innerHTML = '';
+    if(!Array.isArray(lines) || lines.length === 0){
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td class="p-2 border" colspan="10">Δεν βρέθηκαν αποδείξεις.</td>';
+      body.appendChild(tr);
+      return;
+    }
+
+    lines.forEach((l, idx) => {
+      const tr = document.createElement('tr');
+
+      const categorySelect = document.createElement('select');
+      categorySelect.className = 'p-1 border rounded';
+      const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
+      categorySelect.appendChild(emptyOpt);
+      CUSTOMER_CATEGORIES.forEach(c => {
+        const o = document.createElement('option'); o.value = c; o.innerText = c;
+        if(l.category === c) o.selected = true;
+        categorySelect.appendChild(o);
+      });
+
+      tr.innerHTML = `
+        <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
+        <td class="p-2 border">${l.afm || ''}</td>
+        <td class="p-2 border">${l.name || ''}</td>
+        <td class="p-2 border">${l.date || ''}</td>
+        <td class="p-2 border">${l.type || ''}</td>
+        <td class="p-2 border text-right">${l.net || ''}</td>
+        <td class="p-2 border text-right">${l.vat_value || ''}</td>
+        <td class="p-2 border text-right">${l.total || ''}</td>
+        <td class="p-2 border"></td>
+        <td class="p-2 border text-left"></td>
+      `;
+      // put select into 9th cell
+      tr.querySelectorAll('td')[8].appendChild(categorySelect);
+
+      // actions cell (confirm/save single / open external)
+      const actionsTd = tr.querySelectorAll('td')[9];
+      // open doc button (if url present)
+      if(l.url){
+        const a = document.createElement('a');
+        a.href = l.url;
+        a.target = '_blank';
+        a.rel = 'noreferrer noopener';
+        a.className = 'px-2 py-1 border rounded text-sm mr-1';
+        a.innerText = 'Άνοιγμα';
+        actionsTd.appendChild(a);
+      }
+      // confirm single button
+      const confirmBtn = document.createElement('button');
+      confirmBtn.type = 'button';
+      confirmBtn.className = 'px-2 py-1 bg-green-600 text-white rounded text-sm';
+      confirmBtn.innerText = 'Επιβεβαίωση';
+      confirmBtn.addEventListener('click', async function(){
+        // collect summary for this line
+        const summary = {
+          mark: l.mark || document.getElementById('markInput')?.value || '',
+          AA: l.AA || '',
+          AFM_issuer: l.afm || l.AFM || '',
+          Name: l.name || '',
+          issueDate: l.date || '',
+          type_name: l.type || 'ΑΠΟΔΕΙΞΗ',
+          totalValue: l.total || '',
+          totalNetValue: l.net || '',
+          totalVatAmount: l.vat_value || '',
+          lines: [{ id: l.id || ('r' + idx), amount: l.net || '', vat: l.vat_value || '', vatCategory: l.vatCategory || '', description: l.description || '' }]
+        };
+
+        const payload = {
+          url: l.url || '',
+          summary: summary,
+          force: false,
+          category: (categorySelect.value || ''),
+          afm: summary.AFM_issuer || (typeof VAT !== 'undefined' && VAT ? VAT : ''),
+          year: (new Date().getFullYear()).toString(),
+          mark: summary.mark || ''
+        };
+
+        try {
+          const res = await fetch(CONFIRM_RECEIPT_URL , {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          });
+          if(!res.ok){
+            const txt = await res.text().catch(()=>null);
+            showFlash('Σφάλμα server: ' + (res.status || ''), 'error');
+            console.error('confirm single error:', res.status, txt);
+            return;
+          }
+          const resp = await res.json();
+          showFlash(resp.message || 'Αποθηκεύτηκε.', resp.ok ? 'success' : 'error');
+          // optionally remove confirmed row or mark it visually
+          tr.classList.add('opacity-60');
+          // if server returns next_mark update input
+          if(resp.next_mark){
+            try { document.getElementById('markInput').value = resp.next_mark; } catch(e){}
+          }
+        } catch(e){
+          console.error('confirm single exception', e);
+          showFlash('Σφάλμα κατά την επιβεβαίωση.', 'error');
+        }
+      });
+      actionsTd.appendChild(confirmBtn);
+
+      body.appendChild(tr);
+    });
+  }
 
   // confirm all receipts in modal (bulk)
   confirmReceiptsBtn?.addEventListener('click', async function(){
@@ -605,8 +624,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
       const markVal = (markInput?.value || parsed?.mark || '') || '';
 
-      // Build payload: send mark and lines; backend expected structure may vary
-      const payload = { mark: markVal, lines: lines, doc_type: 'receipt' };
+      // include afm: prefer first line afm, else VAT template var
+      const afmToSend = (lines[0] && lines[0].afm) ? lines[0].afm : ( (typeof VAT !== 'undefined' && VAT) ? VAT : '' );
+
+      const payload = { mark: markVal, lines: lines, doc_type: 'receipt', afm: afmToSend };
 
       const res = await fetch(CONFIRM_RECEIPT_URL, {
         method: 'POST',
@@ -622,9 +643,9 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       const resp = await res.json();
       showFlash(resp.message || 'Αποθηκεύτηκαν οι αποδείξεις.', resp.ok ? 'success' : 'error', 5000);
-      if(resp.ok) receiptsModal.style.display = 'none';
+      if(resp.ok && receiptsModal) receiptsModal.style.display = 'none';
 
-      // fetch next receipt mark if backend provides next_mark endpoint/field
+      // fetch next receipt mark if backend provides next_mark
       try {
         const nextRes = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include', headers: {'X-Requested-With':'XMLHttpRequest'} });
         if(nextRes && nextRes.ok){
@@ -645,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   });
 
-  // repeat mapping UI builder
+  // repeat mapping UI builder (functions defined earlier in larger script)
   function detectVatKeysFromSummary(){
     if(summaryInput && summaryInput.value){
       try {
@@ -702,9 +723,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function openRepeatModalWithMapping(mapping){
     buildRepeatModalUI(mapping || {});
-    repeatModal.style.display = 'flex';
+    if(repeatModal) repeatModal.style.display = 'flex';
   }
-  function closeRepeatModal(){ repeatModal.style.display = 'none'; }
+  function closeRepeatModal(){ if(repeatModal) repeatModal.style.display = 'none'; }
 
   function collectMappingFromModal(){
     const mapping = {};
@@ -970,38 +991,9 @@ document.addEventListener('DOMContentLoaded', function(){
         });
       }
     }
-
-    try {
-      const anyCheckbox = document.querySelector('input[name="delete_mark"]');
-      if (anyCheckbox){
-        const firstTh = document.querySelector('.summary-table thead th');
-        if (firstTh && !document.getElementById('selectAll')){
-          const chk = document.createElement('input');
-          chk.type = 'checkbox'; chk.id = 'selectAll'; chk.title = 'Επιλογή όλων';
-          chk.style.marginRight = '6px';
-          firstTh.prepend(chk);
-          chk.addEventListener('change', function(){ document.querySelectorAll('input[name="delete_mark"]').forEach(cb => cb.checked = this.checked); });
-        }
-        const headers = Array.from(document.querySelectorAll('.summary-table thead th')).map(h => h.innerText.trim().toLowerCase());
-        let markIdx = headers.findIndex(h => h.includes('mark'));
-        if (markIdx === -1) markIdx = headers.findIndex(h => h.includes('αφμ') || h.includes('afm'));
-        if (markIdx >= 0){
-          document.querySelectorAll('.summary-table tbody tr').forEach(row => {
-            const cb = row.querySelector('input[name="delete_mark"]');
-            if (cb){
-              const td = row.querySelectorAll('td')[markIdx];
-              if (td){
-                const v = td.innerText.trim();
-                if (v) cb.value = v;
-              }
-            }
-          });
-        }
-      }
-    } catch(e){ console.warn('select-all / mark mapping error', e); }
   }
 
-  // restore table when mark cleared
+  // restore table when mark cleared (unchanged)
   (function wireRobustClearRestore(){
     const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
     if (!mi) return;
@@ -1071,6 +1063,6 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch(e){}
   })();
 
-});
+}); // DOMContentLoaded
 </script>
 {% endblock %}
