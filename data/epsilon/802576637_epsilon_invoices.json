@@ -29,16 +29,16 @@
     "_updated_at": "2025-10-10T11:05:59.878406+00:00"
   },
   {
-    "mark": "400011186892779",
+    "mark": "400011184530011",
     "issueDate": "04/10/2025",
-    "series": "8Μ0ΤΔΑ",
-    "aa": "8970",
-    "AA": "8970",
+    "series": "5Μ0ΤΔΑ",
+    "aa": "4626",
+    "AA": "4626",
     "type": "1.1",
     "vatCategory": "",
-    "totalNetValue": "48,39",
-    "totalVatAmount": "11,61",
-    "totalValue": "60,00",
+    "totalNetValue": "45,54",
+    "totalVatAmount": "10,93",
+    "totalValue": "56,47",
     "classification": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
@@ -47,13 +47,14 @@
     "AFM": "094439854",
     "lines": [
       {
-        "id": "400011186892779_inst0",
+        "id": "400011184530011_inst0",
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "48,39",
-        "vat": "11,61",
+        "amount": "45,54",
+        "vat": "10,93",
         "category": "αγορες_α_υλων",
         "vat_category": "ΦΠΑ 24%"
       }
-    ]
+    ],
+    "_updated_at": "2025-10-10T20:01:32.453066+00:00"
   }
 ]

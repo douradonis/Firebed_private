@@ -1,1348 +1,527 @@
-2025-10-10 09:12:45,342 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9.github.dev/
+2025-10-10 19:49:24,116 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:12:45,632 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+2025-10-10 19:49:24,492 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:12:45,636 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+2025-10-10 19:49:24,538 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:12:46,932 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/
+2025-10-10 19:49:24,578 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:12:47,205 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:26,464 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:12:47,228 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:26,838 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 09:12:47,253 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:26,910 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 09:12:52,128 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:26,940 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 09:12:52,128 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-10-10 19:49:27,034 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 09:12:52,215 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-10-10 19:49:30,402 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 09:12:52,438 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:30,402 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 09:14:10,694 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:30,403 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 09:14:11,663 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+2025-10-10 19:49:30,491 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 09:14:11,688 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+2025-10-10 19:49:30,847 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:12,212 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/list
+2025-10-10 19:49:30,896 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:12,508 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:30,910 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:12,648 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:48,604 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:12,657 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:48,605 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
 
-2025-10-10 09:14:21,704 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:48,605 INFO delete_invoices: marks_to_delete resolved = ['400011184530011']
 
-2025-10-10 09:14:21,704 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-10-10 19:49:48,619 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011184530011']
 
-2025-10-10 09:14:21,801 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-10-10 19:49:48,621 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 09:14:21,879 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:48,621 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
 
-2025-10-10 09:14:26,548 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:48,622 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
 
-2025-10-10 09:14:26,549 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-10-10 19:49:48,701 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:26,626 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-10-10 19:49:49,100 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:26,724 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:49,150 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:40,919 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:49,190 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:40,919 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-10-10 19:49:50,347 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:40,991 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-10-10 19:49:50,748 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:14:41,078 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5001.app.github.dev/search
+2025-10-10 19:49:50,802 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:15:49,058 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-10 19:49:50,822 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:16:08,108 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-10 19:49:53,733 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 09:16:21,609 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-10 19:49:53,734 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 09:16:33,644 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-10-10 09:16:34,212 INFO Starting app - MYDATA_ENV=production
-
-2025-10-10 09:16:49,670 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9.github.dev/
-
-2025-10-10 09:16:50,078 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:16:50,095 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:16:51,542 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:16:51,814 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:51,817 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:53,669 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:53,834 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:54,183 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:54,204 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:56,095 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 09:16:56,595 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:16:56,662 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:16:56,706 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:17:05,992 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:17:05,992 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:17:06,090 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:17:06,162 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:17:57,040 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:17:57,485 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/fetch
-
-2025-10-10 09:17:57,573 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/fetch
-
-2025-10-10 09:18:03,516 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/fetch
-
-2025-10-10 09:18:03,540 ERROR Template rendering failed for search.html: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
-    return render_template(template_name, **ctx)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
-    template = app.jinja_env.get_or_select_template(template_name_or_list)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
-    return self.get_template(template_name_or_list, parent, globals)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
-    return self._load_template(name, globals)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
-    template = self.loader.load(self, name, self.make_globals(globals))
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
-    code = environment.compile(source, name, filename)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
-    self.handle_exception(source=source_hint)
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/workspaces/Firebed_private/templates/search.html", line 1196, in template
-    {% endblock %}
-jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
-
-
-2025-10-10 09:18:03,656 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:15,831 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 09:18:16,045 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:16,080 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:16,174 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:28,952 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 09:18:29,343 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:29,349 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:29,375 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:50,731 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:18:50,731 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:18:50,832 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:18:50,927 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:19:17,426 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:19:17,426 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:19:17,512 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:19:17,591 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:19:26,227 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:38,835 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:39,267 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:20:39,279 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:20:40,017 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:20:40,559 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:40,568 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:40,571 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:48,268 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:48,268 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:20:48,349 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:20:48,440 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:20:58,823 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:09,931 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:10,286 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:21:10,308 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:21:10,865 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:21:11,181 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:11,205 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:11,222 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:23,433 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:23,433 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:21:23,513 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:21:23,591 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:21:25,689 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:50,350 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:50,759 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:32:50,764 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:32:51,741 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 09:32:52,167 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:52,228 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:52,280 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:57,078 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:57,078 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 09:32:57,165 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 09:32:57,317 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:32:59,290 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:38:40,142 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:38:41,320 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:38:41,349 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:38:41,774 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:38:42,193 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:38:42,236 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:38:42,267 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:06,565 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:06,985 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:41:07,041 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:41:07,681 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:41:07,710 ERROR Template rendering failed for search.html: Object of type Undefined is not JSON serializable
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
-    return render_template(template_name, **ctx)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/workspaces/Firebed_private/templates/search.html", line 1, in top-level template code
-    {% extends "base.html" %}
-  File "/workspaces/Firebed_private/templates/base.html", line 83, in top-level template code
-    {% block content %}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/Firebed_private/templates/search.html", line 103, in block 'content'
-    <input type="hidden" id="summaryJsonInput" value='{{ last_summary|tojson|safe }}'>
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/filters.py", line 1721, in do_tojson
-    return htmlsafe_json_dumps(value, dumps=dumps, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/utils.py", line 669, in htmlsafe_json_dumps
-    dumps(obj, **kwargs)
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 179, in dumps
-    return json.dumps(obj, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 238, in dumps
-    **kw).encode(obj)
-          ^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 200, in encode
-    chunks = self.iterencode(o, _one_shot=True)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 258, in iterencode
-    return _iterencode(o, 0)
-           ^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 121, in _default
-    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
-TypeError: Object of type Undefined is not JSON serializable
-
-
-2025-10-10 09:41:07,981 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:18,126 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 09:41:18,152 ERROR Template rendering failed for search.html: Object of type Undefined is not JSON serializable
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
-    return render_template(template_name, **ctx)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/workspaces/Firebed_private/templates/search.html", line 1, in top-level template code
-    {% extends "base.html" %}
-  File "/workspaces/Firebed_private/templates/base.html", line 83, in top-level template code
-    {% block content %}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/Firebed_private/templates/search.html", line 6, in block 'content'
-    <input type="hidden" id="summaryJsonInput" value='{{ last_summary|tojson|safe }}'>
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/filters.py", line 1721, in do_tojson
-    return htmlsafe_json_dumps(value, dumps=dumps, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/utils.py", line 669, in htmlsafe_json_dumps
-    dumps(obj, **kwargs)
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 179, in dumps
-    return json.dumps(obj, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 238, in dumps
-    **kw).encode(obj)
-          ^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 200, in encode
-    chunks = self.iterencode(o, _one_shot=True)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 258, in iterencode
-    return _iterencode(o, 0)
-           ^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 121, in _default
-    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
-TypeError: Object of type Undefined is not JSON serializable
-
-
-2025-10-10 09:41:18,320 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:21,933 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 09:41:21,946 ERROR Template rendering failed for search.html: Object of type Undefined is not JSON serializable
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
-    return render_template(template_name, **ctx)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-         ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/workspaces/Firebed_private/templates/search.html", line 1, in top-level template code
-    {% extends "base.html" %}
-  File "/workspaces/Firebed_private/templates/base.html", line 83, in top-level template code
-    {% block content %}{% endblock %}
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/Firebed_private/templates/search.html", line 6, in block 'content'
-    <input type="hidden" id="summaryJsonInput" value='{{ last_summary|tojson|safe }}'>
-    ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/filters.py", line 1721, in do_tojson
-    return htmlsafe_json_dumps(value, dumps=dumps, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/utils.py", line 669, in htmlsafe_json_dumps
-    dumps(obj, **kwargs)
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 179, in dumps
-    return json.dumps(obj, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/__init__.py", line 238, in dumps
-    **kw).encode(obj)
-          ^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 200, in encode
-    chunks = self.iterencode(o, _one_shot=True)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/json/encoder.py", line 258, in iterencode
-    return _iterencode(o, 0)
-           ^^^^^^^^^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/flask/json/provider.py", line 121, in _default
-    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
-TypeError: Object of type Undefined is not JSON serializable
-
-
-2025-10-10 09:41:22,114 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:33,268 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:33,772 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:41:34,511 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:41:34,861 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:34,886 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:41:34,926 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:52:36,829 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 09:52:37,360 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:52:37,379 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:52:37,394 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:58:37,714 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:58:38,936 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:58:38,953 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:58:39,823 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 09:58:40,208 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:58:40,282 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 09:58:40,339 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:02:21,151 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:02:21,151 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:02:21,242 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:02:21,389 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:02:22,992 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:36,098 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:37,266 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:10:37,309 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:10:37,666 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:10:38,040 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:38,081 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:38,108 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:41,536 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:41,789 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:10:41,793 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:10:42,499 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:10:42,772 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 10:10:42,787 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 10:10:43,261 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
-
-2025-10-10 10:10:43,571 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:43,589 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:10:43,617 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:12:08,130 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:12:08,500 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:12:08,505 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:12:09,287 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:12:09,650 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:12:09,672 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:12:09,686 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:13:09,867 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:13:13,520 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:13:13,521 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:13:13,597 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:13:13,775 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:13:17,849 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:15:15,863 INFO Starting app - MYDATA_ENV=production
-
-2025-10-10 10:15:17,387 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:15:17,387 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:15:17,503 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:15:17,724 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:15:19,462 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:36,936 INFO Starting app - MYDATA_ENV=sandbox
-
-2025-10-10 10:18:37,558 INFO Starting app - MYDATA_ENV=production
-
-2025-10-10 10:18:47,122 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:47,469 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:18:47,555 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:18:48,012 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
-
-2025-10-10 10:18:48,598 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:48,688 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:48,708 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:48,712 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:18:48,713 INFO save_summary: start request from 127.0.0.1
-
-2025-10-10 10:18:48,730 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+2025-10-10 19:49:53,750 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
 Traceback (most recent call last):
   File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
     helper(summary, vat=vat)
   File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
     df = df.append(row, ignore_index=True)
          ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
     return object.__getattribute__(self, name)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:48,757 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:49:53,768 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
 
-2025-10-10 10:18:48,761 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:49:53,770 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:18:48,761 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:49:53,770 INFO save_summary: appended new epsilon entry for mark=400011184530011 vat=802576637
 
-2025-10-10 10:18:48,926 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:49:53,864 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,188 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:49:54,264 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,228 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:49:54,301 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,331 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:49:54,316 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,383 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:50:03,860 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,383 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:50:04,272 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,400 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:49,421 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:50:04,328 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,423 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:50:04,361 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,424 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:50:06,354 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:49,513 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:50:06,743 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:49,785 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:50:06,826 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:49,811 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:50:06,839 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:49,815 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:50:06,915 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:49,950 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:22,458 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:49,950 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:51:22,458 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:18:49,963 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:49,982 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:51:22,460 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:18:49,985 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:51:22,461 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:18:49,986 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:51:22,546 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:50,066 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:23,061 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,322 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:23,091 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,347 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:23,100 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,446 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:27,206 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,450 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:27,611 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,450 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:51:27,690 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,464 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:50,483 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:51:27,742 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,486 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:51:29,071 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:50,486 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:51:29,551 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:50,583 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:29,610 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:50,848 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:29,639 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:50,882 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:29,719 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:50,887 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:35,625 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:50,931 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:35,625 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:18:50,932 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:51:35,628 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:18:50,945 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:50,965 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:51:35,628 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:18:50,968 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:51:35,716 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:50,968 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:51:36,133 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,047 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:36,152 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,315 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:36,172 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,339 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:43,159 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,350 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:43,548 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,402 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:43,610 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,402 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:51:43,635 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,415 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:51,434 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:51:45,029 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,437 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:51:45,459 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:51,437 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:51:45,513 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:51,518 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:45,614 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:18:51,778 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:45,707 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:51,825 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:48,063 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:51,834 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:48,064 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:18:51,861 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:48,065 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:18:51,862 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:51:48,157 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:18:51,875 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:18:51,895 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:51:48,532 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,898 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:51:48,570 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,898 INFO save_summary: appended new epsilon entry for mark= vat=802576637
+2025-10-10 19:51:48,584 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,993 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:53,202 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:51,998 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:53,628 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:52,291 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:53,700 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:52,318 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:53,715 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:18:52,332 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:55,831 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:04,137 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:56,359 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:19:04,137 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-10-10 19:51:56,370 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:19:04,137 INFO delete_invoices: marks_to_delete resolved = ['on']
+2025-10-10 19:51:56,414 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:19:04,147 INFO delete_invoices: no matching MARKs found in Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx for deletion: ['on']
+2025-10-10 19:51:56,503 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:19:04,148 INFO delete_invoices: No matching marks found in epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for deletion.
+2025-10-10 19:51:59,101 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:19:04,149 INFO delete_invoices: finished request. requested=1 excel=0 epsilon=0
+2025-10-10 19:51:59,101 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:19:04,225 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:59,103 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:19:04,496 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:59,104 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:19:04,526 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:59,188 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:19:04,543 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:59,572 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,845 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:51:59,610 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,845 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-10-10 19:51:59,627 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,846 INFO delete_invoices: marks_to_delete resolved = ['on']
+2025-10-10 19:53:35,709 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,855 INFO delete_invoices: no matching MARKs found in Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx for deletion: ['on']
+2025-10-10 19:53:36,218 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,856 INFO delete_invoices: No matching marks found in epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for deletion.
+2025-10-10 19:53:36,234 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,856 INFO delete_invoices: finished request. requested=1 excel=0 epsilon=0
+2025-10-10 19:53:36,282 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:08,935 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:37,542 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:19:09,198 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:37,916 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:19:09,228 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:38,000 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:19:09,247 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:38,078 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:21:11,464 INFO Starting app - MYDATA_ENV=production
+2025-10-10 19:53:38,103 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:22:02,526 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 19:53:40,780 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:22:03,206 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:40,780 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:22:03,280 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:40,781 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:22:03,310 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:40,863 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:22:27,412 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 19:53:41,221 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:27,759 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:41,262 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:27,859 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:41,335 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:27,911 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:58,571 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:31,531 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:53:59,048 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:32,567 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
+2025-10-10 19:53:59,053 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:32,676 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
+2025-10-10 19:53:59,120 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:35,187 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
+2025-10-10 19:54:01,392 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:22:35,475 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:01,769 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:22:35,499 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:01,834 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:22:35,511 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:01,927 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:22:55,817 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 19:54:02,014 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:22:56,092 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:04,554 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:22:56,123 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:04,554 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:22:56,127 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:54:04,555 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:23:05,763 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-10 19:54:04,638 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:23:06,419 INFO Starting app - MYDATA_ENV=production
+2025-10-10 19:54:04,985 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:07,542 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9.github.dev/
+2025-10-10 19:54:05,021 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:07,848 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
+2025-10-10 19:54:05,033 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:07,854 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
+2025-10-10 19:56:02,491 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:08,865 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/
+2025-10-10 19:56:03,058 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:09,349 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:03,154 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:09,382 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:03,158 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:09,475 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:05,214 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:23:49,917 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 19:56:05,773 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:23:50,121 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:05,821 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:23:50,135 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:05,855 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:23:50,136 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:06,004 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:24:17,844 INFO Starting app - MYDATA_ENV=production
+2025-10-10 19:56:08,601 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:24:28,754 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:08,601 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:24:28,760 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:56:08,603 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:24:28,760 INFO Built per-mark epsilon entry for mark 400011219241351 (vat 802576637)
+2025-10-10 19:56:08,604 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:24:28,969 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:08,690 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:24:28,984 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:09,031 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:24:29,001 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:09,093 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:28:28,796 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:56:09,214 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:28:29,149 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:16,754 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:28:29,163 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:17,204 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:28:29,177 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:17,245 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:29:51,979 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:17,333 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:29:52,281 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
+2025-10-10 19:57:18,568 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:29:52,312 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
+2025-10-10 19:57:19,009 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:01,827 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/credentials
+2025-10-10 19:57:19,022 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:02,301 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:19,028 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:02,305 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:19,108 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:17,851 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:21,859 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:18,060 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:21,860 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:35:18,267 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:21,860 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:35:19,752 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:21,944 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:19,752 INFO save_summary: start request from 127.0.0.1
+2025-10-10 19:57:22,277 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:19,984 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:35:20,008 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+2025-10-10 19:57:22,310 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:20,011 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 19:57:22,340 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:20,011 INFO save_summary: appended new epsilon entry for mark=400011186892779 vat=802576637
+2025-10-10 19:57:39,763 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:20,202 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:40,114 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:20,514 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:40,168 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:20,529 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:40,186 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:27,022 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:42,532 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:27,022 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-10-10 19:57:42,898 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:27,022 INFO delete_invoices: marks_to_delete resolved = ['on']
+2025-10-10 19:57:42,985 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:27,032 INFO delete_invoices: no matching MARKs found in Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx for deletion: ['on']
+2025-10-10 19:57:43,030 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:35:27,033 INFO delete_invoices: No matching marks found in epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for deletion.
+2025-10-10 19:57:43,067 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:27,033 INFO delete_invoices: finished request. requested=1 excel=0 epsilon=0
+2025-10-10 19:57:45,758 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:27,110 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:45,758 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:35:27,314 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:45,759 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:35:27,319 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:45,844 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:29,257 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:46,197 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:29,480 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:46,233 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:29,561 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 19:57:46,245 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:35,747 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:00:59,197 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:35:35,957 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:00:59,731 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:35,971 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:00:59,828 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,647 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:00:59,844 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,647 INFO save_summary: start request from 127.0.0.1
+2025-10-10 20:01:03,781 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,651 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 20:01:04,151 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,652 INFO save_summary: updated epsilon per-line categories for mark=400011219241351 vat=802576637
+2025-10-10 20:01:04,203 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,738 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:04,223 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:37,943 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:05,781 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:35:38,060 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:06,230 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:44:18,043 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 20:01:06,248 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:44:18,529 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:06,266 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:44:18,532 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:06,429 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:44:18,562 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:09,239 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:44:22,247 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:09,239 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:44:22,463 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:09,240 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:44:22,489 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:09,411 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:44:22,564 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:10,142 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:43,085 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:10,154 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:43,085 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-10-10 20:01:10,244 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:43,175 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-10-10 20:01:17,879 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:43,249 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:18,248 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:45,284 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:18,304 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:50,302 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 20:01:18,323 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:50,686 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:20,325 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:44:50,693 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:20,684 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:44:50,697 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:20,737 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:45:01,295 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:20,752 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:45:01,295 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-10-10 20:01:20,829 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:45:01,296 INFO delete_invoices: marks_to_delete resolved = ['400011219241352']
+2025-10-10 20:01:23,142 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:45:01,313 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011219241352']
+2025-10-10 20:01:23,142 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:45:01,315 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 20:01:23,145 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:45:01,316 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+2025-10-10 20:01:23,146 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:45:01,316 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+2025-10-10 20:01:23,240 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:45:01,417 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:23,619 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:45:01,694 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:23,661 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:45:01,809 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:23,670 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:45:01,818 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:27,430 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:23,239 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-10 20:01:27,798 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:23,589 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:27,843 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:23,627 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:27,853 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:23,640 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:29,290 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:30,469 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:29,650 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:30,724 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:29,711 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:30,841 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:29,722 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:30,858 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:29,811 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:32,657 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:32,452 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:32,862 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+2025-10-10 20:01:32,452 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:48:32,886 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+2025-10-10 20:01:32,454 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
 
-2025-10-10 10:48:32,898 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
+2025-10-10 20:01:32,454 INFO save_summary: updated epsilon per-line categories for mark=400011184530011 vat=802576637
 
-2025-10-10 10:48:32,971 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779
+2025-10-10 20:01:32,536 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:34,703 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779
+2025-10-10 20:01:32,901 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:34,704 INFO save_summary: start request from 127.0.0.1
+2025-10-10 20:01:32,938 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:34,711 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 20:01:32,954 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:34,711 INFO save_summary: updated epsilon per-line categories for mark=400011186892779 vat=802576637
+2025-10-10 20:01:36,399 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:34,886 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779
+2025-10-10 20:01:36,764 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:35,118 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:36,804 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:35,158 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:36,820 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:35,236 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:39,822 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:40,861 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:40,184 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:40,862 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-10-10 20:01:40,239 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:40,862 INFO delete_invoices: marks_to_delete resolved = ['400011186892779']
+2025-10-10 20:01:40,252 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011&force_edit=1
 
-2025-10-10 10:48:40,881 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011186892779']
+2025-10-10 20:01:40,331 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:40,885 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-10 20:01:44,389 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:40,885 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+2025-10-10 20:01:44,390 INFO save_summary: start request from 127.0.0.1
 
-2025-10-10 10:48:40,886 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+2025-10-10 20:01:44,391 INFO save_summary: no per-line changes for mark=400011184530011 vat=802576637
 
-2025-10-10 10:48:40,966 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:44,488 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search?mark=400011184530011
 
-2025-10-10 10:48:41,374 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:44,833 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:41,397 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:44,862 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
-2025-10-10 10:48:41,402 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:45,614 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:45,819 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:45,845 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:45,858 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:47,457 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:47,457 INFO save_summary: start request from 127.0.0.1
-
-2025-10-10 10:48:47,476 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 10:48:47,495 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
-
-2025-10-10 10:48:47,498 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
-
-2025-10-10 10:48:47,498 INFO save_summary: appended new epsilon entry for mark=400011186892779 vat=802576637
-
-2025-10-10 10:48:47,584 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:47,826 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:47,845 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:47,849 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:55,915 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:55,915 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:48:55,992 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:48:56,067 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:57,424 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:48:57,424 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:48:57,504 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:48:57,582 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:49:04,039 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:49:04,040 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:49:04,128 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:49:04,245 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:50:30,003 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:50:30,988 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:50:31,050 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:50:31,462 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/list
-
-2025-10-10 10:50:31,888 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:50:31,943 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:50:31,952 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:18,134 INFO Starting app - MYDATA_ENV=production
-
-2025-10-10 10:51:23,227 INFO Starting app - MYDATA_ENV=production
-
-2025-10-10 10:51:26,789 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 10:51:27,278 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:27,308 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:27,337 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:36,791 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:37,023 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:37,047 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:37,145 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:39,235 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:39,447 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
-
-2025-10-10 10:51:39,467 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
-
-2025-10-10 10:51:39,478 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779&force_edit=1
-
-2025-10-10 10:51:39,555 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779
-
-2025-10-10 10:51:45,034 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search?mark=400011186892779
-
-2025-10-10 10:51:45,278 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:45,303 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:51:45,306 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:21,078 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:21,079 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
-
-2025-10-10 10:54:21,263 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
-
-2025-10-10 10:54:21,432 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:24,714 INFO Incoming request: method=POST path=/api/confirm_receipt remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:27,800 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 10:54:28,061 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:28,150 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:28,180 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:40,502 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:40,503 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
-
-2025-10-10 10:54:40,503 INFO delete_invoices: marks_to_delete resolved = ['400011186892779', '400011219241352']
-
-2025-10-10 10:54:40,521 INFO delete_invoices: deleted 2 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011186892779', '400011219241352']
-
-2025-10-10 10:54:40,525 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
-
-2025-10-10 10:54:40,525 INFO delete_invoices: Deleted 2 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
-
-2025-10-10 10:54:40,526 INFO delete_invoices: finished request. requested=2 excel=2 epsilon=2
-
-2025-10-10 10:54:40,599 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:40,848 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:40,862 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:54:40,898 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:57:12,876 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:57:13,332 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:57:13,365 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:57:13,384 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:58:21,892 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:58:22,288 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:58:22,344 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 10:58:22,348 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:03,171 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 11:03:03,657 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:03,687 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:03,730 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:13,357 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:13,712 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:13,757 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:03:13,758 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:34,856 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
-
-2025-10-10 11:05:35,274 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:35,312 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:35,337 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:51,384 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:51,798 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:51,801 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:51,806 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:59,876 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:05:59,876 INFO save_summary: start request from 127.0.0.1
-
-2025-10-10 11:05:59,880 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
-
-2025-10-10 11:05:59,880 INFO save_summary: updated epsilon per-line categories for mark=400011219241351 vat=802576637
-
-2025-10-10 11:06:00,064 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:00,374 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:00,443 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:00,449 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:16,542 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:16,809 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:16,869 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:16,882 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:22,186 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:22,186 INFO save_summary: start request from 127.0.0.1
-
-2025-10-10 11:06:22,205 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
-Traceback (most recent call last):
-  File "/workspaces/Firebed_private/app.py", line 4069, in save_summary
-    helper(summary, vat=vat)
-  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
-    df = df.append(row, ignore_index=True)
-         ^^^^^^^^^
-  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6318, in __getattr__
-    return object.__getattribute__(self, name)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
-2025-10-10 11:06:22,227 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
-
-2025-10-10 11:06:22,230 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
-
-2025-10-10 11:06:22,231 INFO save_summary: appended new epsilon entry for mark=400011186892779 vat=802576637
-
-2025-10-10 11:06:22,311 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:22,517 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:22,539 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
-
-2025-10-10 11:06:22,571 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://literate-doodle-4jgrv45gggxxc5jq9-5000.app.github.dev/search
+2025-10-10 20:01:44,876 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://fictional-journey-wrqg6w77rv4w2wx7-5000.app.github.dev/search
 
