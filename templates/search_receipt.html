@@ -3,22 +3,11 @@
 
 {% block content %}
 <style>
-/* ensure modal sits on top of everything */
-#receiptsModal,
-#repeatMappingModal,
-#summaryModal,
-#afmWarningModal,
-#receiptWarningModal {
-  z-index: 99999 !important;
-}
-
-/* when a modal is open we lower z-index of sticky/table headers that may overlap */
-.modal-open .summary-table thead,
-.modal-open .dataTables_scrollHead,
-.modal-open .fixedHeader-floating,
-.modal-open thead.sticky {
-  z-index: 1 !important;
-}
+/* modal stacking fixes */
+#receiptsModal,#repeatMappingModal,#summaryModal,#afmWarningModal,#receiptWarningModal{z-index:100000!important}
+.modal-open .summary-table thead,.modal-open .summary-table thead th,.modal-open .dataTables_scrollHead,.modal-open .dataTables_scrollHeadInner,.modal-open .fixedHeader-floating,.modal-open thead.sticky{z-index:1!important;position:relative!important}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999}
+#receiptsModal .bg-white{z-index:100001;position:relative}
 </style>
 
 <div class="bg-white rounded shadow p-6">
@@ -34,7 +23,6 @@
              class="p-2 border rounded w-full" value="{{ request.args.get('mark','') }}">
       <button type="submit" id="searchBtn" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
     </div>
-
     <div class="flex items-center gap-4">
       <label class="flex items-center gap-2 text-sm">
         <span>Αποδείξεις</span>
@@ -49,7 +37,10 @@
   </form>
 </div>
 
-<!-- Receipts modal (preview & confirm) -->
+<!-- store active client AFM here (server may prefill) -->
+<input type="hidden" id="activeClientAfmInput" value="{{ active_client_afm if active_client_afm is defined else '' }}">
+
+<!-- Receipts modal -->
 <div id="receiptsModal" class="fixed inset-0 flex items-start justify-center bg-black/60 z-60 overflow-auto p-6" style="display:none;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-4 relative">
     <div class="flex justify-between items-center mb-3">
@@ -78,6 +69,7 @@
     </div>
 
     <div class="mt-4 flex justify-end gap-2 items-center">
+      <!-- stored parsed payload for confirm step -->
       <input type="hidden" id="receiptsJsonInput" value='{{ modal_receipts | tojson | safe if modal_receipts is defined else "{}" }}'>
       <button id="confirmReceiptsBtn" class="bg-sky-600 text-white px-4 py-2 rounded">Επιβεβαίωση Αποδείξεων</button>
       <button id="receiptsModalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
@@ -90,38 +82,157 @@
 
 {% block scripts %}
 <script>
-/* endpoints */
+/* --- Endpoints (server-side) --- */
 const SCRAPER_RECEIPT_URL = "{{ url_for('api_scrape_receipt') }}";
 const NEXT_RECEIPT_MARK_URL = "{{ url_for('api_next_receipt_mark') }}";
 const CONFIRM_RECEIPT_URL = "{{ url_for('api_confirm_receipt') }}";
-const SEARCH_PAGE = "{{ url_for('search') }}";
-
+const REPEAT_ENTRY_URL = "{{ url_for('repeat_entry_get') if False else '/api/repeat_entry/get' }}";
 const SELECTED_YEAR = "{{ selected_year if selected_year is defined else '' }}";
 
 let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
 
 function showFlash(message, type='info', timeout=3000){
-  try {
-    const container = document.getElementById('clientFlashContainer');
-    if(!container) return;
-    const el = document.createElement('div');
-    el.className = 'mb-2 p-3 rounded shadow text-sm';
-    if(type === 'success') el.classList.add('bg-green-50','text-green-800');
-    else if(type === 'error') el.classList.add('bg-red-50','text-red-800');
-    else el.classList.add('bg-gray-50','text-gray-800');
-    el.innerText = message;
-    container.appendChild(el);
-    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(),300); }catch(e){} }, timeout);
-  } catch(e){ console.warn('showFlash failed', e); }
+  const container = document.getElementById('clientFlashContainer'); if(!container) return;
+  const el = document.createElement('div'); el.className='mb-2 p-3 rounded shadow text-sm';
+  if(type==='success') el.classList.add('bg-green-50','text-green-800');
+  else if(type==='error') el.classList.add('bg-red-50','text-red-800');
+  else el.classList.add('bg-gray-50','text-gray-800');
+  el.innerText = message; container.appendChild(el);
+  setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(),300); }catch(e){} }, timeout);
 }
 
+/* helper fetch json */
+async function fetchJson(url, opts){
+  try {
+    const r = await fetch(url, opts);
+    const txt = await r.text();
+    try { return { ok: r.ok, status: r.status, payload: JSON.parse(txt), raw: txt }; }
+    catch(e){ return { ok: r.ok, status: r.status, payload: null, raw: txt }; }
+  } catch(e){ return { ok:false, error: String(e) }; }
+}
+
+/* canonicalize receipt payload -> returns array of 1+ lines */
+function canonicalizeReceiptPayload(payload){
+  if(!payload) return [];
+  // if payload already has lines/receipts arrays
+  if(Array.isArray(payload.receipts) && payload.receipts.length) return payload.receipts;
+  if(Array.isArray(payload.lines) && payload.lines.length) return payload.lines;
+  if(Array.isArray(payload.data) && payload.data.length) return payload.data;
+
+  // prefer payload.raw (scraper) else payload itself
+  const src = (payload.raw && typeof payload.raw === 'object') ? payload.raw : payload;
+
+  const afm = (src.issuer_vat || src.issuerVat || src.AFM || src.afm || src.vat || payload.afm || '') + '';
+  const name = (src.issuer_name || src.issuerName || src.Name || src.name || '') + '';
+  const date = (src.issue_date || src.issueDate || src.date || '') + '';
+  const is_invoice = (src.is_invoice === true) || (src.doc_type && String(src.doc_type).toLowerCase().includes('invoice')) || (src.doc_type && String(src.doc_type).toLowerCase().includes('τιμολ'));
+  const type = is_invoice ? 'ΤΙΜΟΛΟΓΙΟ' : 'ΑΠΟΔΕΙΞΗ';
+  const net = (src.total_amount || src.total || payload.total_amount || payload.total || '') + '';
+  const vat_value = (src.totalVatAmount || src.totalVat || '') + '';
+  const total = (src.total_amount || src.total || net) + '';
+  const id = (payload.mark || src.MARK || src.mark || ('r_' + Date.now())) + '';
+  const url = (src.tried_url || src.triedUrl || src.url || payload.url || '') + '';
+
+  return [{
+    id: id,
+    afm: afm,
+    name: name,
+    date: date,
+    type: type,
+    net: net,
+    vat_value: vat_value,
+    total: total,
+    category: src.category || payload.category || '',
+    url: url,
+    raw: src
+  }];
+}
+
+/* --- repeat_entry helper to get AFM from server --- */
+async function fetchAfmByVatCandidate(vatCandidate){
+  if(!vatCandidate) return '';
+  const url = REPEAT_ENTRY_URL + '?vat=' + encodeURIComponent(String(vatCandidate));
+  try {
+    const r = await fetch(url, { method:'GET', credentials:'include', headers:{'X-Requested-With':'XMLHttpRequest'} });
+    if(!r.ok) return '';
+    const j = await r.json().catch(()=>null);
+    if(!j) return '';
+    return j.afm || (j.client && (j.client.afm || j.client.vat)) || (j.client && j.client._raw && j.client._raw.vat) || '';
+  } catch(e){ console.warn('fetchAfmByVatCandidate failed', e); return ''; }
+}
+
+/* try many candidates and also call /api/repeat_entry/get (no vat) as fallback */
+async function ensureActiveClientAfm(parsedPayload){
+  try {
+    const hid = document.getElementById('activeClientAfmInput');
+    if(hid && hid.value && hid.value.trim()) return hid.value.trim();
+  } catch(e){}
+
+  const candidates = [];
+  try {
+    const receiptsRaw = JSON.parse(document.getElementById('receiptsJsonInput').value || '{}');
+    if(receiptsRaw && receiptsRaw.mark) candidates.push(receiptsRaw.mark);
+    if(receiptsRaw && Array.isArray(receiptsRaw.lines) && receiptsRaw.lines.length && receiptsRaw.lines[0].afm) candidates.push(receiptsRaw.lines[0].afm);
+    if(parsedPayload && typeof parsedPayload === 'object'){
+      if(parsedPayload.mark) candidates.push(parsedPayload.mark);
+      if(parsedPayload.afm) candidates.push(parsedPayload.afm);
+      if(parsedPayload.client && parsedPayload.client.afm) candidates.push(parsedPayload.client.afm);
+    }
+  } catch(e){}
+  try { if(document.getElementById('markInput')?.value) candidates.push(document.getElementById('markInput').value); } catch(e){}
+
+  for(const c of candidates){
+    try {
+      if(!c) continue;
+      const afm = await fetchAfmByVatCandidate(c);
+      if(afm && afm.trim()){
+        try { document.getElementById('activeClientAfmInput').value = afm.trim(); } catch(e){}
+        return afm.trim();
+      }
+    } catch(e){}
+  }
+
+  // final: call repeat_entry/get without params (session may have active client)
+  try {
+    const r = await fetch(REPEAT_ENTRY_URL, { method:'GET', credentials:'include', headers:{'X-Requested-With':'XMLHttpRequest'} });
+    if(r.ok){
+      const j = await r.json().catch(()=>null);
+      if(j){
+        const afm = j.afm || (j.client && (j.client.afm || j.client.vat)) || (j.client && j.client._raw && j.client._raw.vat) || '';
+        if(afm){ try{ document.getElementById('activeClientAfmInput').value = afm; } catch(e){}; return afm; }
+      }
+    }
+  } catch(e){}
+  return '';
+}
+
+/* wrapper to send confirm */
+async function sendConfirmPayload(payload){
+  console.log('CONFIRM -> payload', payload);
+  showFlash('Αποστολή αποθήκευσης...', 'info', 2000);
+  try {
+    const res = await fetch(CONFIRM_RECEIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+    const txt = await res.text();
+    let parsed = null;
+    try{ parsed = JSON.parse(txt); } catch(e){ parsed = txt; }
+    console.log('CONFIRM <- status', res.status, parsed);
+    return { ok: res.ok, status: res.status, body: parsed };
+  } catch(e){ console.error('sendConfirmPayload error', e); return { ok:false, error: String(e) }; }
+}
+
+/* populate modal table rows */
 function populateReceiptsModal(lines){
   const body = document.getElementById('receiptsModalBody');
   if(!body) return;
   body.innerHTML = '';
-  if(!Array.isArray(lines) || lines.length === 0){
+  if(!Array.isArray(lines) || !lines.length){
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td class="p-2 border" colspan="10">Δεν βρέθηκαν αποδείξεις.</td>';
+    tr.innerHTML = '<td colspan="10" class="p-2 border">Δεν βρέθηκαν αποδείξεις.</td>';
     body.appendChild(tr);
     return;
   }
@@ -130,14 +241,10 @@ function populateReceiptsModal(lines){
     const tr = document.createElement('tr');
 
     const categorySelect = document.createElement('select');
-    categorySelect.className = 'p-1 border rounded';
+    categorySelect.className='p-1 border rounded';
     const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
     categorySelect.appendChild(emptyOpt);
-    CUSTOMER_CATEGORIES.forEach(c => {
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(l.category === c) o.selected = true;
-      categorySelect.appendChild(o);
-    });
+    CUSTOMER_CATEGORIES.forEach(c => { const o = document.createElement('option'); o.value = c; o.innerText = c; if(l.category === c) o.selected = true; categorySelect.appendChild(o); });
 
     tr.innerHTML = `
       <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
@@ -154,65 +261,68 @@ function populateReceiptsModal(lines){
     tr.querySelectorAll('td')[8].appendChild(categorySelect);
 
     const actionsTd = tr.querySelectorAll('td')[9];
-    if(l.url){
-      const a = document.createElement('a');
-      a.href = l.url;
-      a.target = '_blank';
-      a.rel = 'noreferrer noopener';
-      a.className = 'px-2 py-1 border rounded text-sm mr-1';
-      a.innerText = 'Άνοιγμα';
-      actionsTd.appendChild(a);
-    }
+    if(l.url){ const a=document.createElement('a'); a.href=l.url; a.target='_blank'; a.rel='noreferrer noopener'; a.className='px-2 py-1 border rounded text-sm mr-1'; a.innerText='Άνοιγμα'; actionsTd.appendChild(a); }
+
     const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'px-2 py-1 bg-green-600 text-white rounded text-sm';
-    confirmBtn.innerText = 'Επιβεβαίωση';
+    confirmBtn.type='button'; confirmBtn.className='px-2 py-1 bg-green-600 text-white rounded text-sm'; confirmBtn.innerText='Επιβεβαίωση';
     confirmBtn.addEventListener('click', async function(){
+      // stored parsed payload
+      let stored = {};
+      try { stored = JSON.parse(document.getElementById('receiptsJsonInput').value || '{}'); } catch(e){ stored = {}; }
+
+      const rawPayload = stored.raw_payload || {};
+      let effectiveMark = stored.mark || rawPayload.mark || (rawPayload.raw && (rawPayload.raw.MARK || rawPayload.raw.mark)) || document.getElementById('markInput')?.value || '';
+
       const summary = {
-        mark: l.mark || document.getElementById('markInput')?.value || '',
-        AA: l.AA || '',
-        AFM_issuer: l.afm || l.AFM || '',
-        Name: l.name || '',
-        issueDate: l.date || '',
-        type_name: l.type || 'ΑΠΟΔΕΙΞΗ',
-        totalValue: l.total || '',
-        totalNetValue: l.net || '',
-        totalVatAmount: l.vat_value || '',
-        lines: [{ id: l.id || ('r' + idx), amount: l.net || '', vat: l.vat_value || '', vatCategory: l.vatCategory || '', description: l.description || '' }]
+        mark: effectiveMark,
+        issueDate: l.date || (l.raw && (l.raw.issue_date || l.raw.issueDate)) || '',
+        AA: (l.raw && (l.raw.progressive_aa || l.raw.progressiveAA)) || '',
+        AFM_issuer: l.afm || (l.raw && (l.raw.issuer_vat || l.raw.AFM)) || '',
+        Name: l.name || (l.raw && l.raw.issuer_name) || '',
+        type_name: l.type || (l.raw && l.raw.doc_type) || '',
+        totalValue: l.total || l.net || (l.raw && (l.raw.total_amount || l.raw.total)) || '',
+        totalNetValue: l.net || (l.raw && (l.raw.total_amount || l.raw.total)) || '',
+        totalVatAmount: l.vat_value || (l.raw && (l.raw.totalVatAmount || l.raw.totalVat)) || ''
       };
 
+      let afm = (document.getElementById('activeClientAfmInput')?.value || '').toString().trim();
+      if(!afm) afm = await ensureActiveClientAfm({ mark: effectiveMark, afm: l.afm || summary.AFM_issuer || '' }) || '';
+
+      if(effectiveMark && (effectiveMark.indexOf('/') !== -1 || effectiveMark.toLowerCase().startsWith('http'))){
+        try {
+          const nr = await fetch(NEXT_RECEIPT_MARK_URL, { method:'GET', credentials:'include', headers:{'X-Requested-With':'XMLHttpRequest'} });
+          if(nr.ok){ const nj = await nr.json().catch(()=>null); if(nj && nj.next_mark) effectiveMark = nj.next_mark; else effectiveMark = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14); }
+          else effectiveMark = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14);
+        } catch(e){ effectiveMark = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14); }
+        summary.mark = effectiveMark;
+      }
+
       const payload = {
+        mark: effectiveMark || summary.mark || '',
         url: l.url || '',
         summary: summary,
         force: false,
-        category: (categorySelect.value || ''),
-        afm: summary.AFM_issuer || '',
-        year: (new Date().getFullYear()).toString(),
-        mark: summary.mark || ''
+        category: (categorySelect.value || 'αποδειξακια'),
+        afm: afm || '',
+        year: (SELECTED_YEAR && SELECTED_YEAR.toString().trim()!=='') ? SELECTED_YEAR : (new Date().getFullYear()).toString(),
+        lines: [ {
+          id: l.id || (summary.mark + '_inst0'),
+          description: summary.Name || '',
+          amount: summary.totalNetValue || summary.totalValue || '',
+          vat: summary.totalVatAmount || '',
+          category: (categorySelect.value || 'αποδειξακια')
+        } ]
       };
 
-      try {
-        const res = await fetch(CONFIRM_RECEIPT_URL , {
-          method: 'POST',
-          headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-        if(!res.ok){
-          const txt = await res.text().catch(()=>null);
-          showFlash('Σφάλμα server: ' + (res.status || '') + ' — ' + (txt || ''), 'error');
-          return;
-        }
-        const resp = await res.json();
-        showFlash(resp.message || 'Αποθηκεύτηκε.', resp.ok ? 'success' : 'error');
-        tr.classList.add('opacity-60');
-        if(resp.next_mark){
-          try { document.getElementById('markInput').value = resp.next_mark; } catch(e){}
-        }
-      } catch(e){
-        console.error('confirm single exception', e);
-        showFlash('Σφάλμα κατά την επιβεβαίωση.', 'error');
+      if(!payload.afm){
+        showFlash('Δεν βρέθηκε ΑΦΜ ενεργού πελάτη — δεν αποστέλλεται.', 'error', 6000);
+        console.warn('Refuse send: no AFM resolved for payload', payload);
+        return;
       }
+
+      const result = await sendConfirmPayload(payload);
+      if(result.ok){ showFlash('Αποθηκεύτηκε αποδειξη.', 'success', 3000); tr.classList.add('opacity-60'); setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 450); }
+      else { showFlash('Σφάλμα αποθήκευσης: ' + (result.body?.error || result.error || 'server'), 'error', 6000); }
     });
     actionsTd.appendChild(confirmBtn);
 
@@ -220,245 +330,201 @@ function populateReceiptsModal(lines){
   });
 }
 
-async function fetchJson(url, opts){
-  try {
-    const res = await fetch(url, opts);
-    const text = await res.text();
-    try { return { ok: res.ok, status: res.status, payload: JSON.parse(text), raw: text }; }
-    catch(e){ return { ok: res.ok, status: res.status, payload: null, raw: text }; }
-  } catch(e){
-    return { ok: false, error: String(e) };
-  }
-}
-
+/* DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
-  const markForm = document.getElementById('markSearchForm');
-  const markInput = document.getElementById('markInput');
-  const receiptsModal = document.getElementById('receiptsModal');
-  const receiptsJsonInput = document.getElementById('receiptsJsonInput');
-  const receiptsModalCloseX = document.getElementById('receiptsModalCloseX');
-  const receiptsModalCloseBtn = document.getElementById('receiptsModalCloseBtn');
-  const confirmReceiptsBtn = document.getElementById('confirmReceiptsBtn');
-  const docsToggle = document.getElementById('docsToggle');
+  const markForm=document.getElementById('markSearchForm');
+  const markInput=document.getElementById('markInput');
+  const receiptsModal=document.getElementById('receiptsModal');
+  const receiptsJsonInput=document.getElementById('receiptsJsonInput');
+  const receiptsModalCloseX=document.getElementById('receiptsModalCloseX');
+  const receiptsModalCloseBtn=document.getElementById('receiptsModalCloseBtn');
+  const confirmReceiptsBtn=document.getElementById('confirmReceiptsBtn');
 
-  function doOpenModal(modalEl){
-    document.body.classList.add('modal-open');
-    if(modalEl){
-      modalEl.style.display = 'flex';
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
+  function doOpenModal(modalEl){ document.body.classList.add('modal-open'); if(modalEl){ modalEl.style.display='flex'; document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; } }
+  function doCloseModal(modalEl){ document.body.classList.remove('modal-open'); if(modalEl){ modalEl.style.display='none'; document.documentElement.style.overflow=''; document.body.style.overflow=''; } }
+
+  receiptsModalCloseX?.addEventListener('click', ()=>doCloseModal(receiptsModal));
+  receiptsModalCloseBtn?.addEventListener('click', ()=>doCloseModal(receiptsModal));
+
+  // ------- BOOTSTRAP: parse server-provided receiptsJsonInput BUT DO NOT AUTO-OPEN -------
+  try {
+    const hidden = document.getElementById('receiptsJsonInput');
+    if(hidden && hidden.value){
+      try {
+        const parsed = hidden.value ? JSON.parse(hidden.value) : {};
+        const lines = canonicalizeReceiptPayload(parsed);
+        if(Array.isArray(lines) && lines.length){
+          // store normalized payload for later (but don't populate/open automatically)
+          hidden.value = JSON.stringify({ mark: parsed.mark || (lines[0] && lines[0].id) || '', lines: lines, raw_payload: parsed });
+          console.log('Bootstrap: stored parsed receipts (modal will not auto-open).');
+        }
+      } catch(e){ console.warn('Bootstrap parse error', e); }
     }
-  }
-  function doCloseModal(modalEl){
-    document.body.classList.remove('modal-open');
-    if(modalEl){
-      modalEl.style.display = 'none';
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-    }
-  }
+  } catch(e){ console.warn('Bootstrap receiptsJsonInput check failed', e); }
+  // -------------------------------------------------------------------------------------
 
-  receiptsModalCloseX?.addEventListener('click', ()=>{ doCloseModal(receiptsModal); });
-  receiptsModalCloseBtn?.addEventListener('click', ()=>{ doCloseModal(receiptsModal); });
-
-  {% if modal_receipts is defined %}
-    try {
-      const serverReceipts = {{ modal_receipts | tojson | safe }};
-      const canon = (serverReceipts && serverReceipts.lines) ? serverReceipts.lines : (serverReceipts || []);
-      populateReceiptsModal(canon);
-      doOpenModal(receiptsModal);
-    } catch(e){ console.warn('server modal_receipts populate failed', e); }
-  {% endif %}
+  // prefetch AFM on load (non-blocking)
+  (async function prefetchAfm(){ try{ const afm = await ensureActiveClientAfm({}); if(afm){ console.log('Prefetched active client AFM:', afm); showFlash('Εντοπίστηκε ΑΦΜ ενεργού πελάτη: ' + afm, 'info', 2200); } }catch(e){ console.warn('prefetchAfm failed', e); } })();
 
   markForm?.addEventListener('submit', function(evt){
     evt.preventDefault();
     (async ()=>{
-      try {
-        showFlash('Αναζήτηση αποδείξεων...', 'info', 1500);
-        const markValRaw = (markInput?.value || '').trim();
-        if(!markValRaw){ showFlash('Δώσε MARK ή URL.', 'error'); return; }
-        const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markValRaw) || markValRaw.indexOf('/') !== -1;
-        const bodyObj = looksLikeUrl ? { url: markValRaw } : { mark: markValRaw };
+      const markValRaw = (markInput?.value || '').trim();
+      if(!markValRaw){ showFlash('Δώσε MARK ή URL.','error'); return; }
+      const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markValRaw) || markValRaw.indexOf('/') !== -1;
+      const bodyObj = looksLikeUrl ? { url: markValRaw } : { mark: markValRaw };
 
-        const r = await fetchJson(SCRAPER_RECEIPT_URL, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-          credentials: 'include',
+      try {
+        showFlash('Αναζήτηση αποδείξεων...','info',1200);
+        const r = await fetch(SCRAPER_RECEIPT_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+          credentials:'include',
           body: JSON.stringify(bodyObj)
         });
-        if(!r.ok){ showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error', 5000); console.error('scrape error', r); return; }
-        const payload = r.payload || {};
-
-        // robust source selection: prefer arrays, otherwise raw or payload itself
-        const srcCandidate = (payload.receipts && Array.isArray(payload.receipts)) ? payload.receipts
-                          : (payload.lines && Array.isArray(payload.lines)) ? payload.lines
-                          : (payload.data && Array.isArray(payload.data)) ? payload.data
-                          : (payload.raw && (Array.isArray(payload.raw) || typeof payload.raw === 'object')) ? payload.raw
-                          : payload;
-
-        let lines = [];
-        // if srcCandidate is an array -> use it directly (map if necessary)
-        if(Array.isArray(srcCandidate) && srcCandidate.length){
-          lines = srcCandidate;
-        } else if(typeof srcCandidate === 'object' && !Array.isArray(srcCandidate)){
-          // srcCandidate is object with single document fields (like your example)
-          const s = srcCandidate;
-          const afm = s.issuer_vat || s.issuerVat || s.AFM || s.afm || '';
-          const name = s.issuer_name || s.issuerName || s.Name || s.name || '';
-          const date = s.issue_date || s.issueDate || s.date || '';
-          const is_invoice = (s.is_invoice === true) || (s.doc_type && String(s.doc_type).toLowerCase().indexOf('invoice') !== -1);
-          const type = is_invoice ? 'ΤΙΜΟΛΟΓΙΟ' : 'ΑΠΟΔΕΙΞΗ';
-          const net = s.total_amount || s.totalAmount || s.total || '';
-          const id = s.MARK || s.mark || (s.mark_id || ('r0_' + Date.now()));
-          lines = [{ id, afm, name, date, type, net, vat_value: '', total: net, category:'', url: (s.tried_url || s.triedUrl || s.url || '') }];
+        if(!r.ok){
+          const txt = await r.text().catch(()=>null);
+          showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.','error',5000);
+          console.error('scrape error', r.status, txt);
+          return;
         }
 
-        // final fallback: if still empty, try NEXT_RECEIPT_MARK to produce placeholder
-        if(!lines || lines.length === 0){
-          try {
-            const r2 = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include' });
-            if(r2.ok){
-              const j2 = await r2.json();
-              const nextMark = j2 && j2.next_mark ? j2.next_mark : ('FAKE-'+Date.now());
-              lines = [{ id: nextMark, afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
-            } else {
-              lines = [{ id: ('FAKE-'+Date.now()), afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
-            }
-          } catch(e){
-            lines = [{ id: ('FAKE-'+Date.now()), afm:'', name:'', date:'', type:'', net:'', vat_value:'', total:'', category:'', url:'' }];
-          }
+        const payload = await r.json().catch(()=>null) || {};
+        console.log('SCRAPE ->', payload);
+
+        // effectiveMark: prefer payload.mark then payload.raw.MARK then user input
+        const effectiveMark = payload.mark || (payload.raw && (payload.raw.MARK || payload.raw.mark)) || markValRaw;
+
+        // canonicalize into lines
+        let lines = canonicalizeReceiptPayload(payload);
+
+        // fallback already handled by canonicalizeReceiptPayload (ensures at least one)
+        if(!Array.isArray(lines) || lines.length === 0){
+          // as a defensive fallback (shouldn't happen), create a minimal line
+          const src = (payload.raw && typeof payload.raw === 'object') ? payload.raw : payload;
+          const fallbackId = (payload.mark || src.MARK || ('r_' + Date.now())) + '';
+          const fallbackAfm = (src.issuer_vat || src.issuerVat || src.AFM || src.afm || '') + '';
+          const fallbackName = (src.issuer_name || src.issuerName || src.Name || src.name || '') + '';
+          const fallbackDate = (src.issue_date || src.issueDate || src.date || '') + '';
+          const fallbackTotal = (src.total_amount || src.total || payload.total_amount || payload.total || '') + '';
+          const fallbackUrl = (src.tried_url || src.triedUrl || src.url || payload.url || '') + '';
+
+          lines = [{
+            id: fallbackId,
+            afm: fallbackAfm,
+            name: fallbackName,
+            date: fallbackDate,
+            type: ((src.doc_type && String(src.doc_type)) || (payload.doc_type || '')) + '',
+            net: fallbackTotal,
+            vat_value: (src.totalVatAmount || src.totalVat || '') + '',
+            total: fallbackTotal,
+            category: src.category || payload.category || '',
+            url: fallbackUrl,
+            raw: src
+          }];
+          console.log('Fallback lines created:', lines);
         }
 
-        // Canonicalize
-        const canon = (Array.isArray(lines) ? lines : []).map((l, idx) => {
-          return {
-            id: l.id || l.line_id || l.mark || ('r' + idx),
-            afm: (l.afm || l.AFM || l.issuer_vat || '').toString(),
-            name: (l.name || l.Name || l.issuer_name || '').toString(),
-            date: (l.date || l.issue_date || l.issueDate || '').toString(),
-            type: (l.type || l.type_name || (l.is_invoice? 'ΤΙΜΟΛΟΓΙΟ':'ΑΠΟΔΕΙΞΗ')).toString(),
-            net: (l.net || l.totalNetValue || l.total_amount || '').toString(),
-            vat_value: (l.vat_value || l.totalVatAmount || '').toString(),
-            total: (l.total || l.totalValue || l.total_amount || '').toString(),
-            category: l.category || '',
-            url: l.url || (payload.raw && payload.raw.tried_url) || ''
-          };
-        });
+        // store parsed result (raw payload + effective mark + lines)
+        receiptsJsonInput.value = JSON.stringify({ mark: effectiveMark, lines: lines, raw_payload: payload });
 
-        // store raw+canon in hidden input for confirm step
-        try { document.getElementById('receiptsJsonInput').value = JSON.stringify({ mark: markValRaw, lines: canon, raw_payload: payload }); } catch(e){}
+        // prefetch AFM based on scraped data (will write to hidden input if found)
+        try {
+          const afmFromPayload = payload.issuer_vat || (lines[0] && lines[0].afm) || '';
+          await ensureActiveClientAfm({ mark: effectiveMark, afm: afmFromPayload });
+        } catch(e){
+          console.warn('ensureActiveClientAfm failed', e);
+        }
 
-        populateReceiptsModal(canon);
+        // populate modal with lines and open it (only after successful fetch)
+        populateReceiptsModal(lines);
         doOpenModal(receiptsModal);
 
-        // show warnings only for invoice or YEAR mismatch (no AFM mismatch)
-        try {
-          if(payload.is_invoice || (payload.raw && payload.raw.is_invoice)){
-            alert && openWarningModal && openWarningModal('Προσοχή: το έγγραφο φαίνεται να είναι ΤΙΜΟΛΟΓΙΟ. Έλεγξε πριν αποθηκεύσεις.');
-          }
+        // warn if invoice
+        if(payload.is_invoice || (lines[0] && lines[0].type && lines[0].type.toUpperCase().includes('ΤΙΜΟΛΟΓΙΟ'))){
+          showFlash('Προσοχή: το έγγραφο φαίνεται να είναι ΤΙΜΟΛΟΓΙΟ. Έλεγξε πριν αποθηκεύσεις.','error',6000);
+        }
 
-          (function(){
-            const issueStr = (canon && canon[0] && (canon[0].date || canon[0].issueDate)) || payload.issueDate || payload.issue_date || (payload.raw && (payload.raw.issue_date || payload.raw.issueDate)) || '';
-            const m = (issueStr || '').toString().match(/(\d{4})/);
-            const docYear = m ? parseInt(m[1], 10) : null;
-            const activeYear = (SELECTED_YEAR && SELECTED_YEAR.toString().trim() !== '') ? parseInt(SELECTED_YEAR, 10) : new Date().getFullYear();
-
-            if (docYear && activeYear && docYear !== activeYear) {
-              openWarningModal && openWarningModal('Προσοχή: το έγγραφο φαίνεται να εκδόθηκε το έτος ' + docYear + ' — διαφέρει από το επιλεγμένο έτος ' + activeYear + '.');
-            }
-          })();
-        } catch(e){ console.warn('warning logic failed', e); }
-
-        if(payload.message) showFlash(payload.message, payload.ok ? 'success' : 'error');
+        // quick info on totals if present
+        if(payload.total_amount || payload.total || payload.totalValue){
+          showFlash('Βρέθηκε σύνολο: ' + (payload.total_amount || payload.total || payload.totalValue), 'info',2500);
+        }
       } catch(e){
-        console.error('scrape exception', e);
-        showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error');
+        console.error(e);
+        showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.','error');
       }
     })();
   });
 
-  // confirm all receipts (bulk)
+  /* Bulk confirm */
   confirmReceiptsBtn?.addEventListener('click', async function(){
-    try {
-      let parsed = {};
-      try{ parsed = JSON.parse(document.getElementById('receiptsJsonInput').value || '{}'); } catch(e){ parsed = {}; }
-      const lines = [];
-      if(parsed && Array.isArray(parsed.lines) && parsed.lines.length){
-        parsed.lines.forEach((l, i) => {
-          const row = document.querySelectorAll('#receiptsModalBody tr')[i];
-          const sel = row ? row.querySelector('select') : null;
-          const category = sel ? sel.value : (l.category || '');
-          lines.push(Object.assign({}, l, { category: category }));
-        });
-      } else {
-        document.querySelectorAll('#receiptsModalBody tr').forEach((row, i) => {
-          const tds = row.querySelectorAll('td');
-          const afm = tds[1]?.innerText.trim() || '';
-          const name = tds[2]?.innerText.trim() || '';
-          const date = tds[3]?.innerText.trim() || '';
-          const type = tds[4]?.innerText.trim() || '';
-          const net = tds[5]?.innerText.trim() || '';
-          const vat_value = tds[6]?.innerText.trim() || '';
-          const total = tds[7]?.innerText.trim() || '';
-          const sel = row.querySelector('select');
-          const category = sel ? sel.value : '';
-          lines.push({ id: 'r'+i, afm, name, date, type, net, vat_value, total, category });
-        });
-      }
+    let parsed = {};
+    try{ parsed = JSON.parse(document.getElementById('receiptsJsonInput').value || '{}'); } catch(e){ parsed = {}; }
+    const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+    if(lines.length === 0){ showFlash('Δεν υπάρχουν γραμμές για επιβεβαίωση.','error'); return; }
 
-      if(lines.length === 0){ showFlash('Δεν υπάρχουν γραμμές για επιβεβαίωση.', 'error'); return; }
+    let afmToSend = (document.getElementById('activeClientAfmInput')?.value || '').toString().trim();
+    if(!afmToSend) afmToSend = await ensureActiveClientAfm(parsed) || '';
+    if(!afmToSend){ showFlash('Λείπει το ΑΦΜ του ενεργού πελάτη — δεν μπορεί να αποθηκευτεί.','error',6000); return; }
 
-      const markVal = (markInput?.value || parsed?.mark || '') || '';
-
-      const payload = { mark: markVal, lines: lines, doc_type: 'receipt' };
-
-      const res = await fetch(CONFIRM_RECEIPT_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok){
-        const txt = await res.text().catch(()=>null);
-        showFlash('Σφάλμα server κατά την επιβεβαίωση αποδείξεων.', 'error', 5000);
-        console.error('confirm receipts error', res.status, txt);
-        return;
-      }
-      const resp = await res.json();
-      showFlash(resp.message || 'Αποθηκεύτηκαν οι αποδείξεις.', resp.ok ? 'success' : 'error', 5000);
-      if(resp.ok){ doCloseModal(receiptsModal); }
-
+    const raw = (parsed.raw_payload && typeof parsed.raw_payload === 'object') ? parsed.raw_payload : {};
+    let markVal = parsed.mark || raw.mark || (raw.raw && (raw.raw.MARK || raw.raw.mark)) || raw.MARK || document.getElementById('markInput')?.value || '';
+    if(markVal && (markVal.indexOf('/') !== -1 || markVal.toLowerCase().startsWith('http'))){
       try {
-        const nextRes = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include', headers: {'X-Requested-With':'XMLHttpRequest'} });
-        if(nextRes && nextRes.ok){
-          const json = await nextRes.json().catch(()=>null);
-          if(json && json.next_mark){
-            document.getElementById('markInput').value = json.next_mark;
-          } else if(resp.next_mark){
-            document.getElementById('markInput').value = resp.next_mark;
-          }
-        } else if(resp.next_mark){
-          document.getElementById('markInput').value = resp.next_mark;
-        }
-      } catch(e){ /* ignore */ }
-
-    } catch(e){
-      console.error('confirmReceipts exception', e);
-      showFlash('Σφάλμα κατά την επιβεβαίωση αποδείξεων.', 'error');
+        const r2 = await fetch(NEXT_RECEIPT_MARK_URL, { method:'GET', credentials:'include', headers:{'X-Requested-With':'XMLHttpRequest'} });
+        if(r2.ok){ const j2 = await r2.json().catch(()=>null); if(j2 && j2.next_mark) markVal = j2.next_mark; else markVal = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14); }
+        else markVal = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14);
+      } catch(e){ markVal = (new Date()).toISOString().replace(/[^0-9]/g,'').slice(0,14); }
     }
-  });
 
-  // docsToggle when unchecked go back to main search
-  docsToggle?.addEventListener('change', function(){
-    if(!this.checked) window.location.href = SEARCH_PAGE;
-  });
+    const effectiveRaw = raw.raw || raw;
+    const summary = {
+      mark: markVal,
+      issueDate: effectiveRaw.issue_date || effectiveRaw.issueDate || effectiveRaw.date || (lines[0] && lines[0].date) || '',
+      AA: effectiveRaw.progressive_aa || effectiveRaw.progressiveAA || (lines[0] && (lines[0].AA || lines[0].aa)) || '',
+      AFM_issuer: effectiveRaw.issuer_vat || effectiveRaw.issuerVat || (lines[0] && lines[0].afm) || '',
+      Name: effectiveRaw.issuer_name || effectiveRaw.issuerName || (lines[0] && lines[0].name) || '',
+      type_name: effectiveRaw.doc_type || (lines[0] && lines[0].type) || 'ΑΠΟΔΕΙΞΗ',
+      totalValue: effectiveRaw.total_amount || effectiveRaw.total || (lines[0] && lines[0].total) || '',
+      totalNetValue: effectiveRaw.total_amount || effectiveRaw.total || (lines[0] && lines[0].net) || '',
+      totalVatAmount: effectiveRaw.totalVatAmount || effectiveRaw.totalVat || ''
+    };
 
-  // on ESC close modal
-  document.addEventListener('keydown', (ev) => {
-    if(ev.key === 'Escape'){
-      const receiptsModalEl = document.getElementById('receiptsModal');
-      if(receiptsModalEl && receiptsModalEl.style.display === 'flex'){ doCloseModal(receiptsModalEl); }
+    // normalize outgoing lines
+    let outgoingLines = [];
+    if(Array.isArray(parsed.lines) && parsed.lines.length){
+      outgoingLines = parsed.lines.map((ln, idx) => ({
+        id: ln.id || `${markVal}_inst${idx}`,
+        description: ln.description || ln.name || summary.Name || '',
+        amount: ln.amount || ln.net || ln.total || summary.totalNetValue || summary.totalValue || '',
+        vat: ln.vat || ln.vat_value || summary.totalVatAmount || '',
+        category: ln.category || parsed.category || 'αποδειξακια'
+      }));
     }
+    if(outgoingLines.length === 0){
+      outgoingLines.push({
+        id: `${markVal}_inst0`,
+        description: summary.Name || '',
+        amount: summary.totalNetValue || summary.totalValue || '',
+        vat: summary.totalVatAmount || '',
+        category: parsed.category || 'αποδειξακια'
+      });
+    }
+
+    const payload = {
+      mark: markVal,
+      lines: outgoingLines,
+      doc_type: 'receipt',
+      afm: afmToSend,
+      year: (SELECTED_YEAR && SELECTED_YEAR.toString().trim()!=='') ? SELECTED_YEAR : (new Date().getFullYear()).toString(),
+      summary: summary,
+      category: parsed.category || 'αποδειξακια'
+    };
+
+    console.log('Bulk confirm payload:', payload);
+    const resp = await sendConfirmPayload(payload);
+    if(resp.ok){ showFlash('Αποθηκεύτηκαν οι αποδείξεις.','success',4000); setTimeout(()=>window.location.reload(),350); }
+    else { showFlash('Σφάλμα server: ' + (resp.body?.error || resp.error || 'unknown'),'error',6000); console.error('confirm failed', resp); }
   });
 });
 </script>

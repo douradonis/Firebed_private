@@ -1,15 +1,15 @@
 [
   {
-    "mark": "400011219241351",
-    "issueDate": "07/10/2025",
+    "mark": "400011199547299",
+    "issueDate": "06/10/2025",
     "series": "8Μ0ΤΔΑ",
-    "aa": "9063",
-    "AA": "9063",
+    "aa": "8992",
+    "AA": "8992",
     "type": "1.1",
     "vatCategory": "",
-    "totalNetValue": "132,88",
-    "totalVatAmount": "31,89",
-    "totalValue": "164,77",
+    "totalNetValue": "125,85",
+    "totalVatAmount": "30,20",
+    "totalValue": "156,05",
     "classification": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
@@ -18,14 +18,42 @@
     "AFM": "094439854",
     "lines": [
       {
-        "id": "400011219241351_inst0",
+        "id": "400011199547299_inst0",
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "132,88",
-        "vat": "31,89",
+        "amount": "125,85",
+        "vat": "30,20",
         "category": "αγορες_α_υλων",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-10T11:05:59.878406+00:00"
+    "_updated_at": "2025-10-14T10:44:06.946199+00:00"
+  },
+  {
+    "mark": "400011199848735",
+    "issueDate": "06/10/2025",
+    "series": "TΔA",
+    "aa": "60072",
+    "AA": "60072",
+    "type": "1.1",
+    "vatCategory": "",
+    "totalNetValue": "74,36",
+    "totalVatAmount": "17,85",
+    "totalValue": "92,21",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "800916954",
+    "Name_issuer": "",
+    "AFM": "800916954",
+    "lines": [
+      {
+        "id": "400011199848735_inst0",
+        "description": "Instance #1",
+        "amount": "74,36",
+        "vat": "17,85",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]

@@ -1905,23 +1905,166 @@ def validate_date_field_against_active_fiscal(date_str, field_name='date'):
 
 @app.route('/api/repeat_entry/get', methods=['GET'])
 def api_repeat_entry_get():
-    creds = read_credentials_list()
+    """
+    Επιστρέφει στοιχεία repeat_entry + expense_tags και -όταν είναι διαθέσιμο-
+    το afm/vat του ενεργού πελάτη ώστε το frontend να το χρησιμοποιεί.
+    Παράμετρος query: ?vat=... (προαιρετικό)
+    """
+    try:
+        creds = read_credentials_list()
+    except Exception:
+        creds = None
+
+    # default empty response structure
+    base_resp = {"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []}
+
+    # try to get vat from query param or from session active credential
+    vat_param = request.args.get('vat') or None
+    session_cred = (get_active_credential_from_session() or {}) if 'get_active_credential_from_session' in globals() else {}
+    vat_from_session = session_cred.get('vat') if isinstance(session_cred, dict) else None
+    vat = vat_param or vat_from_session
+
     if not creds:
-        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
-    vat = request.args.get('vat') or (get_active_credential_from_session() or {}).get('vat')
-    idx = find_active_client_index(creds, vat=vat)
+        # still include any afm/vat from session if present
+        afm_from_session = ""
+        try:
+            # try common keys
+            if isinstance(session_cred, dict):
+                afm_from_session = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+            afm_from_session = str(afm_from_session).strip() if afm_from_session else ""
+        except Exception:
+            afm_from_session = ""
+        resp = dict(base_resp)
+        if afm_from_session:
+            resp['afm'] = afm_from_session
+            resp['vat'] = afm_from_session
+        return jsonify(resp)
+
+    # find index of active client if possible
+    idx = find_active_client_index(creds, vat=vat) if 'find_active_client_index' in globals() else None
     if idx is None:
-        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
-    repeat = creds[idx].get('repeat_entry', {"enabled": False, "mapping": {}})
-    # ensure expense_tags is a list of strings
-    raw_tags = creds[idx].get('expense_tags') or []
+        # not found — still try to return session info if available
+        afm_guess = ""
+        try:
+            if isinstance(session_cred, dict):
+                afm_guess = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+            afm_guess = str(afm_guess).strip() if afm_guess else ""
+        except Exception:
+            afm_guess = ""
+
+        resp = dict(base_resp)
+        # if we can extract expense_tags from session_cred, include them
+        try:
+            raw_tags = (session_cred.get('expense_tags') if isinstance(session_cred, dict) else None) or []
+            if isinstance(raw_tags, str):
+                expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
+            elif isinstance(raw_tags, list):
+                expense_tags = [str(t) for t in raw_tags]
+            else:
+                expense_tags = []
+            if expense_tags:
+                resp['expense_tags'] = expense_tags
+        except Exception:
+            pass
+
+        if afm_guess:
+            resp['afm'] = afm_guess
+            resp['vat'] = afm_guess
+        return jsonify(resp)
+
+    # we have creds and an index -> build response
+    client_rec = creds[idx] if idx is not None and idx < len(creds) else None
+    repeat = (client_rec.get('repeat_entry') if isinstance(client_rec, dict) else {}) or {"enabled": False, "mapping": {}}
+
+    # normalize expense_tags
+    raw_tags = (client_rec.get('expense_tags') if isinstance(client_rec, dict) else None) or []
     if isinstance(raw_tags, str):
         expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
     elif isinstance(raw_tags, list):
         expense_tags = [str(t) for t in raw_tags]
     else:
         expense_tags = []
-    return jsonify({"ok": True, "repeat_entry": repeat, "expense_tags": expense_tags})
+
+    # try to extract afm/vat from client_rec (many possible key names)
+    afm_found = ""
+    vat_found = ""
+    try:
+        if isinstance(client_rec, dict):
+            # check common keys
+            for k in ("afm", "AFM", "vat", "VAT", "vat_number", "vatNumber"):
+                v = client_rec.get(k)
+                if v:
+                    val = str(v).strip()
+                    if not afm_found and (k.lower().startswith('afm') or (len(val) == 9 and val.isdigit())):
+                        afm_found = val
+                    if not vat_found and (k.lower().startswith('vat') or (len(val) >= 8)):
+                        vat_found = val
+            # nested structures
+            for nested in ("active_client", "client", "credential"):
+                if not afm_found and isinstance(client_rec.get(nested), dict):
+                    nc = client_rec.get(nested)
+                    for k in ("afm", "AFM", "vat", "VAT", "vat_number"):
+                        if k in nc and nc[k]:
+                            afm_found = afm_found or str(nc[k]).strip()
+                            vat_found = vat_found or str(nc[k]).strip()
+            # as fallback use name fields (not AFM, but useful info)
+            client_name = client_rec.get('client_name') or client_rec.get('name') or client_rec.get('company') or client_rec.get('client') or ""
+        else:
+            client_name = ""
+    except Exception:
+        afm_found = afm_found or ""
+        vat_found = vat_found or ""
+        client_name = client_name if 'client_name' in locals() else ""
+
+    # fallback to session credential values if nothing found
+    try:
+        if not afm_found and isinstance(session_cred, dict):
+            afm_found = (session_cred.get('afm') or session_cred.get('vat') or "") or afm_found
+        if not vat_found and isinstance(session_cred, dict):
+            vat_found = (session_cred.get('vat') or session_cred.get('afm') or "") or vat_found
+    except Exception:
+        pass
+
+    afm_found = (str(afm_found).strip() or "")
+    vat_found = (str(vat_found).strip() or "")
+
+    resp = {
+        "ok": True,
+        "repeat_entry": repeat,
+        "expense_tags": expense_tags
+    }
+    # include descriptive client object (don't leak secrets) - include some fields if present
+    try:
+        client_summary = {}
+        if isinstance(client_rec, dict):
+            for fld in ("client_name", "name", "company"):
+                if fld in client_rec and client_rec.get(fld):
+                    client_summary["name"] = client_rec.get(fld)
+                    break
+            # include provided vat/afm if present
+            if afm_found:
+                client_summary["afm"] = afm_found
+            elif vat_found:
+                client_summary["vat"] = vat_found
+            # include original entry for debugging only when debug enabled (optional)
+            if app.debug:
+                client_summary["_raw"] = client_rec
+        if client_summary:
+            resp["client"] = client_summary
+    except Exception:
+        pass
+
+    if afm_found:
+        resp['afm'] = afm_found
+    elif vat_found:
+        resp['vat'] = vat_found
+
+    # also return the vat param echoed (helpful for debugging)
+    if vat_param:
+        resp['_queried_vat'] = vat_param
+
+    return jsonify(resp)
+
 
 
 @app.route('/api/repeat_entry/save', methods=['POST'])
@@ -4688,6 +4831,6 @@ def favicon():
     return '', 204
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)

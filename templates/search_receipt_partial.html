@@ -1,0 +1,336 @@
+{# search_receipt_partial.html - modal partial for receipts search/confirm #}
+<input type="hidden" id="receiptsJsonInput" value='{{ modal_receipts | tojson | safe if modal_receipts is defined else "{}" }}'>
+
+<style>
+/* Modal styling - standalone so it behaves like modal */
+#receiptsModal.partial {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 120000;
+}
+#receiptsModal.partial .backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+}
+#receiptsModal.partial .dialog {
+  position: relative;
+  z-index: 120001;
+  width: 95%;
+  max-width: 1100px;
+  max-height: 85vh;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#receiptsModal.partial .dialog .body {
+  padding: 14px;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+#receiptsModal.partial .dialog .footer { padding: 12px; border-top: 1px solid #eee; display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+#receiptsModal.partial table { width:100%; border-collapse:collapse; font-size:0.95rem; }
+#receiptsModal.partial th, #receiptsModal.partial td { padding:8px; border:1px solid #e6e6e6; text-align:left; }
+#receiptsModal.partial thead th { background:#f7fafc; position: sticky; top:0; z-index:1; }
+#receiptsModal.partial .actions a, #receiptsModal.partial .actions button { margin-right:6px; }
+</style>
+
+<div id="receiptsModal" class="partial" aria-hidden="true">
+  <div class="backdrop" role="presentation"></div>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="receiptsModalTitle">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #eee;">
+      <h3 id="receiptsModalTitle" style="margin:0; font-size:1.05rem;">Αποδείξεις — Περίληψη</h3>
+      <button id="receiptsModalCloseX" aria-label="Close" style="background:none;border:0;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+
+    <div class="body">
+      <div style="margin-bottom:8px; color:#475569; font-size:0.95rem;">Αποτελέσματα αναζήτησης αποδείξεων. Επίλεξε κατηγορία ή επιβεβαίωσε.</div>
+
+      <div style="overflow:auto; max-height:60vh;">
+        <table id="receiptsTable" class="w-full">
+          <thead>
+            <tr>
+              <th>#</th><th>ΑΦΜ</th><th>Επωνυμία</th><th>Ημερομηνία</th><th>Τύπος</th><th style="text-align:right">Καθαρή Αξία</th><th style="text-align:right">ΦΠΑ</th><th style="text-align:right">Σύνολο</th><th>Κατηγορία</th><th>Ενέργειες</th>
+            </tr>
+          </thead>
+          <tbody id="receiptsModalBody">
+            <tr><td colspan="10" style="padding:12px; text-align:center; color:#6b7280;">Δεν υπάρχουν στοιχεία.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div style="flex:1; color:#6b7280; font-size:0.9rem;">Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη.</div>
+      <button id="confirmReceiptsBtn" class="btn-confirm" style="background:#0ea5e9;color:white;padding:8px 12px;border-radius:6px;border:0;cursor:pointer;">Επιβεβαίωση Αποδείξεων</button>
+      <button id="receiptsModalCloseBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #e5e7eb;background:white;cursor:pointer;">Κλείσιμο</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const SCRAPER_RECEIPT_URL = "{{ url_for('api_scrape_receipt') }}";
+  const CONFIRM_RECEIPT_URL = "{{ url_for('api_confirm_receipt') }}";
+
+  // helpers open/close modal
+  function doOpenModal(){ const m = document.getElementById('receiptsModal'); if(!m) return; m.style.display='flex'; m.setAttribute('aria-hidden','false'); document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; }
+  function doCloseModal(){ const m = document.getElementById('receiptsModal'); if(!m) return; m.style.display='none'; m.setAttribute('aria-hidden','true'); document.documentElement.style.overflow=''; document.body.style.overflow=''; }
+
+  // canonicalize lines simple
+  function canonicalize(payload){
+    if(!payload) return [];
+    if(Array.isArray(payload.receipts) && payload.receipts.length) return payload.receipts;
+    if(Array.isArray(payload.lines) && payload.lines.length) return payload.lines;
+    if(Array.isArray(payload.data) && payload.data.length) return payload.data;
+    const src = payload.raw && typeof payload.raw === 'object' ? payload.raw : payload;
+    const id = payload.mark || src.MARK || src.mark || ('r' + Date.now());
+    const afm = (src.issuer_vat || src.AFM || src.afm || '') + '';
+    const name = (src.issuer_name || src.Name || src.name || '') + '';
+    const date = (src.issue_date || src.issueDate || src.date || '') + '';
+    const net = (src.total_amount || src.total || '') + '';
+    const vat_value = (src.totalVatAmount || src.totalVat || '') + '';
+    const total = (src.total_amount || src.total || net) + '';
+    const type = (src.doc_type || (payload.doc_type||'') || (src.is_invoice ? 'ΤΙΜΟΛΟΓΙΟ' : 'ΑΠΟΔΕΙΞΗ')) + '';
+    const url = (src.tried_url || src.url || '') + '';
+    return [{
+      id: id,
+      afm: afm,
+      name: name,
+      date: date,
+      type: type,
+      net: net,
+      vat_value: vat_value,
+      total: total,
+      category: src.category || payload.category || '',
+      url: url,
+      raw: src
+    }];
+  }
+
+  function populateReceiptsModal(lines){
+    const tbody = document.getElementById('receiptsModalBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    if(!Array.isArray(lines) || lines.length === 0){
+      tbody.innerHTML = '<tr><td colspan="10" style="padding:12px;text-align:center;color:#6b7280;">Δεν βρέθηκαν αποδείξεις.</td></tr>';
+      return;
+    }
+
+    lines.forEach((l, idx) => {
+      const tr = document.createElement('tr');
+
+      // category select
+      const sel = document.createElement('select');
+      sel.className = 'category-select';
+      const empty = document.createElement('option'); empty.value=''; empty.text = '-- επίλεξε --';
+      sel.appendChild(empty);
+      try {
+        const cats = {{ customer_categories | tojson | safe }};
+        if(Array.isArray(cats)) cats.forEach(c => { const o=document.createElement('option'); o.value=c; o.text=c; if(l.category==c) o.selected=true; sel.appendChild(o); });
+      } catch(e){}
+      const actionsCell = document.createElement('td'); actionsCell.className='actions';
+
+      tr.innerHTML = `
+        <td style="width:36px">${idx+1}</td>
+        <td>${l.afm || ''}</td>
+        <td>${l.name || ''}</td>
+        <td>${l.date || ''}</td>
+        <td>${l.type || ''}</td>
+        <td style="text-align:right">${l.net || ''}</td>
+        <td style="text-align:right">${l.vat_value || ''}</td>
+        <td style="text-align:right">${l.total || ''}</td>
+        <td></td>
+        <td></td>
+      `;
+      tr.querySelectorAll('td')[8].appendChild(sel);
+
+      // open link if available
+      if(l.url){
+        const a = document.createElement('a'); a.href = l.url; a.target='_blank'; a.rel='noreferrer noopener'; a.className='open-link'; a.innerText = 'Άνοιγμα'; a.style.marginRight='6px';
+        actionsCell.appendChild(a);
+      }
+      // confirm button for single line
+      const confirmBtn = document.createElement('button');
+      confirmBtn.type='button';
+      confirmBtn.innerText='Επιβεβαίωση';
+      confirmBtn.style.padding='6px 8px'; confirmBtn.style.border='0'; confirmBtn.style.borderRadius='6px'; confirmBtn.style.background='#10b981'; confirmBtn.style.color='white'; confirmBtn.style.cursor='pointer';
+      confirmBtn.addEventListener('click', async function(){
+        // build single-line payload and POST
+        const chosenCat = sel.value || (l.category || '');
+        const effectiveMark = (document.getElementById('markInput') && document.getElementById('markInput').value) || (l.id || '');
+        const payload = {
+          mark: effectiveMark,
+          url: l.url || '',
+          summary: {
+            mark: effectiveMark,
+            issueDate: l.date || '',
+            AFM_issuer: l.afm || '',
+            Name: l.name || '',
+            type_name: l.type || '',
+            totalValue: l.total || '',
+            totalNetValue: l.net || '',
+            totalVatAmount: l.vat_value || ''
+          },
+          force: false,
+          category: chosenCat || '',
+          afm: (document.getElementById('activeClientAfmInput') && document.getElementById('activeClientAfmInput').value) || '',
+          year: (new Date()).getFullYear().toString(),
+          lines: [{
+            id: l.id || (effectiveMark + '_inst0'),
+            description: l.name || '',
+            amount: l.net || l.total || '',
+            vat: l.vat_value || '',
+            category: chosenCat || ''
+          }]
+        };
+
+        try {
+          const res = await fetch(CONFIRM_RECEIPT_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          });
+          if(!res.ok){ const text = await res.text().catch(()=>null); alert('Σφάλμα server'); console.error('confirm single', res.status, text); return; }
+          const json = await res.json().catch(()=>null);
+          alert((json && json.message) ? json.message : 'Αποθηκεύτηκε.');
+          tr.style.opacity = '0.5';
+          // optionally refresh or get next mark
+          setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 600);
+        } catch(e){ console.error(e); alert('Δίκτυο - αποτυχία'); }
+      });
+      actionsCell.appendChild(confirmBtn);
+      tr.querySelectorAll('td')[9].appendChild(actionsCell);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // bootstrap: if server prefilled receiptsJsonInput, populate and show modal
+  document.addEventListener('DOMContentLoaded', function(){
+    const hidden = document.getElementById('receiptsJsonInput');
+    try {
+      const parsed = hidden && hidden.value ? JSON.parse(hidden.value) : {};
+      const lines = canonicalize(parsed);
+      if(lines && lines.length) {
+        // save canonical lines back to hidden for bulk confirm
+        hidden.value = JSON.stringify({ mark: parsed.mark || (lines[0] && lines[0].id) || '', lines: lines, raw_payload: parsed });
+        populateReceiptsModal(lines);
+        doOpenModal();
+      }
+    } catch(e){ console.warn('partial bootstrap parse', e); }
+  });
+
+  // close handlers
+  document.getElementById('receiptsModalCloseX')?.addEventListener('click', doCloseModal);
+  document.getElementById('receiptsModalCloseBtn')?.addEventListener('click', doCloseModal);
+  document.querySelector('#receiptsModal .backdrop')?.addEventListener('click', doCloseModal);
+
+  // Bulk confirm
+  document.getElementById('confirmReceiptsBtn')?.addEventListener('click', async function(){
+    const hidden = document.getElementById('receiptsJsonInput');
+    let parsed = {};
+    try{ parsed = hidden && hidden.value ? JSON.parse(hidden.value) : {}; } catch(e){ parsed = {}; }
+    const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+    if(lines.length === 0){ alert('Δεν υπάρχουν γραμμές προς επιβεβαίωση'); return; }
+
+    // normalize outgoing lines
+    const markVal = parsed.mark || (lines[0] && lines[0].id) || (document.getElementById('markInput') && document.getElementById('markInput').value) || '';
+    const normalized = lines.map((ln, idx) => ({
+      id: ln.id || `${markVal}_inst${idx}`,
+      description: ln.name || ln.description || '',
+      amount: ln.net || ln.total || ln.amount || '',
+      vat: ln.vat_value || ln.vat || '',
+      category: ln.category || ''
+    }));
+
+    const payload = {
+      mark: markVal,
+      lines: normalized,
+      doc_type: 'receipt',
+      afm: (document.getElementById('activeClientAfmInput') && document.getElementById('activeClientAfmInput').value) || '',
+      year: (new Date()).getFullYear().toString(),
+      summary: parsed.raw_payload || {}
+    };
+
+    if(!payload.afm){
+      alert('Λείπει ΑΦΜ ενεργού πελάτη — δεν μπορεί να αποθηκευτεί');
+      return;
+    }
+
+    try {
+      const res = await fetch(CONFIRM_RECEIPT_URL, {
+        method: 'POST', headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+        credentials: 'include', body: JSON.stringify(payload)
+      });
+      if(!res.ok){ const txt = await res.text().catch(()=>null); alert('Σφάλμα server'); console.error('bulk confirm', res.status, txt); return; }
+      const j = await res.json().catch(()=>null);
+      alert((j && j.message) ? j.message : 'Αποθηκεύτηκαν οι αποδείξεις.');
+      doCloseModal();
+      setTimeout(()=>window.location.reload(), 500);
+    } catch(e){ console.error(e); alert('Δίκτυο - αποτυχία'); }
+  });
+
+  // Optional: intercept search form submit on parent page to call scraper and open modal (if you want quick client-side behavior)
+  try {
+    const searchForm = document.getElementById('markSearchForm');
+    const markInput = document.getElementById('markInput');
+    if(searchForm && markInput){
+      searchForm.addEventListener('submit', function(evt){
+        // if docs toggle present and checked, intercept and call scraper
+        const docsToggle = document.getElementById('docsToggle');
+        if(docsToggle && docsToggle.checked){
+          evt.preventDefault();
+          (async function(){
+            const markVal = (markInput.value || '').trim();
+            if(!markVal){ alert('Δώσε MARK ή URL'); return; }
+            const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markVal) || markVal.indexOf('/') !== -1;
+            const payloadObj = looksLikeUrl ? { url: markVal } : { mark: markVal };
+            try {
+              const r = await fetch(SCRAPER_RECEIPT_URL, {
+                method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+                credentials:'include', body: JSON.stringify(payloadObj)
+              });
+              if(!r.ok){ const t=await r.text().catch(()=>null); alert('Σφάλμα ανάκτησης αποδείξεων'); console.error('scrape error', r.status, t); return; }
+              const payload = await r.json().catch(()=>null) || {};
+              const lines = canonicalize(payload);
+              // ensure at least fallback
+              if(!lines || !lines.length){
+                const src = payload.raw && typeof payload.raw === 'object' ? payload.raw : payload;
+                const fallback = [{
+                  id: payload.mark || src.MARK || ('r' + Date.now()),
+                  afm: (src.issuer_vat || src.AFM || src.afm || '') + '',
+                  name: (src.issuer_name || src.Name || src.name || '') + '',
+                  date: (src.issue_date || src.issueDate || src.date || '') + '',
+                  type: (src.doc_type || '') + '',
+                  net: (src.total_amount || src.total || '') + '',
+                  vat_value: (src.totalVatAmount || '') + '',
+                  total: (src.total_amount || src.total || '') + '',
+                  url: (src.tried_url || src.url || '') + '',
+                  raw: src
+                }];
+                hiddenVal = { mark: payload.mark || fallback[0].id, lines: fallback, raw_payload: payload };
+                document.getElementById('receiptsJsonInput').value = JSON.stringify(hiddenVal);
+                populateReceiptsModal(fallback);
+                doOpenModal();
+                return;
+              }
+              // store parsed + lines
+              const storeVal = { mark: payload.mark || (lines[0] && lines[0].id) || markVal, lines: lines, raw_payload: payload };
+              document.getElementById('receiptsJsonInput').value = JSON.stringify(storeVal);
+              populateReceiptsModal(lines);
+              doOpenModal();
+            } catch(e){ console.error(e); alert('Σφάλμα κατά την ανάκτηση αποδείξεων'); }
+          })();
+        }
+      });
+    }
+  } catch(e){ console.warn('attach search intercept', e); }
+
+})();
+</script>
