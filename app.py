@@ -349,32 +349,100 @@ def get_next_mark():
 
 # --- helper: append receipt entry to Excel (pandas) with file lock ---
 def append_receipt_to_excel(entry, excel_path=EPSILON_EXCEL_PATH):
+    """
+    Γράφει απόδειξη στο Excel με σίγουρο Α/Α + τύπο/είδος.
+    - Coalesce AA από πολλά κλειδιά (entry/raw/summary).
+    - Γράφει AA στα: 'Α/Α', 'Α/Α Παραστατικού', 'progressive_aa'
+    - Γράφει τύπο/είδος στα: 'τύπος','τυπος','είδος','ειδος'
+    - Όλα ως string.
+    """
+    import os, json
+    import pandas as pd
+    from filelock import FileLock
+
+    # ---- helpers ----
+    def _first(*vals):
+        for v in vals:
+            if v is None: 
+                continue
+            s = str(v).strip()
+            if s and s.lower() not in ('none','nan'):
+                return s
+        return ''
+
+    # Κάποια flows περνάνε "summary" μέσα στο entry· κάνε coalesce κι από εκεί
+    raw   = (entry.get('raw') or {}) if isinstance(entry, dict) else {}
+    summ  = (entry.get('summary') or {}) if isinstance(entry, dict) else {}
+
+    aa = _first(
+        entry.get('progressive_aa'), entry.get('AA'), entry.get('aa'), entry.get('receipt_aa'),
+        entry.get('Α/Α'), entry.get('Α/Α Παραστατικού'),
+        raw.get('progressive_aa'), raw.get('AA'), raw.get('aa'), raw.get('receipt_aa'),
+        summ.get('progressive_aa'), summ.get('AA'), summ.get('aa')
+    )
+
+    # Τύπος/Είδος: προτιμάμε ό,τι έρχεται, αλλιώς 'αποδειξη'
+    tipo = _first(entry.get('τύπος'), entry.get('τυπος'), raw.get('τύπος'), raw.get('τυπος'),
+                  summ.get('τύπος'), summ.get('τυπος'), 'αποδειξη')
+    eidos = _first(entry.get('είδος'), entry.get('ειδος'), raw.get('είδος'), raw.get('ειδος'),
+                   summ.get('είδος'), summ.get('ειδος'), 'αποδειξη')
+
     lock_path = excel_path + '.lock'
     lock = FileLock(lock_path, timeout=10)
     with lock:
-        # normalize columns we want to store (flat)
         flat = {
-            'MARK': entry.get('MARK'),
-            'saved_at': entry.get('saved_at'),
-            'url': entry.get('url'),
-            'issuer_vat': entry.get('issuer_vat'),
-            'issuer_name': entry.get('issuer_name'),
-            'issue_date': entry.get('issue_date'),
-            'progressive_aa': entry.get('progressive_aa'),
-            'total_amount': entry.get('total_amount')
+            'MARK':            _first(entry.get('MARK'), entry.get('mark'), summ.get('MARK'), summ.get('mark')),
+            'saved_at':        _first(entry.get('saved_at'), summ.get('saved_at')),
+            'url':             _first(entry.get('url'), summ.get('url')),
+            'issuer_vat':      _first(entry.get('issuer_vat'), raw.get('issuer_vat'), summ.get('issuer_vat')),
+            'issuer_name':     _first(entry.get('issuer_name'), raw.get('issuer_name'), summ.get('issuer_name')),
+            'issue_date':      _first(entry.get('issue_date'), raw.get('issue_date'), summ.get('issue_date')),
+            # A/A σε όλα τα headers που μπορεί να κοιτά το template
+            'progressive_aa':  aa,
+            'Α/Α':             aa,
+            'Α/Α Παραστατικού':aa,
+            # Τύπος/Είδος σε όλα τα headers (με και χωρίς τόνο)
+            'τύπος':           tipo,
+            'τυπος':           tipo,
+            'είδος':           eidos,
+            'ειδος':           eidos,
+            'total_amount':    _first(entry.get('total_amount'), raw.get('total_amount'), summ.get('total_amount')),
+            # προαιρετικό: αποθήκευσε το raw για debugging
+            'raw':             json.dumps(entry.get('raw', {}), ensure_ascii=False)
         }
-        # include raw as JSON string optionally
-        flat['raw'] = json.dumps(entry.get('raw', {}), ensure_ascii=False)
+
+        # όλα ως string
+        for k, v in list(flat.items()):
+            flat[k] = '' if v is None else str(v)
+
+        base_cols = [
+            'MARK','saved_at','url','issuer_vat','issuer_name','issue_date',
+            'progressive_aa','Α/Α','Α/Α Παραστατικού',
+            'τύπος','τυπος','είδος','ειδος',
+            'total_amount','raw'
+        ]
+
         if os.path.exists(excel_path):
             try:
-                df_existing = pd.read_excel(excel_path, dtype=str)
+                df = pd.read_excel(excel_path, dtype=str).fillna('')
             except Exception:
-                df_existing = pd.DataFrame()
-            df_new = pd.DataFrame([flat])
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-            df_combined.to_excel(excel_path, index=False)
+                df = pd.DataFrame(columns=base_cols)
+            for c in base_cols:
+                if c not in df.columns:
+                    df[c] = ''
+            df_new = pd.DataFrame([flat], columns=base_cols).fillna('')
+            df = pd.concat([df, df_new], ignore_index=True, sort=False)
         else:
-            pd.DataFrame([flat]).to_excel(excel_path, index=False)
+            df = pd.DataFrame([flat], columns=base_cols).fillna('')
+
+        # Επιμονή σε string στα κρίσιμα
+        for col in ['progressive_aa','Α/Α','Α/Α Παραστατικού','τύπος','τυπος','είδος','ειδος']:
+            if col in df.columns:
+                df[col] = df[col].astype(str).fillna('')
+
+        df.to_excel(excel_path, index=False)
+
+
 def get_existing_client_ids() -> set:
     """
     Return a set of existing client IDs (ΑΦΜ) from current client_db (if any).

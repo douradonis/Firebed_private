@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "mark": "400011219241352",
+    "issueDate": "25/09/2025",
+    "series": "",
+    "aa": "165",
+    "AA": "165",
+    "type": "",
+    "vatCategory": "",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "totalValue": "9,4",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094386010",
+    "Name_issuer": "",
+    "AFM": "802576637",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  }
+]

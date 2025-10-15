@@ -337,5 +337,26 @@
         "vatCategory": ""
       }
     ]
+  },
+  {
+    "mark": "400011219241353",
+    "AA": "165",
+    "AFM_issuer": "094386010",
+    "Name": "",
+    "issueDate": "25/09/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "9,4",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "",
+        "vatCategory": ""
+      }
+    ]
   }
 ]

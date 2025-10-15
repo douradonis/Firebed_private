@@ -2497,6 +2497,91 @@ document.addEventListener('submit', function(ev){
 
 </script>
 
+<!-- === PATCH: normalize receipts summary (category/type/AA) before save & on modal open === -->
+<script>
+(function(){
+  function getEl(id){ return document.getElementById(id); }
+  function isReceiptsMode(){
+    try {
+      return !!(getEl('useReceiptsSwitch') && getEl('useReceiptsSwitch').checked) ||
+             !!(JSON.parse(getEl('summaryJsonInput')?.value||'{}')?.is_receipt) ||
+             !!(getEl('scrapeUrlField')?.value);
+    } catch(e){ return false; }
+  }
+  function normalizeReceiptSummary(){
+    try{
+      if(!isReceiptsMode()) return;
+      const si = getEl('summaryJsonInput');
+      if(!si) return;
+      let data = {};
+      try { data = JSON.parse(si.value || '{}'); } catch(e){ data = {}; }
+      if(!Array.isArray(data.lines)) data.lines = data.lines ? [data.lines] : [];
+
+      // Force category 'αποδειξακια' on all lines
+      data.lines = data.lines.map(l => ({ ...(l||{}), category: 'αποδειξακια' }));
+
+      // Top-level flags and labels
+      data.category   = 'αποδειξακια';
+      data.is_receipt = true;
+      data.kind       = data.kind || 'receipt';
+      data.type_name  = data.type_name || 'ΑΠΟΔΕΙΞΗ';
+
+      // Excel friendly fields
+      data['τύπος'] = 'αποδειξη';
+      data['είδος'] = 'αποδειξη';
+
+      // Normalize progressive_aa / AA
+      const aa = (data.progressive_aa || data.AA ||
+                 (data.raw && (data.raw.progressive_aa || data.raw.aa)) || '').toString().trim();
+      if(aa){
+        data.progressive_aa = aa;
+        if(!data['Α/Α']) data['Α/Α'] = aa;
+        if(!data['Α/Α Παραστατικού']) data['Α/Α Παραστατικού'] = aa;
+      }
+
+      si.value = JSON.stringify(data);
+    }catch(err){ console.warn('normalizeReceiptSummary failed', err); }
+  }
+
+  // Call when modal opens (attribute/style change)
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const modal = getEl('summaryModal');
+      if(!modal) return;
+      const obs = new MutationObserver(function(muts){
+        muts.forEach(m=>{
+          if(m.attributeName === 'style' || m.attributeName === 'class'){
+            const shown = getComputedStyle(modal).display !== 'none';
+            if(shown){ setTimeout(normalizeReceiptSummary, 20); }
+          }
+        });
+      });
+      obs.observe(modal, { attributes:true, attributeFilter:['style','class'] });
+      // If already visible
+      if (getComputedStyle(modal).display !== 'none'){ setTimeout(normalizeReceiptSummary, 10); }
+    } catch(e){ /* no-op */ }
+  });
+
+  // Ensure normalization right before save submit (capture, before other listeners)
+  document.addEventListener('submit', function(ev){
+    const form = ev.target;
+    if(form && form.id === 'saveSummaryForm'){
+      try {
+        normalizeReceiptSummary();
+        // ensure write_excel flag also posted (covers non-AJAX path)
+        if(!form.querySelector('input[name="write_excel"]')){
+          const h = document.createElement('input');
+          h.type = 'hidden'; h.name = 'write_excel'; h.value = 'true';
+          form.appendChild(h);
+        }
+      } catch(e){ console.warn(e); }
+    }
+  }, true);
+})();
+</script>
+
+
+
 <style>
     /* minimal styling for the toggle switch */
     /* μόνο για modal */
