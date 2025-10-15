@@ -4885,3 +4885,1160 @@ AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_ap
 
 2025-10-14 12:44:05,640 INFO api_scrape_receipt: scraped url=https://mydatapi.aade.gr/myDATA/TimologioQR/QRInfo?q=VlpjfC0v4mkbjWMH%2fgSEMkULv%2fuJ4hfKDjAJ6qZ2mkfDV1lyLXqWEecHxPrYSLl5Ue52X9B9GuLkg8gpRWjbxahawgs%2fB7P6qGgyTvSneqs%3d is_invoice=False mark=400003929272574
 
+2025-10-15 20:32:04,460 INFO Starting app - MYDATA_ENV=sandbox
+
+2025-10-15 20:32:05,425 INFO Starting app - MYDATA_ENV=production
+
+2025-10-15 20:32:12,943 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx.github.dev/
+
+2025-10-15 20:32:13,702 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/
+
+2025-10-15 20:32:13,723 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/
+
+2025-10-15 20:32:15,350 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/
+
+2025-10-15 20:32:16,042 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:16,156 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:18,392 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:18,561 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:19,191 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:19,303 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:20,939 INFO Incoming request: method=POST path=/set_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:20,940 INFO Set active fiscal year: 2025
+
+2025-10-15 20:32:22,210 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/credentials
+
+2025-10-15 20:32:22,901 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:32:23,091 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:32:23,137 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:32:25,849 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:34:55,434 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:34:55,452 ERROR Template rendering failed for search.html: Encountered unknown tag 'endblock'. You probably made a nesting mistake. Jinja is expecting this tag, but currently looking for 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/search.html", line 150, in template
+    {% endblock %}
+jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'endblock'. You probably made a nesting mistake. Jinja is expecting this tag, but currently looking for 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+
+
+2025-10-15 20:34:55,864 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:35:16,106 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:35:16,804 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:35:16,807 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:35:16,811 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:36:02,390 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:36:02,482 ERROR Template rendering failed for search.html: Encountered unknown tag 'endblock'. You probably made a nesting mistake. Jinja is expecting this tag, but currently looking for 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/search.html", line 150, in template
+    {% endblock %}
+jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'endblock'. You probably made a nesting mistake. Jinja is expecting this tag, but currently looking for 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+
+
+2025-10-15 20:36:02,803 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:32,167 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:37:32,210 ERROR Template rendering failed for search.html: Unexpected end of template. Jinja was looking for the following tags: 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/search.html", line 2493, in template
+    {% endblock %}
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+
+
+2025-10-15 20:37:32,468 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:47,911 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:37:48,638 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:48,761 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:48,765 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:52,343 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:37:53,515 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:02,509 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:03,105 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:03,309 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:03,348 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:05,876 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:06,336 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735&force_edit=1
+
+2025-10-15 20:39:06,488 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735&force_edit=1
+
+2025-10-15 20:39:06,794 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735
+
+2025-10-15 20:39:06,874 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735
+
+2025-10-15 20:39:10,119 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735
+
+2025-10-15 20:39:10,122 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:39:10,138 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:39:10,138 INFO save_summary: updated epsilon per-line categories for mark=400011199848735 vat=802576637
+
+2025-10-15 20:39:10,217 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199848735
+
+2025-10-15 20:39:10,631 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:10,687 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:10,802 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:36,669 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:37,095 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:37,242 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:37,314 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:51,733 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:52,120 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:52,182 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:52,332 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:55,459 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:55,459 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:39:55,485 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:39:55,516 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:39:55,522 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:39:55,523 INFO save_summary: appended new epsilon entry for mark=400011185825004 vat=802576637
+
+2025-10-15 20:39:55,613 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:56,204 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:56,304 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:39:56,332 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:00,423 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:00,969 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:01,077 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:01,103 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:04,280 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:04,704 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004&force_edit=1
+
+2025-10-15 20:40:04,770 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004&force_edit=1
+
+2025-10-15 20:40:04,809 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004&force_edit=1
+
+2025-10-15 20:40:05,040 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:11,813 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:12,467 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:12,548 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:12,569 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:13,988 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:14,402 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004&force_edit=1
+
+2025-10-15 20:40:14,472 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004&force_edit=1
+
+2025-10-15 20:40:14,678 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:14,759 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:17,854 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:17,854 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:40:17,856 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:40:17,856 INFO save_summary: updated epsilon per-line categories for mark=400011185825004 vat=802576637
+
+2025-10-15 20:40:17,941 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185825004
+
+2025-10-15 20:40:18,511 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:18,584 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:18,597 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:50,573 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:50,988 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:51,069 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:51,323 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:54,576 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:54,576 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:40:54,592 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:40:54,610 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:40:54,612 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:40:54,613 INFO save_summary: appended new epsilon entry for mark=400011185872109 vat=802576637
+
+2025-10-15 20:40:54,693 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:55,119 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:55,194 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:55,235 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:58,059 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:58,589 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:58,656 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:40:58,681 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:01,657 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:02,106 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:41:02,186 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:41:02,400 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:02,477 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:05,922 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:05,922 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:41:05,925 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:41:05,926 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:41:06,008 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:06,463 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:06,511 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:06,542 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:14,682 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:14,683 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:41:14,683 INFO delete_invoices: marks_to_delete resolved = ['400011199848735']
+
+2025-10-15 20:41:14,701 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011199848735']
+
+2025-10-15 20:41:14,703 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:41:14,703 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:41:14,703 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:41:14,794 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:15,552 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:15,615 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:15,642 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:19,597 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:20,085 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:20,174 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:20,194 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:21,872 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:22,290 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:41:22,358 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:41:22,555 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:22,636 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:38,720 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:38,721 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:41:38,724 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:41:38,725 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:41:38,816 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:41:39,250 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:39,392 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:39,438 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:47,358 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:47,358 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:41:47,358 INFO delete_invoices: marks_to_delete resolved = ['400011185825004']
+
+2025-10-15 20:41:47,373 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011185825004']
+
+2025-10-15 20:41:47,375 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:41:47,375 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:41:47,375 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:41:47,452 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:47,956 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:48,023 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:48,052 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:50,319 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:50,715 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:50,776 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:50,795 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:53,408 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:53,408 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:41:53,424 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:41:53,441 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:41:53,442 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:41:53,442 INFO save_summary: appended new epsilon entry for mark=400011185825004 vat=802576637
+
+2025-10-15 20:41:53,536 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:54,018 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:54,140 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:41:54,183 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:42:24,977 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:42:25,001 ERROR Template rendering failed for search.html: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 1578, in safe_render
+    return render_template(template_name, **ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+  File "/home/codespace/.local/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/workspaces/Firebed_private/templates/search.html", line 2506, in template
+    {% endblock %}
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+
+
+2025-10-15 20:42:25,192 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:42:59,610 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+
+2025-10-15 20:43:00,150 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:00,154 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:00,163 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:11,958 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:11,961 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:11,961 INFO Built per-mark epsilon entry for mark 400011185872109 (vat 802576637)
+
+2025-10-15 20:43:12,331 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:12,342 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:12,477 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:15,230 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:15,230 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:43:15,232 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:15,233 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:43:15,241 INFO save_summary: existing epsilon updated but excel was missing -> created excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:43:15,325 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:15,790 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:15,861 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:15,881 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:22,358 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:22,845 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:22,960 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:23,006 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:25,533 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:25,951 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:43:26,009 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:43:26,065 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109&force_edit=1
+
+2025-10-15 20:43:26,197 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:43:28,682 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:43:28,682 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:43:28,685 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:28,685 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:43:28,764 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011185872109
+
+2025-10-15 20:43:29,198 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:29,257 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:29,278 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:35,052 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:35,052 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:43:35,052 INFO delete_invoices: marks_to_delete resolved = ['400011185872109']
+
+2025-10-15 20:43:35,066 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011185872109']
+
+2025-10-15 20:43:35,068 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:35,068 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:43:35,068 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:43:35,163 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:35,641 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:35,751 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:35,784 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:38,967 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:38,975 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:38,975 INFO Built per-mark epsilon entry for mark 400011185872109 (vat 802576637)
+
+2025-10-15 20:43:39,359 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:39,519 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:39,640 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:42,244 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:42,244 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:43:42,246 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:43:42,246 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:43:42,339 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:42,860 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:42,906 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:43:42,934 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:15,496 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:15,496 INFO api_scrape_receipt: incoming url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17
+
+2025-10-15 20:47:15,934 INFO api_scrape_receipt: scraped url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17 is_invoice=False mark=
+
+2025-10-15 20:47:16,121 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:25,638 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:25,639 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:47:25,654 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:47:25,669 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:47:25,671 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:47:25,672 INFO save_summary: appended new epsilon entry for mark=400011219241352 vat=802576637
+
+2025-10-15 20:47:25,829 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:26,488 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:26,666 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:26,688 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:43,279 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:47:43,280 INFO api_scrape_receipt: incoming url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17
+
+2025-10-15 20:47:43,643 INFO api_scrape_receipt: scraped url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17 is_invoice=False mark=
+
+2025-10-15 20:47:43,815 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:48:11,294 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:48:11,294 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:48:11,294 INFO delete_invoices: marks_to_delete resolved = ['400011219241352']
+
+2025-10-15 20:48:11,307 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011219241352']
+
+2025-10-15 20:48:11,309 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:48:11,309 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:48:11,310 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:48:11,402 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:48:11,986 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:48:12,166 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:48:12,208 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:39,459 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:39,459 INFO api_scrape_receipt: incoming url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17
+
+2025-10-15 20:50:39,734 INFO api_scrape_receipt: scraped url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DLD220246620005207041E1FBEDB99D16B0DAC75CC4C6E0B434B80FA86C15.17 is_invoice=False mark=
+
+2025-10-15 20:50:39,888 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:42,208 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:42,208 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:50:42,222 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:50:42,237 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:50:42,239 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:50:42,239 INFO save_summary: appended new epsilon entry for mark=400011219241352 vat=802576637
+
+2025-10-15 20:50:42,379 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:43,131 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:43,207 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:50:43,245 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:52:21,684 INFO Starting app - MYDATA_ENV=production
+
+2025-10-15 20:52:45,106 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:52:45,757 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:52:45,765 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:52:45,776 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:02,674 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:02,678 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:02,679 INFO Built per-mark epsilon entry for mark 400011185872109 (vat 802576637)
+
+2025-10-15 20:53:03,172 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:03,178 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:03,183 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:13,289 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:13,289 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:53:13,293 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:13,293 INFO save_summary: updated epsilon per-line categories for mark=400011185872109 vat=802576637
+
+2025-10-15 20:53:13,507 INFO save_summary: existing epsilon updated but excel was missing -> created excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:53:13,585 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:14,025 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:14,127 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:14,186 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:27,074 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:27,478 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:27,526 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:27,562 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:30,604 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:30,605 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:53:30,619 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:53:30,637 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:53:30,639 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:30,639 INFO save_summary: appended new epsilon entry for mark=400011188416256 vat=802576637
+
+2025-10-15 20:53:30,721 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:31,327 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:31,396 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:31,397 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:36,569 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:36,569 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:53:36,569 INFO delete_invoices: marks_to_delete resolved = ['400011185872109']
+
+2025-10-15 20:53:36,583 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011185872109']
+
+2025-10-15 20:53:36,585 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:36,585 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:53:36,586 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:53:36,674 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:37,101 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:37,173 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:37,205 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:52,118 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:52,118 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 20:53:52,119 INFO delete_invoices: marks_to_delete resolved = ['400011188416256']
+
+2025-10-15 20:53:52,135 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011188416256']
+
+2025-10-15 20:53:52,139 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:52,140 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 20:53:52,140 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 20:53:52,220 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:52,679 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:52,722 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:52,745 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:56,153 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:56,164 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:56,164 INFO Built per-mark epsilon entry for mark 400011188416256 (vat 802576637)
+
+2025-10-15 20:53:56,542 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:56,587 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:56,616 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:59,987 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:53:59,987 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:53:59,990 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:53:59,990 INFO save_summary: updated epsilon per-line categories for mark=400011188416256 vat=802576637
+
+2025-10-15 20:54:00,075 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:54:00,502 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:54:00,552 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:54:00,608 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:54:56,696 INFO Starting app - MYDATA_ENV=production
+
+2025-10-15 20:55:13,152 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:13,242 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:55:13,242 INFO Built per-mark epsilon entry for mark 400011188416256 (vat 802576637)
+
+2025-10-15 20:55:13,687 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:13,734 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:13,773 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:16,419 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:16,419 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:55:16,422 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:55:16,422 INFO save_summary: updated epsilon per-line categories for mark=400011188416256 vat=802576637
+
+2025-10-15 20:55:16,572 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:17,014 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:17,081 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:55:17,185 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:05,672 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:06,172 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:06,182 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:06,266 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:08,771 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:08,771 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 20:56:08,785 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 20:56:08,805 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 20:56:08,807 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 20:56:08,807 INFO save_summary: appended new epsilon entry for mark=400011185872109 vat=802576637
+
+2025-10-15 20:56:08,886 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:09,330 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:09,393 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:09,486 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:56:36,861 INFO Starting app - MYDATA_ENV=production
+
+2025-10-15 20:59:56,477 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:59:57,234 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:59:57,299 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 20:59:57,326 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:03,592 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:03,593 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 21:00:03,593 INFO delete_invoices: marks_to_delete resolved = ['400011185872109']
+
+2025-10-15 21:00:03,609 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011185872109']
+
+2025-10-15 21:00:03,611 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:00:03,611 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 21:00:03,611 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+
+2025-10-15 21:00:03,765 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:04,285 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:04,288 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:04,311 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:08,870 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:09,331 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:09,414 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:09,522 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:12,112 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:12,114 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 21:00:12,146 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 21:00:12,175 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 21:00:12,177 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:00:12,177 INFO save_summary: appended new epsilon entry for mark=400011185872109 vat=802576637
+
+2025-10-15 21:00:12,263 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:12,692 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:12,788 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:12,814 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:31,104 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:31,529 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:31,606 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:31,721 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:35,860 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:36,247 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:36,298 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:00:36,319 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:05,808 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:05,810 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:01:05,810 INFO Built per-mark epsilon entry for mark 400011188416256 (vat 802576637)
+
+2025-10-15 21:01:06,168 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:06,197 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:06,251 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:09,362 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:09,363 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 21:01:09,365 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:01:09,365 INFO save_summary: updated epsilon per-line categories for mark=400011188416256 vat=802576637
+
+2025-10-15 21:01:09,374 INFO save_summary: existing epsilon updated but excel was missing -> created excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 21:01:09,451 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:09,882 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:09,949 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:09,963 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:21,950 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:22,371 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:22,439 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:22,477 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:26,121 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:26,122 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 21:01:26,157 ERROR save_summary: helper _ensure_excel_and_update_or_append failed; falling back to inline Excel write
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4212, in save_summary
+    helper(summary, vat=vat)
+  File "/workspaces/Firebed_private/app.py", line 777, in _ensure_excel_and_update_or_append
+    df = df.append(row, ignore_index=True)
+         ^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'append'. Did you mean: '_append'?
+2025-10-15 21:01:26,187 INFO save_summary: appended row to existing excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx
+
+2025-10-15 21:01:26,190 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:01:26,190 INFO save_summary: appended new epsilon entry for mark=400011199547299 vat=802576637
+
+2025-10-15 21:01:26,272 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:26,696 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:26,758 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:26,793 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:29,239 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:29,687 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:29,760 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:29,780 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:31,382 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:31,800 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299&force_edit=1
+
+2025-10-15 21:01:31,894 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299&force_edit=1
+
+2025-10-15 21:01:32,010 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299
+
+2025-10-15 21:01:32,095 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299
+
+2025-10-15 21:01:35,421 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299
+
+2025-10-15 21:01:35,421 INFO save_summary: start request from 127.0.0.1
+
+2025-10-15 21:01:35,424 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:01:35,424 INFO save_summary: updated epsilon per-line categories for mark=400011199547299 vat=802576637
+
+2025-10-15 21:01:35,517 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search?mark=400011199547299
+
+2025-10-15 21:01:35,938 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:35,981 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:36,003 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:41,928 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:41,928 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+
+2025-10-15 21:01:41,928 INFO delete_invoices: marks_to_delete resolved = ['400011188416256', '400011199547299']
+
+2025-10-15 21:01:41,969 INFO delete_invoices: deleted 2 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011188416256', '400011199547299']
+
+2025-10-15 21:01:41,971 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+
+2025-10-15 21:01:41,971 INFO delete_invoices: Deleted 2 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+
+2025-10-15 21:01:41,971 INFO delete_invoices: finished request. requested=2 excel=2 epsilon=2
+
+2025-10-15 21:01:42,053 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:42,481 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:42,558 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+
+2025-10-15 21:01:42,595 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+

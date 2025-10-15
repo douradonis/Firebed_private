@@ -4794,6 +4794,53 @@ def delete_invoices():
             log.info("delete_invoices: No active VAT available; skipped epsilon deletion.")
     except Exception:
         log.exception("delete_invoices: Error while deleting from epsilon cache")
+        # --- Fallback: if nothing was removed (or no active VAT), also scan all epsilon caches and remove these MARKs ---
+    try:
+        if deleted_from_epsilon == 0:
+            eps_dir = os.path.join(DATA_DIR, "epsilon")
+            if os.path.isdir(eps_dir):
+                for fname in os.listdir(eps_dir):
+                    if not fname.endswith("_epsilon_invoices.json"):
+                        continue
+                    eps_path = os.path.join(eps_dir, fname)
+                    # read cache
+                    try:
+                        eps_cache = json_read(eps_path) or []
+                    except Exception:
+                        try:
+                            with open(eps_path, "r", encoding="utf-8") as f:
+                                eps_cache = json.load(f) or []
+                        except Exception:
+                            eps_cache = []
+                    before_len = len(eps_cache)
+
+                    def _mark_from_item(it):
+                        for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
+                            if isinstance(it, dict) and k in it and it.get(k) not in (None, ""):
+                                return str(it.get(k)).strip()
+                        return ""
+
+                    new_cache = [e for e in eps_cache if _mark_from_item(e) not in marks_to_delete]
+                    if len(new_cache) != before_len:
+                        # write back
+                        try:
+                            if globals().get("_safe_save_epsilon_cache"):
+                                vat_code = fname.split("_epsilon_invoices.json")[0]
+                                _safe_save_epsilon_cache(vat_code, new_cache)
+                            else:
+                                try:
+                                    json_write(eps_path, new_cache)
+                                except Exception:
+                                    tmp = eps_path + ".tmp"
+                                    with open(tmp, "w", encoding="utf-8") as f:
+                                        json.dump(new_cache, f, ensure_ascii=False, indent=2)
+                                    os.replace(tmp, eps_path)
+                        except Exception:
+                            log.exception("delete_invoices: fallback write failed for %s", eps_path)
+                        # update counter
+                        deleted_from_epsilon += (before_len - len(new_cache))
+    except Exception:
+        log.exception("delete_invoices: fallback cross-VAT epsilon deletion failed")
 
     # Final summary
     total_requested = len(marks_to_delete)

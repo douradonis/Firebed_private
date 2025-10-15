@@ -316,5 +316,26 @@
   },
   {
     "lines": []
+  },
+  {
+    "mark": "400011219241352",
+    "AA": "52070",
+    "AFM_issuer": "094062259",
+    "Name": "ΜΕΤΡΟ ΑΝΩΝΥΜΟΣ ΕΜΠΟΡΙΚΗ ΚΑΙ ΒΙ",
+    "issueDate": "31/07/2023",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "15,17",
+    "totalNetValue": "15,17",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "15,17",
+        "vat": "",
+        "category": "",
+        "vatCategory": ""
+      }
+    ]
   }
 ]

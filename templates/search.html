@@ -2436,6 +2436,65 @@ document.addEventListener('click', function(ev){
 });
 
 
+
+
+
+// === Frontend patch: enrich delete_invoices POST + clear client-side cache ===
+document.addEventListener('submit', function(ev){
+  try{
+    const form = ev.target;
+    if(!form || !form.action) return;
+    // Match delete_invoices endpoint (relative or absolute)
+    const a = document.createElement('a'); a.href = form.action;
+    const path = (a.pathname || '') + (a.search || '');
+    if(!/delete_invoices/.test(path)) return;
+
+    // 1) Ensure active_vat is posted
+    const existingHv = form.querySelector('input[name="active_vat"]');
+    if(!existingHv){
+      const hv = document.createElement('input');
+      hv.type = 'hidden';
+      hv.name = 'active_vat';
+      const activeVat = (document.querySelector('#vatSelector')?.value
+                      || document.querySelector('[name="vat"]')?.value
+                      || document.body.dataset.activeVat
+                      || '').toString().trim();
+      hv.value = activeVat;
+      form.appendChild(hv);
+    }
+
+    // 2) Collect marks to delete
+    let marks = Array.from(form.querySelectorAll('input[name="delete_mark"]')).map(i => (i.value||'').trim()).filter(Boolean);
+    if(!marks.length){
+      marks = Array.from(document.querySelectorAll('input[name="delete_mark"]:checked')).map(i => (i.value||'').trim()).filter(Boolean);
+    }
+
+    // 3) Clear client-side caches (localStorage keys that reference these MARKs)
+    try{
+      marks.forEach(mk => {
+        // common per-mark keys
+        localStorage.removeItem(`epsilon_summary_${mk}`);
+        localStorage.removeItem(`EPSILON:INV:${mk}`);
+      });
+      // any key containing one of the marks
+      for(let i=localStorage.length-1; i>=0; i--){
+        const k = localStorage.key(i);
+        if(!k) continue;
+        if(marks.some(mk => k.includes(mk))){
+          localStorage.removeItem(k);
+        }
+      }
+      // also clear any prefilled summary hidden input to avoid stale reopen
+      const sumInp = document.getElementById('summaryJsonInput');
+      if(sumInp) sumInp.value = '';
+    }catch(e){ /* ignore storage errors */ }
+
+  }catch(err){
+    console.warn('delete_invoices frontend patch failed', err);
+  }
+}, true);
+
+
 </script>
 
 <style>
