@@ -95,7 +95,7 @@
           <select name="single_line_cat_{{ lid }}">
             <option value="">-- επίλεξε --</option>
             {% for c in customer_categories %}
-              <option value="{{ c }}" {% if selected_cat == c %}selected{% endif %}>{{ c }}</option>
+              <option value="{{ c }}" {% if selected_cat is defined and selected_cat == c %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
           </select>
           <button id="clearCategoryServer">Καθαρισμός</button>
@@ -160,10 +160,13 @@
   {{ super() }}
 
   {# Export server-side arrays into JS globals so the client receipts logic can use them. If they are not present, provide safe defaults. #}
+  {% set _customer_categories = customer_categories if customer_categories is defined else [] %}
+  {% set _vat_value = VAT if VAT is defined else None %}
+  {% set _active_year = ACTIVE_YEAR if ACTIVE_YEAR is defined else None %}
   <script>
-    window.CUSTOMER_CATEGORIES = {{ customer_categories|default([], true)|tojson }};
-    window.VAT = {{ VAT|default(None)|tojson }};
-    window.ACTIVE_YEAR = {{ ACTIVE_YEAR|default(None)|tojson }};
+    window.CUSTOMER_CATEGORIES = {{ _customer_categories|tojson }};
+    window.VAT = {{ _vat_value|tojson }};
+    window.ACTIVE_YEAR = {{ _active_year|tojson }};
   </script>
 
   <script>
