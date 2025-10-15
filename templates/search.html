@@ -159,16 +159,47 @@
 {% block scripts %}
   {{ super() }}
 
+  {# Export server-side arrays into JS globals so the client receipts logic can use them. If they are not present, provide safe defaults. #}
   {% set _customer_categories = customer_categories if customer_categories is defined else [] %}
   {% set _vat_value = VAT if VAT is defined else None %}
   {% set _active_year = ACTIVE_YEAR if ACTIVE_YEAR is defined else None %}
+  <script>
+    window.CUSTOMER_CATEGORIES = {{ _customer_categories|tojson }};
+    window.VAT = {{ _vat_value|tojson }};
+    window.ACTIVE_YEAR = {{ _active_year|tojson }};
+  </script>
 
   <script>
-    const CUSTOMER_CATEGORIES = {{ _customer_categories|tojson }};
-    const VAT = {{ _vat_value|tojson }};
-    const ACTIVE_YEAR = {{ _active_year|tojson }};
+  document.addEventListener('DOMContentLoaded', function(){
+    const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+    const markSearchForm = document.getElementById('markSearchForm');
+    const markInput = document.getElementById('markInput');
+    const urlInput = document.getElementById('scrapeUrlInput');
+    const summaryModal = document.getElementById('summaryModal');
+    const summaryInput = document.getElementById('summaryJsonInput');
+    const saveSummaryForm = document.getElementById('saveSummaryForm');
+    const summaryMarkEl = document.getElementById('summaryModalMark');
+    const linesContainer = document.getElementById('summaryLinesContainer');
+    const urlField = document.getElementById('scrapeUrlField');
+    const categoryField = document.getElementById('scrapeCategoryField');
+    const forceField = document.getElementById('scrapeForceField');
+    const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
+    const customerCategories = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES : [];
 
-    function showClientFlash(message, level = 'info', timeout = 4000) {
+    const summaryFields = {
+      AA: document.getElementById('summary_AA'),
+      AFM: document.getElementById('summary_AFM'),
+      Name: document.getElementById('summary_Name'),
+      issueDate: document.getElementById('summary_issueDate'),
+      type_name: document.getElementById('summary_type_name'),
+      totalNetValue: document.getElementById('summary_totalNetValue'),
+      totalVatAmount: document.getElementById('summary_totalVatAmount'),
+      totalValue: document.getElementById('summary_totalValue')
+    };
+
+    let currentSummary = null;
+
+    function flashMessage(message, level = 'info', timeout = 4000) {
       if (typeof window.showFlash === 'function') {
         window.showFlash(message, level, timeout);
       } else {
@@ -176,168 +207,150 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', function(){
-      const markForm = document.getElementById('markSearchForm');
-      const receiptSwitch = document.getElementById('useReceiptsSwitch');
-      const markInput = document.getElementById('markInput');
-      let urlInput = document.getElementById('scrapeUrlInput');
-      if (!urlInput) {
-        urlInput = document.createElement('input');
-        urlInput.id = 'scrapeUrlInput';
-        urlInput.type = 'text';
-        urlInput.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-        urlInput.className = 'p-2 border rounded w-96 hidden';
-        const ref = markInput && markInput.parentElement ? markInput.nextSibling : null;
-        if (markInput && markInput.parentElement) {
-          markInput.parentElement.insertBefore(urlInput, ref);
-        }
+    function cloneSummary(data) {
+      try {
+        return JSON.parse(JSON.stringify(data || {}));
+      } catch (error) {
+        return {};
       }
+    }
 
-      const summaryModal = document.getElementById('summaryModal');
-      const summaryInput = document.getElementById('summaryJsonInput');
-      const saveForm = document.getElementById('saveSummaryForm');
-      const urlField = document.getElementById('scrapeUrlField');
-      const categoryField = document.getElementById('scrapeCategoryField');
-      const forceField = document.getElementById('scrapeForceField');
-      const modalCloseEls = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
-
-      const summaryMarkEl = document.getElementById('summaryModalMark');
-      const summaryFields = {
-        AA: document.getElementById('summary_AA'),
-        AFM: document.getElementById('summary_AFM'),
-        Name: document.getElementById('summary_Name'),
-        issueDate: document.getElementById('summary_issueDate'),
-        type_name: document.getElementById('summary_type_name'),
-        totalNetValue: document.getElementById('summary_totalNetValue'),
-        totalVatAmount: document.getElementById('summary_totalVatAmount'),
-        totalValue: document.getElementById('summary_totalValue')
-      };
-      const linesContainer = document.getElementById('summaryLinesContainer');
-
-      let currentSummary = null;
-
-      function updateSummaryInput() {
-        if (summaryInput) {
-          summaryInput.value = currentSummary ? JSON.stringify(currentSummary) : '{}';
-        }
+    function updateSummaryInput() {
+      if (summaryInput) {
+        summaryInput.value = currentSummary ? JSON.stringify(currentSummary) : '{}';
       }
+    }
 
-      function defaultReceiptCategory() {
-        if (!Array.isArray(CUSTOMER_CATEGORIES) || !CUSTOMER_CATEGORIES.length) {
-          return '';
-        }
-        return CUSTOMER_CATEGORIES.includes('αποδειξακια') ? 'αποδειξακια' : CUSTOMER_CATEGORIES[0];
+    function defaultReceiptCategory() {
+      if (!customerCategories.length) {
+        return '';
       }
+      if (customerCategories.includes('αποδειξακια')) {
+        return 'αποδειξακια';
+      }
+      return customerCategories[0];
+    }
 
-      function toggleReceiptsMode(on) {
-        if (on) {
-          markInput?.classList.add('hidden');
-          urlInput?.classList.remove('hidden');
-          urlInput?.focus();
-          const editRepeatBtn = document.getElementById('editRepeatBtn');
-          if (editRepeatBtn) editRepeatBtn.classList.add('hidden');
+    function refreshRepeatButton() {
+      const editRepeatBtn = document.getElementById('editRepeatBtn');
+      if (!editRepeatBtn) {
+        return;
+      }
+      const repeatSwitch = document.getElementById('repeatSwitch');
+      if (typeof window.apiGetRepeatEntry !== 'function') {
+        if (repeatSwitch && repeatSwitch.checked) {
+          editRepeatBtn.classList.remove('hidden');
         } else {
-          markInput?.classList.remove('hidden');
-          urlInput?.classList.add('hidden');
-          markInput?.focus();
-          if (typeof window.apiGetRepeatEntry === 'function') {
-            (async function(){
-              try {
-                const resp = await window.apiGetRepeatEntry(VAT);
-                const mapping = resp && resp.repeat_entry && resp.repeat_entry.mapping ? resp.repeat_entry.mapping : {};
-                const repeatSwitch = document.getElementById('repeatSwitch');
-                const editRepeatBtn = document.getElementById('editRepeatBtn');
-                if (editRepeatBtn) {
-                  if (mapping && Object.keys(mapping).length && repeatSwitch && repeatSwitch.checked) {
-                    editRepeatBtn.classList.remove('hidden');
-                  } else {
-                    editRepeatBtn.classList.add('hidden');
-                  }
-                }
-              } catch (error) {
-              }
-            })();
-          }
+          editRepeatBtn.classList.add('hidden');
         }
-        if (receiptSwitch) {
-          receiptSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
-        }
+        return;
       }
 
-      function closeModal() {
-        if (summaryModal) {
-          summaryModal.style.display = 'none';
+      (async () => {
+        try {
+          const resp = await window.apiGetRepeatEntry(typeof window.VAT !== 'undefined' ? window.VAT : null);
+          const mapping = resp && resp.repeat_entry && resp.repeat_entry.mapping ? resp.repeat_entry.mapping : {};
+          if (mapping && Object.keys(mapping).length && repeatSwitch && repeatSwitch.checked) {
+            editRepeatBtn.classList.remove('hidden');
+          } else {
+            editRepeatBtn.classList.add('hidden');
+          }
+        } catch (error) {
+          // ignore
         }
+      })();
+    }
+
+    function toggleReceiptsMode(on) {
+      if (on) {
+        markInput?.classList.add('hidden');
+        urlInput?.classList.remove('hidden');
+        urlInput?.focus();
+        document.getElementById('editRepeatBtn')?.classList.add('hidden');
+      } else {
+        markInput?.classList.remove('hidden');
+        urlInput?.classList.add('hidden');
+        markInput?.focus();
+        refreshRepeatButton();
+      }
+
+      if (useReceiptsSwitch) {
+        useReceiptsSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+      }
+    }
+
+    function openModal() {
+      if (summaryModal) {
+        summaryModal.style.display = 'flex';
+      }
+    }
+
+    function closeModal() {
+      if (summaryModal) {
+        summaryModal.style.display = 'none';
+      }
+      if (typeof history.replaceState === 'function') {
         try {
           history.replaceState(null, '', location.pathname + (location.search || '') + location.hash);
         } catch (error) {
+          // ignore history errors
         }
       }
+    }
 
-      function renderSingleLine(line) {
-        if (!linesContainer) return;
-        linesContainer.innerHTML = '';
-        const lineId = line.id || line.line_id || 'l0';
-        const wrapper = document.createElement('div');
-        wrapper.className = 'space-y-2';
-        wrapper.dataset.lineId = lineId;
-        wrapper.innerHTML = `
-          <div><strong>ΦΠΑ Κατηγορία</strong><div>${line.vatCategory || ''}</div></div>
-          <div><strong>Ποσό</strong><div>${line.amount || ''}</div></div>
-          <div><strong>ΦΠΑ</strong><div>${line.vat || ''}</div></div>
-        `;
-
-        const buttonsWrap = document.createElement('div');
-        buttonsWrap.className = 'mt-2 flex flex-wrap gap-2';
-
-        if (Array.isArray(CUSTOMER_CATEGORIES) && CUSTOMER_CATEGORIES.length) {
-          CUSTOMER_CATEGORIES.forEach((cat) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'category-btn px-3 py-2 border rounded';
-            btn.dataset.cat = cat;
-            btn.textContent = cat;
-            if (line.category && line.category === cat) {
-              btn.classList.add('bg-sky-600', 'text-white');
-            }
-            btn.addEventListener('click', function(){
-              buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('bg-sky-600', 'text-white'));
-              this.classList.add('bg-sky-600', 'text-white');
-              if (currentSummary && Array.isArray(currentSummary.lines)) {
-                currentSummary.lines = currentSummary.lines.map((l) => {
-                  if (String(l.id || l.line_id) === String(lineId)) {
-                    return Object.assign({}, l, { category: cat });
-                  }
-                  return l;
-                });
-                updateSummaryInput();
-              }
-            });
-            buttonsWrap.appendChild(btn);
-          });
-        } else {
-          const empty = document.createElement('div');
-          empty.className = 'text-sm text-gray-500';
-          empty.textContent = 'Δεν υπάρχουν διαθέσιμες κατηγορίες.';
-          buttonsWrap.appendChild(empty);
+    function setLineCategory(lineId, category) {
+      if (!currentSummary || !Array.isArray(currentSummary.lines)) {
+        return;
+      }
+      currentSummary.lines = currentSummary.lines.map((line) => {
+        if (String(line.id ?? line.line_id ?? '') === String(lineId)) {
+          return Object.assign({}, line, { category: category || '' });
         }
+        return line;
+      });
+      updateSummaryInput();
+    }
 
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.id = 'clearCategory';
-        clearBtn.className = 'px-3 py-2 border rounded';
-        clearBtn.textContent = 'Καθαρισμός';
-        clearBtn.addEventListener('click', function(){
-          buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('bg-sky-600', 'text-white'));
-          if (currentSummary && Array.isArray(currentSummary.lines)) {
-            currentSummary.lines = currentSummary.lines.map((l) => {
-              if (String(l.id || l.line_id) === String(lineId)) {
-                return Object.assign({}, l, { category: '' });
-              }
-              return l;
-            });
-            updateSummaryInput();
+    function renderSingleLine(line) {
+      if (!linesContainer) {
+        return;
+      }
+      linesContainer.innerHTML = '';
+      const wrapper = document.createElement('div');
+      const lineId = line.id || line.line_id || 'l0';
+      wrapper.className = 'space-y-2';
+      wrapper.dataset.lineId = lineId;
+
+      wrapper.innerHTML = `
+        <div><strong>ΦΠΑ Κατηγορία</strong><div>${line.vatCategory || ''}</div></div>
+        <div><strong>Ποσό</strong><div>${line.amount || ''}</div></div>
+        <div><strong>ΦΠΑ</strong><div>${line.vat || ''}</div></div>
+      `;
+
+      const buttonsWrap = document.createElement('div');
+      buttonsWrap.className = 'mt-2 flex flex-wrap gap-2';
+
+      if (!customerCategories.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'text-sm text-gray-500';
+        emptyMsg.textContent = 'Δεν υπάρχουν διαθέσιμες κατηγορίες.';
+        buttonsWrap.appendChild(emptyMsg);
+      } else {
+        customerCategories.forEach((cat) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'category-btn px-3 py-2 border rounded';
+          btn.dataset.cat = cat;
+          btn.textContent = cat;
+          if (line.category && line.category === cat) {
+            btn.classList.add('active');
           }
+          btn.addEventListener('click', function(){
+            buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('active'));
+            this.classList.add('active');
+            setLineCategory(lineId, cat);
+          });
+          buttonsWrap.appendChild(btn);
         });
 
         wrapper.appendChild(buttonsWrap);
@@ -345,339 +358,371 @@
         linesContainer.appendChild(wrapper);
       }
 
-      function renderMultipleLines(lines) {
-        if (!linesContainer) return;
-        linesContainer.innerHTML = '';
-        const table = document.createElement('table');
-        table.className = 'w-full border-collapse';
-        const thead = document.createElement('thead');
-        thead.innerHTML = '<tr><th>#</th><th>ΦΠΑ Κατηγορία</th><th>Ποσό</th><th>ΦΠΑ</th><th>Κατηγορία Εξόδου</th></tr>';
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
+      wrapper.appendChild(buttonsWrap);
 
-        lines.forEach((line, index) => {
-          const lineId = line.id || line.line_id || `r${index}`;
-          const tr = document.createElement('tr');
-          tr.dataset.lineId = lineId;
-          tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${line.vatCategory || ''}</td>
-            <td style="text-align:right">${line.amount || ''}</td>
-            <td style="text-align:right">${line.vat || ''}</td>
-          `;
-          const td = document.createElement('td');
-          const select = document.createElement('select');
-          select.className = 'expense-category border rounded px-2 py-1';
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = '-- επίλεξε --';
-          select.appendChild(placeholder);
-          if (Array.isArray(CUSTOMER_CATEGORIES)) {
-            CUSTOMER_CATEGORIES.forEach((cat) => {
-              const opt = document.createElement('option');
-              opt.value = cat;
-              opt.textContent = cat;
-              select.appendChild(opt);
-            });
-          }
-          select.value = line.category || '';
-          select.addEventListener('change', function(){
-            if (currentSummary && Array.isArray(currentSummary.lines)) {
-              currentSummary.lines = currentSummary.lines.map((l) => {
-                if (String(l.id || l.line_id) === String(lineId)) {
-                  return Object.assign({}, l, { category: this.value });
-                }
-                return l;
-              });
-              updateSummaryInput();
-            }
-          });
-          td.appendChild(select);
-          tr.appendChild(td);
-          tbody.appendChild(tr);
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.id = 'clearCategory';
+      clearBtn.className = 'px-3 py-2 border rounded';
+      clearBtn.textContent = 'Καθαρισμός';
+      clearBtn.addEventListener('click', function(){
+        buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('active'));
+        setLineCategory(lineId, '');
+      });
+
+      wrapper.appendChild(clearBtn);
+      linesContainer.appendChild(wrapper);
+    }
+
+    function renderMultipleLines(lines) {
+      if (!linesContainer) {
+        return;
+      }
+      linesContainer.innerHTML = '';
+
+      const table = document.createElement('table');
+      table.className = 'w-full border-collapse';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>#</th><th>ΦΠΑ Κατηγορία</th><th>Ποσό</th><th>ΦΠΑ</th><th>Κατηγορία Εξόδου</th></tr>';
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      lines.forEach((line, index) => {
+        const lineId = line.id || line.line_id || `l${index}`;
+        const tr = document.createElement('tr');
+        tr.dataset.lineId = lineId;
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${line.vatCategory || ''}</td>
+          <td style="text-align:right">${line.amount || ''}</td>
+          <td style="text-align:right">${line.vat || ''}</td>
+        `;
+
+        const tdSelect = document.createElement('td');
+        const select = document.createElement('select');
+        select.className = 'expense-category border rounded px-2 py-1';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- επίλεξε --';
+        select.appendChild(placeholder);
+
+        customerCategories.forEach((cat) => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          select.appendChild(opt);
         });
 
-        table.appendChild(tbody);
-        linesContainer.appendChild(table);
+        select.value = line.category || '';
+        select.addEventListener('change', function(){
+          setLineCategory(lineId, this.value);
+        });
+
+        tdSelect.appendChild(select);
+        tr.appendChild(tdSelect);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      linesContainer.appendChild(table);
+    }
+
+    function renderLines() {
+      if (!linesContainer) {
+        return;
       }
-
-      function renderLines() {
-        const lines = currentSummary && Array.isArray(currentSummary.lines) ? currentSummary.lines : [];
-        if (!linesContainer) return;
-        if (!lines.length) {
-          linesContainer.innerHTML = '<div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>';
-          return;
-        }
-        if (lines.length === 1) {
-          renderSingleLine(lines[0]);
-        } else {
-          renderMultipleLines(lines);
-        }
+      const lines = Array.isArray(currentSummary && currentSummary.lines) ? currentSummary.lines : [];
+      if (!lines.length) {
+        linesContainer.innerHTML = '<div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>';
+        return;
       }
-
-      function populateSummaryModal(summary) {
-        currentSummary = summary ? JSON.parse(JSON.stringify(summary)) : null;
-        if (!currentSummary) {
-          updateSummaryInput();
-          return;
-        }
-        if (!Array.isArray(currentSummary.lines)) {
-          currentSummary.lines = [];
-        }
-        updateSummaryInput();
-
-        if (summaryMarkEl) summaryMarkEl.textContent = currentSummary.mark || '';
-        if (summaryFields.AA) summaryFields.AA.textContent = currentSummary.AA || '';
-        if (summaryFields.AFM) summaryFields.AFM.textContent = currentSummary.AFM_issuer || currentSummary.AFM || '';
-        if (summaryFields.Name) summaryFields.Name.textContent = currentSummary.Name || '';
-        if (summaryFields.issueDate) summaryFields.issueDate.textContent = currentSummary.issueDate || '';
-        if (summaryFields.type_name) summaryFields.type_name.textContent = currentSummary.type_name || '';
-        if (summaryFields.totalNetValue) summaryFields.totalNetValue.textContent = currentSummary.totalNetValue || '';
-        if (summaryFields.totalVatAmount) summaryFields.totalVatAmount.textContent = currentSummary.totalVatAmount || '';
-        if (summaryFields.totalValue) summaryFields.totalValue.textContent = currentSummary.totalValue || '';
-
-        renderLines();
+      if (lines.length === 1) {
+        renderSingleLine(lines[0]);
+      } else {
+        renderMultipleLines(lines);
       }
+    }
 
-      async function fetchNextReceiptMark() {
-        try {
-          const res = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
-          const data = await res.json().catch(() => null);
-          if (res.ok && data && data.mark) {
-            return data.mark;
-          }
-        } catch (error) {
-        }
-        return '';
+    function populateSummaryModal(summary) {
+      currentSummary = cloneSummary(summary);
+      if (!currentSummary.lines) {
+        currentSummary.lines = [];
       }
+      updateSummaryInput();
 
-      function buildSummary(scrapeData, nextMark) {
-        const summary = {
-          mark: nextMark || '',
-          AA: scrapeData.progressive_aa || '',
-          AFM_issuer: scrapeData.issuer_vat || '',
-          Name: scrapeData.issuer_name || '',
-          issueDate: scrapeData.issue_date || '',
-          type_name: 'ΑΠΟΔΕΙΞΗ',
-          totalValue: scrapeData.total_amount || '',
-          totalNetValue: scrapeData.total_amount || '',
-          totalVatAmount: (scrapeData.raw && (scrapeData.raw.totalVatAmount || scrapeData.raw.totalVat)) || '',
-          lines: [],
-          raw: scrapeData.raw || null
-        };
+      if (summaryMarkEl) summaryMarkEl.textContent = currentSummary.mark || '';
+      if (summaryFields.AA) summaryFields.AA.textContent = currentSummary.AA || '';
+      if (summaryFields.AFM) summaryFields.AFM.textContent = currentSummary.AFM_issuer || currentSummary.AFM || '';
+      if (summaryFields.Name) summaryFields.Name.textContent = currentSummary.Name || '';
+      if (summaryFields.issueDate) summaryFields.issueDate.textContent = currentSummary.issueDate || '';
+      if (summaryFields.type_name) summaryFields.type_name.textContent = currentSummary.type_name || '';
+      if (summaryFields.totalNetValue) summaryFields.totalNetValue.textContent = currentSummary.totalNetValue || '';
+      if (summaryFields.totalVatAmount) summaryFields.totalVatAmount.textContent = currentSummary.totalVatAmount || '';
+      if (summaryFields.totalValue) summaryFields.totalValue.textContent = currentSummary.totalValue || '';
 
-        const rawLines = scrapeData.raw && Array.isArray(scrapeData.raw.lines) ? scrapeData.raw.lines : [];
-        if (rawLines.length) {
-          rawLines.forEach((line, index) => {
-            summary.lines.push({
-              id: line.id || line.line_id || `r${index}`,
-              amount: line.amount || line.lineTotal || '',
-              vat: line.vat || line.vatRate || '',
-              vatCategory: line.vatCategory || line.vat_category || '',
-              description: line.description || line.desc || '',
-              category: line.category || ''
-            });
-          });
-        } else {
+      renderLines();
+    }
+
+    async function fetchNextReceiptMark() {
+      try {
+        const res = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.mark) {
+          return data.mark;
+        }
+      } catch (error) {
+        // ignore fetch errors
+      }
+      return '';
+    }
+
+    function buildSummary(scrapeData, nextMark) {
+      const summary = {
+        mark: nextMark || '',
+        AA: scrapeData.progressive_aa || '',
+        AFM_issuer: scrapeData.issuer_vat || '',
+        Name: scrapeData.issuer_name || '',
+        issueDate: scrapeData.issue_date || '',
+        type_name: 'ΑΠΟΔΕΙΞΗ',
+        totalValue: scrapeData.total_amount || '',
+        totalNetValue: scrapeData.total_amount || '',
+        totalVatAmount: (scrapeData.raw && (scrapeData.raw.totalVatAmount || scrapeData.raw.totalVat)) || '',
+        lines: [],
+        raw: scrapeData.raw || null
+      };
+
+      const rawLines = scrapeData.raw && Array.isArray(scrapeData.raw.lines) ? scrapeData.raw.lines : [];
+      if (rawLines.length) {
+        rawLines.forEach((line, index) => {
           summary.lines.push({
-            id: 'r0',
-            amount: scrapeData.total_amount || '',
-            vat: (scrapeData.raw && (scrapeData.raw.vat || scrapeData.raw.totalVat)) || '',
-            vatCategory: (scrapeData.raw && (scrapeData.raw.vatCategory || scrapeData.raw.vat_category)) || '',
-            description: (scrapeData.raw && (scrapeData.raw.description || scrapeData.raw.desc)) || '',
-            category: ''
+            id: line.id || line.line_id || `r${index}`,
+            amount: line.amount || line.lineTotal || '',
+            vat: line.vat || line.vatRate || '',
+            vatCategory: line.vatCategory || line.vat_category || '',
+            description: line.description || line.desc || '',
+            category: line.category || ''
           });
-        }
-
-        return summary;
+        });
+      } else {
+        summary.lines.push({
+          id: 'r0',
+          amount: scrapeData.total_amount || '',
+          vat: (scrapeData.raw && (scrapeData.raw.vat || scrapeData.raw.totalVat)) || '',
+          vatCategory: (scrapeData.raw && (scrapeData.raw.vatCategory || scrapeData.raw.vat_category)) || '',
+          description: (scrapeData.raw && (scrapeData.raw.description || scrapeData.raw.desc)) || '',
+          category: ''
+        });
       }
 
-      markForm?.addEventListener('submit', async function(evt){
-        if (!(receiptSwitch && receiptSwitch.checked)) {
-          return;
-        }
-        evt.preventDefault();
-        const url = urlInput ? urlInput.value.trim() : '';
-        if (!url) {
-          showClientFlash('Εισάγετε URL για αποδείξεις.', 'error');
-          return;
-        }
+      return summary;
+    }
 
-        let scrapeData = null;
+    async function handleReceiptsSubmit(event) {
+      if (!(useReceiptsSwitch && useReceiptsSwitch.checked)) {
+        return;
+      }
+      event.preventDefault();
+      if (!urlInput) {
+        return;
+      }
+      const url = urlInput.value.trim();
+      if (!url) {
+        flashMessage('Εισάγετε URL για αποδείξεις.', 'error');
+        return;
+      }
+
+      let scrapeData = null;
+      try {
+        const response = await fetch('/api/scrape_receipt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ url })
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload || payload.ok === false) {
+          const msg = payload && (payload.error || payload.message) ? (payload.error || payload.message) : `Server ${response.status || ''}`.trim();
+          flashMessage('Σφάλμα scraper: ' + msg, 'error', 6000);
+          return;
+        }
+        scrapeData = payload;
+      } catch (error) {
+        flashMessage('Σφάλμα scraper: ' + (error.message || error), 'error', 6000);
+        return;
+      }
+
+      if (scrapeData.is_invoice === true) {
+        const afmModal = document.getElementById('afmWarningModal');
+        if (afmModal) {
+          const body = document.getElementById('afmWarningBody');
+          if (body) {
+            body.innerText = 'Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.';
+          }
+          afmModal.style.display = 'flex';
+        } else {
+          flashMessage('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη.', 'error');
+        }
+        return;
+      }
+
+      const nextMark = await fetchNextReceiptMark();
+      const summaryObj = buildSummary(scrapeData, nextMark);
+      currentSummary = cloneSummary(summaryObj);
+      updateSummaryInput();
+
+      if (urlField) {
+        urlField.value = url;
+        urlField.dataset.mark = currentSummary.mark || '';
+      }
+      if (categoryField) {
+        categoryField.value = defaultReceiptCategory();
+      }
+      if (forceField) {
+        forceField.value = 'false';
+      }
+
+      populateSummaryModal(currentSummary);
+
+      if (typeof window.RC_forcePopulateSummaryModal === 'function') {
         try {
-          const res = await fetch('/api/scrape_receipt', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ url })
-          });
-          const payload = await res.json().catch(() => null);
-          if (!res.ok || !payload || payload.ok === false) {
-            const msg = payload && (payload.error || payload.message) ? (payload.error || payload.message) : ('Server ' + (res.status || ''));
-            showClientFlash('Σφάλμα scraper: ' + msg, 'error', 6000);
-            return;
-          }
-          scrapeData = payload;
+          window.RC_forcePopulateSummaryModal();
         } catch (error) {
-          showClientFlash('Σφάλμα scraper: ' + (error.message || error), 'error', 6000);
-          return;
+          console.warn('RC_forcePopulateSummaryModal failed', error);
         }
+      }
 
-        if (scrapeData && scrapeData.is_invoice === true) {
-          const warningModal = document.getElementById('afmWarningModal');
-          if (warningModal) {
-            const body = document.getElementById('afmWarningBody');
-            if (body) {
-              body.innerText = 'Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.';
-            }
-            warningModal.style.display = 'flex';
-          } else {
-            showClientFlash('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη.', 'error');
+      openModal();
+      flashMessage('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
+    }
+
+    async function handleSaveSubmit(event) {
+      if (!urlField || !urlField.value) {
+        return;
+      }
+      event.preventDefault();
+
+      let summaryPayload = null;
+      if (currentSummary) {
+        summaryPayload = cloneSummary(currentSummary);
+      } else if (summaryInput) {
+        try {
+          summaryPayload = JSON.parse(summaryInput.value || '{}');
+        } catch (error) {
+          summaryPayload = null;
+        }
+      }
+
+      if (!summaryPayload) {
+        flashMessage('Σφάλμα: άκυρα δεδομένα παραστατικού.', 'error');
+        return;
+      }
+
+      const afmFromSummary = (summaryPayload.AFM_issuer || summaryPayload.AFM || summaryPayload.issuer_vat || summaryPayload.issuerVat) || (summaryPayload.raw && (summaryPayload.raw.issuer_vat || summaryPayload.raw.issuerVat || summaryPayload.raw.AFM));
+      const afmVal = (typeof window.VAT !== 'undefined' && window.VAT) ? window.VAT : (afmFromSummary ? String(afmFromSummary).trim() : '');
+
+      if (!afmVal) {
+        flashMessage('Αδύνατο να αποθηκευτεί: λείπει AFM του ενεργού πελάτη. Επιλέξτε ενεργό πελάτη ή βεβαιωθείτε ότι το παραστατικό περιέχει ΑΦΜ.', 'error', 7000);
+        return;
+      }
+
+      let yearVal = null;
+      try {
+        if (typeof window.ACTIVE_YEAR !== 'undefined' && window.ACTIVE_YEAR) {
+          yearVal = String(window.ACTIVE_YEAR);
+        } else if (summaryPayload.year || summaryPayload.Year) {
+          yearVal = String(summaryPayload.year || summaryPayload.Year);
+        } else if (summaryPayload.issueDate) {
+          const parts = String(summaryPayload.issueDate).split('/');
+          if (parts.length >= 3) {
+            yearVal = parts[2];
           }
+        }
+        if (!yearVal) {
+          yearVal = String((new Date()).getUTCFullYear());
+        }
+      } catch (error) {
+        yearVal = String((new Date()).getUTCFullYear());
+      }
+
+      const payload = {
+        url: urlField.value,
+        summary: summaryPayload,
+        force: !!(forceField && forceField.value === 'true'),
+        category: (categoryField && categoryField.value) ? categoryField.value : defaultReceiptCategory(),
+        afm: afmVal,
+        year: String(yearVal),
+        mark: summaryPayload.mark || (urlField.dataset ? urlField.dataset.mark || '' : '')
+      };
+
+      try {
+        const response = await fetch('/api/confirm_receipt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result || result.ok === false) {
+          const msg = result && result.error ? result.error : `Server ${response.status || ''}`.trim();
+          flashMessage('Σφάλμα αποθήκευσης: ' + msg, 'error', 7000);
           return;
         }
 
-        const nextMark = await fetchNextReceiptMark();
-        const summaryObj = buildSummary(scrapeData || {}, nextMark);
-        populateSummaryModal(summaryObj);
-        if (summaryInput) {
-          summaryInput.value = JSON.stringify(summaryObj);
-        }
+        flashMessage('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
+        closeModal();
         if (urlField) {
-          urlField.value = url;
-          urlField.dataset.mark = summaryObj.mark || '';
-        }
-        if (categoryField) {
-          categoryField.value = defaultReceiptCategory();
+          urlField.value = '';
+          delete urlField.dataset.mark;
         }
         if (forceField) {
           forceField.value = 'false';
         }
-
-        if (typeof window.RC_forcePopulateSummaryModal === 'function') {
-          try {
-            window.RC_forcePopulateSummaryModal();
-          } catch (error) {
-            console.warn('RC_forcePopulateSummaryModal failed', error);
-          }
+        currentSummary = null;
+        updateSummaryInput();
+        if (urlInput) {
+          urlInput.value = '';
+          urlInput.focus();
         }
+      } catch (error) {
+        flashMessage('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
+      }
+    }
 
-        if (summaryModal) {
-          summaryModal.style.display = 'flex';
-        }
-        showClientFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
+    useReceiptsSwitch?.addEventListener('change', function(){
+      toggleReceiptsMode(!!this.checked);
+    });
+
+    markSearchForm?.addEventListener('submit', handleReceiptsSubmit);
+    saveSummaryForm?.addEventListener('submit', handleSaveSubmit);
+
+    modalCloseBtns.forEach((btn) => {
+      btn?.addEventListener('click', function(){
+        closeModal();
       });
+    });
 
-      saveForm?.addEventListener('submit', async function(evt){
-        const scrapeUrl = urlField ? urlField.value : '';
-        if (!scrapeUrl) {
-          return;
-        }
-        evt.preventDefault();
-
-        let summaryPayload = null;
-        try {
-          summaryPayload = summaryInput ? JSON.parse(summaryInput.value || '{}') : {};
-        } catch (error) {
-          summaryPayload = null;
-        }
-
-        if (!summaryPayload || typeof summaryPayload !== 'object') {
-          showClientFlash('Σφάλμα: άκυρα δεδομένα παραστατικού.', 'error');
-          return;
-        }
-
-        const afmFromSummary = (summaryPayload.AFM_issuer || summaryPayload.AFM || summaryPayload.issuer_vat || summaryPayload.issuerVat) || (summaryPayload.raw && (summaryPayload.raw.issuer_vat || summaryPayload.raw.issuerVat || summaryPayload.raw.AFM));
-        const afmVal = VAT ? VAT : (afmFromSummary ? String(afmFromSummary).trim() : '');
-        if (!afmVal) {
-          showClientFlash('Αδύνατο να αποθηκευτεί: λείπει AFM του ενεργού πελάτη. Επιλέξτε ενεργό πελάτη ή βεβαιωθείτε ότι το παραστατικό περιέχει ΑΦΜ.', 'error', 7000);
-          return;
-        }
-
-        let yearVal = null;
-        try {
-          if (ACTIVE_YEAR) {
-            yearVal = String(ACTIVE_YEAR);
-          } else if (summaryPayload.year || summaryPayload.Year) {
-            yearVal = String(summaryPayload.year || summaryPayload.Year);
-          } else if (summaryPayload.issueDate) {
-            const parts = String(summaryPayload.issueDate).split('/');
-            if (parts.length >= 3) {
-              yearVal = parts[2];
-            }
-          }
-          if (!yearVal) {
-            yearVal = String((new Date()).getUTCFullYear());
-          }
-        } catch (error) {
-          yearVal = String((new Date()).getUTCFullYear());
-        }
-
-        const payload = {
-          url: scrapeUrl,
-          summary: summaryPayload,
-          force: !!(forceField && forceField.value === 'true'),
-          category: 'αποδειξακια',
-          afm: afmVal,
-          year: String(yearVal),
-          mark: summaryPayload.mark || (urlField && urlField.dataset ? urlField.dataset.mark || '' : '')
-        };
-
-        try {
-          const res = await fetch('/api/confirm_receipt', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(payload)
-          });
-          const result = await res.json().catch(() => null);
-          if (!res.ok || !result || result.ok === false) {
-            const msg = result && result.error ? result.error : ('Server ' + (res.status || ''));
-            showClientFlash('Σφάλμα αποθήκευσης: ' + msg, 'error', 7000);
-            return;
-          }
-
-          showClientFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
-          closeModal();
-          if (urlField) {
-            urlField.value = '';
-            delete urlField.dataset.mark;
-          }
-          if (forceField) {
-            forceField.value = 'false';
-          }
-          if (urlInput) {
-            urlInput.value = '';
-            urlInput.focus();
-          }
-        } catch (error) {
-          showClientFlash('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
-        }
-      });
-
-      modalCloseEls.forEach((btn) => {
-        btn?.addEventListener('click', function(){
-          closeModal();
-        });
-      });
-
-      document.addEventListener('keydown', function(event){
-        if (event.key === 'Escape' && summaryModal && window.getComputedStyle(summaryModal).display !== 'none') {
-          closeModal();
-        }
-      });
-
-      toggleReceiptsMode(!!(receiptSwitch && receiptSwitch.checked));
-      if (categoryField && !categoryField.value) {
-        categoryField.value = defaultReceiptCategory();
+    document.addEventListener('keydown', function(event){
+      if (event.key === 'Escape' && summaryModal && window.getComputedStyle(summaryModal).display !== 'none') {
+        closeModal();
       }
     });
+
+    toggleReceiptsMode(!!(useReceiptsSwitch && useReceiptsSwitch.checked));
+    if (!(useReceiptsSwitch && useReceiptsSwitch.checked)) {
+      refreshRepeatButton();
+    }
+    if (categoryField && !categoryField.value) {
+      categoryField.value = defaultReceiptCategory();
+    }
+  });
   </script>
 
 {% endblock %}
