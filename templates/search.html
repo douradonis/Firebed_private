@@ -2,1074 +2,720 @@
 {% block title %}Αναζήτηση MARK{% endblock %}
 
 {% block content %}
-{% if request.args.get('use_receipts') == '1' %}
-  {% include 'search_receipt_partial.html' %}
-{% endif %}
 
-<div class="bg-white rounded shadow p-6">
-  <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
+<!-- Search page with integrated receipts flow. This file replaces the old include/redirect behavior and embeds the receipts modal + logic.
+     Important: modal elements are hidden by default (inline `display:none !important;`) to avoid CSS conflicts from the base stylesheet. -->
+
+<div class="container mx-auto p-4">
+  <h1 class="text-2xl font-semibold mb-4">Αναζήτηση MARK</h1>
 
   {% if error %}
     <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="flex gap-6 items-center flex-wrap" id="markSearchForm">
-    <!-- MARK input + submit -->
-    <div class="flex items-center gap-2 flex-1 min-w-[250px]">
-      <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK"
-             class="p-2 border rounded w-full" value="{{ mark }}">
-      <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
-    </div>
+  <!-- Top controls: MARK input & Receipts toggle -->
+  <form id="markSearchForm" method="post" class="mb-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <label for="markInput" class="sr-only">MARK</label>
+      <input id="markInput" name="mark" type="text" placeholder="15 ψηφιο MARK" class="p-2 border rounded w-72" value="{{ request.form.mark if request.form.mark is defined else '' }}">
 
-    <!-- Toggle switches -->
-    <div class="flex items-center gap-6 flex-wrap">
-      <!-- Τιμολόγια / Αποδείξεις -->
-      <label for="docsToggle" class="flex items-center gap-2 cursor-pointer text-sm">
-        <span>Τιμολόγια</span>
-        <div class="relative inline-block w-11 h-6">
-          <input type="checkbox" id="docsToggle" class="sr-only peer" {% if request.args.get('use_receipts') == '1' %}checked{% endif %}>
-          <div class="w-full h-6 bg-gray-200 rounded-full peer-checked:bg-sky-600 transition-colors"></div>
-          <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
-        </div>
-        <span>Αποδείξεις</span>
-      </label>
+      <input id="scrapeUrlInput" type="url" placeholder="Εισάγετε URL παραστατικού (για αποδείξεις)" class="p-2 border rounded w-96 hidden" autocomplete="off">
 
-      <!-- Επαναληψιμη εισαγωγή -->
-      <label for="repeatEntrySwitch" class="flex items-center gap-2 cursor-pointer text-sm">
-        <span>Επαναληψιμη εισαγωγή</span>
-        <div class="relative inline-block w-11 h-6">
-          <input type="checkbox" id="repeatEntrySwitch" class="sr-only peer">
-          <div class="w-full h-6 bg-gray-200 rounded-full peer-checked:bg-sky-600 transition-colors"></div>
-          <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
-        </div>
-      </label>
-      <button type="button" id="editRepeatMappingBtn" class="px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false">
+        <label for="useReceiptsSwitch" class="text-sm">Επεξεργασία ως Απόδειξη</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Αναζήτηση</button>
     </div>
   </form>
+
+  <!-- Flash container -->
+  <div id="flash-container"></div>
+
+  {% include 'list_inner.html' %}
 </div>
 
-{# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
-{% if allow_edit_existing and not request.args.get('force_edit') %}
-<div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
-  Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
-  <div class="mt-2 flex gap-2">
-    <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
-      Επιβεβαίωση
-    </button>
-    <button id="dismissBannerBtn" type="button" onclick="this.parentElement.parentElement.style.display='none'"
-            class="px-3 py-2 border rounded hover:bg-gray-50">
-      Άκυρο
-    </button>
+<!-- server-side modal for invoice/edit flows (kept as-is) -->
+{% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
+  <div id="serverSummaryModal" class="modal" style="display:block;">
+    <div class="modal-content">
+      <h3>Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}</h3>
+      <button class="modal-close">✕</button>
+      <div>
+        <div><strong>Α/Α Παραστατικού</strong> {{ modal_summary.AA or modal_summary.get('AA','') }}</div>
+        <div><strong>ΑΦΜ</strong> {{ modal_summary.AFM or modal_summary.get('AFM_issuer','') }}</div>
+        <div><strong>Επωνυμία</strong> {{ modal_summary.Name or modal_summary.get('Name','') }}</div>
+        <div><strong>Ημερομηνία</strong> {{ modal_summary.issueDate or modal_summary.get('issueDate','') }}</div>
+        <div><strong>Τύπος Παραστατικού</strong> {{ modal_summary.type_name or modal_summary.get('type_name','') }}</div>
+        <div><strong>Καθαρή Αξία</strong> {{ modal_summary.totalNetValue or modal_summary.get('totalNetValue','') }}</div>
+        <div><strong>ΦΠΑ</strong> {{ modal_summary.totalVatAmount or modal_summary.get('totalVatAmount','') }}</div>
+        <div><strong>Σύνολο</strong> {{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div>
+      </div>
+
+      {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
+      <h4>Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
+      {% if _lines|length > 1 %}
+        <table class="w-full">
+          <thead><tr><th>#</th><th>ΦΠΑ Κατηγορία</th><th>Ποσό</th><th>ΦΠΑ</th><th>Κατηγορία Εξόδου</th></tr></thead>
+          <tbody>
+          {% for line in _lines %}
+            {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
+            {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else '') %}
+            {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else '') %}
+            {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ vat_cat }}</td>
+              <td>{{ amt }}</td>
+              <td>{{ vatv }}</td>
+              <td>
+                <select name="line_cat_{{ lid }}">
+                  <option>-- επίλεξε --</option>
+                  {% for c in customer_categories %}
+                    <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% elif _lines|length == 1 %}
+        {% set single = _lines[0] %}
+        {% set lid = single.id if single.id is defined else (single.line_id if single.line_id is defined else 'l0') %}
+        {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else '') %}
+        {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else '') %}
+        {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
+        <div><strong>ΦΠΑ Κατηγορία</strong> {{ vat_cat }}</div>
+        <div><strong>Ποσό</strong> {{ amt }}</div>
+        <div><strong>ΦΠΑ</strong> {{ vatv }}</div>
+        <div>
+          <label>Επίλεξε Κατηγορία Εξόδου</label>
+          <select name="single_line_cat_{{ lid }}">
+            <option value="">-- επίλεξε --</option>
+            {% for c in customer_categories %}
+              <option value="{{ c }}" {% if selected_cat == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+          <button id="clearCategoryServer">Καθαρισμός</button>
+        </div>
+      {% else %}
+        <div>Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
+      {% endif %}
+
+      <div class="mt-3">
+        <form method="POST" action="{{ url_for('save_summary') }}">
+          <button class="btn btn-primary">Αποθήκευση στο Cache</button>
+          <a class="btn" href="#">Κλείσιμο</a>
+        </form>
+      </div>
+    </div>
   </div>
-</div>
 {% endif %}
 
-{# --- Summary modal (invoices) --- #}
-{% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
-<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
+<!-- Receipts client modal (hidden by default). We force inline none to avoid stylesheet conflicts. -->
+<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none !important;">
   <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">
-        Περίληψη Παραστατικού - MARK {{ modal_summary.mark or modal_summary.get('mark','') }}
-      </h3>
+      <h3 class="text-lg font-semibold">Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span></h3>
       <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      <div><strong>Α/Α Παραστατικού</strong><div>{{ modal_summary.AA or modal_summary.get('AA','') }}</div></div>
-      <div><strong>ΑΦΜ</strong><div>{{ modal_summary.AFM or modal_summary.get('AFM_issuer','') }}</div></div>
-      <div><strong>Επωνυμία</strong><div>{{ modal_summary.Name or modal_summary.get('Name','') }}</div></div>
-      <div><strong>Ημερομηνία</strong><div>{{ modal_summary.issueDate or modal_summary.get('issueDate','') }}</div></div>
-      <div><strong>Τύπος Παραστατικού</strong><div>{{ modal_summary.type_name or modal_summary.get('type_name','') }}</div></div>
-      <div><strong>Καθαρή Αξία</strong><div>{{ modal_summary.totalNetValue or modal_summary.get('totalNetValue','') }}</div></div>
-      <div><strong>ΦΠΑ</strong><div>{{ modal_summary.totalVatAmount or modal_summary.get('totalVatAmount','') }}</div></div>
-      <div><strong>Σύνολο</strong><div>{{ modal_summary.totalValue or modal_summary.get('totalValue','') }}</div></div>
+      <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
+      <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
+      <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
+      <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
+      <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
+      <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
+      <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
+      <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
     </div>
-
-    {% set _lines = invoice_lines if invoice_lines is defined and invoice_lines else (modal_summary.lines if modal_summary.lines is defined and modal_summary.lines else []) %}
 
     <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
-
-    {% if _lines|length > 1 %}
-    <div class="overflow-auto max-h-96 border rounded">
-      <table class="w-full border-collapse">
-        <thead class="bg-gray-100 sticky top-0">
-          <tr>
-            <th class="p-2 border text-left">#</th>
-            <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
-            <th class="p-2 border text-right">Ποσό</th>
-            <th class="p-2 border text-right">ΦΠΑ</th>
-            <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
-          </tr>
-        </thead>
-        <tbody id="linesTableBody">
-          {% for line in _lines %}
-          {% set lid = line.id if line.id is defined else (line.line_id if line.line_id is defined else 'l' ~ loop.index0) %}
-          {% set amt = line.amount if line.amount is defined else (line.lineTotal if line.lineTotal is defined else '') %}
-          {% set vatv = line.vat if line.vat is defined else (line.vatRate if line.vatRate is defined else '') %}
-          {% set vat_cat = line.vatCategory if line.vatCategory is defined else (line.vat_category if line.vat_category is defined else '') %}
-          {% set cat = line.category if line.category is defined else '' %}
-          <tr data-line-id="{{ lid }}" data-vat="{{ vat_cat }}">
-            <td class="p-2 border text-sm text-gray-600">{{ loop.index }}</td>
-            <td class="p-2 border break-words">{{ vat_cat }}</td>
-            <td class="p-2 border text-right">{{ amt }}</td>
-            <td class="p-2 border text-right">{{ vatv }}</td>
-            <td class="p-2 border">
-              <select class="expense-category p-1 border rounded w-full" data-line-id="{{ lid }}">
-                <option value="">-- επίλεξε --</option>
-                {% for c in customer_categories %}
-                  <option value="{{ c }}" {% if c == cat %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2">
+      <!-- JS will render lines here -->
     </div>
 
-    {% elif _lines|length == 1 %}
-      {% set single = _lines[0] %}
-      {% set lid = single.id if single.id is defined else (single.line_id if single.line_id is defined else 'l0') %}
-      {% set amt = single.amount if single.amount is defined else (single.lineTotal if single.lineTotal is defined else '') %}
-      {% set vatv = single.vat if single.vat is defined else (single.vatRate if single.vatRate is defined else '') %}
-      {% set vat_cat = single.vatCategory if single.vatCategory is defined else (single.vat_category if single.vat_category is defined else '') %}
-      {% set selected_cat = single.category if single.category is defined else '' %}
-
-      <div id="singleLine"
-           class="border rounded p-4"
-           data-line-id="{{ lid }}"
-           data-amount="{{ amt }}"
-           data-vat="{{ vatv }}"
-           data-vatcat="{{ vat_cat|e }}">
-        <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div><strong>ΦΠΑ Κατηγορία</strong><div>{{ vat_cat }}</div></div>
-          <div><strong>Ποσό</strong><div>{{ amt }}</div></div>
-          <div><strong>ΦΠΑ</strong><div>{{ vatv }}</div></div>
-        </div>
-
-        <div class="mb-3">
-          <strong>Επίλεξε Κατηγορία Εξόδου</strong>
-          <div id="categoryButtons" class="mt-2 flex flex-wrap gap-2">
-            {% for c in customer_categories %}
-              <button type="button"
-                      class="category-btn px-3 py-2 border rounded hover:bg-sky-50 {% if c == selected_cat %}bg-sky-600 text-white{% endif %}"
-                      data-cat="{{ c }}"
-                      data-line-id="{{ lid }}">
-                {{ c }}
-              </button>
-            {% endfor %}
-            <button type="button" id="clearCategory" class="px-3 py-2 border rounded text-sm ml-2">Καθαρισμός</button>
-          </div>
-        </div>
-      </div>
-    {% else %}
-      <div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>
-    {% endif %}
-
     <div class="mt-4 flex justify-between items-center">
-      <div class="text-sm text-gray-600">
-        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείς να ορίσεις/επεξεργαστείς αυτές τις επιλογές στη σελίδα Credentials.
-      </div>
-
+      <div class="text-sm text-gray-600">Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη.</div>
       <div class="flex justify-end gap-2">
         <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
-          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe }}'>
+          <input type="hidden" id="summaryJsonInput" name="summary_json" value='{}'>
           <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
+          <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
+          <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
+          <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
         </form>
         <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
       </div>
     </div>
   </div>
 </div>
-{% endif %}
 
-
-
-{# --- Repeat mapping modal (dynamic, populated by JS) --- #}
-<div id="repeatMappingModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4" style="display:none;">
-  <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-    <div class="flex justify-between items-center mb-3">
-      <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
-      <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-    </div>
-
-    <div id="repeatModalBody" class="space-y-3">
-      <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
-      <!-- JS θα γεμίσει εδώ -->
-      <div id="repeatMappingList" class="space-y-2"></div>
-    </div>
-
-    <div class="mt-4 flex justify-end gap-2">
-      <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
-      <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
-    </div>
-  </div>
-</div>
-
-{% if modal_warning %}
-<div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-  <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση AFM</h3>
-    </div>
-    <div class="mb-4 text-gray-700">
-      {{ modal_warning }}
-    </div>
-    <div class="flex justify-end gap-2">
-      <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{# Flash container (JS will inject messages here) #}
-<div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
-
-{% include 'list_inner.html' %}
 {% endblock %}
 
 {% block scripts %}
-<script>
-  
-const SEARCH_BASE_URL = "{{ url_for('search') }}";
-const SEARCH_RECEIPTS_URL = SEARCH_BASE_URL + '?use_receipts=1';
-const VAT = "{{ vat or '' }}"; // active vat from server
-const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
-let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
+  {{ super() }}
 
-// Helper: show transient flash (client-side)
-function showFlash(message, type='info', timeout=3000){
-  try {
-    const container = document.getElementById('clientFlashContainer');
-    if(!container) return;
-    const el = document.createElement('div');
-    el.className = 'mb-2 p-3 rounded shadow text-sm';
-    if(type === 'success') el.classList.add('bg-green-50', 'text-green-800');
-    else if(type === 'error') el.classList.add('bg-red-50', 'text-red-800');
-    else el.classList.add('bg-gray-50', 'text-gray-800');
-    el.innerText = message;
-    container.appendChild(el);
-    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }catch(e){} }, timeout);
-  } catch(e){ console.warn('showFlash failed', e); }
-}
+  {# Export server-side arrays into JS globals so the client receipts logic can use them. If they are not present, provide safe defaults. #}
+  <script>
+    window.CUSTOMER_CATEGORIES = {{ customer_categories|default([], true)|tojson }};
+    window.VAT = {{ VAT|default(None)|tojson }};
+    window.ACTIVE_YEAR = {{ ACTIVE_YEAR|default(None)|tojson }};
+  </script>
 
-// API helpers for repeat mapping
-async function apiGetRepeatEntry(vat){
-  try {
-    const url = '/api/repeat_entry/get' + (vat ? ('?vat=' + encodeURIComponent(vat)) : '');
-    const res = await fetch(url, { credentials: 'same-origin' });
-    if (!res.ok) return { ok: false };
-    return await res.json();
-  } catch(e){
-    console.warn('apiGetRepeatEntry failed', e);
-    return { ok: false };
-  }
-}
-async function apiSaveRepeatEntry(enabled, mapping, vat){
-  try {
-    const res = await fetch('/api/repeat_entry/save', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'same-origin',
-      body: JSON.stringify({ enabled: !!enabled, mapping: mapping || {}, vat: vat || VAT })
-    });
-    if(!res.ok) {
-      const txt = await res.text().catch(()=>null);
-      return { ok: false, status: res.status, body: txt };
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+    const markSearchForm = document.getElementById('markSearchForm');
+    const markInput = document.getElementById('markInput');
+    const urlInput = document.getElementById('scrapeUrlInput');
+    const summaryModal = document.getElementById('summaryModal');
+    const summaryInput = document.getElementById('summaryJsonInput');
+    const saveSummaryForm = document.getElementById('saveSummaryForm');
+    const summaryMarkEl = document.getElementById('summaryModalMark');
+    const linesContainer = document.getElementById('summaryLinesContainer');
+    const urlField = document.getElementById('scrapeUrlField');
+    const categoryField = document.getElementById('scrapeCategoryField');
+    const forceField = document.getElementById('scrapeForceField');
+    const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
+    const customerCategories = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES : [];
+
+    const summaryFields = {
+      AA: document.getElementById('summary_AA'),
+      AFM: document.getElementById('summary_AFM'),
+      Name: document.getElementById('summary_Name'),
+      issueDate: document.getElementById('summary_issueDate'),
+      type_name: document.getElementById('summary_type_name'),
+      totalNetValue: document.getElementById('summary_totalNetValue'),
+      totalVatAmount: document.getElementById('summary_totalVatAmount'),
+      totalValue: document.getElementById('summary_totalValue')
+    };
+
+    let currentSummary = null;
+
+    function flashMessage(message, level = 'info', timeout = 4000) {
+      if (typeof window.showFlash === 'function') {
+        window.showFlash(message, level, timeout);
+      } else {
+        alert(message);
+      }
     }
-    return await res.json();
-  } catch(e){
-    console.warn('apiSaveRepeatEntry failed', e);
-    return { ok: false, error: String(e) };
-  }
-}
 
-function removeForceEditParamFromUrl(){
-  try {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('force_edit')) {
-      url.searchParams.delete('force_edit');
-      history.replaceState(null, '', url.pathname + (url.search ? ('?' + url.searchParams.toString()) : '') + url.hash);
-    }
-  } catch(e){ console.warn('removeForceEditParamFromUrl failed', e); }
-}
-
-// safe UI update for edit button
-function safeUpdateUI() {
-  try {
-    const rs = document.getElementById('repeatEntrySwitch');
-    const ed = document.getElementById('editRepeatMappingBtn');
-    const dt = document.getElementById('docsToggle');
-    if (!ed) return;
-    if (!rs || !dt) {
-      // hide edit by default if switches missing
-      ed.style.display = 'none';
-      return;
-    }
-    ed.style.display = (rs.checked && !dt.checked) ? 'inline-block' : 'none';
-  } catch(e){
-    console.warn('safeUpdateUI error', e);
-  }
-}
-
-// Populate receipts modal body
-function populateReceiptsModal(lines){
-  const body = document.getElementById('receiptsModalBody');
-  if(!body) return;
-  body.innerHTML = '';
-  if(!Array.isArray(lines) || lines.length === 0){
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td class="p-2 border" colspan="10">Δεν βρέθηκαν αποδείξεις.</td>';
-    body.appendChild(tr);
-    return;
-  }
-
-  lines.forEach((l, idx) => {
-    const tr = document.createElement('tr');
-
-    const categorySelect = document.createElement('select');
-    categorySelect.className = 'p-1 border rounded';
-    const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
-    categorySelect.appendChild(emptyOpt);
-    CUSTOMER_CATEGORIES.forEach(c => {
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(l.category === c) o.selected = true;
-      categorySelect.appendChild(o);
-    });
-
-    tr.innerHTML = `
-      <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
-      <td class="p-2 border">${l.afm || ''}</td>
-      <td class="p-2 border">${l.name || ''}</td>
-      <td class="p-2 border">${l.date || ''}</td>
-      <td class="p-2 border">${l.type || ''}</td>
-      <td class="p-2 border text-right">${l.net || ''}</td>
-      <td class="p-2 border text-right">${l.vat_value || ''}</td>
-      <td class="p-2 border text-right">${l.total || ''}</td>
-      <td class="p-2 border"></td>
-      <td class="p-2 border text-left"></td>
-    `;
-    // put select into 9th cell
-    tr.querySelectorAll('td')[8].appendChild(categorySelect);
-
-    // actions cell (confirm/save single / open external)
-    const actionsTd = tr.querySelectorAll('td')[9];
-    // open doc button (if url present)
-    if(l.url){
-      const a = document.createElement('a');
-      a.href = l.url;
-      a.target = '_blank';
-      a.rel = 'noreferrer noopener';
-      a.className = 'px-2 py-1 border rounded text-sm mr-1';
-      a.innerText = 'Άνοιγμα';
-      actionsTd.appendChild(a);
-    }
-    // confirm single button
-    const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'px-2 py-1 bg-green-600 text-white rounded text-sm';
-    confirmBtn.innerText = 'Επιβεβαίωση';
-    confirmBtn.addEventListener('click', async function(){
-      // collect summary for this line
-      const summary = {
-        mark: l.mark || document.getElementById('markInput')?.value || '',
-        AA: l.AA || '',
-        AFM_issuer: l.afm || l.AFM || '',
-        Name: l.name || '',
-        issueDate: l.date || '',
-        type_name: l.type || 'ΑΠΟΔΕΙΞΗ',
-        totalValue: l.total || '',
-        totalNetValue: l.net || '',
-        totalVatAmount: l.vat_value || '',
-        lines: [{ id: l.id || ('r' + idx), amount: l.net || '', vat: l.vat_value || '', vatCategory: l.vatCategory || '', description: l.description || '' }]
-      };
-
-      const payload = {
-        url: l.url || '',
-        summary: summary,
-        force: false,
-        category: (categorySelect.value || ''),
-        afm: summary.AFM_issuer || '',
-        year: (new Date().getFullYear()).toString(),
-        mark: summary.mark || ''
-      };
-
+    function cloneSummary(data) {
       try {
-        const res = await fetch('{{ url_for("api_confirm_receipt") }}' , {
-          method: 'POST',
-          headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-          credentials: 'same-origin',
-          body: JSON.stringify(payload)
-        });
-        if(!res.ok){
-          const txt = await res.text().catch(()=>null);
-          showFlash('Σφάλμα server: ' + (res.status || ''), 'error');
-          console.error('confirm single error:', res.status, txt);
-          return;
-        }
-        const resp = await res.json();
-        showFlash(resp.message || 'Αποθηκεύτηκε.', resp.ok ? 'success' : 'error');
-        // optionally remove confirmed row or mark it visually
-        tr.classList.add('opacity-60');
-        // if server returns next_mark update input
-        if(resp.next_mark){
-          try { document.getElementById('markInput').value = resp.next_mark; } catch(e){}
-        }
-      } catch(e){
-        console.error('confirm single exception', e);
-        showFlash('Σφάλμα κατά την επιβεβαίωση.', 'error');
+        return JSON.parse(JSON.stringify(data || {}));
+      } catch (error) {
+        return {};
       }
-    });
-    actionsTd.appendChild(confirmBtn);
-
-    body.appendChild(tr);
-  });
-}
-
-// fetch helper with JSON attempts
-async function fetchJson(url, opts){
-  try {
-    const res = await fetch(url, opts);
-    const text = await res.text();
-    try { return { ok: res.ok, status: res.status, payload: JSON.parse(text), raw: text }; }
-    catch(e){ return { ok: res.ok, status: res.status, payload: null, raw: text }; }
-  } catch(e){
-    return { ok: false, error: String(e) };
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function(){
-  // DOM references used across code
-  const repeatSwitch = document.getElementById('repeatEntrySwitch');
-  const editRepeatBtn = document.getElementById('editRepeatMappingBtn');
-  const repeatModal = document.getElementById('repeatMappingModal');
-  const repeatModalList = document.getElementById('repeatMappingList');
-  const repeatModalSave = document.getElementById('repeatModalSave');
-  const repeatModalCancel = document.getElementById('repeatModalCancel');
-  const repeatModalCloseX = document.getElementById('repeatModalCloseX');
-  const summaryInput = document.getElementById('summaryJsonInput'); // may be null
-  const saveSummaryForm = document.getElementById('saveSummaryForm');
-
-  const docsToggle = document.getElementById('docsToggle');
-  const markForm = document.getElementById('markSearchForm');
-  const markInput = document.getElementById('markInput');
-
-  const receiptsModal = document.getElementById('receiptsModal');
-  const receiptsModalBody = document.getElementById('receiptsModalBody');
-  const receiptsJsonInput = document.getElementById('receiptsJsonInput');
-  const receiptsModalCloseX = document.getElementById('receiptsModalCloseX');
-  const receiptsModalCloseBtn = document.getElementById('receiptsModalCloseBtn');
-  const confirmReceiptsBtn = document.getElementById('confirmReceiptsBtn');
-
-  // endpoints
-  const SCRAPER_RECEIPT_URL = "{{ url_for('api_scrape_receipt') }}";
-  const NEXT_RECEIPT_MARK_URL = "{{ url_for('api_next_receipt_mark') }}";
-  const CONFIRM_RECEIPT_URL = "{{ url_for('api_confirm_receipt') }}";
-
-  // initial UI
-  safeUpdateUI();
-
-  if (repeatSwitch) repeatSwitch.addEventListener('change', safeUpdateUI);
-
-  // IMPORTANT: replace docsToggle behavior to redirect to search_receipts (actually search?use_receipts=1)
-  if (docsToggle) {
-    docsToggle.addEventListener('change', function() {
-      // update UI quickly (optional)
-      safeUpdateUI();
-
-      const markVal = (markInput && markInput.value) ? markInput.value.trim() : '';
-      if (this.checked) {
-        // go to search route with use_receipts=1
-        try {
-          const u = new URL(SEARCH_RECEIPTS_URL, window.location.origin);
-          if (markVal) u.searchParams.set('mark', markVal);
-          window.location.href = u.toString();
-        } catch (e) {
-          // fallback to relative URL
-          const rel = SEARCH_RECEIPTS_URL + (markVal ? ('&mark=' + encodeURIComponent(markVal)) : '');
-          window.location.href = rel;
-        }
-      } else {
-        // go back to normal search (no use_receipts)
-        try {
-          const u2 = new URL(SEARCH_BASE_URL, window.location.origin);
-          if (markVal) u2.searchParams.set('mark', markVal);
-          window.location.href = u2.toString();
-        } catch (e) {
-          const rel2 = SEARCH_BASE_URL + (markVal ? ('?mark=' + encodeURIComponent(markVal)) : '');
-          window.location.href = rel2;
-        }
-      }
-    });
-  }
-
-  // wire form submit: if receipts toggle checked -> use API via fetch
-  markForm?.addEventListener('submit', function(e){
-    if (docsToggle && docsToggle.checked){
-      e.preventDefault();
-      const markValRaw = (markInput?.value || '').trim();
-      if(!markValRaw){ showFlash('Δώσε MARK ή URL για να αναζητηθούν αποδείξεις.','error'); return; }
-
-      (async ()=>{
-        try {
-          showFlash('Αναζήτηση αποδείξεων...', 'info', 1500);
-
-          // Decide payload shape: if looks like URL send { url: ... } else send { mark: ... }
-          const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markValRaw) || markValRaw.indexOf('/') !== -1;
-          const bodyObj = looksLikeUrl ? { url: markValRaw } : { mark: markValRaw };
-
-          const r = await fetchJson(SCRAPER_RECEIPT_URL, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-            credentials: 'include',
-            body: JSON.stringify(bodyObj)
-          });
-          if(!r.ok){
-            showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error', 4000);
-            console.error('scrape error', r);
-            return;
-          }
-          const payload = r.payload || {};
-          const linesRaw = payload.receipts || payload.lines || payload.data || [];
-          const canon = Array.isArray(linesRaw) ? linesRaw.map(l => ({
-            id: l.id || l.line_id || '',
-            afm: l.AFM || l.afm || l.vat || l.vatNumber || '',
-            name: l.Name || l.name || l.issuer || '',
-            date: l.issueDate || l.date || '',
-            type: l.type_name || l.type || 'ΑΠΟΔΕΙΞΗ',
-            net: l.totalNetValue || l.amount || l.net || '',
-            vat_value: l.totalVatAmount || l.vat || l.vatAmount || '',
-            total: l.totalValue || l.total || l.gross || '',
-            category: l.category || '',
-            url: l.url || l.document_url || ''
-          })) : [];
-
-          // update hidden input and modal
-          if(receiptsJsonInput) receiptsJsonInput.value = JSON.stringify({ mark: markValRaw, lines: canon });
-          populateReceiptsModal(canon);
-          if(receiptsModal) receiptsModal.style.display = 'flex';
-          // keep toggle visually checked
-          if(docsToggle) docsToggle.checked = true;
-
-          if(payload.message) showFlash(payload.message, payload.ok ? 'success' : 'error');
-        } catch(e){
-          console.error('scrape exception', e);
-          showFlash('Σφάλμα κατά την ανάκτηση αποδείξεων.', 'error');
-        }
-      })();
-    } else {
-      // normal server submit (invoices search)
     }
-  });
 
-  // receipts modal close handlers
-  receiptsModalCloseX?.addEventListener('click', function(){ if(receiptsModal) receiptsModal.style.display = 'none'; });
-  receiptsModalCloseBtn?.addEventListener('click', function(){ if(receiptsModal) receiptsModal.style.display = 'none'; });
-
-  // confirm all receipts in modal (bulk)
-  confirmReceiptsBtn?.addEventListener('click', async function(){
-    try {
-      // read json from hidden input if available, otherwise construct from DOM
-      let parsed = null;
-      if(receiptsJsonInput && receiptsJsonInput.value){
-        try{ parsed = JSON.parse(receiptsJsonInput.value); } catch(e){ parsed = null; }
+    function updateSummaryInput() {
+      if (summaryInput) {
+        summaryInput.value = currentSummary ? JSON.stringify(currentSummary) : '{}';
       }
-      const lines = [];
-      if(parsed && Array.isArray(parsed.lines) && parsed.lines.length){
-        parsed.lines.forEach((l, i) => {
-          const row = receiptsModalBody.querySelectorAll('tr')[i];
-          const sel = row ? row.querySelector('select') : null;
-          const category = sel ? sel.value : (l.category || '');
-          lines.push(Object.assign({}, l, { category: category }));
-        });
-      } else {
-        receiptsModalBody.querySelectorAll('tr').forEach((row, i) => {
-          const tds = row.querySelectorAll('td');
-          if(tds.length < 1) return;
-          const afm = tds[1]?.innerText.trim() || '';
-          const name = tds[2]?.innerText.trim() || '';
-          const date = tds[3]?.innerText.trim() || '';
-          const type = tds[4]?.innerText.trim() || '';
-          const net = tds[5]?.innerText.trim() || '';
-          const vat_value = tds[6]?.innerText.trim() || '';
-          const total = tds[7]?.innerText.trim() || '';
-          const sel = row.querySelector('select');
-          const category = sel ? sel.value : '';
-          lines.push({ id: 'r' + i, afm, name, date, type, net, vat_value, total, category });
-        });
+    }
+
+    function defaultReceiptCategory() {
+      if (!customerCategories.length) {
+        return '';
       }
+      if (customerCategories.includes('αποδειξακια')) {
+        return 'αποδειξακια';
+      }
+      return customerCategories[0];
+    }
 
-      if(lines.length === 0){ showFlash('Δεν υπάρχουν γραμμές για επιβεβαίωση.', 'error'); return; }
-
-      const markVal = (markInput?.value || parsed?.mark || '') || '';
-
-      // Build payload: send mark and lines; backend expected structure may vary
-      const payload = { mark: markVal, lines: lines, doc_type: 'receipt' };
-
-      const res = await fetch(CONFIRM_RECEIPT_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest'},
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok){
-        const txt = await res.text().catch(()=>null);
-        showFlash('Σφάλμα server κατά την επιβεβαίωση αποδείξεων.', 'error', 5000);
-        console.error('confirm receipts error', res.status, txt);
+    function refreshRepeatButton() {
+      const editRepeatBtn = document.getElementById('editRepeatBtn');
+      if (!editRepeatBtn) {
         return;
       }
-      const resp = await res.json();
-      showFlash(resp.message || 'Αποθηκεύτηκαν οι αποδείξεις.', resp.ok ? 'success' : 'error', 5000);
-      if(resp.ok) receiptsModal.style.display = 'none';
-
-      // fetch next receipt mark if backend provides next_mark endpoint/field
-      try {
-        const nextRes = await fetch(NEXT_RECEIPT_MARK_URL, { method: 'GET', credentials: 'include', headers: {'X-Requested-With':'XMLHttpRequest'} });
-        if(nextRes && nextRes.ok){
-          const json = await nextRes.json().catch(()=>null);
-          if(json && json.next_mark){
-            document.getElementById('markInput').value = json.next_mark;
-          } else if(resp.next_mark){
-            document.getElementById('markInput').value = resp.next_mark;
-          }
-        } else if(resp.next_mark){
-          document.getElementById('markInput').value = resp.next_mark;
-        }
-      } catch(e){ /* ignore */ }
-
-    } catch(e){
-      console.error('confirmReceipts exception', e);
-      showFlash('Σφάλμα κατά την επιβεβαίωση αποδείξεων.', 'error');
-    }
-  });
-
-  // repeat mapping UI builder
-  function detectVatKeysFromSummary(){
-    if(summaryInput && summaryInput.value){
-      try {
-        const obj = JSON.parse(summaryInput.value || '{}');
-        const lines = Array.isArray(obj.lines) ? obj.lines : [];
-        const set = new Set();
-        lines.forEach(l => {
-          const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-          if(key) set.add(key);
-        });
-        if(set.size) return Array.from(set);
-      } catch(e){ /* ignore */ }
-    }
-    return ['0%','6%','13%','24%'];
-  }
-
-  function buildRepeatModalUI(existingMapping){
-    repeatModalList.innerHTML = '';
-    const vatKeys = detectVatKeysFromSummary();
-    const mapping = existingMapping || {};
-    const defaultRow = document.createElement('div');
-    defaultRow.className = 'flex items-center gap-3';
-    defaultRow.innerHTML = `<div class="w-36 text-sm font-medium">Προεπιλογή</div>`;
-    const defaultSelect = document.createElement('select');
-    defaultSelect.className = 'p-1 border rounded flex-1';
-    const opt0 = document.createElement('option'); opt0.value=''; opt0.innerText='-- (κανένα) --'; defaultSelect.appendChild(opt0);
-    CUSTOMER_CATEGORIES.forEach(c=>{
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(mapping['__default'] === c) o.selected = true;
-      defaultSelect.appendChild(o);
-    });
-    defaultRow.appendChild(defaultSelect);
-    repeatModalList.appendChild(defaultRow);
-
-    vatKeys.forEach(vk=>{
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-3';
-      const label = document.createElement('div');
-      label.className = 'w-36 text-sm font-medium';
-      label.innerText = vk || '(άγνωστο)';
-      const sel = document.createElement('select');
-      sel.className = 'p-1 border rounded flex-1';
-      const oEmpty = document.createElement('option'); oEmpty.value=''; oEmpty.innerText='-- (προεπιλογή) --'; sel.appendChild(oEmpty);
-      CUSTOMER_CATEGORIES.forEach(c=>{
-        const o=document.createElement('option'); o.value=c; o.innerText=c;
-        if(mapping[vk] === c) o.selected = true;
-        sel.appendChild(o);
-      });
-      row.appendChild(label);
-      row.appendChild(sel);
-      repeatModalList.appendChild(row);
-    });
-  }
-
-  function openRepeatModalWithMapping(mapping){
-    buildRepeatModalUI(mapping || {});
-    repeatModal.style.display = 'flex';
-  }
-  function closeRepeatModal(){ repeatModal.style.display = 'none'; }
-
-  function collectMappingFromModal(){
-    const mapping = {};
-    const selects = repeatModalList.querySelectorAll('select');
-    if(selects.length){
-      const first = selects[0];
-      if(first && first.value) mapping['__default'] = first.value;
-      const vatKeys = detectVatKeysFromSummary();
-      for(let i=1;i<selects.length;i++){
-        const sel = selects[i];
-        const vatKey = vatKeys[i-1];
-        if(sel && sel.value) mapping[vatKey] = sel.value;
-      }
-    }
-    return mapping;
-  }
-
-  function applyMappingToSummaryAndSubmitUsingMapping(mapping){
-    if(!summaryInput || !saveSummaryForm) return false;
-    try {
-      const data = JSON.parse(summaryInput.value || '{}');
-      if(!Array.isArray(data.lines)) data.lines = [];
-      data.lines = data.lines.map(l => {
-        const vatKey = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-        if(mapping && mapping[vatKey]) l.category = mapping[vatKey];
-        else if(mapping && mapping.__default) l.category = mapping.__default;
-        return l;
-      });
-      summaryInput.value = JSON.stringify(data);
-      saveSummaryForm.submit();
-      return true;
-    } catch(e){
-      console.warn('applyMappingToSummaryAndSubmitUsingMapping error', e);
-      return false;
-    }
-  }
-
-  // ---------- Initialization: load server repeat_entry config ----------
-  (async function initRepeatEntry(){
-    try {
-      const resp = await apiGetRepeatEntry(VAT);
-      if(resp && resp.ok){
-        const repeat = resp.repeat_entry || { enabled: false, mapping: {} };
-        if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
-          CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-        }
-        const enabled = !!repeat.enabled;
-        const mapping = repeat.mapping || {};
-
-        if(repeatSwitch){
-          repeatSwitch.checked = enabled;
-          if(mapping && Object.keys(mapping).length) editRepeatBtn.classList.remove('hidden');
-          repeatSwitch.addEventListener('change', async function(){
-            const now = this.checked;
-            if(now){
-              if(!mapping || Object.keys(mapping).length === 0){
-                openRepeatModalWithMapping({});
-              } else {
-                editRepeatBtn.classList.remove('hidden');
-              }
-            } else {
-              editRepeatBtn.classList.add('hidden');
-            }
-            const saveResp = await apiSaveRepeatEntry(now, mapping, VAT);
-            if(saveResp && saveResp.ok){
-              showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
-              if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
-                CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
-              }
-            } else {
-              showFlash('Αποτυχία αποθήκευσης ρύθμισης.', 'error');
-            }
-          });
-        }
-
-        if(enabled && mapping && Object.keys(mapping).length && summaryInput){
-          const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
-          if(did){
-            const sm = document.getElementById('summaryModal');
-            if(sm) sm.style.display = 'none';
-          }
-        }
-
-        if(editRepeatBtn){
-          editRepeatBtn.classList.toggle('hidden', !mapping || Object.keys(mapping).length===0);
-          editRepeatBtn.addEventListener('click', function(){
-            openRepeatModalWithMapping(mapping);
-          });
-        }
-      } else {
-        if(repeatSwitch) repeatSwitch.checked = false;
-      }
-    } catch(e){
-      console.warn('initRepeatEntry failed', e);
-    }
-  })();
-
-  // modal wiring
-  repeatModalCloseX?.addEventListener('click', closeRepeatModal);
-  repeatModalCancel?.addEventListener('click', closeRepeatModal);
-
-  repeatModalSave?.addEventListener('click', async function(){
-    const mapping = collectMappingFromModal();
-    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
-    if (resp && resp.ok) {
-      if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
-        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-      }
-      if (repeatSwitch) repeatSwitch.checked = true;
-      editRepeatBtn.classList.remove('hidden');
-      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
-      closeRepeatModal();
-      setTimeout(function(){ try { window.location.reload(); } catch(e){ console.warn('reload failed', e); } }, 600);
-      return;
-    } else {
-      console.warn('Failed saving repeat mapping', resp);
-      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
-    }
-  });
-
-  // existing banner & summary modal wiring
-  const forceBtn = document.getElementById('forceEditBtn');
-  const existingBanner = document.getElementById('existingBanner');
-  const dismissBannerBtn = document.getElementById('dismissBannerBtn');
-
-  if(dismissBannerBtn){
-    dismissBannerBtn.addEventListener('click', function(){ if(existingBanner) existingBanner.style.display = 'none'; });
-  }
-
-  if (forceBtn){
-    forceBtn.addEventListener('click', function(){
-      const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
-      const markVal = encodeURIComponent(markValRaw || '');
-      if (!markVal){ alert('Δεν δόθηκε MARK για επιβεβαίωση.'); return; }
-      if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
-        if(existingBanner) existingBanner.style.display = 'none';
-        window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
-      }
-    });
-  }
-
-  const modal = document.getElementById('summaryModal');
-  const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
-  modalCloseBtns.forEach(b => b?.addEventListener('click', function(){
-    if(modal) modal.style.display = 'none';
-    removeForceEditParamFromUrl();
-  }));
-
-  {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
-    setTimeout(()=>{
-      const m = document.getElementById('summaryModal');
-      if (m) { m.style.display = 'flex'; removeForceEditParamFromUrl(); }
-    }, 80);
-  {% endif %}
-
-  {% if modal_warning %}
-  const afmModal = document.getElementById('afmWarningModal');
-  const afmModalBtn = document.getElementById('afmModalConfirm');
-  if (afmModal && afmModalBtn){
-    setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
-  }
-  {% endif %}
-
-  // summary lines wiring (selects, buttons)
-  if (summaryInput){
-    try {
-      let summaryData = JSON.parse(summaryInput.value || '{}');
-      if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
-      summaryData.lines = summaryData.lines.map(l => {
-        if (!l) return {id:'', description:'', amount:'', vat:'', category:'', vatCategory:''};
-        l.id = (l.id!==undefined)?String(l.id):(l.line_id!==undefined?String(l.line_id):'');
-        l.category = l.category || l.cat || l.line_category || l['κατηγορία'] || '';
-        return l;
-      });
-
-      document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr => {
-        const lid = String(tr.dataset.lineId || '');
-        const sel = tr.querySelector('select.expense-category');
-        if (!sel) return;
-        let existing = summaryData.lines.find(x => String(x.id) === lid);
-        if (!existing){
-          existing = {id: lid, category: ''};
-          summaryData.lines.push(existing);
-        }
-        sel.value = existing.category || '';
-        sel.addEventListener('change', function(){ existing.category = sel.value; summaryInput.value = JSON.stringify(summaryData); });
-      });
-
-      const singleLine = document.getElementById('singleLine');
-      if (singleLine){
-        const lid = String(singleLine.dataset.lineId || '');
-        let existing = summaryData.lines.find(x => String(x.id) === lid);
-        if (!existing){
-          existing = {id: lid, category: ''};
-          summaryData.lines.push(existing);
-        }
-        const buttons = document.querySelectorAll('#categoryButtons .category-btn');
-        function markActive(cat){
-          buttons.forEach(b => {
-            b.classList.toggle('bg-sky-600', b.dataset.cat === cat);
-            b.classList.toggle('text-white', b.dataset.cat === cat);
-          });
-        }
-        if (existing.category) markActive(existing.category);
-        buttons.forEach(btn => {
-          btn.addEventListener('click', function(){
-            const cat = this.dataset.cat;
-            existing.category = (existing.category === cat) ? '' : cat;
-            markActive(existing.category);
-            summaryInput.value = JSON.stringify(summaryData);
-          });
-        });
-        const clearBtn = document.getElementById('clearCategory');
-        clearBtn?.addEventListener('click', function(){
-          existing.category = '';
-          markActive('');
-          summaryInput.value = JSON.stringify(summaryData);
-        });
-      }
-      summaryInput.value = JSON.stringify(summaryData);
-    } catch(e){
-      console.warn('summary JSON parse/normalize error', e);
-    }
-  }
-
-  // DataTables or fallback search
-  const hasTable = document.querySelector('.summary-table') !== null;
-  if (hasTable){
-    const jq = window.jQuery;
-    const dtAvail = jq && jq.fn && jq.fn.dataTable;
-    if (dtAvail){
-      try {
-        const dt = $('.summary-table').DataTable({
-          paging: true,
-          scrollY: '55vh',
-          scrollX: true,
-          scrollCollapse: true,
-          fixedHeader: { header: true, headerOffset: 0 },
-          colReorder: true,
-          autoWidth: false,
-          columnDefs: [{ orderable: false, targets: 0 }]
-        });
-        if (typeof dt.colResize === 'function') {
-          try { dt.colResize({ resizeMode: 'flex' }); } catch(e){ console.warn('colResize failed', e); }
-        }
-        const globalSearch = document.getElementById('globalSearch');
-        if (globalSearch){
-          globalSearch.addEventListener('input', function(){ dt.search(this.value).draw(); });
-        }
-        setTimeout(()=>{ try{ dt.columns.adjust().draw(); }catch(e){} }, 120);
-      } catch(e){
-        console.warn('DataTables init failed — falling back', e);
-      }
-    } else {
-      const globalSearch = document.getElementById('globalSearch');
-      if (globalSearch){
-        globalSearch.addEventListener('input', function(){
-          const q = this.value.toLowerCase();
-          document.querySelectorAll('.summary-table tbody tr').forEach(tr => {
-            tr.style.display = tr.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
-          });
-        });
-      }
-    }
-
-    try {
-      const anyCheckbox = document.querySelector('input[name="delete_mark"]');
-      if (anyCheckbox){
-        const firstTh = document.querySelector('.summary-table thead th');
-        if (firstTh && !document.getElementById('selectAll')){
-          const chk = document.createElement('input');
-          chk.type = 'checkbox'; chk.id = 'selectAll'; chk.title = 'Επιλογή όλων';
-          chk.style.marginRight = '6px';
-          firstTh.prepend(chk);
-          chk.addEventListener('change', function(){ document.querySelectorAll('input[name="delete_mark"]').forEach(cb => cb.checked = this.checked); });
-        }
-        const headers = Array.from(document.querySelectorAll('.summary-table thead th')).map(h => h.innerText.trim().toLowerCase());
-        let markIdx = headers.findIndex(h => h.includes('mark'));
-        if (markIdx === -1) markIdx = headers.findIndex(h => h.includes('αφμ') || h.includes('afm'));
-        if (markIdx >= 0){
-          document.querySelectorAll('.summary-table tbody tr').forEach(row => {
-            const cb = row.querySelector('input[name="delete_mark"]');
-            if (cb){
-              const td = row.querySelectorAll('td')[markIdx];
-              if (td){
-                const v = td.innerText.trim();
-                if (v) cb.value = v;
-              }
-            }
-          });
-        }
-      }
-    } catch(e){ console.warn('select-all / mark mapping error', e); }
-  }
-
-  // restore table when mark cleared
-  (function wireRobustClearRestore(){
-    const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
-    if (!mi) return;
-    let t = null;
-    let lastVal = mi.value || '';
-    function restoreAllRowsAndUi(){
-      try {
-        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-          try {
-            const dt = $('.summary-table').DataTable();
-            dt.search('').columns().search('').draw();
-            try {
-              dt.rows().nodes().to$().each(function(){ this.style.display = ''; });
-            } catch(e){ /* ignore */ }
-            try { dt.columns.adjust().draw(false); } catch(e){ /* ignore */ }
-          } catch(e) {
-            document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
-          }
+      const repeatSwitch = document.getElementById('repeatSwitch');
+      if (typeof window.apiGetRepeatEntry !== 'function') {
+        if (repeatSwitch && repeatSwitch.checked) {
+          editRepeatBtn.classList.remove('hidden');
         } else {
-          document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
+          editRepeatBtn.classList.add('hidden');
         }
-        const selectAll = document.getElementById('selectAll') || document.querySelector('.summary-table thead input[type="checkbox"]#selectAll');
-        if (selectAll) selectAll.checked = false;
-        const evt = new Event('tableRestored');
-        document.querySelectorAll('.summary-table').forEach(t => t.dispatchEvent(evt));
-      } catch(err){
-        console.warn('restoreAllRowsAndUi failed', err);
+        return;
+      }
+
+      (async () => {
+        try {
+          const resp = await window.apiGetRepeatEntry(typeof window.VAT !== 'undefined' ? window.VAT : null);
+          const mapping = resp && resp.repeat_entry && resp.repeat_entry.mapping ? resp.repeat_entry.mapping : {};
+          if (mapping && Object.keys(mapping).length && repeatSwitch && repeatSwitch.checked) {
+            editRepeatBtn.classList.remove('hidden');
+          } else {
+            editRepeatBtn.classList.add('hidden');
+          }
+        } catch (error) {
+          // ignore
+        }
+      })();
+    }
+
+    function toggleReceiptsMode(on) {
+      if (on) {
+        markInput?.classList.add('hidden');
+        urlInput?.classList.remove('hidden');
+        urlInput?.focus();
+        document.getElementById('editRepeatBtn')?.classList.add('hidden');
+      } else {
+        markInput?.classList.remove('hidden');
+        urlInput?.classList.add('hidden');
+        markInput?.focus();
+        refreshRepeatButton();
+      }
+
+      if (useReceiptsSwitch) {
+        useReceiptsSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
       }
     }
-    function maybeRestore(){
-      clearTimeout(t);
-      t = setTimeout(()=>{
-        try {
-          const v = (mi.value || '').trim();
-          if (v === '' && (lastVal && lastVal.trim() !== '')) {
-            try {
-              if (typeof INITIAL_MARK !== 'undefined' && INITIAL_MARK && INITIAL_MARK.trim() !== '') {
-                const cur = new URL(window.location.href);
-                if (cur.searchParams.has('mark') || cur.searchParams.has('force_edit')) {
-                  window.location = SEARCH_BASE_URL;
-                  return;
-                }
-              }
-            } catch(e){ /* ignore */ }
-            restoreAllRowsAndUi();
-          }
-          lastVal = v;
-        } catch(e){
-          console.warn(e);
-        }
-      }, 150);
-    }
-    mi.addEventListener('input', maybeRestore);
-    mi.addEventListener('keyup', maybeRestore);
-    mi.addEventListener('paste', function(){ setTimeout(maybeRestore, 50); });
-    mi.addEventListener('cut', function(){ setTimeout(maybeRestore, 50); });
-    mi.addEventListener('blur', maybeRestore);
-    let pollInterval = null;
-    try {
-      pollInterval = setInterval(() => {
-        const current = (mi.value || '').trim();
-        if (current !== (lastVal || '').trim()) {
-          maybeRestore();
-        }
-      }, 300);
-      window.addEventListener('beforeunload', () => { if (pollInterval) clearInterval(pollInterval); });
-    } catch(e){}
-  })();
 
-});
-</script>
+    function openModal() {
+      if (summaryModal) {
+        summaryModal.style.display = 'flex';
+      }
+    }
+
+    function closeModal() {
+      if (summaryModal) {
+        summaryModal.style.display = 'none';
+      }
+      if (typeof history.replaceState === 'function') {
+        try {
+          history.replaceState(null, '', location.pathname + (location.search || '') + location.hash);
+        } catch (error) {
+          // ignore history errors
+        }
+      }
+    }
+
+    function setLineCategory(lineId, category) {
+      if (!currentSummary || !Array.isArray(currentSummary.lines)) {
+        return;
+      }
+      currentSummary.lines = currentSummary.lines.map((line) => {
+        if (String(line.id ?? line.line_id ?? '') === String(lineId)) {
+          return Object.assign({}, line, { category: category || '' });
+        }
+        return line;
+      });
+      updateSummaryInput();
+    }
+
+    function renderSingleLine(line) {
+      if (!linesContainer) {
+        return;
+      }
+      linesContainer.innerHTML = '';
+      const wrapper = document.createElement('div');
+      const lineId = line.id || line.line_id || 'l0';
+      wrapper.className = 'space-y-2';
+      wrapper.dataset.lineId = lineId;
+
+      wrapper.innerHTML = `
+        <div><strong>ΦΠΑ Κατηγορία</strong><div>${line.vatCategory || ''}</div></div>
+        <div><strong>Ποσό</strong><div>${line.amount || ''}</div></div>
+        <div><strong>ΦΠΑ</strong><div>${line.vat || ''}</div></div>
+      `;
+
+      const buttonsWrap = document.createElement('div');
+      buttonsWrap.className = 'mt-2 flex flex-wrap gap-2';
+
+      if (!customerCategories.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'text-sm text-gray-500';
+        emptyMsg.textContent = 'Δεν υπάρχουν διαθέσιμες κατηγορίες.';
+        buttonsWrap.appendChild(emptyMsg);
+      } else {
+        customerCategories.forEach((cat) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'category-btn px-3 py-2 border rounded';
+          btn.dataset.cat = cat;
+          btn.textContent = cat;
+          if (line.category && line.category === cat) {
+            btn.classList.add('active');
+          }
+          btn.addEventListener('click', function(){
+            buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('active'));
+            this.classList.add('active');
+            setLineCategory(lineId, cat);
+          });
+          buttonsWrap.appendChild(btn);
+        });
+      }
+
+      wrapper.appendChild(buttonsWrap);
+
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.id = 'clearCategory';
+      clearBtn.className = 'px-3 py-2 border rounded';
+      clearBtn.textContent = 'Καθαρισμός';
+      clearBtn.addEventListener('click', function(){
+        buttonsWrap.querySelectorAll('button.category-btn').forEach((el) => el.classList.remove('active'));
+        setLineCategory(lineId, '');
+      });
+
+      wrapper.appendChild(clearBtn);
+      linesContainer.appendChild(wrapper);
+    }
+
+    function renderMultipleLines(lines) {
+      if (!linesContainer) {
+        return;
+      }
+      linesContainer.innerHTML = '';
+
+      const table = document.createElement('table');
+      table.className = 'w-full border-collapse';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>#</th><th>ΦΠΑ Κατηγορία</th><th>Ποσό</th><th>ΦΠΑ</th><th>Κατηγορία Εξόδου</th></tr>';
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      lines.forEach((line, index) => {
+        const lineId = line.id || line.line_id || `l${index}`;
+        const tr = document.createElement('tr');
+        tr.dataset.lineId = lineId;
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${line.vatCategory || ''}</td>
+          <td style="text-align:right">${line.amount || ''}</td>
+          <td style="text-align:right">${line.vat || ''}</td>
+        `;
+
+        const tdSelect = document.createElement('td');
+        const select = document.createElement('select');
+        select.className = 'expense-category border rounded px-2 py-1';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- επίλεξε --';
+        select.appendChild(placeholder);
+
+        customerCategories.forEach((cat) => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          select.appendChild(opt);
+        });
+
+        select.value = line.category || '';
+        select.addEventListener('change', function(){
+          setLineCategory(lineId, this.value);
+        });
+
+        tdSelect.appendChild(select);
+        tr.appendChild(tdSelect);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      linesContainer.appendChild(table);
+    }
+
+    function renderLines() {
+      if (!linesContainer) {
+        return;
+      }
+      const lines = Array.isArray(currentSummary && currentSummary.lines) ? currentSummary.lines : [];
+      if (!lines.length) {
+        linesContainer.innerHTML = '<div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>';
+        return;
+      }
+      if (lines.length === 1) {
+        renderSingleLine(lines[0]);
+      } else {
+        renderMultipleLines(lines);
+      }
+    }
+
+    function populateSummaryModal(summary) {
+      currentSummary = cloneSummary(summary);
+      if (!currentSummary.lines) {
+        currentSummary.lines = [];
+      }
+      updateSummaryInput();
+
+      if (summaryMarkEl) summaryMarkEl.textContent = currentSummary.mark || '';
+      if (summaryFields.AA) summaryFields.AA.textContent = currentSummary.AA || '';
+      if (summaryFields.AFM) summaryFields.AFM.textContent = currentSummary.AFM_issuer || currentSummary.AFM || '';
+      if (summaryFields.Name) summaryFields.Name.textContent = currentSummary.Name || '';
+      if (summaryFields.issueDate) summaryFields.issueDate.textContent = currentSummary.issueDate || '';
+      if (summaryFields.type_name) summaryFields.type_name.textContent = currentSummary.type_name || '';
+      if (summaryFields.totalNetValue) summaryFields.totalNetValue.textContent = currentSummary.totalNetValue || '';
+      if (summaryFields.totalVatAmount) summaryFields.totalVatAmount.textContent = currentSummary.totalVatAmount || '';
+      if (summaryFields.totalValue) summaryFields.totalValue.textContent = currentSummary.totalValue || '';
+
+      renderLines();
+    }
+
+    async function fetchNextReceiptMark() {
+      try {
+        const res = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.mark) {
+          return data.mark;
+        }
+      } catch (error) {
+        // ignore fetch errors
+      }
+      return '';
+    }
+
+    function buildSummary(scrapeData, nextMark) {
+      const summary = {
+        mark: nextMark || '',
+        AA: scrapeData.progressive_aa || '',
+        AFM_issuer: scrapeData.issuer_vat || '',
+        Name: scrapeData.issuer_name || '',
+        issueDate: scrapeData.issue_date || '',
+        type_name: 'ΑΠΟΔΕΙΞΗ',
+        totalValue: scrapeData.total_amount || '',
+        totalNetValue: scrapeData.total_amount || '',
+        totalVatAmount: (scrapeData.raw && (scrapeData.raw.totalVatAmount || scrapeData.raw.totalVat)) || '',
+        lines: [],
+        raw: scrapeData.raw || null
+      };
+
+      const rawLines = scrapeData.raw && Array.isArray(scrapeData.raw.lines) ? scrapeData.raw.lines : [];
+      if (rawLines.length) {
+        rawLines.forEach((line, index) => {
+          summary.lines.push({
+            id: line.id || line.line_id || `r${index}`,
+            amount: line.amount || line.lineTotal || '',
+            vat: line.vat || line.vatRate || '',
+            vatCategory: line.vatCategory || line.vat_category || '',
+            description: line.description || line.desc || '',
+            category: line.category || ''
+          });
+        });
+      } else {
+        summary.lines.push({
+          id: 'r0',
+          amount: scrapeData.total_amount || '',
+          vat: (scrapeData.raw && (scrapeData.raw.vat || scrapeData.raw.totalVat)) || '',
+          vatCategory: (scrapeData.raw && (scrapeData.raw.vatCategory || scrapeData.raw.vat_category)) || '',
+          description: (scrapeData.raw && (scrapeData.raw.description || scrapeData.raw.desc)) || '',
+          category: ''
+        });
+      }
+
+      return summary;
+    }
+
+    async function handleReceiptsSubmit(event) {
+      if (!(useReceiptsSwitch && useReceiptsSwitch.checked)) {
+        return;
+      }
+      event.preventDefault();
+      if (!urlInput) {
+        return;
+      }
+      const url = urlInput.value.trim();
+      if (!url) {
+        flashMessage('Εισάγετε URL για αποδείξεις.', 'error');
+        return;
+      }
+
+      let scrapeData = null;
+      try {
+        const response = await fetch('/api/scrape_receipt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ url })
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload || payload.ok === false) {
+          const msg = payload && (payload.error || payload.message) ? (payload.error || payload.message) : `Server ${response.status || ''}`.trim();
+          flashMessage('Σφάλμα scraper: ' + msg, 'error', 6000);
+          return;
+        }
+        scrapeData = payload;
+      } catch (error) {
+        flashMessage('Σφάλμα scraper: ' + (error.message || error), 'error', 6000);
+        return;
+      }
+
+      if (scrapeData.is_invoice === true) {
+        const afmModal = document.getElementById('afmWarningModal');
+        if (afmModal) {
+          const body = document.getElementById('afmWarningBody');
+          if (body) {
+            body.innerText = 'Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.';
+          }
+          afmModal.style.display = 'flex';
+        } else {
+          flashMessage('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη.', 'error');
+        }
+        return;
+      }
+
+      const nextMark = await fetchNextReceiptMark();
+      const summaryObj = buildSummary(scrapeData, nextMark);
+      currentSummary = cloneSummary(summaryObj);
+      updateSummaryInput();
+
+      if (urlField) {
+        urlField.value = url;
+        urlField.dataset.mark = currentSummary.mark || '';
+      }
+      if (categoryField) {
+        categoryField.value = defaultReceiptCategory();
+      }
+      if (forceField) {
+        forceField.value = 'false';
+      }
+
+      populateSummaryModal(currentSummary);
+
+      if (typeof window.RC_forcePopulateSummaryModal === 'function') {
+        try {
+          window.RC_forcePopulateSummaryModal();
+        } catch (error) {
+          console.warn('RC_forcePopulateSummaryModal failed', error);
+        }
+      }
+
+      openModal();
+      flashMessage('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
+    }
+
+    async function handleSaveSubmit(event) {
+      if (!urlField || !urlField.value) {
+        return;
+      }
+      event.preventDefault();
+
+      let summaryPayload = null;
+      if (currentSummary) {
+        summaryPayload = cloneSummary(currentSummary);
+      } else if (summaryInput) {
+        try {
+          summaryPayload = JSON.parse(summaryInput.value || '{}');
+        } catch (error) {
+          summaryPayload = null;
+        }
+      }
+
+      if (!summaryPayload) {
+        flashMessage('Σφάλμα: άκυρα δεδομένα παραστατικού.', 'error');
+        return;
+      }
+
+      const afmFromSummary = (summaryPayload.AFM_issuer || summaryPayload.AFM || summaryPayload.issuer_vat || summaryPayload.issuerVat) || (summaryPayload.raw && (summaryPayload.raw.issuer_vat || summaryPayload.raw.issuerVat || summaryPayload.raw.AFM));
+      const afmVal = (typeof window.VAT !== 'undefined' && window.VAT) ? window.VAT : (afmFromSummary ? String(afmFromSummary).trim() : '');
+
+      if (!afmVal) {
+        flashMessage('Αδύνατο να αποθηκευτεί: λείπει AFM του ενεργού πελάτη. Επιλέξτε ενεργό πελάτη ή βεβαιωθείτε ότι το παραστατικό περιέχει ΑΦΜ.', 'error', 7000);
+        return;
+      }
+
+      let yearVal = null;
+      try {
+        if (typeof window.ACTIVE_YEAR !== 'undefined' && window.ACTIVE_YEAR) {
+          yearVal = String(window.ACTIVE_YEAR);
+        } else if (summaryPayload.year || summaryPayload.Year) {
+          yearVal = String(summaryPayload.year || summaryPayload.Year);
+        } else if (summaryPayload.issueDate) {
+          const parts = String(summaryPayload.issueDate).split('/');
+          if (parts.length >= 3) {
+            yearVal = parts[2];
+          }
+        }
+        if (!yearVal) {
+          yearVal = String((new Date()).getUTCFullYear());
+        }
+      } catch (error) {
+        yearVal = String((new Date()).getUTCFullYear());
+      }
+
+      const payload = {
+        url: urlField.value,
+        summary: summaryPayload,
+        force: !!(forceField && forceField.value === 'true'),
+        category: (categoryField && categoryField.value) ? categoryField.value : defaultReceiptCategory(),
+        afm: afmVal,
+        year: String(yearVal),
+        mark: summaryPayload.mark || (urlField.dataset ? urlField.dataset.mark || '' : '')
+      };
+
+      try {
+        const response = await fetch('/api/confirm_receipt', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result || result.ok === false) {
+          const msg = result && result.error ? result.error : `Server ${response.status || ''}`.trim();
+          flashMessage('Σφάλμα αποθήκευσης: ' + msg, 'error', 7000);
+          return;
+        }
+
+        flashMessage('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
+        closeModal();
+        if (urlField) {
+          urlField.value = '';
+          delete urlField.dataset.mark;
+        }
+        if (forceField) {
+          forceField.value = 'false';
+        }
+        currentSummary = null;
+        updateSummaryInput();
+        if (urlInput) {
+          urlInput.value = '';
+          urlInput.focus();
+        }
+      } catch (error) {
+        flashMessage('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
+      }
+    }
+
+    useReceiptsSwitch?.addEventListener('change', function(){
+      toggleReceiptsMode(!!this.checked);
+    });
+
+    markSearchForm?.addEventListener('submit', handleReceiptsSubmit);
+    saveSummaryForm?.addEventListener('submit', handleSaveSubmit);
+
+    modalCloseBtns.forEach((btn) => {
+      btn?.addEventListener('click', function(){
+        closeModal();
+      });
+    });
+
+    document.addEventListener('keydown', function(event){
+      if (event.key === 'Escape' && summaryModal && window.getComputedStyle(summaryModal).display !== 'none') {
+        closeModal();
+      }
+    });
+
+    toggleReceiptsMode(!!(useReceiptsSwitch && useReceiptsSwitch.checked));
+    if (!(useReceiptsSwitch && useReceiptsSwitch.checked)) {
+      refreshRepeatButton();
+    }
+    if (categoryField && !categoryField.value) {
+      categoryField.value = defaultReceiptCategory();
+    }
+  });
+  </script>
+
 {% endblock %}
