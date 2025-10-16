@@ -4,29 +4,29 @@
 {% block content %}
 
 <div class="bg-white rounded shadow p-6">
-    <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
+  <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
 
-    {% if error %}
+  {% if error %}
     <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
-    {% endif %}
+  {% endif %}
 
-    <form method="post" class="flex gap-2 items-center" id="markSearchForm">
-        <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
-        <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
+  <form method="post" class="flex gap-2 items-center" id="markSearchForm">
+    <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
+    <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
 
-        <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
-        <div class="flex items-center gap-2 ml-4">
-            <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
-            <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
-            <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
-        </div>
+    <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
+    <div class="flex items-center gap-2 ml-4">
+      <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
+      <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
+      <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
+    </div>
 
-        <!-- Toggle switch for receipts scrape -->
-        <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις (scrape URL)</label>
-            <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-        </div>
-    </form>
+    <!-- Toggle switch for receipts scrape -->
+    <div class="flex items-center gap-2 ml-4">
+      <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις (scrape URL)</label>
+      <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
+    </div>
+  </form>
 </div>
 
 {# ΣΗΜΕΙΩΣΗ: το στατικό confirmation modal που υπήρχε εδώ αφαιρέθηκε όπως ζήτησες. Χρησιμοποιείται πλέον το summaryModal για όλες τις περιπτώσεις. #}
@@ -34,16 +34,16 @@
 {# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
 {% if allow_edit_existing and not request.args.get('force_edit') %}
 <div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
-    Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
-    <div class="mt-2 flex gap-2">
-        <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
-            Επιβεβαίωση
-        </button>
-        <button id="dismissBannerBtn" type="button" onclick="this.parentElement.parentElement.style.display='none'"
-                class="px-3 py-2 border rounded hover:bg-gray-50">
-            Άκυρο
-        </button>
-    </div>
+  Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
+  <div class="mt-2 flex gap-2">
+    <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
+      Επιβεβαίωση
+    </button>
+    <button id="dismissBannerBtn" type="button" onclick="this.parentElement.parentElement.style.display='none'"
+            class="px-3 py-2 border rounded hover:bg-gray-50">
+      Άκυρο
+    </button>
+  </div>
 </div>
 {% endif %}
 
@@ -53,91 +53,91 @@
 {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
 <!-- SUMMARY MODAL -->
 <div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
-
-        <!-- HEADER -->
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">
-                Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
-            </h3>
-            <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-        </div>
-
-        <!-- SUMMARY INFO -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
-            <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
-            <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
-            <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
-            <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
-            <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
-            <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
-            <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
-        </div>
-
-        <!-- LINES -->
-        <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
-        <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2"></div>
-
-
-
-        <!-- FOOTER -->
-        <div class="mt-4 flex justify-between items-center">
-            <div class="text-sm text-gray-600">
-                Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείτε να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
-            </div>
-
-            <div class="flex justify-end gap-2">
-                <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
-                    <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe if modal_summary else "{}" }}'>
-                    <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
-                    <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
-                    <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
-                    <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
-                </form>
-                <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
-            </div>
-        </div>
-
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
+    
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">
+        Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
+      </h3>
+      <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
+
+    <!-- SUMMARY INFO -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
+      <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
+      <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
+      <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
+      <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
+      <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
+      <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
+      <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
+    </div>
+
+    <!-- LINES -->
+    <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
+    <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2"></div>
+
+
+
+    <!-- FOOTER -->
+    <div class="mt-4 flex justify-between items-center">
+      <div class="text-sm text-gray-600">
+        Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείτε να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
+          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe if modal_summary else "{}" }}'>
+          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
+          <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
+          <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
+          <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
+        </form>
+        <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
+      </div>
+    </div>
+
+  </div>
 </div>
 {% endif %}
 
 
 {# --- Repeat mapping modal (dynamic, populated by JS) --- #}
 <div id="repeatMappingModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
-            <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-        </div>
-
-        <div id="repeatModalBody" class="space-y-3">
-            <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
-            <!-- JS θα γεμίσει εδώ -->
-            <div id="repeatMappingList" class="space-y-2"></div>
-        </div>
-
-        <div class="mt-4 flex justify-end gap-2">
-            <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
-            <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
-        </div>
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
+      <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
+
+    <div id="repeatModalBody" class="space-y-3">
+      <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
+      <!-- JS θα γεμίσει εδώ -->
+      <div id="repeatMappingList" class="space-y-2"></div>
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
+      <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
+    </div>
+  </div>
 </div>
 
 {% if modal_warning %}
 <div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
-        </div>
-        <div id="afmWarningBody" class="mb-4 text-gray-700">
-            {{ modal_warning }}
-        </div>
-        <div class="flex justify-end gap-2">
-            <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
-        </div>
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
     </div>
+    <div id="afmWarningBody" class="mb-4 text-gray-700">
+      {{ modal_warning }}
+    </div>
+    <div class="flex justify-end gap-2">
+      <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
+    </div>
+  </div>
 </div>
 {% endif %}
 
@@ -214,16 +214,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   // fallback server-side object (if Jinja rendered modal_summary)
   const SERVER_MODAL_SUMMARY = (function(){
     try { return {{ modal_summary | tojson | safe if modal_summary else 'null' }}; } catch(e){ return null; }
-  })()
-  try {
-    var __cc = document.getElementById('summaryLinesContainer');
-    if (__cc && __cc.dataset && __cc.dataset.phase === 'iife') {
-      // IIFE already rendered content -> skip second render path
-      if (typeof persist === 'function') try{ persist(); }catch(e){}
-      return;
-    }
-  } catch(e) {}
-;
+  })();
 
   // helper to get current summary object (prefer hidden input, fallback server var)
   function getSummaryObj(){
@@ -385,9 +376,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       warn.className = 'mt-4 p-3 bg-yellow-50 rounded';
       warn.innerText = 'Δεν βρέθηκαν γραμμές για αυτό το MARK.';
       container.appendChild(warn);
-      wireInteractions();
-    try{ container.dataset.phase = 'iife'; }catch(e){}
- // ensure handlers cleared
+      wireInteractions(); // ensure handlers cleared
       return;
     }
 
@@ -402,7 +391,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   }
 
   // update hidden input from current DOM selections/buttons
-
+  
   function wireInteractions(){
     // remove old handlers by cloning nodes if necessary (to avoid duplicate attachments)
     document.querySelectorAll('select.expense-category').forEach(sel => {
@@ -1119,16 +1108,7 @@ function prefillSummaryModal(){
           });
         }
 
-        // If repeat enabled and mapping exists and modal_summary present -> auto apply mapping now
-        if(enabled && mapping && Object.keys(mapping).length && summaryInput){
-          // If receipts is ON, do NOT auto-apply mapping
-          if(!(useReceiptsSwitch && useReceiptsSwitch.checked)){
-            const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
-            if(did){
-              const sm = document.getElementById('summaryModal');
-              if(sm) sm.style.display = 'none';
-            }
-          }
+        // [repeat] auto block removed by patch
         }
 
         // Wire edit button
@@ -1200,7 +1180,7 @@ function prefillSummaryModal(){
 
       showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
       closeRepeatModal();
-      setTimeout(function(){ try { window.location.reload(); } catch(e){ console.warn('reload failed', e); } }, 600);
+      setTimeout(function(){ try { // [repeat] auto block removed by patch } catch(e){ console.warn('reload failed', e); } }, 600);
       return;
     } else {
       console.warn('Failed saving repeat mapping', resp);
@@ -1438,7 +1418,7 @@ function prefillSummaryModal(){
       }
     }
 
-
+    
 document.addEventListener('DOMContentLoaded', function(){
   try {
     const m = document.getElementById('summaryModal');
@@ -2436,238 +2416,236 @@ document.addEventListener('click', function(ev){
 });
 
 
-
-
-
-// === Frontend patch: enrich delete_invoices POST + clear client-side cache ===
-document.addEventListener('submit', function(ev){
-  try{
-    const form = ev.target;
-    if(!form || !form.action) return;
-    // Match delete_invoices endpoint (relative or absolute)
-    const a = document.createElement('a'); a.href = form.action;
-    const path = (a.pathname || '') + (a.search || '');
-    if(!/delete_invoices/.test(path)) return;
-
-    // 1) Ensure active_vat is posted
-    const existingHv = form.querySelector('input[name="active_vat"]');
-    if(!existingHv){
-      const hv = document.createElement('input');
-      hv.type = 'hidden';
-      hv.name = 'active_vat';
-      const activeVat = (document.querySelector('#vatSelector')?.value
-                      || document.querySelector('[name="vat"]')?.value
-                      || document.body.dataset.activeVat
-                      || '').toString().trim();
-      hv.value = activeVat;
-      form.appendChild(hv);
-    }
-
-    // 2) Collect marks to delete
-    let marks = Array.from(form.querySelectorAll('input[name="delete_mark"]')).map(i => (i.value||'').trim()).filter(Boolean);
-    if(!marks.length){
-      marks = Array.from(document.querySelectorAll('input[name="delete_mark"]:checked')).map(i => (i.value||'').trim()).filter(Boolean);
-    }
-
-    // 3) Clear client-side caches (localStorage keys that reference these MARKs)
-    try{
-      marks.forEach(mk => {
-        // common per-mark keys
-        localStorage.removeItem(`epsilon_summary_${mk}`);
-        localStorage.removeItem(`EPSILON:INV:${mk}`);
-      });
-      // any key containing one of the marks
-      for(let i=localStorage.length-1; i>=0; i--){
-        const k = localStorage.key(i);
-        if(!k) continue;
-        if(marks.some(mk => k.includes(mk))){
-          localStorage.removeItem(k);
-        }
-      }
-      // also clear any prefilled summary hidden input to avoid stale reopen
-      const sumInp = document.getElementById('summaryJsonInput');
-      if(sumInp) sumInp.value = '';
-    }catch(e){ /* ignore storage errors */ }
-
-  }catch(err){
-    console.warn('delete_invoices frontend patch failed', err);
-  }
-}, true);
-
-
 </script>
 
-<!-- === PATCH: normalize receipts summary (category/type/AA) before save & on modal open === -->
+<style>
+/* minimal styling for the toggle switch */
+/* μόνο για modal */
+.modal-summary-table th {
+  background-color: #0d6efd;
+  color: white;
+  border: 1px solid #ccc;
+}
+.modal-summary-table td {
+  border: 1px solid #e2e8f0;
+}
+.modal-summary-table tr:nth-child(even) { background-color: #f9fafb; }
+.modal-summary-table tr:hover { background-color: #e6f0ff; }
+.modal-summary-table tfoot td {
+  background-color: #f1f5f9;
+}
+
+/* κλείδωμα κλικ πίσω από modal */
+.modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:99998;}
+#summaryModal{z-index:99999; position:fixed; inset:0; display:none; align-items:center; justify-content:center;}
+#summaryModal.show{display:flex;}
+body.modal-open #page-root{ pointer-events:none; } /* βάλε id=page-root στο κύριο wrapper της σελίδας */
+body.modal-open #summaryModal, 
+body.modal-open #summaryModal * { pointer-events:auto; }
+.toggle-switch {
+  width: 42px;
+  height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e7eb;
+  border-radius: 999px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.toggle-switch:checked { background: #0ea5a4; }
+.toggle-switch::after{
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: white;
+  transition: transform .15s ease;
+}
+.toggle-switch:checked::after { transform: translateX(18px); }
+</style>
+
+
+<!-- === Repeat Core (manual-only) — invoices + receipts: no auto search/submit, no auto-reload, safe categories merge === -->
 <script>
 (function(){
-  function getEl(id){ return document.getElementById(id); }
-  function isReceiptsMode(){
-    try {
-      return !!(getEl('useReceiptsSwitch') && getEl('useReceiptsSwitch').checked) ||
-             !!(JSON.parse(getEl('summaryJsonInput')?.value||'{}')?.is_receipt) ||
-             !!(getEl('scrapeUrlField')?.value);
-    } catch(e){ return false; }
+  const qs  = (s,r=document)=>r.querySelector(s);
+  const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
+
+  // ----- Detect repeat state
+  function isRepeatOn(){
+    const c = ['#repeatEntrySwitch','#repeatSwitch','#repeat-toggle','[data-repeat-toggle] input[type="checkbox"]'];
+    for(const sel of c){ const el = qs(sel); if(el && el.checked) return true; }
+    return false;
   }
-  function normalizeReceiptSummary(){
-    try{
-      if(!isReceiptsMode()) return;
-      const si = getEl('summaryJsonInput');
-      if(!si) return;
-      let data = {};
-      try { data = JSON.parse(si.value || '{}'); } catch(e){ data = {}; }
-      if(!Array.isArray(data.lines)) data.lines = data.lines ? [data.lines] : [];
+  function setStrictFlag(){ window.__REPEAT_STRICT__ = isRepeatOn(); }
+  document.addEventListener('DOMContentLoaded', setStrictFlag);
+  document.addEventListener('change', (e)=>{
+    if(e && e.target && (e.target.id==='repeatEntrySwitch' || e.target.id==='repeatSwitch' || e.target.id==='repeat-toggle' || e.target.closest?.('[data-repeat-toggle]'))) setStrictFlag();
+  }, true);
 
-      // Force category 'αποδειξακια' on all lines
-      data.lines = data.lines.map(l => ({ ...(l||{}), category: 'αποδειξακια' }));
-
-      // Top-level flags and labels
-      data.category   = 'αποδειξακια';
-      data.is_receipt = true;
-      data.kind       = data.kind || 'receipt';
-      data.type_name  = data.type_name || 'ΑΠΟΔΕΙΞΗ';
-
-      // Excel friendly fields
-      data['τύπος'] = 'αποδειξη';
-      data['είδος'] = 'αποδειξη';
-
-      // Normalize progressive_aa / AA
-      const aa = (data.progressive_aa || data.AA ||
-                 (data.raw && (data.raw.progressive_aa || data.raw.aa)) || '').toString().trim();
-      if(aa){
-        data.progressive_aa = aa;
-        if(!data['Α/Α']) data['Α/Α'] = aa;
-        if(!data['Α/Α Παραστατικού']) data['Α/Α Παραστατικού'] = aa;
-      }
-
-      si.value = JSON.stringify(data);
-    }catch(err){ console.warn('normalizeReceiptSummary failed', err); }
+  // ----- Safe helpers
+  function parseSummary(){
+    const si = qs('#summaryJsonInput'); if(!si) return {obj:null, el:null};
+    let obj = null; try { obj = JSON.parse(si.value||'{}'); } catch(_){ obj = {}; }
+    return { obj: obj||{}, el: si };
   }
-
-  // Call when modal opens (attribute/style change)
-  document.addEventListener('DOMContentLoaded', function(){
-    try {
-      const modal = getEl('summaryModal');
-      if(!modal) return;
-      const obs = new MutationObserver(function(muts){
-        muts.forEach(m=>{
-          if(m.attributeName === 'style' || m.attributeName === 'class'){
-            const shown = getComputedStyle(modal).display !== 'none';
-            if(shown){ setTimeout(normalizeReceiptSummary, 20); }
-          }
-        });
+  function isMeaningfulSummary(obj){
+    if(!obj || typeof obj!=='object') return false;
+    const hasLines = Array.isArray(obj.lines) && obj.lines.length>0;
+    const hasMark  = !!String(obj.MARK || obj.mark || obj.AA || obj.aa || '').trim();
+    const hasIssuer = !!String((obj.issuer_name||obj.issuer_vat||'')).trim();
+    const hasTotals = !!String((obj.total_amount||obj.totalValue||obj.totalNetValue||'')).trim();
+    return hasLines || hasMark || hasIssuer || hasTotals;
+  }
+  function safeMergeCategories(mapping){
+    const {obj, el} = parseSummary(); if(!el) return;
+    if(!obj || typeof obj!=='object') return;
+    if(!Array.isArray(obj.lines)) obj.lines = obj.lines ? [obj.lines] : [];
+    // only touch categories, never clobber other fields
+    if(mapping && Array.isArray(mapping.lines)){
+      obj.lines = obj.lines.map((ln, idx)=>{
+        const m = mapping.lines[idx];
+        if(m && m.category){ ln = Object.assign({}, ln||{}, { category: m.category }); }
+        return ln;
       });
-      obs.observe(modal, { attributes:true, attributeFilter:['style','class'] });
-      // If already visible
-      if (getComputedStyle(modal).display !== 'none'){ setTimeout(normalizeReceiptSummary, 10); }
-    } catch(e){ /* no-op */ }
-  });
+    } else if(mapping && mapping.__default){
+      obj.lines = obj.lines.map(ln => Object.assign({}, ln||{}, { category: ln.category || mapping.__default }));
+    }
+    el.value = JSON.stringify(obj);
+  }
+  function forceReceiptsCategories(){
+    const {obj, el} = parseSummary(); if(!el) return;
+    if(!obj || typeof obj!=='object') return;
+    if(!Array.isArray(obj.lines)) obj.lines = obj.lines ? [obj.lines] : [];
+    obj.lines = obj.lines.map(ln => Object.assign({}, ln||{}, { category: 'αποδειξακια' }));
+    el.value = JSON.stringify(obj);
+  }
 
-  // Ensure normalization right before save submit (capture, before other listeners)
-  document.addEventListener('submit', function(ev){
-    const form = ev.target;
-    if(form && form.id === 'saveSummaryForm'){
+  // ----- Prevent empty JSON clobber (where lines=[], mark='', etc.)
+  // If something tries to set empty summary over a meaningful one during repeat, ignore
+  (function protectSummary(){
+    const si = qs('#summaryJsonInput'); if(!si) return;
+    let lastGood = si.value;
+    try { const o = JSON.parse(lastGood||'{}'); if(!isMeaningfulSummary(o)) lastGood = ''; } catch(_){ lastGood=''; }
+    const mo = new MutationObserver(()=>{
       try {
-        normalizeReceiptSummary();
-        // ensure write_excel flag also posted (covers non-AJAX path)
-        if(!form.querySelector('input[name="write_excel"]')){
-          const h = document.createElement('input');
-          h.type = 'hidden'; h.name = 'write_excel'; h.value = 'true';
-          form.appendChild(h);
+        const cur = si.value;
+        const o = JSON.parse(cur||'{}');
+        if(window.__REPEAT_STRICT__ && !isMeaningfulSummary(o) && isMeaningfulSummary(JSON.parse(lastGood||'{}'))){
+          // revert attempted empty overwrite
+          si.value = lastGood;
+          console.warn('[RepeatCore] blocked empty summary overwrite while repeat ON');
+        } else {
+          lastGood = cur;
         }
-      } catch(e){ console.warn(e); }
+      } catch(_){ /* ignore */ }
+    });
+    mo.observe(si, { characterData: false, attributes: true, childList: false, subtree: false });
+    si.addEventListener('input', ()=>{ try{ lastGood = si.value; }catch(_){ } });
+  })();
+
+  // ----- Keep UI selections synced to JSON
+  (function wireSummaryModalSync(){
+    const root = qs('#summaryLinesContainer') || document;
+    function updateFromDom(){
+      const {obj, el} = parseSummary(); if(!el) return;
+      if(!obj || typeof obj!=='object') return;
+      if(!Array.isArray(obj.lines)) obj.lines = obj.lines ? [obj.lines] : [];
+      qsa('[data-line-id]', root).forEach(elm=>{
+        const lid = String(elm.dataset.lineId||'').trim(); if(!lid) return;
+        let chosen = '';
+        const sel = elm.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+        if(sel && sel.value) chosen = sel.value;
+        else {
+          const active = elm.querySelector('.category-btn.bg-sky-600'); if(active) chosen = active.dataset.cat||'';
+        }
+        let ln = obj.lines.find(x => String(x.id||x.line_id||'') === lid);
+        if(!ln){ ln = { id: lid }; obj.lines.push(ln); }
+        ln.category = chosen || ln.category || '';
+      });
+      el.value = JSON.stringify(obj);
+    }
+    root.addEventListener('click', (e)=>{
+      const btn = e.target && e.target.closest && e.target.closest('.category-btn');
+      if(!btn) return;
+      const lid = (btn.closest('[data-line-id]') && btn.closest('[data-line-id]').dataset.lineId) || btn.dataset.lineId || '';
+      if(lid){
+        qsa('.category-btn[data-line-id="'+lid+'"]', root).forEach(b=> b.classList.remove('bg-sky-600','text-white'));
+        btn.classList.add('bg-sky-600','text-white');
+        const sel = root.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+        if(sel) sel.value = btn.dataset.cat || '';
+        updateFromDom();
+      }
+    }, true);
+    root.addEventListener('change', (e)=>{
+      const sel = e.target && e.target.closest && e.target.closest('select.expense-category');
+      if(!sel) return;
+      updateFromDom();
+    }, true);
+    const form = qs('#saveSummaryForm');
+    if(form){ form.addEventListener('submit', ()=>{ try{ updateFromDom(); }catch(_){ } }, true); }
+    // prefill when modal shows
+    const modal = qs('#summaryModal');
+    if(modal){
+      const ob = new MutationObserver(()=>{
+        const disp = getComputedStyle(modal).display;
+        if(disp!=='none'){
+          try { 
+            const rec = qs('#useReceiptsSwitch') && qs('#useReceiptsSwitch').checked;
+            if(rec) forceReceiptsCategories();
+            else {
+              // apply known mapping if available on window
+              const mp = (window.REPEAT && window.REPEAT.mapping) ? window.REPEAT.mapping : (window.REPEAT_MAPPING || null);
+              if(mp) safeMergeCategories({ lines: (Array.isArray(mp.lines)?mp.lines:[]), __default: mp.__default });
+            }
+          } catch(_){}
+        }
+      });
+      try { ob.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
+    }
+  })();
+
+  // ----- Hard stop: while repeat ON, never allow programmatic submit/search; user must click manually
+  document.addEventListener('submit', function(ev){
+    if(!window.__REPEAT_STRICT__) return;
+    if(!ev.isTrusted){
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      console.warn('[RepeatCore] blocked programmatic submit (repeat ON)');
     }
   }, true);
+  document.addEventListener('click', function(ev){
+    if(!window.__REPEAT_STRICT__) return;
+    const btn = ev.target && ev.target.closest && ev.target.closest('#searchBtn,[data-primary-search],#confirmBtn,[data-confirm],#saveSummaryBtn');
+    if(btn && !ev.isTrusted){
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      console.warn('[RepeatCore] blocked programmatic click (repeat ON)');
+    }
+  }, true);
+
+  // Prevent accidental auto functions from submitting — allow prefill only
+  function wrapAuto(name){
+    const fn = window[name];
+    if(typeof fn!=='function' || fn.__wrapped__) return;
+    function w(){
+      if(window.__REPEAT_STRICT__){
+        // block any submit fired inside this tick
+        const block = (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); document.removeEventListener('submit', block, true); };
+        document.addEventListener('submit', block, true);
+        setTimeout(()=>{ try{ document.removeEventListener('submit', block, true);}catch(_){ } }, 350);
+      }
+      return fn.apply(this, arguments);
+    }
+    w.__wrapped__ = true;
+    window[name] = w;
+  }
+  ['applyMappingToSummaryAndSubmitUsingMapping','applyMappingToSummary','autoApplyRepeatMapping','autoFetchAfterLoad','performAutoSearch','triggerAutoSearch','autoSearchOnLoad'].forEach(wrapAuto);
+
 })();
 </script>
 
-
-
-<style>
-    /* minimal styling for the toggle switch */
-    /* μόνο για modal */
-    .modal-summary-table th {
-        background-color: #0d6efd;
-        color: white;
-        border: 1px solid #ccc;
-    }
-
-    .modal-summary-table td {
-        border: 1px solid #e2e8f0;
-    }
-
-    .modal-summary-table tr:nth-child(even) {
-        background-color: #f9fafb;
-    }
-
-    .modal-summary-table tr:hover {
-        background-color: #e6f0ff;
-    }
-
-    .modal-summary-table tfoot td {
-        background-color: #f1f5f9;
-    }
-
-    /* κλείδωμα κλικ πίσω από modal */
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.45);
-        z-index: 99998;
-    }
-
-    #summaryModal {
-        z-index: 99999;
-        position: fixed;
-        inset: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-
-        #summaryModal.show {
-            display: flex;
-        }
-
-    body.modal-open #page-root {
-        pointer-events: none;
-    }
-    /* βάλε id=page-root στο κύριο wrapper της σελίδας */
-    body.modal-open #summaryModal,
-    body.modal-open #summaryModal * {
-        pointer-events: auto;
-    }
-
-    .toggle-switch {
-        width: 42px;
-        height: 24px;
-        -webkit-appearance: none;
-        appearance: none;
-        background: #e5e7eb;
-        border-radius: 999px;
-        position: relative;
-        outline: none;
-        cursor: pointer;
-        vertical-align: middle;
-    }
-
-        .toggle-switch:checked {
-            background: #0ea5a4;
-        }
-
-        .toggle-switch::after {
-            content: "";
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            background: white;
-            transition: transform .15s ease;
-        }
-
-        .toggle-switch:checked::after {
-            transform: translateX(18px);
-        }
-</style>
 {% endblock %}

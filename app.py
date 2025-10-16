@@ -781,92 +781,89 @@ def _normalize_summary_row_for_excel(summary):
     }
 
 def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None, cred_name: Optional[str] = None):
-    """
-    Ensure an excel exists (create if missing) and either update existing row matching mark or append new row.
-    Uses pandas to load/edit/save — simpler and reliable for small files.
-    """
-    path = excel_path_for(cred_name=cred_name, vat=vat)
-    # headers consistent with DEFAULT_EXCEL_FILE usage above
-    headers = ["MARK","AA","AFM","Name","issueDate","totalValue","category","note","created_at"]
+    import os, json
+    import pandas as pd
+    from datetime import datetime
 
-    # create file if missing with headers
+    path = excel_path_for(cred_name=cred_name, vat=vat)
+
+    # ΔΕΝ φτιάχνουμε νέες στήλες: δουλεύουμε με τις υπάρχουσες ή με το default schema αν δημιουργηθεί τώρα
+    default_headers = ["MARK","AA","AFM","Name","issueDate","totalValue","category","note","created_at"]
+
+    # load or create with default
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        df = pd.DataFrame(columns=headers)
-        df.to_excel(path, index=False)
-    # load existing
+        pd.DataFrame(columns=default_headers).to_excel(path, index=False)
+
     try:
-        df = pd.read_excel(path, dtype=str)
+        df = pd.read_excel(path, dtype=str).fillna("")
     except Exception:
-        # fallback: make empty DF with headers
+        df = pd.DataFrame(columns=default_headers)
+
+    headers = list(df.columns) or default_headers
+    if df.empty and not list(df.columns):
         df = pd.DataFrame(columns=headers)
 
-    # normalize types: ensure all header cols exist
-    for h in headers:
-        if h not in df.columns:
-            df[h] = ""
+    # helpers
+    raw = (summary.get('raw') or {}) if isinstance(summary, dict) else {}
+    def _first(*vals):
+        for v in vals:
+            if v is None: continue
+            s = str(v).strip()
+            if s and s.lower() not in ('none','nan'):
+                return s
+        return ''
 
-    row = _normalize_summary_row_for_excel(summary)
+    # AA coalesce -> AA (ίδια στήλη με τιμολόγια)
+    aa = _first(
+        summary.get('progressive_aa'),
+        summary.get('AA'), summary.get('aa'),
+        summary.get('Α/Α'), summary.get('Α/Α Παραστατικού'),
+        raw.get('progressive_aa'), raw.get('AA'), raw.get('aa')
+    )
+
+    # receipts? -> category='αποδειξακια'
+    is_receipt = (str(summary.get("category") or "").strip() == "αποδειξακια") or bool(summary.get("is_receipt"))
+    category_val = "αποδειξακια" if is_receipt else _first(summary.get("category"))
+
+    # build row **μόνο με columns που υπάρχουν ήδη**
+    row_map = {
+        "MARK":      _first(summary.get("MARK"), summary.get("mark")),
+        "AA":        _first(aa),
+        "AFM":       _first(summary.get("issuer_vat"), raw.get("issuer_vat"), vat),
+        "Name":      _first(summary.get("issuer_name"), raw.get("issuer_name")),
+        "issueDate": _first(summary.get("issue_date"), raw.get("issue_date")),
+        "totalValue":_first(summary.get("total_amount"), raw.get("total_amount")),
+        "category":  _first(category_val),
+        "note":      _first(summary.get("note")),
+        "created_at":_first(summary.get("saved_at"), datetime.utcnow().isoformat(timespec="seconds")),
+    }
+    # Αν ΥΠΑΡΧΕΙ στήλη "Τύπος" ήδη στο αρχείο, γέμισέ την με "ΑΠΟΔΕΙΞΗ"
+    if "Τύπος" in headers and is_receipt:
+        row_map["Τύπος"] = "ΑΠΟΔΕΙΞΗ"
+
+    row = {h: ("" if row_map.get(h) is None else str(row_map.get(h))) for h in headers}
+
+    # update by MARK else append (με pd.concat)
     mark_val = str(row.get("MARK","")).strip()
-
-    # try to find existing row by mark (use _match_row_by_mark logic)
     found = False
-    if mark_val:
-        # use vectorized comparison across likely colnames
-        mask = pd.Series([False]*len(df), index=df.index)
-        # prefer 'MARK' column, else try any object/string column
-        if "MARK" in df.columns:
-            try:
-                mask = df["MARK"].fillna("").astype(str).str.strip() == mark_val
-            except Exception:
-                mask = (df["MARK"].fillna("") == mark_val)
-        if not mask.any():
-            # scan other string columns
-            for c in df.columns:
-                try:
-                    if df[c].dtype == 'O' or df[c].dtype == 'string':
-                        m2 = df[c].fillna("").astype(str).str.strip() == mark_val
-                        if m2.any():
-                            mask = m2
-                            break
-                except Exception:
-                    continue
-
+    if mark_val and "MARK" in headers:
+        mask = df["MARK"].fillna("").astype(str).str.strip().eq(mark_val) if "MARK" in df else pd.Series([False]*len(df), index=df.index)
         if mask.any():
-            # update first match
             idx = mask[mask].index[0]
             for h in headers:
-                # don't overwrite MARK,AA if blank in new row? We'll overwrite with new data
-                df.at[idx, h] = row.get(h,"")
+                df.at[idx, h] = row.get(h, df.at[idx, h] if h in df.columns else "")
             found = True
 
     if not found:
-        # append new row
-        df = df.append(row, ignore_index=True)
+        df_new = pd.DataFrame([row], columns=headers).fillna("")
+        df = pd.concat([df, df_new], ignore_index=True, sort=False)
 
-    # ensure AFM and MARK are saved as text in Excel: pandas will save as strings; that's OK
-    try:
-        df.to_excel(path, index=False)
-    except Exception:
-        # final fallback - try openpyxl write: create workbook with headers then append row
-        try:
-            from openpyxl import Workbook, load_workbook
-            if not os.path.exists(path):
-                wb = Workbook()
-                ws = wb.active
-                ws.append(headers)
-                wb.save(path)
-            wb = load_workbook(path)
-            ws = wb.active
-            # if updated, easier to rewrite entire excel from df
-            for r in dataframe_to_rows(df, index=False, header=True):
-                pass
-            # simpler: use pandas to_excel in a temp file and replace
-            tmp = path + ".tmp.xlsx"
-            df.to_excel(tmp, index=False)
-            os.replace(tmp, path)
-        except Exception:
-            log.exception("Failed to write excel for summary for mark=%s", mark_val)
+    # basic string enforcement
+    for col in [c for c in ["MARK","AA","AFM","issueDate","totalValue","category","created_at","Τύπος"] if c in df.columns]:
+        df[col] = df[col].astype(str).fillna("")
+
+    df.to_excel(path, index=False)
 
 def _extract_headers_from_upload(file_stream, ext):
     """
