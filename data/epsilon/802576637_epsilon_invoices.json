@@ -1,5 +1,34 @@
 [
   {
+    "mark": "400011219241353",
+    "issueDate": "25/09/2025",
+    "series": "",
+    "aa": "165",
+    "AA": "165",
+    "type": "",
+    "vatCategory": "",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "totalValue": "9,4",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094386010",
+    "Name_issuer": "",
+    "AFM": "094386010",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
     "mark": "400011184830173",
     "issueDate": "04/10/2025",
     "series": "TΔA",
@@ -11,6 +40,7 @@
     "totalVatAmount": "4,39",
     "totalValue": "22,69",
     "classification": "",
+    "category": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
     "AFM_issuer": "800916954",
@@ -22,38 +52,10 @@
         "description": "Instance #1",
         "amount": "18,30",
         "vat": "4,39",
-        "category": "αγορες_α_υλων",
+        "category": "γενικες_δαπανες",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-16T09:09:16.845565+00:00"
-  },
-  {
-    "mark": "400011219241352",
-    "issueDate": "25/09/2025",
-    "series": "",
-    "aa": "165",
-    "AA": "165",
-    "type": "",
-    "vatCategory": "",
-    "totalNetValue": "9,4",
-    "totalVatAmount": "",
-    "totalValue": "9,4",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "094386010",
-    "Name_issuer": "",
-    "AFM": "802576637",
-    "lines": [
-      {
-        "id": "r0",
-        "description": "",
-        "amount": "9,4",
-        "vat": "",
-        "category": "",
-        "vat_category": ""
-      }
-    ]
+    "_updated_at": "2025-10-16T09:22:06.845506+00:00"
   }
 ]

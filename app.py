@@ -782,91 +782,93 @@ def _normalize_summary_row_for_excel(summary):
 
 def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None, cred_name: Optional[str] = None):
     """
-    Ensure an excel exists (create if missing) and either update existing row matching mark or append new row.
-    Uses pandas to load/edit/save — simpler and reliable for small files.
+    Update ή append στο Excel του ενεργού ΑΦΜ, ευθυγραμμισμένα ΜΟΝΟ με τα υπάρχοντα headers.
+    Δεν δημιουργεί νέες στήλες. Γράφει AA/AFM/Name/issueDate/totalValue/category/note/created_at όταν υπάρχουν.
     """
+    import pandas as pd, os
     path = excel_path_for(cred_name=cred_name, vat=vat)
-    # headers consistent with DEFAULT_EXCEL_FILE usage above
-    headers = ["MARK","AA","AFM","Name","issueDate","totalValue","category","note","created_at"]
 
-    # create file if missing with headers
+    # Φτιάξε αρχείο αν λείπει (κράτα τη δομή που ήδη χρησιμοποιείς)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        df = pd.DataFrame(columns=headers)
-        df.to_excel(path, index=False)
-    # load existing
+        # Αν το φτιάχνεις από την αρχή, βάλε τα headers που χρησιμοποιείς στα τιμολόγια σου
+        cols = ["MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος","ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"]
+        # αν χρησιμοποιείς «Α/Α» αντί «Αριθμός», βάλε ΚΑΙ αυτό
+        if "Α/Α" not in cols:
+            cols.append("Α/Α")
+        pd.DataFrame(columns=cols).to_excel(path, index=False)
+
     try:
-        df = pd.read_excel(path, dtype=str)
+        df = pd.read_excel(path, engine="openpyxl", dtype=str).fillna("")
     except Exception:
-        # fallback: make empty DF with headers
-        df = pd.DataFrame(columns=headers)
+        df = pd.DataFrame()
 
-    # normalize types: ensure all header cols exist
-    for h in headers:
-        if h not in df.columns:
-            df[h] = ""
+    # Αν για κάποιο λόγο είναι άδειο χωρίς headers, βάλε canonical σου
+    if df.empty and not list(df.columns):
+        df = pd.DataFrame(columns=["MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος","ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"])
 
-    row = _normalize_summary_row_for_excel(summary)
-    mark_val = str(row.get("MARK","")).strip()
+    cols = list(df.columns)
 
-    # try to find existing row by mark (use _match_row_by_mark logic)
-    found = False
-    if mark_val:
-        # use vectorized comparison across likely colnames
+    # Τιμές από το summary (υποθέτω έχει ήδη γίνει hydrate πιο πάνω)
+    mark_val = str(summary.get("MARK") or summary.get("mark") or "").strip()
+    afm_val  = str(summary.get("AFM") or summary.get("AFM_issuer") or "").strip()
+    name_val = str(summary.get("Name") or summary.get("Name_issuer") or "").strip()
+    series   = str(summary.get("series") or "").strip()
+    number   = str(summary.get("number") or summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
+    date_val = str(summary.get("issueDate") or "").strip()
+    tipo     = str(summary.get("type") or "").strip()
+    vat_cat  = str(summary.get("vatCategory") or "").strip()
+    total_net = str(summary.get("totalNetValue") or "").strip()
+    total_vat = str(summary.get("totalVatAmount") or "").strip()
+    total_sum = str(summary.get("totalValue") or "").strip()
+
+    is_receipt = (str(summary.get("category") or "").strip() == "αποδειξακια") or bool(summary.get("is_receipt"))
+
+    # Στήσε full row
+    row_full = {
+        "MARK": mark_val,
+        "ΑΦΜ": afm_val,
+        "Επωνυμία": name_val,
+        "Σειρά": series,
+        "Αριθμός": number,               # <-- για όσα αρχεία έχουν «Αριθμός»
+        "Ημερομηνία": date_val,
+        "Είδος": ("ΑΠΟΔΕΙΞΗ" if is_receipt else tipo),  # <-- Απόδειξη
+        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": vat_cat,
+        "Καθαρή Αξία": total_net,
+        "ΦΠΑ": total_vat,
+        "Σύνολο": total_sum,
+    }
+    # Αν το αρχείο έχει στήλη «Α/Α», γέμισέ την επίσης
+    if "Α/Α" in cols and not row_full.get("Α/Α"):
+        row_full["Α/Α"] = number
+
+    # Ευθυγράμμιση ΜΟΝΟ στα υπάρχοντα headers
+    row_aligned = {c: row_full.get(c, "") for c in cols}
+
+    if not mark_val:
+        return  # χωρίς MARK δεν γράφουμε
+
+    # Update by MARK αν υπάρχει, αλλιώς append (ΧΩΡΙΣ .append της pandas)
+    if "MARK" in df.columns:
+        mask = df["MARK"].astype(str).fillna("").str.strip() == mark_val
+    else:
         mask = pd.Series([False]*len(df), index=df.index)
-        # prefer 'MARK' column, else try any object/string column
-        if "MARK" in df.columns:
-            try:
-                mask = df["MARK"].fillna("").astype(str).str.strip() == mark_val
-            except Exception:
-                mask = (df["MARK"].fillna("") == mark_val)
-        if not mask.any():
-            # scan other string columns
-            for c in df.columns:
-                try:
-                    if df[c].dtype == 'O' or df[c].dtype == 'string':
-                        m2 = df[c].fillna("").astype(str).str.strip() == mark_val
-                        if m2.any():
-                            mask = m2
-                            break
-                except Exception:
-                    continue
 
-        if mask.any():
-            # update first match
-            idx = mask[mask].index[0]
-            for h in headers:
-                # don't overwrite MARK,AA if blank in new row? We'll overwrite with new data
-                df.at[idx, h] = row.get(h,"")
-            found = True
+    if mask.any():
+        idx = mask[mask].index[0]
+        for c in cols:
+            df.at[idx, c] = row_aligned.get(c, df.at[idx, c])
+    else:
+        df = pd.concat([df, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False)
 
-    if not found:
-        # append new row
-        df = df.append(row, ignore_index=True)
-
-    # ensure AFM and MARK are saved as text in Excel: pandas will save as strings; that's OK
-    try:
-        df.to_excel(path, index=False)
-    except Exception:
-        # final fallback - try openpyxl write: create workbook with headers then append row
+    # BONUS: Αν υπάρχει «Τύπος» αντί για «Είδος», γέμισέ το για αποδείξεις
+    if "Τύπος" in df.columns and is_receipt:
         try:
-            from openpyxl import Workbook, load_workbook
-            if not os.path.exists(path):
-                wb = Workbook()
-                ws = wb.active
-                ws.append(headers)
-                wb.save(path)
-            wb = load_workbook(path)
-            ws = wb.active
-            # if updated, easier to rewrite entire excel from df
-            for r in dataframe_to_rows(df, index=False, header=True):
-                pass
-            # simpler: use pandas to_excel in a temp file and replace
-            tmp = path + ".tmp.xlsx"
-            df.to_excel(tmp, index=False)
-            os.replace(tmp, path)
+            df.loc[df["MARK"].astype(str).str.strip() == mark_val, "Τύπος"] = "ΑΠΟΔΕΙΞΗ"
         except Exception:
-            log.exception("Failed to write excel for summary for mark=%s", mark_val)
+            pass
+
+    df.to_excel(path, index=False, engine="openpyxl")
 
 def _extract_headers_from_upload(file_stream, ext):
     """
@@ -3930,9 +3932,6 @@ def save_summary():
       - αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
       - αν υπάρχει μόνο placeholder για το mark -> διαγράφουμε τα placeholders και δημιουργούμε Excel + append
       - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
-
-    Χρησιμοποιεί υπάρχοντες helpers του project: json_read/json_write, _safe_save_epsilon_cache,
-    load_epsilon_cache_for_vat, append_summary_to_customer_file, excel_path_for, DEFAULT_EXCEL_FILE, VAT_MAP, κ.λπ.
     """
     try:
         from datetime import datetime as _dt, timezone as _tz
@@ -3940,34 +3939,68 @@ def save_summary():
         _dt = None
         _tz = None
 
-    # canonical columns που θέλεις να εμφανίζονται στο Excel (προσαρμόζονται αν χρειαστεί)
     EXCEL_COLUMNS = [
-        "MARK",
-        "ΑΦΜ",
-        "Επωνυμία",
-        "Σειρά",
-        "Αριθμός",
-        "Ημερομηνία",
-        "Είδος",
-        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ",
-        "Καθαρή Αξία",
-        "ΦΠΑ",
-        "Σύνολο"
+        "MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος",
+        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"
     ]
 
+    # ---------- local helper: hydrate summary για Excel ----------
+    def _hydrate_summary_for_excel(summary: dict, vat: str = "") -> dict:
+        try:
+            s = dict(summary or {})
+            raw = s.get("raw") or {}
+            def _first(*vals):
+                for v in vals:
+                    if v is None: continue
+                    sv = str(v).strip()
+                    if sv and sv.lower() not in ("none","nan"): return sv
+                return ""
+            # MARK
+            m = _first(s.get("MARK"), s.get("mark")); s["MARK"] = m; s["mark"] = m
+            # AA/number/progressive_aa
+            aa = _first(s.get("number"), s.get("AA"), s.get("aa"), s.get("progressive_aa"),
+                        raw.get("AA") if isinstance(raw, dict) else None,
+                        raw.get("progressive_aa") if isinstance(raw, dict) else None)
+            s["AA"] = aa; s["aa"] = aa; s["number"] = _first(s.get("number"), aa)
+            if not s.get("progressive_aa"): s["progressive_aa"] = aa
+            # AFM / Name
+            s["AFM"]  = _first(s.get("AFM"), s.get("AFM_issuer"), s.get("issuer_vat"), vat)
+            s["Name"] = _first(s.get("Name"), s.get("Name_issuer"), s.get("issuer_name"))
+            # issueDate
+            s["issueDate"] = _first(s.get("issueDate"), s.get("issue_date"))
+            # totalValue (υπολογισμός από lines αν λείπει)
+            def _p(x):
+                try: return float(str(x).replace('.','').replace(',','.'))
+                except Exception: return 0.0
+            tv = _first(s.get("totalValue"), s.get("total_value"), s.get("total_amount"))
+            if not tv and isinstance(s.get("lines"), list):
+                amt = sum(_p(l.get("amount") or l.get("lineTotal") or l.get("total") or 0) for l in s["lines"])
+                tv = f"{amt:.2f}"
+            if tv: s["totalValue"] = str(tv)
+            # category για αποδείξεις
+            is_receipt = bool(s.get("is_receipt")) or "απόδειξη" in str(s.get("type_name","")).lower() or str(s.get("type","")).strip() in {"8.4","8.5","11.5"}
+            if is_receipt:
+                s["category"] = s.get("category") or "αποδειξακια"
+                s["χαρακτηρισμός"] = s.get("χαρακτηρισμός") or s.get("characteristic") or "αποδειξακια"
+            # created_at
+            if not str(s.get("created_at") or "").strip():
+                s["created_at"] = _dt.utcnow().isoformat(timespec="seconds") if _dt else ""
+            return s
+        except Exception:
+            return summary or {}
+    # ------------------------------------------------------------
+
+    # ---------- parse payload ----------
     try:
         log.info("save_summary: start request from %s", request.remote_addr)
-        # Προσπαθούμε πρώτα form field 'summary_json', μετά raw body (JSON), αλλιώς εναλλακτικά φτιάχνουμε minimal summary
         raw = None
         if request.form and request.form.get("summary_json"):
             raw = request.form.get("summary_json")
         else:
-            # try JSON body
             try:
-                # if content-type application/json, get_json will parse; else fallback to raw text
                 if request.is_json:
                     summary = request.get_json(force=True)
-                    raw = None  # parsed already
+                    raw = None
                 else:
                     raw = request.get_data(as_text=True) or None
                     summary = None
@@ -3984,12 +4017,10 @@ def save_summary():
                 summary = None
 
         if summary is None:
-            # build minimal from form fields if possible
             summary = {}
             if request.form.get("mark"):
                 summary["mark"] = request.form.get("mark")
-                summary["AFM"] = request.form.get("vat") or request.form.get("AFM") or ""
-            # optionally try other form keys
+                summary["AFM"]  = request.form.get("vat") or request.form.get("AFM") or ""
             if request.form.get("issueDate"):
                 summary["issueDate"] = request.form.get("issueDate")
     except Exception:
@@ -3997,7 +4028,7 @@ def save_summary():
         flash("Invalid summary payload", "error")
         return redirect(url_for("search"))
 
-    # active VAT
+    # ---------- active VAT ----------
     active = get_active_credential_from_session()
     vat = (active.get("vat") if active else None) or summary.get("AFM") or summary.get("AFM_issuer") or summary.get("AFM")
     if not vat:
@@ -4005,43 +4036,33 @@ def save_summary():
         flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
-    # helper to convert numeric strings like "1.234,56"
+    # ---------- helpers ----------
     def float_from_comma(value):
-        if value is None:
-            return 0.0
-        if isinstance(value, (int, float)):
-            return float(value)
-        s = str(value).strip().replace(".", "").replace(",", ".")
-        try:
-            return float(s)
-        except Exception:
-            return 0.0
+        if value is None: return 0.0
+        if isinstance(value,(int,float)): return float(value)
+        s = str(value).strip().replace(".","").replace(",",".")
+        try: return float(s)
+        except Exception: return 0.0
 
-    # --- ensure lines exist (reconstruct from per-customer invoices if needed) ---
+    # ---------- ensure lines / normalize ----------
     lines = summary.get("lines", []) or []
     if not lines:
         try:
-            mark = str(summary.get("mark", "")).strip()
+            mark = str(summary.get("mark","")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             all_docs = json_read(docs_file) or []
-            docs_for_mark = [d for d in all_docs if str(d.get("mark", "")).strip() == mark]
+            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
             reconstructed = []
             for idx, inst in enumerate(docs_for_mark):
                 ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
                 description = inst.get("description") or inst.get("desc") or inst.get("Description") or inst.get("Name") or inst.get("Name_issuer") or f"Instance #{idx+1}"
                 amount = inst.get("amount") or inst.get("lineTotal") or inst.get("totalNetValue") or inst.get("totalValue") or ""
                 vat_rate = inst.get("vat") or inst.get("vatRate") or inst.get("vatPercent") or inst.get("totalVatAmount") or ""
-                raw_vatcat = inst.get("vatCategory") or inst.get("vat_category") or inst.get("VATCategory") or inst.get("vatCat") or ""
-                if not raw_vatcat:
-                    raw_vatcat = inst.get("vatCategoryCode") or inst.get("vat_code") or ""
+                raw_vatcat = inst.get("vatCategory") or inst.get("vat_category") or inst.get("VATCategory") or inst.get("vatCat") or inst.get("vatCategoryCode") or inst.get("vat_code") or ""
                 vat_cat_mapped = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
                 reconstructed.append({
-                    "id": ln_id,
-                    "description": description,
-                    "amount": amount,
-                    "vat": vat_rate,
-                    "category": "",
-                    "vatCategory": vat_cat_mapped
+                    "id": ln_id, "description": description, "amount": amount, "vat": vat_rate,
+                    "category": "", "vatCategory": vat_cat_mapped
                 })
             lines = reconstructed
             log.debug("save_summary: reconstructed %d lines from %s", len(lines), docs_file)
@@ -4049,39 +4070,37 @@ def save_summary():
             log.exception("save_summary: failed to reconstruct lines")
             lines = []
 
-    # --- normalize lines ---
     normalized_lines = []
     for idx, ln in enumerate(lines):
-        if not isinstance(ln, dict):
-            continue
+        if not isinstance(ln, dict): continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
         raw_vcat = ln.get("vatCategory") or ln.get("vat_category") or ln.get("vatCat") or ln.get("vat_cat") or ""
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
-            "description": ln.get("description", "") or ln.get("desc", "") or "",
-            "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
-            "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
-            "category": ln.get("category", "") or "",
+            "description": ln.get("description","") or ln.get("desc","") or "",
+            "amount": ln.get("amount","") or ln.get("lineTotal","") or "",
+            "vat": ln.get("vat","") or ln.get("vatRate","") or "",
+            "category": ln.get("category","") or "",
             "vatCategory": vcat_mapped
         })
     summary["lines"] = normalized_lines
 
-    # --- append to per-customer summary JSON (best-effort) ---
+    # ---------- HYDRATE ΠΡΙΝ ΑΠΟ ΟΠΟΙΟ WRITE ----------
+    summary = _hydrate_summary_for_excel(summary, vat=str(vat or ""))
+
+    # ---------- best-effort append σε per-customer summary JSON ----------
     try:
         append_summary_to_customer_file(summary, vat)
     except Exception:
         log.exception("save_summary: append_summary_to_customer_file failed")
 
-    # --- helper to detect placeholder vs detailed epsilon item ---
+    # ---------- epsilon cache ----------
     def epsilon_item_has_detail(item):
         try:
-            if not item or not isinstance(item, dict):
-                return False
-            if item.get("issueDate"):
-                return True
-            if item.get("totalNetValue") or item.get("totalValue"):
-                return True
+            if not item or not isinstance(item, dict): return False
+            if item.get("issueDate"): return True
+            if item.get("totalNetValue") or item.get("totalValue"): return True
             lines_local = item.get("lines") or []
             if isinstance(lines_local, list):
                 for l in lines_local:
@@ -4094,148 +4113,115 @@ def save_summary():
             pass
         return False
 
-    # --- load epsilon cache for vat ---
     try:
-        epsilon_cache = load_epsilon_cache_for_vat(vat)  # returns list or None
-        if epsilon_cache is None:
-            epsilon_cache = []
+        epsilon_cache = load_epsilon_cache_for_vat(vat) or []
         log.debug("save_summary: loaded epsilon_cache len=%d for vat=%s", len(epsilon_cache), vat)
     except Exception:
         log.exception("save_summary: failed loading epsilon cache")
         epsilon_cache = []
 
-    mark = str(summary.get("mark", "")).strip()
+    mark = str(summary.get("mark","")).strip()
 
-    # --- locate existing detailed entry + collect placeholders ---
     existing_index = None
     placeholder_indices = []
     try:
         for i, d in enumerate(epsilon_cache):
             try:
                 d_mark = d.get("mark") or d.get("MARK") or d.get("invoice_id") or d.get("Αριθμός Μητρώου") or d.get("id")
-                if d_mark is None or str(d_mark).strip() != mark:
-                    continue
+                if d_mark is None or str(d_mark).strip() != mark: continue
                 if not epsilon_item_has_detail(d):
-                    placeholder_indices.append(i)
-                    log.debug("save_summary: found placeholder at idx=%d keys=%s", i, list(d.keys())[:6])
-                    continue
-                existing_index = i
-                log.debug("save_summary: found detailed entry at idx=%d", i)
-                break
+                    placeholder_indices.append(i); continue
+                existing_index = i; break
             except Exception:
-                log.exception("save_summary: error scanning epsilon_cache index %s", i)
-                continue
+                log.exception("save_summary: error scanning epsilon_cache index %s", i); continue
     except Exception:
         log.exception("save_summary: scanning epsilon_cache failed unexpectedly")
 
-    # --- if placeholders exist, remove them so we force Excel creation ---
     if placeholder_indices:
         try:
             for idx in sorted(placeholder_indices, reverse=True):
-                try:
-                    removed = epsilon_cache.pop(idx)
-                    log.info("save_summary: removed placeholder epsilon entry idx=%d mark=%s vat=%s keys=%s", idx, mark, vat, list(removed.keys())[:6])
-                except Exception:
-                    log.exception("save_summary: failed to pop placeholder idx=%s", idx)
+                try: epsilon_cache.pop(idx)
+                except Exception: log.exception("save_summary: failed to pop placeholder idx=%s", idx)
             try:
                 _safe_save_epsilon_cache(vat, epsilon_cache)
-                log.info("save_summary: persisted epsilon cache after removing placeholders for vat=%s", vat)
             except Exception:
                 log.exception("save_summary: failed persisting epsilon cache after placeholder removal")
             existing_index = None
         except Exception:
             log.exception("save_summary: error removing placeholders")
 
-    # --- if existing detailed entry -> update per-line categories only ---
     if existing_index is not None:
         try:
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
-            existing_by_id = {str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None}
+            existing_by_id = {str(l.get("id","")): l for l in existing_lines if l.get("id") is not None}
             updated = False
             for ln in normalized_lines:
-                lid = str(ln.get("id", ""))
-                if not lid:
-                    continue
+                lid = str(ln.get("id",""))
+                if not lid: continue
                 if lid in existing_by_id:
                     el = existing_by_id[lid]
-                    new_cat = ln.get("category", "") or ""
-                    if new_cat and str(el.get("category", "")) != new_cat:
+                    new_cat = ln.get("category","") or ""
+                    if new_cat and str(el.get("category","")) != new_cat:
                         el["category"] = new_cat
-                        el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
+                        el["vat_category"] = ln.get("vatCategory","") or el.get("vat_category","")
                         updated = True
-                    elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
-                        el["vat_category"] = ln.get("vatCategory")
-                        updated = True
+                    elif ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
+                        el["vat_category"] = ln.get("vatCategory"); updated = True
                 else:
-                    new_el = {
+                    existing_lines.append({
                         "id": lid,
-                        "description": ln.get("description", ""),
-                        "amount": ln.get("amount", ""),
-                        "vat": ln.get("vat", ""),
-                        "category": ln.get("category", "") or "",
-                        "vat_category": ln.get("vatCategory", "") or ""
-                    }
-                    existing_lines.append(new_el)
-                    existing_by_id[lid] = new_el
-                    updated = True
+                        "description": ln.get("description",""),
+                        "amount": ln.get("amount",""),
+                        "vat": ln.get("vat",""),
+                        "category": ln.get("category","") or "",
+                        "vat_category": ln.get("vatCategory","") or ""
+                    }); updated = True
 
             if updated:
                 try:
-                    if _dt and _tz:
-                        existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
+                    if _dt and _tz: existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
                 except Exception:
-                    existing["_updated_at"] = existing.get("_updated_at", "")
+                    existing["_updated_at"] = existing.get("_updated_at","")
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
-
                 try:
                     _safe_save_epsilon_cache(vat, epsilon_cache)
-                    log.info("save_summary: updated epsilon per-line categories for mark=%s vat=%s", mark, vat)
                     flash("Ενημερώθηκε ο χαρακτηρισμός στο cache (epsilon).", "success")
                 except Exception:
                     log.exception("save_summary: failed saving epsilon cache after update")
                     flash("Failed updating epsilon cache (see server logs)", "error")
 
-                # ---- ensure Excel exists (if not, create it from summary/existing) ----
+                # ensure excel exists (αν λείπει, φτιάξ' το)
                 try:
                     excel_path = excel_path_for(vat=vat)
                     if not os.path.exists(excel_path):
-                        try:
-                            total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
-                            total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
-                        except Exception:
-                            total_net = 0.0
-                            total_vat = 0.0
+                        total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue","") or 0))
+                        total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount","") or 0))
                         total_value = total_net + total_vat
                         row = {
-                            "MARK": str(summary.get("mark", existing.get("mark", ""))),
+                            "MARK": str(summary.get("mark", existing.get("mark",""))),
                             "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
-                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
-                            "Σειρά": summary.get("series", existing.get("series", "") or ""),
-                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
-                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
-                            "Είδος": summary.get("type", existing.get("type", "")),
-                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
-                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-                            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-                            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer","") or ""),
+                            "Σειρά": summary.get("series", existing.get("series","") or ""),
+                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa",""))),
+                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate","")),
+                            "Είδος": summary.get("type", existing.get("type","")),
+                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory","") or ""),
+                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+                            "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+                            "Σύνολο": f"{total_value:.2f}".replace(".",",")
                         }
                         import pandas as pd
                         df_new = pd.DataFrame([row]).astype(str).fillna("")
-                        # ensure canonical columns only
                         df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
                         os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
                         df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                        log.info("save_summary: existing epsilon updated but excel was missing -> created excel %s", excel_path)
-                    else:
-                        log.debug("save_summary: epsilon updated and excel already exists at %s; not re-writing", excel_path)
                 except Exception:
                     log.exception("save_summary: failed ensuring/creating excel after epsilon update")
 
                 return redirect(url_for("search"))
             else:
-                log.info("save_summary: no per-line changes for mark=%s vat=%s", mark, vat)
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
                 return redirect(url_for("search"))
         except Exception:
@@ -4243,7 +4229,7 @@ def save_summary():
             flash("Server error while processing update", "error")
             return redirect(url_for("search"))
 
-    # --- ELSE: no existing detailed entry -> create/write excel + append epsilon entry ---
+    # ---------- ELSE: create/write excel + append epsilon entry ----------
     excel_path = excel_path_for(vat=vat)
     excel_written = False
     try:
@@ -4252,36 +4238,32 @@ def save_summary():
         total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
 
         row = {
-            "MARK": str(summary.get("mark", "")),
+            "MARK": str(summary.get("mark","")),
             "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
-            "Επωνυμία": summary.get("Name", ""),
-            "Σειρά": summary.get("series", ""),
-            "Αριθμός": summary.get("number", ""),
-            "Ημερομηνία": summary.get("issueDate", ""),
-            "Είδος": summary.get("type", ""),
-            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
-            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+            "Επωνυμία": summary.get("Name",""),
+            "Σειρά": summary.get("series",""),
+            "Αριθμός": summary.get("number",""),
+            "Ημερομηνία": summary.get("issueDate",""),
+            "Είδος": summary.get("type",""),
+            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory",""),
+            "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+            "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+            "Σύνολο": f"{total_value:.2f}".replace(".",",")
         }
 
         import pandas as pd
         df_new = pd.DataFrame([row]).astype(str).fillna("")
-        # ensure df_new has only canonical columns (and in correct order)
         df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
 
-        # if there's a higher-level helper, prefer calling it (backward compat)
         helper = globals().get("_ensure_excel_and_update_or_append") or globals().get("_append_to_excel")
         if helper and callable(helper):
             try:
                 log.debug("save_summary: calling helper %s for excel update", helper.__name__)
-                # prefer passing summary if helper expects it, otherwise pass row+vat
                 try:
-                    helper(summary, vat=vat)
+                    helper(summary, vat=vat)  # προτίμησε ολόκληρο το summary
                 except TypeError:
                     helper(row, vat=vat)
                 excel_written = True
-                log.info("save_summary: helper %s completed", helper.__name__)
             except Exception:
                 log.exception("save_summary: helper %s failed; falling back to inline Excel write", helper.__name__)
 
@@ -4289,15 +4271,32 @@ def save_summary():
             if os.path.exists(excel_path):
                 try:
                     df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                    # coerce to strings and remove any non-canonical columns
                     df_existing = df_existing.astype(str).fillna("")
-                    # keep only canonical columns and in canonical order (drops anything else)
-                    df_existing = df_existing.reindex(columns=EXCEL_COLUMNS, fill_value="")
-                    # concat and ensure final has canonical columns only
-                    df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-                    df_concat = df_concat.reindex(columns=EXCEL_COLUMNS, fill_value="")
+                    cols = list(df_existing.columns)
+
+                    is_receipt = (str(summary.get("category") or "").strip() == "αποδειξακια") or bool(summary.get("is_receipt"))
+                    aa_val = str(summary.get("number") or summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
+
+                    row_full = {
+                        "MARK": str(summary.get("mark","")),
+                        "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
+                        "Επωνυμία": summary.get("Name",""),
+                        "Σειρά": summary.get("series",""),
+                        "Ημερομηνία": summary.get("issueDate",""),
+                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory",""),
+                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+                        "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+                        "Σύνολο": f"{total_value:.2f}".replace(".",","),
+                    }
+                    if "Αριθμός" in cols: row_full["Αριθμός"] = aa_val
+                    if "Α/Α" in cols:      row_full["Α/Α"]   = aa_val
+                    if "Είδος" in cols and is_receipt: row_full["Είδος"] = "ΑΠΟΔΕΙΞΗ"
+                    if "Τύπος" in cols and is_receipt: row_full["Τύπος"] = "ΑΠΟΔΕΙΞΗ"
+
+                    row_aligned = {c: row_full.get(c, "") for c in cols}
+                    df_concat = pd.concat([df_existing, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False)
                     df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-                    log.info("save_summary: appended row to existing excel %s", excel_path)
+                    flash("Saved to Excel.", "success")
                 except Exception:
                     log.exception("save_summary: failed to append to existing excel %s", excel_path)
                     raise
@@ -4305,50 +4304,48 @@ def save_summary():
                 try:
                     os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
                     df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                    log.info("save_summary: created new excel and wrote row %s", excel_path)
+                    flash("Saved to Excel.", "success")
                 except Exception:
                     log.exception("save_summary: failed to create/write new excel %s", excel_path)
                     raise
-            flash("Saved to Excel.", "success")
     except Exception:
         log.exception("save_summary: Excel write failed")
         flash("Excel save failed", "error")
 
-    # --- Build epsilon entry and append it to cache ---
+    # ---------- Build epsilon entry & append ----------
     try:
         epsilon_entry = {
             "mark": mark,
-            "issueDate": summary.get("issueDate", ""),
-            "series": summary.get("series", ""),
-            "aa": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "AA": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "type": summary.get("type", ""),
-            "vatCategory": summary.get("vatCategory", ""),
-            "totalNetValue": summary.get("totalNetValue", ""),
-            "totalVatAmount": summary.get("totalVatAmount", ""),
-            "totalValue": summary.get("totalValue", ""),
-            "classification": summary.get("classification", ""),
-            "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
-            "Name_issuer": summary.get("Name_issuer") or summary.get("Name", ""),
-            "AFM": summary.get("AFM", "") or vat,
+            "issueDate": summary.get("issueDate",""),
+            "series": summary.get("series",""),
+            "aa": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "AA": summary.get("number","") or summary.get("AA","") or summary.get("aa",""),
+            "type": summary.get("type",""),
+            "vatCategory": summary.get("vatCategory",""),
+            "totalNetValue": summary.get("totalNetValue",""),
+            "totalVatAmount": summary.get("totalVatAmount",""),
+            "totalValue": summary.get("totalValue",""),
+            "classification": summary.get("classification",""),
+            "category": (summary.get("category") or ("αποδειξακια" if (summary.get("category") == "αποδειξακια" or summary.get("is_receipt")) else "")),
+            "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if (summary.get("category") == "αποδειξακια" or summary.get("is_receipt")) else ""),
+            "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if (summary.get("category") == "αποδειξακια" or summary.get("is_receipt")) else ""),
+            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
+            "Name_issuer": summary.get("Name_issuer") or summary.get("Name",""),
+            "AFM": summary.get("AFM","") or vat,
             "lines": []
         }
         for ln in normalized_lines:
             epsilon_entry["lines"].append({
-                "id": ln.get("id", ""),
-                "description": ln.get("description", ""),
-                "amount": ln.get("amount", ""),
-                "vat": ln.get("vat", ""),
-                "category": ln.get("category", "") or "",
-                "vat_category": ln.get("vatCategory", "") or ""
+                "id": ln.get("id",""),
+                "description": ln.get("description",""),
+                "amount": ln.get("amount",""),
+                "vat": ln.get("vat",""),
+                "category": ln.get("category","") or "",
+                "vat_category": ln.get("vatCategory","") or ""
             })
-
         epsilon_cache.append(epsilon_entry)
         try:
             _safe_save_epsilon_cache(vat, epsilon_cache)
-            log.info("save_summary: appended new epsilon entry for mark=%s vat=%s", mark, vat)
             flash("Saved summary and appended new epsilon entry.", "success")
         except Exception:
             log.exception("save_summary: failed saving new epsilon cache")
@@ -4358,6 +4355,7 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
+
 
 
 @app.route("/save_receipt", methods=["POST"])
