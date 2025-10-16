@@ -1550,7 +1550,11 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
         totalNetValue: j.total_amount || '',
         totalVatAmount: (j.raw && (j.raw.totalVatAmount || j.raw.totalVat)) || '',
         lines: []
-      };
+      ,
+  type: 'ΑΠΟΔΕΙΞΗ',
+  category: 'αποδειξακια',
+  is_receipt: true,
+  number: (j.progressive_aa || '')};
 
       if (j.raw && Array.isArray(j.raw.lines) && j.raw.lines.length) {
         j.raw.lines.forEach((l, idx) => {
@@ -1606,6 +1610,58 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
   // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
   // intercept saveSummaryForm submit when scrapeUrlField is present
 // --- replace the previous payload construction + fetch with this robust version ---
+document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
+  const scrapeUrl = document.getElementById('scrapeUrlField')?.value || '';
+  if(!scrapeUrl) return; // let normal (invoice) flow proceed
+  e.preventDefault();
+
+  let summary = {};
+  try {
+    summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
+  } catch(err){
+    console.warn('Failed parsing summaryJsonInput', err);
+    alert('Σφάλμα: άκυρα δεδομένα παραστατικού.');
+    return;
+  }
+
+  summary.is_receipt = true;
+  if (!summary.category || String(summary.category).trim() === '') summary.category = 'αποδειξακια';
+  if (!summary.type || String(summary.type).trim() === '') summary.type = 'ΑΠΟΔΕΙΞΗ';
+  if (!summary.type_name || String(summary.type_name).trim() === '') summary.type_name = 'Απόδειξη';
+
+  const aaCoalesce = summary.number || summary.AA || summary.aa || summary.progressive_aa || '';
+  summary.number = aaCoalesce;
+
+  if (!Array.isArray(summary.lines)) summary.lines = [];
+  summary.lines = summary.lines.map((l, i) => ({
+    id: (l && (l.id || l.line_id)) ? String(l.id || l.line_id) : ('r' + i),
+    description: (l && (l.description || l.desc)) || '',
+    amount: (l && (l.amount || l.lineTotal || l.total)) || '',
+    vat: (l && (l.vat || l.vatRate)) || '',
+    vatCategory: (l && (l.vatCategory || l.vat_category)) || '',
+    category: (l && l.category) || ''
+  }));
+
+  try {
+    const res = await fetch('/save_summary', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(summary)
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(()=>'');
+      alert('Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
+      return;
+    }
+    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_) {}
+    window.location = window.location.pathname;
+  } catch (err) {
+    console.error('save_summary AJAX error', err);
+    alert('Σφάλμα αποθήκευσης: ' + (err.message || err));
+  }
+});
+
 document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
   const scrapeUrl = document.getElementById('scrapeUrlField')?.value || '';
   if(!scrapeUrl) return; // allow normal server flow for invoice flow
