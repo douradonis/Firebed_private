@@ -155,20 +155,70 @@ REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "
 @app.before_request
 def log_request_path():
     log.info("Incoming request: method=%s path=%s remote=%s ref=%s", request.method, request.path, request.remote_addr, request.referrer)
-# Logging (unchanged)
+# --- Logging (Europe/Athens timezone) ---
+import datetime
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Προσπάθεια για DST-aware ζώνη ώρας Ελλάδας
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+    GREECE_TZ = ZoneInfo("Europe/Athens")
+except Exception:
+    try:
+        import pytz  # fallback αν λείπει zoneinfo
+        GREECE_TZ = pytz.timezone("Europe/Athens")
+    except Exception:
+        # έσχατο fallback: σταθερό UTC+3 (χωρίς DST)
+        GREECE_TZ = datetime.timezone(datetime.timedelta(hours=3))
+
+class GreeceTZFormatter(logging.Formatter):
+    """Formatter που τυπώνει timestamps σε Europe/Athens."""
+    def __init__(self, fmt=None, datefmt=None, tz=GREECE_TZ):
+        super().__init__(fmt=fmt, datefmt=datefmt)
+        self.tz = tz
+
+    def formatTime(self, record, datefmt=None):
+        # Χτίζουμε timezone-aware datetime από το record.created
+        dt = datetime.datetime.fromtimestamp(record.created, self.tz)
+        if datefmt:
+            return dt.strftime(datefmt)
+        # default: ISO-like χωρίς milliseconds
+        return dt.isoformat(timespec="seconds")
+
 log = logging.getLogger("mydata_app")
 log.setLevel(logging.INFO)
+
 if not log.handlers:
+    fmt = "%(asctime)s %(levelname)s %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S%z"
+
+    # Console
     sh = logging.StreamHandler(sys.stdout)
-    sh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    sh.setLevel(logging.INFO)
+    sh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
     log.addHandler(sh)
 
+    # Rotating file
     fh = RotatingFileHandler(ERROR_LOG, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
     fh.setLevel(logging.INFO)
-    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s\n"))
+    fh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
     log.addHandler(fh)
 
+# (προαιρετικά) συντόνισε και τον werkzeug logger να γράφει με το ίδιο formatter
+try:
+    wlog = logging.getLogger("werkzeug")
+    wlog.setLevel(logging.INFO)
+    if not wlog.handlers:
+        wsh = logging.StreamHandler(sys.stdout)
+        wsh.setLevel(logging.INFO)
+        wsh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
+        wlog.addHandler(wsh)
+except Exception:
+    pass
+
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
+
 GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
 # keep settings inside data/ so it's co-located with other app files
 SETTINGS_FILE = os.path.join(DATA_DIR, "credentials_settings.json")
@@ -3927,6 +3977,7 @@ def save_accounts():
 # ---------------- Save summary from modal to Excel & per-customer JSON ----------------
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
+    import os
     """
     Save summary and update epsilon:
       - Αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
@@ -4257,7 +4308,7 @@ def save_summary():
             "Σύνολο": f"{total_value:.2f}".replace(".",",")
         }
 
-        import pandas as pd, os
+        import pandas as pd
         df_new = pd.DataFrame([row]).astype(str).fillna("")
         df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
 
