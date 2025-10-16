@@ -3177,6 +3177,12 @@ def search():
         if request.method == "POST" and not request.is_json:
             mark = request.form.get("mark", "").strip()
 
+        # --- receipt vs invoice mode from form (hidden input expect_receipt=1) ---
+        expect_receipt = (
+            (request.form.get("expect_receipt") == "1") or
+            (request.args.get("expect_receipt") == "1")
+        )
+
         import re
         from urllib.parse import urlparse
         # existing invoice scrapers
@@ -3190,44 +3196,61 @@ def search():
         input_is_url = re.match(r'^https?://', mark)
         if input_is_url:
             domain = urlparse(mark).netloc.lower()
-            scraped_afm = None
-            scraped_marks = []
-            try:
-                if "wedoconnect" in domain:
-                    scraped_marks, scraped_afm = scrape_wedoconnect(mark)
-                elif "mydatapi.aade.gr" in domain:
-                    data = scrape_mydatapi(mark)
-                    scraped_marks = [data.get("MARK", "N/A")]
-                    scraped_afm = data.get("ΑΦΜ Πελάτη")
-                elif "einvoice.s1ecos.gr" in domain:
-                    scraped_marks, scraped_afm = scrape_einvoice(mark)
-                elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
-                    scraped_marks = scrape_impact(mark)
-                elif "epsilonnet.gr" in domain:
-                    mark_val, scraped_afm, _ = scrape_epsilon(mark)
-                    if mark_val:
-                        scraped_marks = [mark_val]
-                else:
-                    # fallback try receipt detector
-                    if detect_and_scrape_receipt:
-                        try:
-                            rd = detect_and_scrape_receipt(mark)
-                            if isinstance(rd, dict) and rd.get("MARK"):
-                                scraped_marks = [str(rd.get("MARK"))]
-                                scraped_afm = rd.get("issuer_vat") or rd.get("issuer_afm")
-                        except Exception:
-                            log.exception("Receipt detect_and_scrape failed for URL %s", mark)
-                    if not scraped_marks:
-                        error = "Άγνωστο URL για scraping."
-            except Exception as e:
-                log.exception("Scraping failed for URL %s", mark)
-                error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
-                modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
+            # --- NEW: αν είναι ενεργό "Αποδείξεις" αλλά το URL είναι "τιμολογιακό", δείξε warning και ΜΗ συνεχίσεις ---
+            invoice_domains = (
+                "wedoconnect",
+                "mydatapi.aade.gr",
+                "einvoice.s1ecos.gr",
+                "impact.gr",
+                "einvoice.impact.gr",
+                "epsilonnet.gr",
+            )
+            is_invoice_url = any(d in domain for d in invoice_domains)
+            if expect_receipt and is_invoice_url:
+                modal_warning = (
+                    "Έχεις επιλεγμένη «Αποδείξεις», αλλά το URL φαίνεται να είναι Τιμολογίου. "
+                    "Η εισαγωγή μπλοκάρεται — βάλε URL απόδειξης ή άλλαξε σε «Τιμολόγια»."
+                )
+            else:
+                scraped_afm = None
+                scraped_marks = []
+                try:
+                    if "wedoconnect" in domain:
+                        scraped_marks, scraped_afm = scrape_wedoconnect(mark)
+                    elif "mydatapi.aade.gr" in domain:
+                        data = scrape_mydatapi(mark)
+                        scraped_marks = [data.get("MARK", "N/A")]
+                        scraped_afm = data.get("ΑΦΜ Πελάτη")
+                    elif "einvoice.s1ecos.gr" in domain:
+                        scraped_marks, scraped_afm = scrape_einvoice(mark)
+                    elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
+                        scraped_marks = scrape_impact(mark)
+                    elif "epsilonnet.gr" in domain:
+                        mark_val, scraped_afm, _ = scrape_epsilon(mark)
+                        if mark_val:
+                            scraped_marks = [mark_val]
+                    else:
+                        # fallback try receipt detector
+                        if detect_and_scrape_receipt:
+                            try:
+                                rd = detect_and_scrape_receipt(mark)
+                                if isinstance(rd, dict) and rd.get("MARK"):
+                                    scraped_marks = [str(rd.get("MARK"))]
+                                    scraped_afm = rd.get("issuer_vat") or rd.get("issuer_afm")
+                            except Exception:
+                                log.exception("Receipt detect_and_scrape failed for URL %s", mark)
+                        if not scraped_marks:
+                            error = "Άγνωστο URL για scraping."
+                except Exception as e:
+                    log.exception("Scraping failed for URL %s", mark)
+                    error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            if scraped_marks:
-                mark = scraped_marks[0]
+                if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
+                    modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
+
+                if scraped_marks:
+                    mark = scraped_marks[0]
 
         if not input_is_url:
             if not vat:
@@ -3266,7 +3289,7 @@ def search():
                 log.exception("Could not read Excel to check duplicate MARK")
 
             # If not in cache, try receipt scraper to produce a single doc
-            if not docs_for_mark and detect_and_scrape_receipt:
+            if not docs_for_mark and detect_and_scrape_receipt and not modal_warning:
                 try:
                     rd = detect_and_scrape_receipt(mark)
                     if isinstance(rd, dict) and rd.get("MARK"):
@@ -3285,7 +3308,9 @@ def search():
                     log.exception("Receipt scraper failed for mark %s", mark)
 
             if not docs_for_mark:
-                error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
+                # ΜΗ βγάζεις error αν υπάρχει modal_warning — αφήνουμε το warning modal να εμφανιστεί
+                if not modal_warning:
+                    error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
                 if not classified_flag:
                     try:
@@ -3321,7 +3346,6 @@ def search():
                             log.info("search: fiscal year mismatch for MARK %s vat %s invoice_year=%s selected_year=%s", mark, vat, issue_year, sel_year_int)
                             modal_summary = None
                             invoice_lines = []
-                            # keep customer_categories as default but don't allow edit
                             allow_edit_existing = False
                         else:
                             # detect receipts vs invoices
@@ -3405,11 +3429,11 @@ def search():
                                     "totalNetValue": fmt(total_net),
                                     "totalVatAmount": fmt(total_vat),
                                     "totalValue": fmt(total_value),
-                                    "type": "receipt",
+                                    # Για Excel να γραφτεί "Απόδειξη"
+                                    "type": "Απόδειξη",
                                     "type_name": "Απόδειξη",
                                     "lines": invoice_lines,
                                     "is_receipt": True,
-                                    # lock classification for receipts
                                     "χαρακτηρισμός": "αποδειξακια"
                                 }
 
@@ -3446,7 +3470,7 @@ def search():
                                     log.exception("Could not prefill epsilon cache for receipts")
 
                             else:
-                                # Invoice flow (restore categories selection)
+                                # Invoice flow
                                 invoice_lines = []
                                 for idx, inst in enumerate(docs_for_mark):
                                     line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
@@ -3472,6 +3496,7 @@ def search():
                                 NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
                                 inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
                                 is_negative = inv_type in NEGATIVE_TYPES
+                                type_mapped = mapper(inv_type)
 
                                 for ml in invoice_lines:
                                     try:
@@ -3496,8 +3521,10 @@ def search():
                                     "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
                                     "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
                                     "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
-                                    "type": inv_type,
-                                    "type_name": mapper(inv_type),
+                                    # Για Excel να γραφτεί η ελληνική περιγραφή:
+                                    "type": type_mapped,       # <- αυτό θα γραφτεί στο Excel
+                                    "type_code": inv_type,     # <- κρατάμε και τον κωδικό αν χρειαστεί αλλού
+                                    "type_name": type_mapped,  # για το modal
                                     "lines": invoice_lines,
                                     "is_receipt": False
                                 }
@@ -3521,7 +3548,7 @@ def search():
                                                     "series": modal_summary.get("series", "") or "",
                                                     "aa": modal_summary.get("number", "") or modal_summary.get("AA", ""),
                                                     "AA": modal_summary.get("number", "") or modal_summary.get("AA", ""),
-                                                    "type": modal_summary.get("type", "") or "",
+                                                    "type": modal_summary.get("type_code", inv_type) or "",
                                                     "vatCategory": modal_summary.get("vatCategory", "") or "",
                                                     "totalNetValue": modal_summary.get("totalNetValue", "") or "",
                                                     "totalVatAmount": modal_summary.get("totalVatAmount", "") or "",
@@ -3592,7 +3619,6 @@ def search():
                         log.exception("search: fiscal year validation or modal build failed")
                         modal_summary = None
                         invoice_lines = []
-                        # restore categories from defaults already loaded above
                         try:
                             raw_tags = active_cred.get("expense_tags") if active_cred else None
                             if isinstance(raw_tags, str):
@@ -3672,6 +3698,7 @@ def search():
         fiscal_mismatch_block=fiscal_mismatch_block,
         repeat_entry_conf=repeat_entry_conf
     )
+
 
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
