@@ -2990,6 +2990,13 @@ def search():
     modal_warning = None
     fiscal_mismatch_block = False
 
+    # active year for template (used by receipts fiscal check)
+    try:
+        active_year_val = get_active_fiscal_year()
+    except Exception:
+        active_year_val = None
+
+
     # ---------- helpers ----------
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
@@ -3696,8 +3703,8 @@ def search():
         css_numcols=css_numcols,
         modal_warning=modal_warning,
         fiscal_mismatch_block=fiscal_mismatch_block,
-        repeat_entry_conf=repeat_entry_conf
-    )
+        repeat_entry_conf=repeat_entry_conf,
+        active_year=active_year_val)
 
 
 @app.route("/api/next_receipt_mark", methods=["GET"])

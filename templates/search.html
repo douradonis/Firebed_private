@@ -153,7 +153,31 @@ const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
 const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
-
+(function(){
+  // Ανεξάρτητο modal μόνο για Αποδείξεις (δεν ακουμπά το afmWarningModal)
+  window.openReceiptWarning = function(message){
+    var id='receiptWarn', m=document.getElementById(id);
+    if(!m){
+      var el=document.createElement('div');
+      el.id=id;
+      el.style.cssText='position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999';
+      el.innerHTML =
+        '<div style="background:#fff;border-radius:10px;max-width:480px;width:calc(100% - 32px);padding:20px;">'
+        + '<h3 style="margin:0 0 10px;color:#b91c1c;font-weight:600;font-size:18px">Προειδοποίηση</h3>'
+        + '<div id="receiptWarnBody" style="margin-bottom:14px;color:#374151;font-size:14px"></div>'
+        + '<div style="text-align:right"><button id="receiptWarnOk" type="button"'
+        + ' style="background:#b91c1c;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer">Κατάλαβα</button></div>'
+        + '</div>';
+      document.body.appendChild(el);
+      el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
+      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
+      m = el;
+    }
+    var body = m.querySelector('#receiptWarnBody');
+    if(body) body.textContent = message || 'Προειδοποίηση.';
+    m.style.display='flex';
+  };
+})();
 
     // Καθαρισμός ανά γραμμή (πολλαπλές γραμμές)
   document.addEventListener('click', function (e) {
@@ -1522,16 +1546,11 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
         return;
       }
 
-      if (j.is_invoice === true) {
-        // show modal warning (like year-mismatch modal)
-        const body = document.getElementById('afmWarningBody');
-        if (body) {
-          body.innerText = 'Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.';
+      if (j && j.is_invoice === true) {
+  openReceiptWarning('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.');
+  return; // STOP
         }
-        const afmModal = document.getElementById('afmWarningModal');
-        if (afmModal) afmModal.style.display = 'flex';
-        return;
-      }
+
 
       // Δημιουργία αυξανόμενου MARK 15 ψηφίων (από το backend)
       const markRes = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
