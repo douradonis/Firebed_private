@@ -1,0 +1,27 @@
+--- app_patched.py
++++ app_patched_fixed.py
+@@ -4613,7 +4613,10 @@
+                 except Exception:
+                     df = df[df["MARK"].astype(str).fillna("") != str(mark)]
+ 
+-human_type = (surow = {
++                # build human-readable type for Greek columns
++                human_type = (summary.get("type_name") or doc_type or "ΑΠΟΔΕΙΞΗ")
++
++                row = {
+                     "MARK": mark,
+                     "issueDate": issue_date or "",
+                     "AFM_issuer": issuer_vat or "",
+@@ -4627,12 +4630,9 @@
+                     "Τύπος": human_type,
+                     "Είδος": human_type,
+                     "type": doc_type or (summary.get("type_name") or "")
+-                }            "type": doc_type or (summary.get("type_name") or "")
+                 }
+                 # append keeping dataframe columns
+                 df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+-                # write back (index=False keeps clean excel)
+-                df.to_excel(excel_path, index=False)
+                 app.logger.info("api_confirm_receipt: excel saved ok (%s rows)", len(df))
+         except Exception as e:
+             app.logger.exception("api_confirm_receipt: excel write failed: %s", e)
