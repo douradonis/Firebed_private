@@ -153,6 +153,21 @@ const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
 const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
+async function getActiveFiscalYear() {
+  // Προτίμησε την τιμή που ήρθε από server-side render (Jinja)
+  if (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR !== null) {
+    try { return String(ACTIVE_YEAR); } catch(_) { /* noop */ }
+  }
+  // Fallback: ρώτα το backend (υπάρχει route)
+  try {
+    const r = await fetch('/get_fiscal_year', {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && j.exists) return String(j.fiscal_year);
+  } catch(_) {}
+  return null;
+}
+
+
 (function(){
   // Ανεξάρτητο modal μόνο για Αποδείξεις (δεν ακουμπά το afmWarningModal)
   window.openReceiptWarning = function(message){
@@ -1550,6 +1565,33 @@ document.getElementById('markSearchForm')?.addEventListener('submit', async func
   openReceiptWarning('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.');
   return; // STOP
         }
+        // ---- Έλεγχος έτους απόδειξης vs ενεργή χρήση (modal + STOP)
+try {
+  // 1) Πάρε ενεργή χρήση από ACTIVE_YEAR ή από το backend (fallback)
+  const activeYear = await getActiveFiscalYear();
+
+  // 2) Εξήγαγε issueYear από την απόκριση του scraper
+  let issueYear = null;
+  if (j && j.issue_year != null && String(j.issue_year).trim() !== '') {
+    // δέξου είτε καθαρό έτος είτε π.χ. "2025"
+    const m = String(j.issue_year).match(/\b(19|20)\d{2}\b/);
+    issueYear = m ? m[0] : String(j.issue_year);
+  } else if (j) {
+    const anyDate = j.issue_date || j.issueDate || j.date || '';
+    if (typeof anyDate === 'string') {
+      const m = anyDate.match(/\b(19|20)\d{2}\b/);
+      if (m) issueYear = m[0];
+    }
+  }
+
+  // 3) Αν δεν ταιριάζουν -> δείξε modal και σταμάτα
+  if (activeYear && issueYear && String(issueYear) !== String(activeYear)) {
+    openReceiptWarning(`Προσοχή: Η απόδειξη είναι του ${issueYear}, ενώ η ενεργή χρήση είναι ${activeYear}. Η διαδικασία μπλοκάρεται.`);
+    return; // STOP
+  }
+} catch (_) {
+  /* αν αποτύχει ο έλεγχος, δεν μπλοκάρουμε σιωπηλά */
+}
 
 
       // Δημιουργία αυξανόμενου MARK 15 ψηφίων (από το backend)
