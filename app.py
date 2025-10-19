@@ -3132,7 +3132,6 @@ def search():
     except Exception:
         active_year_val = None
 
-
     # ---------- helpers ----------
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
@@ -3491,256 +3490,180 @@ def search():
                             invoice_lines = []
                             allow_edit_existing = False
                         else:
-                            # detect receipts vs invoices
-                            RECEIPT_TYPE_CODES = {"8.4", "8.5", "11.5"}
-                            def is_receipt_doc(d):
+                            # =======================
+                            #   HARD STOP ΓΙΑ ΤΙΜΟΛΟΓΙΑ
+                            # =======================
+                            if not expect_receipt:
+                                FORBIDDEN_CODES = {"8.2", "8.4", "8.5", "8.6", "9.3", "11.1", "11.2", "11.5"}
+                                FORBIDDEN_NAMES = {
+                                    "Τέλος ανθεκτικότητας κλιματικής κρίσης",
+                                    "Απόδειξη Είσπραξης POS",
+                                    "Απόδειξη Επιστροφής POS",
+                                    "Δελτίο Παραγγελίας Εστίασης",
+                                    "Δελτίο Αποστολής",
+                                    "ΑΛΠ",
+                                    "ΑΠΥ",
+                                    "Απόδειξη Λιανικής Πώλησης για Λογαριασμό Τρίτων",
+                                }
+
+                                forbidden_hit_code = None
+                                forbidden_hit_name = None
                                 try:
-                                    if d.get("_is_receipt"):
-                                        return True
-                                    t = str(pick(d, "type", "invoiceType", "docType", default="")).strip()
-                                    if t in RECEIPT_TYPE_CODES or t.lower() in ("receipt", "apodeixis", "απόδειξη"):
-                                        return True
-                                    desc = str(pick(d, "description", "desc", "Name", "Name_issuer", default="")).lower()
-                                    if "απόδειξη" in desc or "receipt" in desc or "λιανική" in desc or "pos" in desc:
-                                        return True
-                                    has_net = any(k in d for k in ("totalNetValue", "totalNet", "lineTotal", "net"))
-                                    has_vat = any(k in d for k in ("totalVatAmount", "totalVat", "vat", "vatRate"))
-                                    if (not has_net) and (("totalValue" in d) or ("amount" in d)) and (not has_vat):
-                                        return True
+                                    for inst in docs_for_mark:
+                                        code = str(pick(inst, "type", "invoiceType", "docType", "doc_type", default="")).strip()
+                                        # ελληνική ονομασία από τον κωδικό (αν υπάρχει)
+                                        name_guess = _map_invoice_type_local(code) if code else ""
+                                        # μπορεί να έχει έρθει ήδη ως name
+                                        name_field = str(pick(inst, "type_name", "doc_name", default="")).strip()
+
+                                        if (code in FORBIDDEN_CODES) or (name_guess in FORBIDDEN_NAMES) or (name_field in FORBIDDEN_NAMES):
+                                            forbidden_hit_code = code or None
+                                            # Βάλε ως name προτεραιότητα: name_field -> name_guess -> mapper(code) -> code
+                                            resolved_name = (
+                                                name_field
+                                                or name_guess
+                                                or (_map_invoice_type_local(code) if code else "")
+                                                or code
+                                            )
+                                            forbidden_hit_name = resolved_name
+                                            break
                                 except Exception:
                                     pass
-                                return False
 
-                            receipt_votes = sum(1 for dd in docs_for_mark if is_receipt_doc(dd))
-                            is_group_receipt = (receipt_votes >= max(1, len(docs_for_mark) // 2))
-
-                            if is_group_receipt:
-                                # Build receipt modal
-                                invoice_lines = []
-                                for idx, inst in enumerate(docs_for_mark):
-                                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                                    amount_raw = pick(inst, "totalValue", "amount", "lineTotal", "total", default=pick(inst, "value", "price", default=0))
-                                    vat_raw = pick(inst, "totalVatAmount", "vat", "vatRate", default="")
-                                    desc = pick(inst, "description", "desc", "Name", "note", default=f"Απόδειξη #{idx+1}")
-                                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "VATCategory", default="")
-                                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                                    invoice_lines.append({
-                                        "id": line_id,
-                                        "description": desc,
-                                        "amount": amount_raw,
-                                        "vat": vat_raw,
-                                        "category": "",
-                                        "vatCategory": mapped_vatcat
-                                    })
-
-                                total_net = 0.0
-                                total_vat = 0.0
-                                total_value = 0.0
-                                for ln in invoice_lines:
-                                    v = float_from_comma(ln.get("amount", 0))
-                                    total_value += v
-                                    vv = float_from_comma(ln.get("vat", 0))
-                                    total_vat += vv
-                                total_net = total_value - total_vat if total_vat else total_value
-
-                                def fmt(x):
+                                if forbidden_hit_name:
+                                    # --- ΝΕΟ: απόδοση ΟΠΩΣΔΗΠΟΤΕ σε ελληνική περιγραφή για το warning
+                                    display_name = forbidden_hit_name
                                     try:
-                                        return f"{x:.2f}".replace(".", ",")
-                                    except Exception:
-                                        return str(x)
-
-                                for ml in invoice_lines:
-                                    try:
-                                        ml_v = float_from_comma(ml.get("amount", 0))
-                                        ml["amount"] = fmt(ml_v)
-                                    except Exception:
-                                        pass
-                                    try:
-                                        mv = float_from_comma(ml.get("vat", 0))
-                                        ml["vat"] = fmt(mv)
+                                        # Αν αυτό που έχουμε μοιάζει με κωδικό, χαρτογράφησέ το
+                                        if display_name == forbidden_hit_code or display_name.replace(".", "").isdigit():
+                                            mapped = _map_invoice_type_local(forbidden_hit_code or display_name)
+                                            if mapped:
+                                                display_name = mapped
                                     except Exception:
                                         pass
 
-                                modal_summary = {
-                                    "mark": mark,
-                                    "AA": pick(docs_for_mark[0], "AA", "aa", default=""),
-                                    "AFM": pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat),
-                                    "Name": pick(docs_for_mark[0], "Name_issuer", "Name", default=""),
-                                    "series": pick(docs_for_mark[0], "series", "Series", default=""),
-                                    "number": pick(docs_for_mark[0], "number", "aa", "AA", default=""),
-                                    "issueDate": pick(docs_for_mark[0], "issueDate", "issue_date", default=""),
-                                    "totalNetValue": fmt(total_net),
-                                    "totalVatAmount": fmt(total_vat),
-                                    "totalValue": fmt(total_value),
-                                    # Για Excel να γραφτεί "Απόδειξη"
-                                    "type": "Απόδειξη",
-                                    "type_name": "Απόδειξη",
-                                    "lines": invoice_lines,
-                                    "is_receipt": True,
-                                    "χαρακτηρισμός": "αποδειξακια"
-                                }
+                                    modal_warning = (
+                                        f"Προσοχή: Το παραστατικό είναι {display_name}. "
+                                        "Η ροή Τιμολογίων δεν το υποστηρίζει. Η διαδικασία μπλοκάρεται — "
+                                        "έλεγξε το URL/MARK ή χρησιμοποίησε ροή Αποδείξεων εφόσον είναι κατάλληλο."
+                                    )
+                                    log.info(
+                                        "search: invoice-flow blocked (forbidden type) code=%s name=%s mark=%s vat=%s",
+                                        forbidden_hit_code, display_name, mark, vat
+                                    )
+                                    modal_summary = None
+                                    invoice_lines = []
+                                    allow_edit_existing = False
 
-                                # receipts should NOT show repeat-entry editing / categories
-                                customer_categories = []
-
-                                # prefill from epsilon if exists (merge per-line categories if any)
-                                try:
-                                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                                    eps_list = json_read(epsilon_path) or []
-                                    matched = None
-                                    for it in (eps_list or []):
-                                        try:
-                                            if str(it.get("mark", "")).strip() == str(mark).strip():
-                                                matched = it
-                                                break
-                                        except Exception:
-                                            continue
-                                    if matched:
-                                        modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or "αποδειξακια"
-                                        eps_lines = matched.get("lines", []) or []
-                                        eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
-                                        for ml in modal_summary.get("lines", []):
-                                            lid = str(ml.get("id", ""))
-                                            if not lid:
-                                                continue
-                                            eps_line = eps_by_id.get(lid)
-                                            if eps_line:
-                                                if not ml.get("category") and eps_line.get("category"):
-                                                    ml["category"] = eps_line.get("category")
-                                                if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
-                                                    ml["vatCategory"] = eps_line.get("vat_category")
-                                except Exception:
-                                    log.exception("Could not prefill epsilon cache for receipts")
-
+                            # Αν βάλαμε modal_warning από το guard, ΜΗ συνεχίσεις.
+                            if modal_warning:
+                                pass
                             else:
-                                # Invoice flow
-                                invoice_lines = []
-                                for idx, inst in enumerate(docs_for_mark):
-                                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                                    description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
-                                    amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
-                                    vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
-                                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
-                                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                                    invoice_lines.append({
-                                        "id": line_id,
-                                        "description": description,
-                                        "amount": amount,
-                                        "vat": vat_rate,
-                                        "category": "",
-                                        "vatCategory": mapped_vatcat
-                                    })
-
-                                first = docs_for_mark[0]
-                                total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
-                                total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
-                                total_value = total_net + total_vat
-
-                                NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
-                                inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
-                                is_negative = inv_type in NEGATIVE_TYPES
-                                type_mapped = mapper(inv_type)
-
-                                for ml in invoice_lines:
+                                # detect receipts vs invoices
+                                RECEIPT_TYPE_CODES = {"8.4", "8.5", "11.5"}
+                                def is_receipt_doc(d):
                                     try:
-                                        v = float_from_comma(ml.get("amount", 0))
-                                        ml["amount"] = f"{-abs(v):.2f}".replace(".", ",") if is_negative else f"{v:.2f}".replace(".", ",")
+                                        if d.get("_is_receipt"):
+                                            return True
+                                        t = str(pick(d, "type", "invoiceType", "docType", default="")).strip()
+                                        if t in RECEIPT_TYPE_CODES or t.lower() in ("receipt", "apodeixis", "απόδειξη"):
+                                            return True
+                                        desc = str(pick(d, "description", "desc", "Name", "Name_issuer", default="")).lower()
+                                        if "απόδειξη" in desc or "receipt" in desc or "λιανική" in desc or "pos" in desc:
+                                            return True
+                                        has_net = any(k in d for k in ("totalNetValue", "totalNet", "lineTotal", "net"))
+                                        has_vat = any(k in d for k in ("totalVatAmount", "totalVat", "vat", "vatRate"))
+                                        if (not has_net) and (("totalValue" in d) or ("amount" in d)) and (not has_vat):
+                                            return True
                                     except Exception:
                                         pass
+                                    return False
+
+                                receipt_votes = sum(1 for dd in docs_for_mark if is_receipt_doc(dd))
+                                is_group_receipt = (receipt_votes >= max(1, len(docs_for_mark) // 2))
+
+                                if is_group_receipt:
+                                    # Build receipt modal
+                                    invoice_lines = []
+                                    for idx, inst in enumerate(docs_for_mark):
+                                        line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                                        amount_raw = pick(inst, "totalValue", "amount", "lineTotal", "total", default=pick(inst, "value", "price", default=0))
+                                        vat_raw = pick(inst, "totalVatAmount", "vat", "vatRate", default="")
+                                        desc = pick(inst, "description", "desc", "Name", "note", default=f"Απόδειξη #{idx+1}")
+                                        raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "VATCategory", default="")
+                                        mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
+                                        invoice_lines.append({
+                                            "id": line_id,
+                                            "description": desc,
+                                            "amount": amount_raw,
+                                            "vat": vat_raw,
+                                            "category": "",
+                                            "vatCategory": mapped_vatcat
+                                        })
+
+                                    total_net = 0.0
+                                    total_vat = 0.0
+                                    total_value = 0.0
+                                    for ln in invoice_lines:
+                                        v = float_from_comma(ln.get("amount", 0))
+                                        total_value += v
+                                        vv = float_from_comma(ln.get("vat", 0))
+                                        total_vat += vv
+                                    total_net = total_value - total_vat if total_vat else total_value
+
+                                    def fmt(x):
+                                        try:
+                                            return f"{x:.2f}".replace(".", ",")
+                                        except Exception:
+                                            return str(x)
+
+                                    for ml in invoice_lines:
+                                        try:
+                                            ml_v = float_from_comma(ml.get("amount", 0))
+                                            ml["amount"] = fmt(ml_v)
+                                        except Exception:
+                                            pass
+                                        try:
+                                            mv = float_from_comma(ml.get("vat", 0))
+                                            ml["vat"] = fmt(mv)
+                                        except Exception:
+                                            pass
+
+                                    modal_summary = {
+                                        "mark": mark,
+                                        "AA": pick(docs_for_mark[0], "AA", "aa", default=""),
+                                        "AFM": pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat),
+                                        "Name": pick(docs_for_mark[0], "Name_issuer", "Name", default=""),
+                                        "series": pick(docs_for_mark[0], "series", "Series", default=""),
+                                        "number": pick(docs_for_mark[0], "number", "aa", "AA", default=""),
+                                        "issueDate": pick(docs_for_mark[0], "issueDate", "issue_date", default=""),
+                                        "totalNetValue": fmt(total_net),
+                                        "totalVatAmount": fmt(total_vat),
+                                        "totalValue": fmt(total_value),
+                                        "type": "Απόδειξη",
+                                        "type_name": "Απόδειξη",
+                                        "lines": invoice_lines,
+                                        "is_receipt": True,
+                                        "χαρακτηρισμός": "αποδειξακια"
+                                    }
+
+                                    # receipts should NOT show repeat-entry editing / categories
+                                    customer_categories = []
+
+                                    # prefill from epsilon if exists
                                     try:
-                                        vv = float_from_comma(ml.get("vat", 0))
-                                        ml["vat"] = f"{-abs(vv):.2f}".replace(".", ",") if is_negative else f"{vv:.2f}".replace(".", ",")
-                                    except Exception:
-                                        pass
-
-                                modal_summary = {
-                                    "mark": mark,
-                                    "AA": pick(first, "AA", "aa", default=""),
-                                    "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
-                                    "Name": pick(first, "Name", "Name_issuer", default=""),
-                                    "series": pick(first, "series", "Series", "serie", default=""),
-                                    "number": pick(first, "number", "aa", "AA", default=""),
-                                    "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
-                                    "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
-                                    "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
-                                    "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
-                                    # Για Excel να γραφτεί η ελληνική περιγραφή:
-                                    "type": type_mapped,       # <- αυτό θα γραφτεί στο Excel
-                                    "type_code": inv_type,     # <- κρατάμε και τον κωδικό αν χρειαστεί αλλού
-                                    "type_name": type_mapped,  # για το modal
-                                    "lines": invoice_lines,
-                                    "is_receipt": False
-                                }
-
-                                # preserve existing epsilon prefill behavior for invoices
-                                try:
-                                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                                    eps_list = json_read(epsilon_path) or []
-
-                                    if not eps_list:
-                                        try:
-                                            has_detail = False
-                                            if modal_summary and (modal_summary.get("issueDate") or modal_summary.get("AFM") or modal_summary.get("AFM_issuer")):
-                                                has_detail = True
-                                            if invoice_lines and any((ln.get("description") or ln.get("amount") or ln.get("vat")) for ln in invoice_lines):
-                                                has_detail = True
-                                            if has_detail and modal_summary:
-                                                epsilon_entry = {
-                                                    "mark": str(modal_summary.get("mark", "")).strip(),
-                                                    "issueDate": modal_summary.get("issueDate", "") or "",
-                                                    "series": modal_summary.get("series", "") or "",
-                                                    "aa": modal_summary.get("number", "") or modal_summary.get("AA", ""),
-                                                    "AA": modal_summary.get("number", "") or modal_summary.get("AA", ""),
-                                                    "type": modal_summary.get("type_code", inv_type) or "",
-                                                    "vatCategory": modal_summary.get("vatCategory", "") or "",
-                                                    "totalNetValue": modal_summary.get("totalNetValue", "") or "",
-                                                    "totalVatAmount": modal_summary.get("totalVatAmount", "") or "",
-                                                    "totalValue": modal_summary.get("totalValue", "") or "",
-                                                    "classification": modal_summary.get("classification", "") or "",
-                                                    "χαρακτηρισμός": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
-                                                    "characteristic": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
-                                                    "AFM_issuer": modal_summary.get("AFM_issuer", "") or modal_summary.get("AFM", "") or "",
-                                                    "Name_issuer": modal_summary.get("Name", "") or modal_summary.get("Name_issuer", "") or "",
-                                                    "AFM": modal_summary.get("AFM", "") or vat,
-                                                    "lines": []
-                                                }
-                                                for ln in invoice_lines:
-                                                    epsilon_entry["lines"].append({
-                                                        "id": ln.get("id", ""),
-                                                        "description": ln.get("description", ""),
-                                                        "amount": ln.get("amount", ""),
-                                                        "vat": ln.get("vat", ""),
-                                                        "category": ln.get("category", "") or "",
-                                                        "vat_category": ln.get("vatCategory", "") or ""
-                                                    })
-                                                eps_list.append(epsilon_entry)
-                                                try:
-                                                    _safe_save_epsilon_cache(vat, eps_list)
-                                                    log.info("Built per-mark epsilon entry for mark %s (vat %s)", epsilon_entry.get("mark"), vat)
-                                                except Exception:
-                                                    log.exception("Failed to save newly built per-mark epsilon entry")
-                                        except Exception:
-                                            log.exception("Failed building per-mark epsilon entry")
-
-                                    # prefill from matched eps entry
-                                    def match_epsilon_item(item, mark_val):
-                                        for k in ('mark', 'MARK', 'invoice_id', 'Αριθμός Μητρώου', 'id'):
-                                            if k in item and str(item[k]).strip() == str(mark_val).strip():
-                                                return True
-                                        return False
-
-                                    matched = None
-                                    for it in (eps_list or []):
-                                        try:
-                                            if match_epsilon_item(it, mark):
-                                                matched = it
-                                                break
-                                        except Exception:
-                                            continue
-
-                                    if matched:
-                                        modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
-                                        try:
+                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        eps_list = json_read(epsilon_path) or []
+                                        matched = None
+                                        for it in (eps_list or []):
+                                            try:
+                                                if str(it.get("mark", "")).strip() == str(mark).strip():
+                                                    matched = it
+                                                    break
+                                            except Exception:
+                                                continue
+                                        if matched:
+                                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or "αποδειξακια"
                                             eps_lines = matched.get("lines", []) or []
                                             eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
                                             for ml in modal_summary.get("lines", []):
@@ -3753,10 +3676,152 @@ def search():
                                                         ml["category"] = eps_line.get("category")
                                                     if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
                                                         ml["vatCategory"] = eps_line.get("vat_category")
+                                    except Exception:
+                                        log.exception("Could not prefill epsilon cache for receipts")
+
+                                else:
+                                    # Invoice flow (κανονικά)
+                                    invoice_lines = []
+                                    for idx, inst in enumerate(docs_for_mark):
+                                        line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                                        description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
+                                        amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
+                                        vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
+                                        raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
+                                        mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
+                                        invoice_lines.append({
+                                            "id": line_id,
+                                            "description": description,
+                                            "amount": amount,
+                                            "vat": vat_rate,
+                                            "category": "",
+                                            "vatCategory": mapped_vatcat
+                                        })
+
+                                    first = docs_for_mark[0]
+                                    total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
+                                    total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
+                                    total_value = total_net + total_vat
+
+                                    NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
+                                    inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
+                                    is_negative = inv_type in NEGATIVE_TYPES
+                                    type_mapped = mapper(inv_type)
+
+                                    for ml in invoice_lines:
+                                        try:
+                                            v = float_from_comma(ml.get("amount", 0))
+                                            ml["amount"] = f"{-abs(v):.2f}".replace(".", ",") if is_negative else f"{v:.2f}".replace(".", ",")
                                         except Exception:
-                                            log.exception("Failed to merge per-line categories from epsilon")
-                                except Exception:
-                                    log.exception("Could not read epsilon cache for prefill")
+                                            pass
+                                        try:
+                                            vv = float_from_comma(ml.get("vat", 0))
+                                            ml["vat"] = f"{-abs(vv):.2f}".replace(".", ",") if is_negative else f"{vv:.2f}".replace(".", ",")
+                                        except Exception:
+                                            pass
+
+                                    modal_summary = {
+                                        "mark": mark,
+                                        "AA": pick(first, "AA", "aa", default=""),
+                                        "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
+                                        "Name": pick(first, "Name", "Name_issuer", default=""),
+                                        "series": pick(first, "series", "Series", "serie", default=""),
+                                        "number": pick(first, "number", "aa", "AA", default=""),
+                                        "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
+                                        "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
+                                        "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
+                                        "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
+                                        "type": type_mapped,
+                                        "type_code": inv_type,
+                                        "type_name": type_mapped,
+                                        "lines": invoice_lines,
+                                        "is_receipt": False
+                                    }
+
+                                    # epsilon prefill (όπως πριν)
+                                    try:
+                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        eps_list = json_read(epsilon_path) or []
+
+                                        if not eps_list:
+                                            try:
+                                                has_detail = False
+                                                if modal_summary and (modal_summary.get("issueDate") or modal_summary.get("AFM") or modal_summary.get("AFM_issuer")):
+                                                    has_detail = True
+                                                if invoice_lines and any((ln.get("description") or ln.get("amount") or ln.get("vat")) for ln in invoice_lines):
+                                                    has_detail = True
+                                                if has_detail and modal_summary:
+                                                    epsilon_entry = {
+                                                        "mark": str(modal_summary.get("mark", "")).strip(),
+                                                        "issueDate": modal_summary.get("issueDate", "") or "",
+                                                        "series": modal_summary.get("series", "") or "",
+                                                        "aa": modal_summary.get("number", "") or modal_summary.get("AA", ""),
+                                                        "AA": modal_summary.get("number", "") or modal_summary.get("AA", ""),
+                                                        "type": modal_summary.get("type_code", inv_type) or "",
+                                                        "vatCategory": modal_summary.get("vatCategory", "") or "",
+                                                        "totalNetValue": modal_summary.get("totalNetValue", "") or "",
+                                                        "totalVatAmount": modal_summary.get("totalVatAmount", "") or "",
+                                                        "totalValue": modal_summary.get("totalValue", "") or "",
+                                                        "classification": modal_summary.get("classification", "") or "",
+                                                        "χαρακτηρισμός": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
+                                                        "characteristic": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
+                                                        "AFM_issuer": modal_summary.get("AFM_issuer", "") or modal_summary.get("AFM", "") or "",
+                                                        "Name_issuer": modal_summary.get("Name", "") or modal_summary.get("Name_issuer", "") or "",
+                                                        "AFM": modal_summary.get("AFM", "") or vat,
+                                                        "lines": []
+                                                    }
+                                                    for ln in invoice_lines:
+                                                        epsilon_entry["lines"].append({
+                                                            "id": ln.get("id", ""),
+                                                            "description": ln.get("description", ""),
+                                                            "amount": ln.get("amount", ""),
+                                                            "vat": ln.get("vat", ""),
+                                                            "category": ln.get("category", "") or "",
+                                                            "vat_category": ln.get("vatCategory", "") or ""
+                                                        })
+                                                    eps_list.append(epsilon_entry)
+                                                    try:
+                                                        _safe_save_epsilon_cache(vat, eps_list)
+                                                        log.info("Built per-mark epsilon entry for mark %s (vat %s)", epsilon_entry.get("mark"), vat)
+                                                    except Exception:
+                                                        log.exception("Failed to save newly built per-mark epsilon entry")
+                                            except Exception:
+                                                log.exception("Failed building per-mark epsilon entry")
+
+                                        def match_epsilon_item(item, mark_val):
+                                            for k in ('mark', 'MARK', 'invoice_id', 'Αριθμός Μητρώου', 'id'):
+                                                if k in item and str(item[k]).strip() == str(mark_val).strip():
+                                                    return True
+                                            return False
+
+                                        matched = None
+                                        for it in (eps_list or []):
+                                            try:
+                                                if match_epsilon_item(it, mark):
+                                                    matched = it
+                                                    break
+                                            except Exception:
+                                                continue
+
+                                        if matched:
+                                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
+                                            try:
+                                                eps_lines = matched.get("lines", []) or []
+                                                eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
+                                                for ml in modal_summary.get("lines", []):
+                                                    lid = str(ml.get("id", ""))
+                                                    if not lid:
+                                                        continue
+                                                    eps_line = eps_by_id.get(lid)
+                                                    if eps_line:
+                                                        if not ml.get("category") and eps_line.get("category"):
+                                                            ml["category"] = eps_line.get("category")
+                                                        if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
+                                                            ml["vatCategory"] = eps_line.get("vat_category")
+                                            except Exception:
+                                                log.exception("Failed to merge per-line categories from epsilon")
+                                    except Exception:
+                                        log.exception("Could not read epsilon cache for prefill")
 
                     except Exception:
                         log.exception("search: fiscal year validation or modal build failed")
@@ -3788,6 +3853,7 @@ def search():
                     modal_summary = None
                     invoice_lines = []
                     # categories remain default
+
     # ---------- Read credentials to extract repeat_entry config to pass to template ----------
     repeat_entry_conf = {}
     try:
@@ -3840,7 +3906,8 @@ def search():
         modal_warning=modal_warning,
         fiscal_mismatch_block=fiscal_mismatch_block,
         repeat_entry_conf=repeat_entry_conf,
-        active_year=active_year_val)
+        active_year=active_year_val
+    )
 
 
 @app.route("/api/next_receipt_mark", methods=["GET"])
