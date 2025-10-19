@@ -69,6 +69,21 @@ from flask import current_app
 import importlib
 scrape_receipt_callable = None
 
+def strip_server_totals(html: str) -> str:
+    """Αφαιρεί οτιδήποτε <tfoot> και όποια τυχόν 'ΣΥΝΟΛΑ' γραμμή έχει
+    τρυπώσει στο <tbody>, ώστε να αφήσουμε ΜΟΝΟ τα δυναμικά totals client-side."""
+    try:
+        if not html:
+            return html
+        # Καθάρισε προϋπάρχον <tfoot> (server-side)
+        html = re.sub(r"(?is)<tfoot[\s\S]*?</tfoot>", "", html, flags=re.I)
+
+        # Καθάρισε όποια γραμμή tbody περιέχει τη λέξη ΣΥΝΟΛΑ (αν έχει μπει ως tr)
+        html = re.sub(r"(?is)<tr[^>]*>[^<]*συνολ[άα][^<]*</tr>", "", html, flags=re.I)
+
+        return html
+    except Exception:
+        return html
 def _normalize_receipt_res(res):
     """Normalize the various possible outputs of the receipt scraper into a dict."""
     try:
@@ -3900,7 +3915,7 @@ def search():
         allow_edit_existing=allow_edit_existing,
         vat=vat,
         active_page="search",
-        table_html=table_html,
+        table_html = strip_server_totals(table_html),
         file_exists=file_exists,
         css_numcols=css_numcols,
         modal_warning=modal_warning,
@@ -5106,10 +5121,14 @@ def list_invoices():
     else:
         excel_path = DEFAULT_EXCEL_FILE
 
+    # download
     if request.args.get("download") and os.path.exists(excel_path):
-        # download the active client's file
-        return send_file(excel_path, as_attachment=True, download_name=os.path.basename(excel_path),
-                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        return send_file(
+            excel_path,
+            as_attachment=True,
+            download_name=os.path.basename(excel_path),
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     table_html = ""
     error = ""
@@ -5120,27 +5139,49 @@ def list_invoices():
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
 
+            # Κόψε εσωτερική ανάλυση ΦΠΑ
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
 
+            # Πρώτη στήλη με checkbox
             if "MARK" in df.columns:
-                checkboxes = df["MARK"].apply(lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">')
+                checkboxes = df["MARK"].apply(
+                    lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">'
+                )
                 df.insert(0, "✓", checkboxes)
 
+            # HTML πίνακας
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
-            table_html = table_html.replace("<th>✓</th>", '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>')
+
+            # Header checkbox
+            table_html = table_html.replace(
+                "<th>✓</th>",
+                '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>'
+            )
+
+            # Περιτύλιγμα κελιών
             table_html = table_html.replace("<td>", '<td><div class="cell-wrap">').replace("</td>", "</div></td>")
 
-            import re
-            headers = re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=re.S)
+            # ✨ ΚΑΘΑΡΙΣΜΑ: κόψε οποιοδήποτε server-side totals (tfoot ή tr με "ΣΥΝΟΛΑ")
+            table_html = strip_server_totals(table_html)
+
+            # CSS στοίχισης αριθμητικών στηλών
+            import re as _re
+            headers = _re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=_re.S)
             num_indices = []
             for i, h in enumerate(headers):
-                text = re.sub(r'<.*?>', '', h).strip()
-                if text in ("Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT") or "ΦΠΑ" in text or "ΠΟΣΟ" in text:
-                    num_indices.append(i+1)
+                text = _re.sub(r'<.*?>', '', h).strip()
+                if (
+                    text in ("Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT")
+                    or "ΦΠΑ" in text
+                    or "ΠΟΣΟ" in text
+                ):
+                    num_indices.append(i + 1)
             css_rules = []
             for idx in num_indices:
-                css_rules.append(f".summary-table td:nth-child({idx}), .summary-table th:nth-child({idx}) {{ text-align: right; }}")
+                css_rules.append(
+                    f".summary-table td:nth-child({idx}), .summary-table th:nth-child({idx}) {{ text-align: right; }}"
+                )
             css_numcols = "\n".join(css_rules)
 
         except Exception as e:
@@ -5148,15 +5189,16 @@ def list_invoices():
     else:
         error = f"Δεν βρέθηκε το αρχείο {os.path.basename(excel_path)}."
 
-    # pass active_credential name so navbar and templates can reflect it
     active_name = session.get("active_credential")
-    return safe_render("list.html",
-                       table_html=Markup(table_html),
-                       error=error,
-                       file_exists=os.path.exists(excel_path),
-                       css_numcols=css_numcols,
-                       active_page="list_invoices",
-                       active_credential=active_name)
+    return safe_render(
+        "list.html",
+        table_html=Markup(table_html),
+        error=error,
+        file_exists=os.path.exists(excel_path),
+        css_numcols=css_numcols,
+        active_page="list_invoices",
+        active_credential=active_name
+    )
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])

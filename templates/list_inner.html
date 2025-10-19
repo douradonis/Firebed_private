@@ -65,6 +65,167 @@
 
 <script>
 (function(){
+  const $ = window.jQuery;
+
+  function greekNorm(s){
+    return (s||'').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  }
+  function parseLocalizedNumber(str){
+    if (str===undefined || str===null) return 0;
+    const v = parseFloat(String(str).replace(/\./g,'').replace(',','.'));
+    return Number.isFinite(v) ? v : 0;
+  }
+  function formatGreekNumber(n){
+    const sign = n<0?'-':'';
+    const absn=Math.abs(Number(n)||0);
+    const parts=absn.toFixed(2).split('.');
+    const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decPart=parts[1]||'00';
+    return sign+intPart+','+decPart;
+  }
+
+  function findHeaderIndexes(table){
+    const ths = Array.from(table.querySelectorAll('thead th'));
+    const names = ths.map(h => greekNorm(h.innerText || h.textContent || ''));
+    const idx = (...alts) => names.findIndex(t => alts.map(greekNorm).includes(t));
+    return {
+      net:   idx('καθαρη αξια','καθαρη','καθαρή','net','netvalue','totalnet'),
+      vat:   idx('φπα','vat'),
+      total: idx('συνολο','total','totalvalue','sum')
+    };
+  }
+
+  // Κρύψε τυχόν server-side «ΣΥΝΟΛΑ» μέσα στο tbody (χωρίς να αλλάξεις στήλες)
+  function hideServerTotalsRows(table){
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      const txt = greekNorm(tr.innerText || tr.textContent || '');
+      if (txt.startsWith('συνολα')){
+        tr.setAttribute('data-server-totals','1');
+        tr.style.display='none';
+      }
+    });
+  }
+
+  // Δημιούργησε/συντήρησε footer με ίδιο πλήθος κελιών όπως τα headers
+  function ensureFooter(table){
+    let tfoot = table.tFoot;
+    if(!tfoot){
+      tfoot = document.createElement('tfoot');
+      table.appendChild(tfoot);
+    }
+    // στο τέλος του table, κάτω από το tbody
+    table.appendChild(tfoot);
+
+    const thCount = table.querySelectorAll('thead th').length;
+    let tr = tfoot.querySelector('tr[data-totals="1"]');
+    if (!tr){
+      tfoot.innerHTML = '';
+      tr = document.createElement('tr');
+      tr.setAttribute('data-totals','1');
+      for(let i=0;i<thCount;i++){
+        const td=document.createElement('td');
+        td.className='p-2 border text-right font-medium';
+        if(i===0){ td.className='p-2 border text-left font-semibold'; td.textContent='ΣΥΝΟΛΑ'; }
+        tr.appendChild(td);
+      }
+      tfoot.appendChild(tr);
+    } else {
+      // αν άλλαξε το πλήθος στηλών (π.χ. από server), ανακατασκεύασε τη σειρά
+      const currentCount = tr.children.length;
+      if (currentCount !== thCount){
+        tfoot.innerHTML = '';
+        return ensureFooter(table);
+      }
+    }
+    return tr;
+  }
+
+  function computeAndRenderTotals(table){
+    const idxs = findHeaderIndexes(table);
+    let net=0, vat=0, total=0;
+
+    if ($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable(table)) {
+      const dt = $(table).DataTable();
+      dt.rows({ filter: 'applied' }).every(function(){
+        const node = this.node();
+        if (node && node.getAttribute && node.getAttribute('data-server-totals')==='1') return;
+        const tds = $(this.node()).find('td').toArray();
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    } else {
+      // Fallback χωρίς DataTables
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        if (tr.style.display==='none') return;
+        if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') return;
+        const tds = tr.querySelectorAll('td');
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    }
+
+    const tr = ensureFooter(table);
+    const tds = tr.querySelectorAll('td');
+    if (idxs.net  >= 0 && tds[idxs.net])   tds[idxs.net].textContent   = formatGreekNumber(net);
+    if (idxs.vat  >= 0 && tds[idxs.vat])   tds[idxs.vat].textContent   = formatGreekNumber(vat);
+    if (idxs.total>= 0 && tds[idxs.total]) tds[idxs.total].textContent = formatGreekNumber(total);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const table = document.querySelector('.summary-table');
+    if(!table) return;
+
+    // 1) Κρύψε πιθανές server-side «ΣΥΝΟΛΑ» γραμμές
+    hideServerTotalsRows(table);
+
+    // 2) Αν χρησιμοποιείς ήδη DataTables κάπου αλλού, απλώς δέσου στα events του
+    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+      const $t = jQuery('.summary-table');
+
+      const bind = ()=>{
+        hideServerTotalsRows(table);
+        ensureFooter(table);
+        computeAndRenderTotals(table);
+
+        // Υπολόγισε totals σε κάθε draw (filter, search, page)
+        $t.off('draw.dt._dynTotals').on('draw.dt._dynTotals', ()=>{
+          hideServerTotalsRows(table);
+          computeAndRenderTotals(table);
+        });
+      };
+
+      if (jQuery.fn.dataTable.isDataTable($t)) {
+        // Ήδη αρχικοποιημένος πίνακας
+        bind();
+      } else {
+        // Δέσου όταν αρχικοποιηθεί από αλλού
+        $t.off('init.dt._dynTotals').on('init.dt._dynTotals', () => bind());
+      }
+    } else {
+      // Fallback χωρίς DataTables: υπολόγισε αρχικά και κάθε φορά που γράφει ο χρήστης στο search
+      ensureFooter(table);
+      computeAndRenderTotals(table);
+      const globalSearch = document.getElementById('globalSearch');
+      if (globalSearch){
+        const recalc = ()=>{
+          // απλό filter των ορατών γραμμών
+          const q = (globalSearch.value||'').toLowerCase();
+          table.querySelectorAll('tbody tr').forEach(tr=>{
+            if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') { tr.style.display='none'; return; }
+            tr.style.display = (tr.innerText||tr.textContent||'').toLowerCase().includes(q) ? '' : 'none';
+          });
+          computeAndRenderTotals(table);
+        };
+        globalSearch.addEventListener('input', ()=>setTimeout(recalc,0));
+        globalSearch.addEventListener('keydown', e=>{ if(e.key==='Escape'){ globalSearch.value=''; setTimeout(recalc,0);} });
+      }
+    }
+  });
+})();  
+(function(){
   const qs = (s,r=document)=>r.querySelector(s);
   const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
 
