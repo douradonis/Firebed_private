@@ -1,16 +1,17 @@
 [
   {
-    "mark": "400011213160102",
-    "issueDate": "07/10/2025",
+    "mark": "400011185872109",
+    "issueDate": "04/10/2025",
     "series": "8Μ0ΤΔΑ",
-    "aa": "9036",
-    "AA": "9036",
-    "type": "1.1",
+    "aa": "8962",
+    "AA": "8962",
+    "type": "Τιμολόγιο Πώλησης",
     "vatCategory": "",
-    "totalNetValue": "64,52",
-    "totalVatAmount": "15,48",
-    "totalValue": "80,00",
+    "totalNetValue": "8,75",
+    "totalVatAmount": "2,10",
+    "totalValue": "10,85",
     "classification": "",
+    "category": "",
     "χαρακτηρισμός": "",
     "characteristic": "",
     "AFM_issuer": "094439854",
@@ -18,43 +19,43 @@
     "AFM": "094439854",
     "lines": [
       {
-        "id": "400011213160102_inst0",
+        "id": "400011185872109_inst0",
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "64,52",
-        "vat": "15,48",
+        "amount": "8,75",
+        "vat": "2,10",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400011185825004",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8961",
+    "AA": "8961",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "22,61",
+    "totalVatAmount": "5,43",
+    "totalValue": "28,04",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011185825004_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "22,61",
+        "vat": "5,43",
         "category": "γενικες_δαπανες",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-17T16:54:42.761111+00:00"
-  },
-  {
-    "mark": "400011219241352",
-    "issueDate": "10/10/2025",
-    "series": "",
-    "aa": "36671",
-    "AA": "36671",
-    "type": "ΑΠΟΔΕΙΞΗ",
-    "vatCategory": "",
-    "totalNetValue": "8,00",
-    "totalVatAmount": "",
-    "totalValue": "8,00",
-    "classification": "",
-    "category": "αποδειξακια",
-    "χαρακτηρισμός": "αποδειξακια",
-    "characteristic": "αποδειξακια",
-    "AFM_issuer": "115333562",
-    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
-    "AFM": "115333562",
-    "lines": [
-      {
-        "id": "r0",
-        "description": "",
-        "amount": "8,00",
-        "vat": "",
-        "category": "",
-        "vat_category": ""
-      }
-    ]
+    "_updated_at": "2025-10-19T17:34:14.650131+00:00"
   }
 ]

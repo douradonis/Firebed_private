@@ -148,7 +148,13 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/loop_hard_guard.js"></script>
+
 <script>
+// --- Reclass guard (yellow box -> ?force_edit=1) ---
+const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
+const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
+
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
@@ -1159,16 +1165,16 @@ function prefillSummaryModal(){
         }
 
         // If repeat enabled and mapping exists and modal_summary present -> auto apply mapping now
-        if(enabled && mapping && Object.keys(mapping).length && summaryInput){
-          // If receipts is ON, do NOT auto-apply mapping
-          if(!(useReceiptsSwitch && useReceiptsSwitch.checked)){
+        if (enabled && mapping && Object.keys(mapping).length && summaryInput) {
+        const receiptsOn = !!(useReceiptsSwitch && useReceiptsSwitch.checked);
+          if (!receiptsOn && !FORCE_EDIT) {
             const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
-            if(did){
-              const sm = document.getElementById('summaryModal');
-              if(sm) sm.style.display = 'none';
-            }
-          }
-        }
+          if (did) {
+            const sm = document.getElementById('summaryModal');
+          if (sm) sm.style.display = 'none';
+      }
+    }
+  }
 
         // Wire edit button
         if(editRepeatBtn){
@@ -1278,23 +1284,46 @@ function prefillSummaryModal(){
 
   {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
   setTimeout(()=>{
-    const m = document.getElementById('summaryModal');
-    if (m) {
-      // ensure hidden input has the JSON server-provided summary (template already set it, but be safe)
-      try {
-        const summaryInput = document.getElementById('summaryJsonInput');
-        if (summaryInput && (!summaryInput.value || summaryInput.value === '{}')) {
-          summaryInput.value = {{ modal_summary | tojson | safe }};
-        }
-        // render into modal
-        const obj = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
-        renderSummaryLinesFromObject(obj);
-      } catch(e) { console.warn('renderSummaryLinesFromObject error', e); }
-      m.style.display = 'flex';
-      removeForceEditParamFromUrl();
+  const m = document.getElementById('summaryModal');
+  if (!m) return;
+
+  // Αν είμαστε σε mode αποδείξεων ΚΑΙ είναι ενεργό το repeat, μην ανοίγεις modal
+  // ΕΞΑΙΡΕΣΗ: αν είναι reclassification (force_edit=1), τότε άνοιξέ το για να αλλάξουμε χαρακτηρισμούς.
+  const receiptsOn = !!(document.getElementById('useReceiptsSwitch') && document.getElementById('useReceiptsSwitch').checked);
+  const repeatOn   = !!(document.getElementById('repeatEntrySwitch') && document.getElementById('repeatEntrySwitch').checked);
+
+  // Επιπλέον έλεγχος: αν το summary είναι σαφώς Απόδειξη, αντιμετώπισέ το ως receipts flow
+  let isReceiptSummary = false;
+  try {
+    const raw = (document.getElementById('summaryJsonInput')?.value || '').trim();
+    if (raw) {
+      const sobj = JSON.parse(raw);
+      const tname = (sobj.type_name || sobj.type || '').toString().toLowerCase();
+      const cat   = (sobj.category || sobj.characteristic || sobj['χαρακτηρισμός'] || '').toString().toLowerCase();
+      isReceiptSummary = !!(sobj.is_receipt || tname.includes('απόδει') || tname.includes('receipt') || cat === 'αποδειξακια');
     }
-  }, 80);
+  } catch(_){}
+
+  if ((receiptsOn || isReceiptSummary) && repeatOn && !FORCE_EDIT) {
+    // skip opening modal (auto-flow των αποδείξεων όταν repeat)
+    return;
+  }
+
+  // Αλλιώς, άνοιξέ το κανονικά
+  try {
+    const summaryInputEl = document.getElementById('summaryJsonInput');
+    if (summaryInputEl && (!summaryInputEl.value || summaryInputEl.value === '{}')) {
+      summaryInputEl.value = {{ modal_summary | tojson | safe }};
+    }
+    const obj = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
+    renderSummaryLinesFromObject(obj);
+  } catch(e) { console.warn('renderSummaryLinesFromObject error', e); }
+
+  m.style.display = 'flex';
+  removeForceEditParamFromUrl();
+}, 80);
 {% endif %}
+
 
 
   {% if modal_warning %}

@@ -237,6 +237,42 @@ VAT_MAP = {
 # --- helper: parse year from a variety of date strings ---
 APP_DIR = Path(__file__).resolve().parent
 SCRAPER_PATH = APP_DIR / "scraper_receipt.py"
+
+# --- add near the top of app.py (μαζί με τα υπόλοιπα imports)
+
+
+# --- add near your other small helpers ---
+def _meaningful_summary(d: dict) -> bool:
+    """True αν υπάρχει 15ψήφιο MARK ή τουλάχιστον μία ουσιαστική γραμμή/σύνολο."""
+    try:
+        if not isinstance(d, dict):
+            return False
+
+        mark = str(d.get("mark") or d.get("MARK") or "").strip()
+        if re.fullmatch(r"\d{15}", mark):
+            return True
+
+        # Γραμμές με ουσία (id ή περιγραφή ή ποσό)
+        lines = d.get("lines") or []
+        for ln in lines:
+            if not ln:
+                continue
+            if str(ln.get("id") or ln.get("line_id") or "").strip():
+                return True
+            if str(ln.get("description") or ln.get("desc") or "").strip():
+                return True
+            if str(ln.get("amount") or ln.get("lineTotal") or ln.get("total") or "").strip():
+                return True
+
+        # Ή συνολικά ποσά (αν υπάρχουν)
+        total = str(d.get("totalValue") or d.get("total_amount") or "").strip()
+        if total and total not in ("0", "0.00", "0,00"):
+            return True
+
+        return False
+    except Exception:
+        return False
+
 def save_receipt(afm: str, year: str, summary: dict, lines: list, active_years: list):
     """
     Αποθηκεύει μια απόδειξη στα αρχεία AFM_invoices.xlsx και AFM_epsilon_invoices.json
@@ -2187,42 +2223,142 @@ def api_repeat_entry_get():
 
 
 
-@app.route('/api/repeat_entry/save', methods=['POST'])
+@app.route("/api/repeat_entry/save", methods=["POST"])
 def api_repeat_entry_save():
-    payload = request.get_json(silent=True) or {}
-    enabled = bool(payload.get('enabled', False))
-    mapping = payload.get('mapping', {}) or {}
+    """
+    Αποθήκευση ρυθμίσεων 'Επαναληψιμης' για τον ενεργό πελάτη ή για συγκεκριμένο vat.
+    - Δεν βασίζεται σε helpers ορισμένους μέσα στο search().
+    - Κάνει sanitize σε mapping, βάζει no-store headers και επιστρέφει καθαρά errors.
+    """
+    import os, json
+    from datetime import datetime, timezone
 
-    # sanitize + normalize mapping keys and values
-    normalized_mapping = {}
-    for k, v in mapping.items():
-        nk = normalize_vat_key(k)
-        if not nk:
-            # allow storing __default specially (leave as-is)
-            if str(k).strip() == '__default' and v:
-                normalized_mapping['__default'] = str(v).strip()
-            continue
-        normalized_mapping[nk] = str(v).strip()
+    # ---- μικρο-helpers τοπικά για να μην εξαρτόμαστε από search() ----
+    def _credentials_path():
+        try:
+            base = DATA_DIR  # αν το έχεις global
+        except Exception:
+            base = os.path.join(os.getcwd(), "data")
+        os.makedirs(base, exist_ok=True)
+        return os.path.join(base, "credentials.json")
 
-    creds = read_credentials_list()
-    vat = payload.get('vat') or (get_active_credential_from_session() or {}).get('vat')
-    idx = find_active_client_index(creds, vat=vat)
-    if idx is None:
-        return jsonify({"ok": False, "error": "No credentials found"}), 400
+    def _load_creds():
+        p = _credentials_path()
+        if not os.path.exists(p):
+            return []
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f) or []
+        except Exception:
+            return []
 
-    creds[idx].setdefault('repeat_entry', {})
-    creds[idx]['repeat_entry']['enabled'] = enabled
-    creds[idx]['repeat_entry']['mapping'] = normalized_mapping
-    creds[idx]['repeat_entry']['updated_at'] = datetime.datetime.utcnow().isoformat() + 'Z'
-    creds[idx]['repeat_entry']['user'] = (get_active_credential_from_session() or {}).get('user') or 'unknown'
+    def _save_creds(creds):
+        p = _credentials_path()
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(creds, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, p)
+        return True
+
+    def _find_idx(creds, vat=None):
+        """Βρες index του ενεργού πελάτη. Αν δοθεί vat, προτιμάται αυτό."""
+        if not creds:
+            return None
+        if vat:
+            s_vat = str(vat).strip()
+            for i, c in enumerate(creds):
+                try:
+                    if str(c.get("vat") or c.get("AFM") or "").strip() == s_vat:
+                        return i
+                except Exception:
+                    pass
+        for i, c in enumerate(creds):
+            try:
+                if c.get("active"):
+                    return i
+            except Exception:
+                pass
+        return 0  # fallback
 
     try:
-        write_credentials_list(creds)
-        # optionally: return expense_tags too, if you earlier wanted that
-        return jsonify({"ok": True, "repeat_entry": creds[idx]['repeat_entry']})
+        payload = request.get_json(silent=True) or {}
+        enabled = bool(payload.get("enabled", False))
+        mapping = payload.get("mapping") or {}
+        vat_in = (payload.get("vat") or "").strip()
+
+        # sanitize mapping: κράτα μόνο "μη-κενά" κλειδιά/τιμές
+        if isinstance(mapping, dict):
+            sanitized = {}
+            for k, v in mapping.items():
+                ks = str(k).strip()
+                vs = ("" if v is None else str(v)).strip()
+                if ks and vs:
+                    sanitized[ks] = vs
+            mapping = sanitized
+        else:
+            mapping = {}
+
+        # Βρες VAT: προτιμά payload.vat, αλλιώς active session
+        active = None
+        try:
+            active = get_active_credential_from_session()
+        except Exception:
+            active = None
+        vat = vat_in or (active.get("vat") if active else "")
+        if not vat:
+            resp = jsonify({"ok": False, "error": "No active VAT"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 400
+
+        # φόρτωσε/γράψε credentials.json
+        creds = _load_creds()
+        idx = _find_idx(creds, vat)
+        if idx is None or idx >= len(creds):
+            resp = jsonify({"ok": False, "error": "Credentials not found"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 404
+
+        entry = {
+            "enabled": enabled,
+            "mapping": mapping,
+            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
+        }
+        # Μην αφήνεις παλιά "σκουπίδια"
+        try:
+            if not isinstance(creds[idx], dict):
+                creds[idx] = {}
+        except Exception:
+            creds[idx] = {}
+        creds[idx]["repeat_entry"] = entry
+
+        _save_ok = _save_creds(creds)
+        if not _save_ok:
+            resp = jsonify({"ok": False, "error": "Failed to write credentials"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 500
+
+        resp = jsonify({"ok": True})
+        # no-store για να μη γίνει replay μετά από refresh
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp, 200
+
     except Exception as e:
-        log.exception("Failed saving repeat_entry")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        log.exception("api_repeat_entry_save: unexpected error")
+        resp = jsonify({"ok": False, "error": "Server error"})
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp, 500
+
+
 
 
 
@@ -4009,15 +4145,26 @@ def save_accounts():
     return redirect(url_for("credentials"))
 
 # ---------------- Save summary from modal to Excel & per-customer JSON ----------------
+
+# --- BEGIN PATCH v3: /save_summary with repeat-entry also for receipts (per-line = "αποδειξακια") ---
+# Paste this over your existing save_summary() in app.py
+
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
-    import os
     """
     Save summary and update epsilon:
       - Αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
       - Αν υπάρχει μόνο placeholder -> σβήνουμε placeholders και γράφουμε Excel + append πλήρους εγγραφής
       - Αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
+
+    Επιπλέον:
+      - Κόβει άκυρα/άδεια summaries (τέλος τα placeholders).
+      - Εφαρμόζει **επαναληψιμη** (repeat-entry) κατηγοριοποίηση:
+         * ΤΙΜΟΛΟΓΙΑ: category ανά γραμμή από mapping (VAT% -> κατηγορία).
+         * ΑΠΟΔΕΙΞΕΙΣ: ΠΑΝΤΑ category ανά γραμμή = "αποδειξακια" (και top-level χαρακτηρισμός "αποδειξακια").
     """
+    import os, json, re
+
     try:
         from datetime import datetime as _dt, timezone as _tz
     except Exception:
@@ -4029,73 +4176,131 @@ def save_summary():
         "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"
     ]
 
-    # ---------------- helpers (τοπικά) ----------------
+    # ---------- local helpers ----------
     def _first(*vals):
         for v in vals:
-            if v is None: continue
+            if v is None:
+                continue
             s = str(v).strip()
-            if s and s.lower() not in ("none","nan"): return s
+            if s and s.lower() not in ("none","nan"):
+                return s
         return ""
 
     def _pfloat(x):
-        try: return float(str(x).replace('.','').replace(',','.'))
-        except Exception: return 0.0
+        try:
+            return float(str(x).replace('.','').replace(',','.'))
+        except Exception:
+            return 0.0
 
     def _is_receipt(summary: dict) -> bool:
-        """Πιο «σκληρή» ανίχνευση αποδείξεων, για να μη χάνεται το flag."""
         s = summary or {}
-        if s.get("is_receipt"): return True
+        if s.get("is_receipt"):
+            return True
         t  = str(s.get("type","")).strip()
         tn = str(s.get("type_name","")).lower()
         ch = str(s.get("χαρακτηρισμός") or s.get("characteristic") or s.get("category") or "")
-        if ch == "αποδειξακια": return True
-        if t in {"8.4","8.5","11.5"}: return True
-        if any(h in tn for h in ("απόδειξη","apod","receipt","λιαν","pos")): return True
-        # έχει μόνο totalValue χωρίς net/vat => ένδειξη απόδειξης
+        if ch == "αποδειξακια":
+            return True
+        if t in {"8.4","8.5","11.5"}:
+            return True
+        if any(h in tn for h in ("απόδειξη","apod","receipt","λιαν","pos")):
+            return True
         if not s.get("totalVatAmount") and not s.get("totalNetValue") and s.get("totalValue"):
             return True
         return False
 
+    def _meaningful_summary(d: dict) -> bool:
+        try:
+            if not isinstance(d, dict):
+                return False
+            mark = str(d.get("mark") or d.get("MARK") or "").strip()
+            if re.fullmatch(r"\d{15}", mark):
+                return True
+            lines = d.get("lines") or []
+            for ln in lines:
+                if not ln: continue
+                if str(ln.get("id") or ln.get("line_id") or "").strip(): return True
+                if str(ln.get("description") or ln.get("desc") or "").strip(): return True
+                if str(ln.get("amount") or ln.get("lineTotal") or ln.get("total") or "").strip(): return True
+            total = str(d.get("totalValue") or d.get("total_amount") or "").strip()
+            if total and total not in ("0","0.00","0,00"):
+                return True
+            return False
+        except Exception:
+            return False
+
     def _hydrate_summary_for_excel(summary: dict, vat: str = "") -> dict:
-        """Συμπλήρωση κενών ώστε Excel/epsilon να έχουν όλα τα βασικά πεδία."""
         try:
             s   = dict(summary or {})
             raw = s.get("raw") or {}
-
-            # MARK
             m = _first(s.get("MARK"), s.get("mark")); s["MARK"] = m; s["mark"] = m
-            # AA/number/progressive_aa
             aa = _first(s.get("number"), s.get("AA"), s.get("aa"), s.get("progressive_aa"),
                         raw.get("AA") if isinstance(raw, dict) else None,
                         raw.get("progressive_aa") if isinstance(raw, dict) else None)
             s["AA"] = aa; s["aa"] = aa
             if not s.get("number"): s["number"] = aa
             if not s.get("progressive_aa"): s["progressive_aa"] = aa
-            # AFM / Name
             s["AFM"]  = _first(s.get("AFM"), s.get("AFM_issuer"), s.get("issuer_vat"), vat)
             s["Name"] = _first(s.get("Name"), s.get("Name_issuer"), s.get("issuer_name"))
-            # issueDate
             s["issueDate"] = _first(s.get("issueDate"), s.get("issue_date"))
-            # totalValue (από lines αν λείπει)
             tv = _first(s.get("totalValue"), s.get("total_value"), s.get("total_amount"))
             if not tv and isinstance(s.get("lines"), list):
                 amt = sum(_pfloat(l.get("amount") or l.get("lineTotal") or l.get("total") or 0) for l in s["lines"])
                 tv = f"{amt:.2f}"
             if tv: s["totalValue"] = str(tv)
-
-            # Εξαναγκασμός για αποδείξεις
             if _is_receipt(s):
                 s["is_receipt"] = True
                 s["category"] = s.get("category") or "αποδειξακια"
                 s["χαρακτηρισμός"] = s.get("χαρακτηρισμός") or s.get("characteristic") or "αποδειξακια"
                 if not s.get("type_name"): s["type_name"] = "Απόδειξη"
-
-            # created_at
             if not str(s.get("created_at") or "").strip():
                 s["created_at"] = _dt.utcnow().isoformat(timespec="seconds") if _dt else ""
             return s
         except Exception:
             return summary or {}
+
+    def _extract_vat_percent(line: dict) -> str:
+        """
+        Επιστρέφει κανονικοποιημένο κλειδί ποσοστού ΦΠΑ, π.χ. '24%' ή '0%'
+        Διαβάζει από vatCategory ('ΦΠΑ 24%','24%') ή από vat ('24','24,00').
+        """
+        try:
+            cand = _first(line.get("vatCategory"), line.get("vat_category"))
+            if cand:
+                m = re.search(r"(\d+)\s*%", str(cand))
+                if m: return m.group(1) + "%"
+                m = re.search(r"(\d+)", str(cand))
+                if m: return m.group(1) + "%"
+            cand2 = _first(line.get("vat"), line.get("vatRate"))
+            if cand2:
+                m = re.search(r"(\d+)", str(cand2).replace(',', '.'))
+                if m: return m.group(1) + "%"
+        except Exception:
+            pass
+        return ""
+
+    def _load_repeat_entry_for_vat(vat: str):
+        """Διαβάζει credentials.json και επιστρέφει repeat_entry για συγκεκριμένο ΑΦΜ."""
+        try:
+            creds_path = os.path.join(DATA_DIR, "credentials.json")
+            if not os.path.exists(creds_path):
+                return {"enabled": False, "mapping": {}}
+            with open(creds_path, "r", encoding="utf-8") as f:
+                arr = json.load(f) or []
+            v = str(vat or "").strip()
+            for c in arr:
+                try:
+                    if str(c.get("vat") or c.get("AFM") or c.get("tax_number") or "").strip() == v:
+                        out = c.get("repeat_entry") or {}
+                        return {
+                            "enabled": bool(out.get("enabled")),
+                            "mapping": out.get("mapping") or {}
+                        }
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        return {"enabled": False, "mapping": {}}
 
     # ---------------- parse payload ----------------
     try:
@@ -4103,15 +4308,12 @@ def save_summary():
         raw = None
         if request.form and request.form.get("summary_json"):
             raw = request.form.get("summary_json")
+            summary = None
         else:
-            try:
-                if request.is_json:
-                    summary = request.get_json(force=True)
-                    raw = None
-                else:
-                    raw = request.get_data(as_text=True) or None
-                    summary = None
-            except Exception:
+            if request.is_json:
+                summary = request.get_json(force=True)
+                raw = None
+            else:
                 raw = request.get_data(as_text=True) or None
                 summary = None
 
@@ -4175,7 +4377,8 @@ def save_summary():
 
     normalized_lines = []
     for idx, ln in enumerate(lines):
-        if not isinstance(ln, dict): continue
+        if not isinstance(ln, dict):
+            continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
         raw_vcat = _first(ln.get("vatCategory"), ln.get("vat_category"), ln.get("vatCat"), ln.get("vat_cat"))
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
@@ -4189,9 +4392,56 @@ def save_summary():
         })
     summary["lines"] = normalized_lines
 
-    # ---------------- HYDRATE ΠΡΙΝ ΑΠΟ ΚΑΘΕ WRITE ----------------
+    # ---------------- HYDRATE & repeat-entry ----------------
     summary = _hydrate_summary_for_excel(summary, vat=str(vat or ""))
     is_receipt = _is_receipt(summary)
+
+    conf = _load_repeat_entry_for_vat(vat)
+    # ΤΙΜΟΛΟΓΙΑ: mapping ανά VAT%
+    if not is_receipt:
+        if conf.get("enabled") and isinstance(conf.get("mapping"), dict) and summary.get("lines"):
+            mapping = conf["mapping"]
+            for ln in summary["lines"]:
+                if not ln: 
+                    continue
+                if str(ln.get("category","")).strip():
+                    continue  # μην πατήσεις την επιλογή του χρήστη
+                key = ""
+                # normalized VAT key (π.χ. "24%")
+                cand = _extract_vat_percent(ln)
+                if cand:
+                    key = cand
+                if key in mapping:
+                    ln["category"] = mapping[key]
+                else:
+                    key2 = key.replace('%','')
+                    if key2 in mapping:
+                        ln["category"] = mapping[key2]
+    else:
+        # ΑΠΟΔΕΙΞΕΙΣ: ΠΑΝΤΑ ανά γραμμή "αποδειξακια" (αν λείπει)
+        if summary.get("lines"):
+            for ln in summary["lines"]:
+                if ln is None: 
+                    continue
+                if not str(ln.get("category","")).strip():
+                    ln["category"] = "αποδειξακια"
+
+    # --- GUARD: μπλοκάρουμε άδεια/άκυρα summaries ---
+    try:
+        if not _meaningful_summary(summary):
+            log.info("save_summary: blocked empty/invalid summary (no 15-digit MARK or no meaningful lines/totals)")
+            if request.is_json:
+                return jsonify({"ok": False, "error": "Empty or invalid summary"}), 400
+            try:
+                flash("Δεν υπάρχουν δεδομένα για αποθήκευση.", "error")
+            except Exception:
+                pass
+            return redirect(url_for("search"))
+    except Exception:
+        log.exception("save_summary: validation failed")
+        if request.is_json:
+            return jsonify({"ok": False, "error": "Validation error"}), 400
+        return redirect(url_for("search"))
 
     # ---------------- best-effort append στο per-customer JSON ----------------
     try:
@@ -4229,9 +4479,13 @@ def save_summary():
     try:
         for i, d in enumerate(epsilon_cache):
             d_mark = _first(d.get("mark"), d.get("MARK"), d.get("invoice_id"), d.get("Αριθμός Μητρώου"), d.get("id"))
-            if not d_mark or d_mark != mark: continue
-            if not epsilon_item_has_detail(d): placeholder_indices.append(i); continue
-            existing_index = i; break
+            if not d_mark or d_mark != mark: 
+                continue
+            if not epsilon_item_has_detail(d): 
+                placeholder_indices.append(i); 
+                continue
+            existing_index = i; 
+            break
     except Exception:
         log.exception("save_summary: scanning epsilon_cache failed")
 
@@ -4253,12 +4507,16 @@ def save_summary():
             existing_lines = existing.get("lines", []) or []
             by_id = {str(l.get("id","")): l for l in existing_lines if l.get("id") is not None}
             updated = False
-            for ln in normalized_lines:
+            for ln in summary["lines"]:
                 lid = str(ln.get("id","")); 
-                if not lid: continue
+                if not lid: 
+                    continue
                 if lid in by_id:
                     el = by_id[lid]
                     new_cat = ln.get("category","") or ""
+                    # Για αποδείξεις, αν λείπει στο υπάρχον -> γράψε "αποδειξακια"
+                    if not new_cat and is_receipt:
+                        new_cat = "αποδειξακια"
                     if new_cat and str(el.get("category","")) != new_cat:
                         el["category"] = new_cat; updated = True
                     if ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
@@ -4267,18 +4525,22 @@ def save_summary():
                     existing_lines.append({
                         "id": lid, "description": ln.get("description",""),
                         "amount": ln.get("amount",""), "vat": ln.get("vat",""),
-                        "category": ln.get("category","") or "", "vat_category": ln.get("vatCategory","") or ""
+                        "category": (ln.get("category","") or ("αποδειξακια" if is_receipt else "")),
+                        "vat_category": ln.get("vatCategory","") or ""
                     }); updated = True
 
             if updated:
                 try:
-                    if _dt and _tz: existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
+                    if _dt and _tz: 
+                        existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
                 except Exception:
                     existing["_updated_at"] = existing.get("_updated_at","")
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
-                try: _safe_save_epsilon_cache(vat, epsilon_cache)
-                except Exception: log.exception("save_summary: failed saving epsilon cache after update")
+                try:
+                    _safe_save_epsilon_cache(vat, epsilon_cache)
+                except Exception:
+                    log.exception("save_summary: failed saving epsilon cache after update")
 
                 # ensure excel exists (αν λείπει, φτιάξ'το με σωστό Είδος/Τύπος)
                 try:
@@ -4301,11 +4563,9 @@ def save_summary():
                             "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
                             "Σύνολο": f"{total_value:.2f}".replace(".",",")
                         }
-                        import pandas as pd, os
-                        df_new = pd.DataFrame([row]).astype(str).fillna("")
-                        df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
+                        import pandas as pd
                         os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                        df_new.to_excel(excel_path, index=False, engine="openpyxl")
+                        pd.DataFrame([row]).astype(str).fillna("").reindex(columns=EXCEL_COLUMNS, fill_value="").to_excel(excel_path, index=False, engine="openpyxl")
                 except Exception:
                     log.exception("save_summary: ensure/create excel failed")
 
@@ -4384,8 +4644,7 @@ def save_summary():
                     if "Τύπος"   in cols and is_receipt: row_full["Τύπος"] = "ΑΠΟΔΕΙΞΗ"
 
                     row_aligned = {c: row_full.get(c, "") for c in cols}
-                    df_concat = pd.concat([df_existing, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False)
-                    df_concat.to_excel(excel_path, index=False, engine="openpyxl")
+                    pd.concat([df_existing, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False).to_excel(excel_path, index=False, engine="openpyxl")
                     flash("Saved to Excel.", "success")
                 except Exception:
                     log.exception("save_summary: inline append to excel failed")
@@ -4416,7 +4675,6 @@ def save_summary():
             "totalVatAmount": summary.get("totalVatAmount",""),
             "totalValue": summary.get("totalValue",""),
             "classification": summary.get("classification",""),
-            # <-- ΕΔΩ: πάντα «αποδειξακια» για αποδείξεις
             "category": ("αποδειξακια" if is_receipt else (summary.get("category") or "")),
             "χαρακτηρισμός": (summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if is_receipt else "")),
             "characteristic": (summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if is_receipt else "")),
@@ -4425,17 +4683,28 @@ def save_summary():
             "AFM": summary.get("AFM","") or vat,
             "lines": []
         }
-        for ln in normalized_lines:
+        for ln in summary["lines"]:
             epsilon_entry["lines"].append({
                 "id": ln.get("id",""),
                 "description": ln.get("description",""),
                 "amount": ln.get("amount",""),
                 "vat": ln.get("vat",""),
-                "category": ln.get("category","") or "",
+                "category": (ln.get("category","") or ("αποδειξακια" if is_receipt else "")),
                 "vat_category": ln.get("vatCategory","") or ""
             })
-        epsilon_cache.append(epsilon_entry)
+
+        # skip append αν δεν υπάρχει 15ψήφιο mark ή καθόλου ουσιαστικές lines
+        _mk_ok = bool(re.fullmatch(r"\d{15}", str(mark or "").strip()))
+        _has_lines = bool(summary["lines"]) and any(
+            (str(x.get("description") or x.get("amount") or x.get("vat") or "").strip())
+            for x in summary["lines"]
+        )
+        if not _mk_ok or not _has_lines:
+            log.info("save_summary: skip epsilon append due to empty mark/lines (mk_ok=%s, has_lines=%s)", _mk_ok, _has_lines)
+            return redirect(url_for("search"))
+
         try:
+            epsilon_cache.append(epsilon_entry)
             _safe_save_epsilon_cache(vat, epsilon_cache)
             flash("Saved summary and appended new epsilon entry.", "success")
         except Exception:
@@ -4446,6 +4715,8 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
+# --- END PATCH v3 ---
+
 
 
 
@@ -4491,6 +4762,13 @@ def api_confirm_receipt():
     from datetime import datetime
     from filelock import FileLock
     import pandas as pd
+    payload = request.get_json(silent=True) or {}
+    summary = payload.get("summary") or {}
+
+    # --- GUARD: κενό/άκυρο summary (STOP) ---
+    if not _meaningful_summary(summary):
+        log.info("api_confirm_receipt: blocked empty/invalid receipt summary")
+    return jsonify({"ok": False, "error": "Empty or invalid summary"}), 400
 
     debug_dump_path = "/tmp/confirm_receipt_debug.json"
     try:

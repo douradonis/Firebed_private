@@ -358,5 +358,42 @@
         "vatCategory": ""
       }
     ]
+  },
+  {
+    "is_invoice": false,
+    "issue_date": "25/09/2025",
+    "issuer_name": "",
+    "issuer_vat": "094386010",
+    "mark": "400011087006549",
+    "ok": true,
+    "progressive_aa": "165",
+    "raw": {
+      "MARK": "400011087006549",
+      "doc_type": "11.1",
+      "is_invoice": false,
+      "issue_date": "25/09/2025",
+      "issuer_name": null,
+      "issuer_vat": "094386010",
+      "progressive_aa": "165",
+      "source": "Epsilon-getfile-only",
+      "total_amount": "9,4",
+      "tried_url": "https://epsilondigital-mcd.epsilonnet.gr/filedocument/getfile?fileType=3&documentId=f592d67e-22fa-40aa-8cbe-08ddfae57619"
+    },
+    "total_amount": "9,4",
+    "is_receipt": true,
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "lines": [],
+    "MARK": "400011087006549",
+    "AA": "165",
+    "aa": "165",
+    "number": "165",
+    "AFM": "094386010",
+    "Name": "",
+    "issueDate": "25/09/2025",
+    "totalValue": "9,4",
+    "type_name": "Απόδειξη",
+    "created_at": "2025-10-19T17:16:36"
   }
 ]
