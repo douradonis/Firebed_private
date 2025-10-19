@@ -149,6 +149,7 @@
 
 {% block scripts %}
 <script src="/static/loop_hard_guard.js"></script>
+<script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 
 <script>
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
@@ -2639,7 +2640,123 @@ document.addEventListener('submit', function(ev){
     console.warn('delete_invoices frontend patch failed', err);
   }
 }, true);
+(function receiptsRepeatModalGuard(){
+  const once = { submitted:false };
 
+  function qs(id){ return document.getElementById(id); }
+
+  function readSummary(){
+    try { return JSON.parse(qs('summaryJsonInput')?.value || '{}'); }
+    catch(_) { return {}; }
+  }
+
+  function isMeaningfulSummary(o){
+    try{
+      if (!o || typeof o!=='object') return false;
+      const mark = String(o.mark || o.MARK || '').trim();
+      if (!mark || mark.length<6) return false;
+      const lines = Array.isArray(o.lines) ? o.lines : [];
+      if (lines.length===0) return false;
+      return lines.some(l=>{
+        if(!l) return false;
+        const desc=(l.description||l.desc||'').toString().trim();
+        const amt =(l.amount||l.lineTotal||l.total||'').toString().trim();
+        const id  =(l.id||l.line_id||'').toString().trim();
+        return !!(desc||amt||id);
+      });
+    }catch(_){ return false; }
+  }
+
+  function isReceiptSummary(o){
+    try{
+      const t = (o.type_name || o.type || '').toString().toLowerCase();
+      const c = (o.category || o.characteristic || o['χαρακτηρισμός'] || '').toString().toLowerCase();
+      return !!(o.is_receipt || t.includes('απόδει') || t.includes('receipt') || t.includes('λιαν') || c==='αποδειξακια');
+    }catch(_){ return false; }
+  }
+
+  function forceEdit(){
+    try { return new URLSearchParams(location.search).get('force_edit') === '1'; }
+    catch(_){ return false; }
+  }
+
+  function shouldOpenSummaryModal(obj){
+    const receiptsOn = !!(qs('useReceiptsSwitch') && qs('useReceiptsSwitch').checked);
+    const repeatOn   = !!(qs('repeatEntrySwitch') && qs('repeatEntrySwitch').checked);
+    // Αν είμαστε σε αποδείξεις (ή το summary είναι απόδειξη) και repeat ON και ΔΕΝ είναι reclassification -> ΜΗΝ ανοίξεις modal
+    if ((receiptsOn || isReceiptSummary(obj)) && repeatOn && !forceEdit()) return false;
+    return true;
+  }
+
+  function autoSubmitReceipt(obj){
+    if (once.submitted) return;                       // το στείλαμε ήδη σε αυτόν τον κύκλο
+    if (!isMeaningfulSummary(obj)) return;            // ασφαλιστική δικλείδα
+    const mark = (obj.mark || obj.MARK || '').toString().trim();
+    if (!mark) return;
+    const key = 'rc-auto:' + mark;
+    if (sessionStorage.getItem(key)) return;          // ήδη υποβλήθηκε μετά από reload
+
+    // Επέβαλε “Αποδειξάκια”
+    try{
+      if (!Array.isArray(obj.lines)) obj.lines = [];
+      obj.is_receipt = true;
+      obj.category = 'αποδειξακια';
+      obj.characteristic = 'αποδειξακια';
+      obj['χαρακτηρισμός'] = 'αποδειξακια';
+      qs('summaryJsonInput').value = JSON.stringify(obj);
+    }catch(_){}
+
+    const form = qs('saveSummaryForm');
+    if (!form) return;
+    once.submitted = true;
+    sessionStorage.setItem(key,'1');                 // ώστε στο επόμενο reload να ΜΗΝ ξαναστείλει
+    form.submit();
+  }
+
+  // Φρένο: ΜΗΝ υποβάλλεις την search-form χωρίς mark KAI χωρίς url
+  (function guardEmptySearchSubmit(){
+    const form = qs('markSearchForm');
+    if (!form) return;
+    form.addEventListener('submit', (e)=>{
+      const mark = (qs('markInput')?.value || '').trim();
+      const url  = (qs('scrapeUrlInput')?.value || '').trim();
+      if (!mark && !url) e.preventDefault();
+    }, true);
+  })();
+
+  // Παρακολούθησε το modal: αν πάει να ανοίξει ενώ ΔΕΝ πρέπει, κλείστο και κάνε auto-submit
+  const modal = qs('summaryModal');
+  if (!modal) return;
+
+  const observer = new MutationObserver(function(){
+    try{
+      const visible = modal && getComputedStyle(modal).display !== 'none';
+      if (!visible) return;
+      const obj = readSummary();
+      if (!shouldOpenSummaryModal(obj)) {
+        // Μπλόκαρε το modal και προχώρησε σε auto-submit
+        modal.style.display = 'none';
+        autoSubmitReceipt(obj);
+      }
+    }catch(_){}
+  });
+
+  try{
+    observer.observe(modal, { attributes:true, attributeFilter:['style','class'] });
+  }catch(_){}
+
+  // One-shot check αν τυχόν ξεκινά ήδη ανοιχτό
+  setTimeout(()=>{
+    try{
+      const visible = modal && getComputedStyle(modal).display !== 'none';
+      const obj = readSummary();
+      if (visible && !shouldOpenSummaryModal(obj)) {
+        modal.style.display = 'none';
+        autoSubmitReceipt(obj);
+      }
+    }catch(_){}
+  }, 80);
+})();
 
 </script>
 

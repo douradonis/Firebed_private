@@ -1,5 +1,35 @@
 [
   {
+    "mark": "400011185825004",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8961",
+    "AA": "8961",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "22,61",
+    "totalVatAmount": "5,43",
+    "totalValue": "28,04",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011185825004_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "22,61",
+        "vat": "5,43",
+        "category": "αγορες_α_υλων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-10-19T18:09:37.720254+00:00"
+  },
+  {
     "mark": "400011185872109",
     "issueDate": "04/10/2025",
     "series": "8Μ0ΤΔΑ",
@@ -29,33 +59,61 @@
     ]
   },
   {
-    "mark": "400011185825004",
-    "issueDate": "04/10/2025",
-    "series": "8Μ0ΤΔΑ",
-    "aa": "8961",
-    "AA": "8961",
-    "type": "Τιμολόγιο Πώλησης",
+    "mark": "400011219241352",
+    "issueDate": "25/09/2025",
+    "series": "",
+    "aa": "165",
+    "AA": "165",
+    "type": "ΑΠΟΔΕΙΞΗ",
     "vatCategory": "",
-    "totalNetValue": "22,61",
-    "totalVatAmount": "5,43",
-    "totalValue": "28,04",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "totalValue": "9,4",
     "classification": "",
-    "category": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM": "094439854",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094386010",
+    "Name_issuer": "",
+    "AFM": "094386010",
     "lines": [
       {
-        "id": "400011185825004_inst0",
-        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "22,61",
-        "vat": "5,43",
-        "category": "γενικες_δαπανες",
-        "vat_category": "ΦΠΑ 24%"
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
       }
-    ],
-    "_updated_at": "2025-10-19T17:34:14.650131+00:00"
+    ]
+  },
+  {
+    "mark": "400011219241353",
+    "issueDate": "10/10/2025",
+    "series": "",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
   }
 ]
