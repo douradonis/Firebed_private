@@ -13,7 +13,12 @@
     <form method="post" class="flex gap-2 items-center" id="markSearchForm">
         <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
-
+        <div class="flex items-center gap-2 ml-4">
+            <label for="useReceiptsSwitch" class="text-sm">Τιμολόγια<label>
+            <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
+            <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις</label>
+        </div>
+        
         <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
         <div class="flex items-center gap-2 ml-4">
             <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
@@ -22,10 +27,7 @@
         </div>
 
         <!-- Toggle switch for receipts scrape -->
-        <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις (scrape URL)</label>
-            <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-        </div>
+        
     </form>
 </div>
 

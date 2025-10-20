@@ -1,2821 +1,454 @@
-{% extends "base.html" %}
-{% block title %}Αναζήτηση MARK{% endblock %}
+<div class="bg-white rounded-lg shadow p-6 mt-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+    <h3 class="text-xl font-semibold text-gray-800">Λίστα Παραστατικών</h3>
 
-{% block content %}
-
-<div class="bg-white rounded shadow p-6">
-    <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
-
-    {% if error %}
-    <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
-    {% endif %}
-
-    <form method="post" class="flex gap-2 items-center" id="markSearchForm">
-        <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
-        <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
-
-        <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
-        <div class="flex items-center gap-2 ml-4">
-            <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
-            <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
-            <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
-        </div>
-
-        <!-- Toggle switch for receipts scrape -->
-        <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις (scrape URL)</label>
-            <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-        </div>
-    </form>
-</div>
-
-{# ΣΗΜΕΙΩΣΗ: το στατικό confirmation modal που υπήρχε εδώ αφαιρέθηκε όπως ζήτησες. Χρησιμοποιείται πλέον το summaryModal για όλες τις περιπτώσεις. #}
-
-{# --- Yellow box αν υπάρχει MARK ήδη στο Excel --- #}
-{% if allow_edit_existing and not request.args.get('force_edit') %}
-<div class="mt-4 p-4 bg-yellow-50 rounded border border-yellow-300 text-yellow-800" id="existingBanner">
-    Το MARK <strong>{{ mark }}</strong> υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;
-    <div class="mt-2 flex gap-2">
-        <button id="forceEditBtn" type="button" class="bg-yellow-600 text-white px-3 py-2 rounded hover:bg-yellow-700">
-            Επιβεβαίωση
+    <div class="flex gap-2 items-center flex-wrap">
+      {% if file_exists %}
+      <div class="relative">
+        <button id="downloadToggle" class="px-4 py-2 bg-[#0d6efd] text-white rounded-lg shadow hover:bg-[#0b5ed7] transition flex items-center gap-2" type="button" aria-haspopup="true" aria-expanded="false">
+          ⬇️ Κατέβασμα .xlsx
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd" />
+          </svg>
         </button>
-        <button id="dismissBannerBtn" type="button" onclick="this.parentElement.parentElement.style.display='none'"
-                class="px-3 py-2 border rounded hover:bg-gray-50">
-            Άκυρο
-        </button>
-    </div>
-</div>
-{% endif %}
-
-
-
-
-{% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
-<!-- SUMMARY MODAL -->
-<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
-
-        <!-- HEADER -->
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">
-                Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
-            </h3>
-            <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
+        <div id="downloadMenu" class="hidden absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden z-50">
+          <a class="block px-4 py-2 hover:bg-gray-100 transition" href="{{ url_for('list_invoices', download=1) }}">Εξοδολόγιο (.xlsx)</a>
+          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel — Έρχεται</button>
         </div>
-
-        <!-- SUMMARY INFO -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
-            <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
-            <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
-            <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
-            <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
-            <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
-            <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
-            <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
-        </div>
-
-        <!-- LINES -->
-        <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
-        <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2"></div>
-
-
-
-        <!-- FOOTER -->
-        <div class="mt-4 flex justify-between items-center">
-            <div class="text-sm text-gray-600">
-                Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη. Μπορείτε να ορίσετε/επεξεργαστείτε αυτές τις επιλογές στη σελίδα Credentials.
-            </div>
-
-            <div class="flex justify-end gap-2">
-                <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
-                    <input type="hidden" name="summary_json" id="summaryJsonInput" value='{{ modal_summary | tojson | safe if modal_summary else "{}" }}'>
-                    <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
-                    <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
-                    <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
-                    <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
-                </form>
-                <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
-            </div>
-        </div>
-
-    </div>
-</div>
-{% endif %}
-
-
-{# --- Repeat mapping modal (dynamic, populated by JS) --- #}
-<div id="repeatMappingModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
-            <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-        </div>
-
-        <div id="repeatModalBody" class="space-y-3">
-            <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
-            <!-- JS θα γεμίσει εδώ -->
-            <div id="repeatMappingList" class="space-y-2"></div>
-        </div>
-
-        <div class="mt-4 flex justify-end gap-2">
-            <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
-            <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
-        </div>
-    </div>
-</div>
-
-{% if modal_warning %}
-<div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
-        </div>
-        <div id="afmWarningBody" class="mb-4 text-gray-700">
-            {{ modal_warning }}
-        </div>
-        <div class="flex justify-end gap-2">
-            <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{# Flash container (JS will inject messages here) #}
-<div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
-
-{% include 'list_inner.html' %}
-{% endblock %}
-
-{% block scripts %}
-<script src="/static/loop_guard_patch.js">
-
-  // --- Helper: detect 'force_edit=1' in URL (reclassification flow) ---
-  function isForceEditMode(){
-    try {
-      const usp = new URLSearchParams(window.location.search || "");
-      return usp.get("force_edit") === "1";
-    } catch(_) { return false; }
-  }
-</script>
-
-<script>
-window.ALLOW_EDIT_EXISTING = {{ 'true' if allow_edit_existing else 'false' }};
-
-const SEARCH_BASE_URL = "{{ url_for('search') }}";
-const VAT = "{{ vat or '' }}"; // active vat from server
-const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
-const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
-async function getActiveFiscalYear() {
-  // Προτίμησε την τιμή που ήρθε από server-side render (Jinja)
-  if (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR !== null) {
-    try { return String(ACTIVE_YEAR); } catch(_) { /* noop */ }
-  }
-  // Fallback: ρώτα το backend (υπάρχει route)
-  try {
-    const r = await fetch('/get_fiscal_year', {credentials:'same-origin'});
-    const j = await r.json();
-    if (j && j.exists) return String(j.fiscal_year);
-  } catch(_) {}
-  return null;
-}
-
-
-(function(){
-  // Ανεξάρτητο modal μόνο για Αποδείξεις (δεν ακουμπά το afmWarningModal)
-  window.openReceiptWarning = function(message){
-    var id='receiptWarn', m=document.getElementById(id);
-    if(!m){
-      var el=document.createElement('div');
-      el.id=id;
-      el.style.cssText='position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999';
-      el.innerHTML =
-        '<div style="background:#fff;border-radius:10px;max-width:480px;width:calc(100% - 32px);padding:20px;">'
-        + '<h3 style="margin:0 0 10px;color:#b91c1c;font-weight:600;font-size:18px">Προειδοποίηση</h3>'
-        + '<div id="receiptWarnBody" style="margin-bottom:14px;color:#374151;font-size:14px"></div>'
-        + '<div style="text-align:right"><button id="receiptWarnOk" type="button"'
-        + ' style="background:#b91c1c;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer">Κατάλαβα</button></div>'
-        + '</div>';
-      document.body.appendChild(el);
-      el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
-      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
-      m = el;
-    }
-    var body = m.querySelector('#receiptWarnBody');
-    if(body) body.textContent = message || 'Προειδοποίηση.';
-    m.style.display='flex';
-  };
-})();
-
-    // Καθαρισμός ανά γραμμή (πολλαπλές γραμμές)
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.clear-row-btn');
-    if (btn) {
-      e.stopPropagation();
-      const tr = btn.closest('tr');
-      const sel = tr && tr.querySelector('select[name^="category["]');
-      if (sel) sel.value = '';
-    }
-  });
-
-  // Καθαρισμός στη single-line περίπτωση
-  const singleClear = document.getElementById('single-clear');
-  if (singleClear) {
-    singleClear.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const sel = document.querySelector('select[name^="category["]');
-      if (sel) sel.value = '';
-    });
-  }
-
-  // Προληπτικά: μην ξανα-ανοίγει δεύτερο modal στο click "Αποθήκευση"
-  // (αν έχεις delegate listeners κάτω από το modal)
-  document.addEventListener('submit', function(e){
-    const form = e.target;
-    if (form && form.closest('#summaryModal')) {
-      const submitBtn = form.querySelector('[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
-      e.stopPropagation(); // Μπλοκάρει bubbling που θα πυροδοτούσε κάτωθεν click handlers
-    }
-  }, true);
-    // initial categories passed from server as fallback; will be overridden if API returns expense_tags
-let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
-
-// Helper: show transient flash (client-side)
-/* ====== Render summary lines into modal and wire handlers ====== */
- function renderSummaryLinesFromObject(obj) {
-  const receiptsMode = !!(document.getElementById('useReceiptsSwitch')?.checked) || !!obj?.is_receipt;
-  const RECEIPT_CATEGORY = 'αποδειξακια';
-
-  const container = document.getElementById('summaryLinesContainer');
-  const summaryInput = document.getElementById('summaryJsonInput');
-  if(!container || !summaryInput) return;
-
-  container.innerHTML = '';
-  const lines = Array.isArray(obj.lines) ? obj.lines : [];
-
-  // helper to persist back to the hidden input
-    (function(){
-  function safeParseJson(s){
-    try { return JSON.parse(s || '{}'); } catch(e){ return {}; }
-  }
-
-  const summaryInput = document.getElementById('summaryJsonInput');
-  const container = document.getElementById('summaryLinesContainer');
-
-  // fallback server-side object (if Jinja rendered modal_summary)
-  const SERVER_MODAL_SUMMARY = (function(){
-    try { return {{ modal_summary | tojson | safe if modal_summary else 'null' }}; } catch(e){ return null; }
-  })()
-  try {
-    var __cc = document.getElementById('summaryLinesContainer');
-    if (__cc && __cc.dataset && __cc.dataset.phase === 'iife') {
-      // IIFE already rendered content -> skip second render path
-      if (typeof persist === 'function') try{ persist(); }catch(e){}
-      return;
-    }
-  } catch(e) {}
-;
-
-  // helper to get current summary object (prefer hidden input, fallback server var)
-  function getSummaryObj(){
-    if(summaryInput && summaryInput.value && summaryInput.value.trim() !== ''){
-      const parsed = safeParseJson(summaryInput.value);
-      if(parsed && typeof parsed === 'object') return parsed;
-    }
-    if(SERVER_MODAL_SUMMARY) return SERVER_MODAL_SUMMARY;
-    return { lines: [] };
-  }
-
-  // ensure each line has id and normalized keys
-  function normalizeSummary(summary){
-    if(!summary) summary = {};
-    const lines = Array.isArray(summary.lines) ? summary.lines.slice() : [];
-    const norm = lines.map((l, idx) => {
-      const id = (l && (l.id || l.line_id)) ? String(l.id || l.line_id) : ('l' + idx);
-      return {
-        id: id,
-        description: l && (l.description || l.desc || '') || '',
-        amount: l && (l.amount || l.lineTotal || l.total || '') || '',
-        vat: l && (l.vat || l.vatRate || '') || '',
-        vatCategory: l && (l.vatCategory || l.vat_category || '') || '',
-        category: l && (l.category || l.cat || '') || ''
-      };
-    });
-    return { ...summary, lines: norm };
-  }
-
-  // build DOM for multiple lines (table)
-  function buildTableHTML(lines, categories){
-    const table = document.createElement('table');
-    table.className = 'w-full border-collapse';
-    const thead = document.createElement('thead');
-    thead.className = 'bg-gray-100 sticky top-0';
-    thead.innerHTML = '<tr>' +
-      '<th class="p-2 border text-left">#</th>' +
-      '<th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>' +
-      '<th class="p-2 border text-right">Ποσό</th>' +
-      '<th class="p-2 border text-right">ΦΠΑ</th>' +
-      '<th class="p-2 border text-left">Κατηγορία Εξόδου</th>' +
-      '</tr>';
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    tbody.id = 'renderedLinesTableBody';
-    lines.forEach((ln, idx) => {
-      const tr = document.createElement('tr');
-      tr.dataset.lineId = ln.id || ('l' + idx);
-      tr.dataset.vat = ln.vatCategory || ln.vat || '';
-
-      tr.innerHTML = '<td class="p-2 border text-sm text-gray-600">' + (idx+1) + '</td>' +
-        '<td class="p-2 border break-words">' + escapeHtml(ln.vatCategory || '') + '</td>' +
-        '<td class="p-2 border text-right">' + escapeHtml(String(ln.amount || '')) + '</td>' +
-        '<td class="p-2 border text-right">' + escapeHtml(String(ln.vat || '')) + '</td>' +
-        '<td class="p-2 border"></td>';
-
-      // create select
-      const select = document.createElement('select');
-      select.className = 'expense-category p-1 border rounded w-full';
-      select.dataset.lineId = ln.id || ('l' + idx);
-      const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
-      select.appendChild(emptyOpt);
-      (categories || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
-        if(c === ln.category) o.selected = true;
-        select.appendChild(o);
-      });
-
-      tr.querySelector('td:last-child').appendChild(select);
-      tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    return table;
-  }
-
-  // build single-line buttons UI
-  function buildSingleLineHTML(line, categories){
-    const wrapper = document.createElement('div');
-    wrapper.className = 'border rounded p-4';
-    wrapper.dataset.lineId = line.id || 'l0';
-
-    const grid = document.createElement('div');
-    grid.className = 'mb-3 grid grid-cols-1 md:grid-cols-3 gap-3';
-    grid.innerHTML = '<div><strong>ΦΠΑ Κατηγορία</strong><div>' + escapeHtml(line.vatCategory || '') + '</div></div>' +
-      '<div><strong>Ποσό</strong><div>' + escapeHtml(String(line.amount || '')) + '</div></div>' +
-      '<div><strong>ΦΠΑ</strong><div>' + escapeHtml(String(line.vat || '')) + '</div></div>';
-    wrapper.appendChild(grid);
-
-    const controls = document.createElement('div');
-    controls.className = 'mb-3';
-    const title = document.createElement('strong');
-    title.innerText = 'Επίλεξε Κατηγορία Εξόδου';
-    controls.appendChild(title);
-
-    const btnwrap = document.createElement('div');
-    btnwrap.id = 'renderedCategoryButtons';
-    btnwrap.className = 'mt-2 flex flex-wrap gap-2';
-    (categories || []).forEach(c => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
-      btn.dataset.cat = c;
-      btn.dataset.lineId = line.id || 'l0';
-      btn.innerText = c;
-      if(c === line.category){
-        btn.classList.add('bg-sky-600');
-        btn.classList.add('text-white');
-      }
-      btnwrap.appendChild(btn);
-    });
-
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'px-3 py-2 border rounded text-sm ml-2 clear-category';
-    clearBtn.innerText = 'Καθαρισμός';
-    btnwrap.appendChild(clearBtn);
-
-    controls.appendChild(btnwrap);
-    wrapper.appendChild(controls);
-    return wrapper;
-  }
-
-  function escapeHtml(s){
-    if(!s && s !== 0) return '';
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // read categories from server-provided global or from a safe default
-  function getCategories(){
-    try {
-      const js = (function(){ try { return {{ customer_categories | tojson | safe }}; } catch(e){ return null; } })();
-      if(Array.isArray(js) && js.length) return js;
-    } catch(e){}
-    return window.CUSTOMER_CATEGORIES || [];
-  }
-
-  // render everything into the container
-  function renderSummaryLines(){
-    if(!container) return;
-    const summary = normalizeSummary(getSummaryObj());
-    const lines = summary.lines || [];
-    const categories = getCategories();
-
-    // clear container
-    container.innerHTML = '';
-
-    // Title (optional)
-    // const info = document.createElement('div'); info.className='mb-2 text-sm text-gray-700'; container.appendChild(info);
-
-    if(lines.length === 0){
-      const warn = document.createElement('div');
-      warn.className = 'mt-4 p-3 bg-yellow-50 rounded';
-      warn.innerText = 'Δεν βρέθηκαν γραμμές για αυτό το MARK.';
-      container.appendChild(warn);
-      wireInteractions();
-    try{ container.dataset.phase = 'iife'; }catch(e){}
- // ensure handlers cleared
-      return;
-    }
-
-    if(lines.length === 1){
-      container.appendChild(buildSingleLineHTML(lines[0], categories));
-    } else {
-      container.appendChild(buildTableHTML(lines, categories));
-    }
-
-    // after building DOM, wire events
-    wireInteractions();
-  }
-
-  // update hidden input from current DOM selections/buttons
-
-  function wireInteractions(){
-    // remove old handlers by cloning nodes if necessary (to avoid duplicate attachments)
-    document.querySelectorAll('select.expense-category').forEach(sel => {
-      sel.addEventListener('change', function(){
-        updateSummaryFromDom();
-      });
-    });
-
-    // category buttons (single-line)
-    document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(btn => {
-      btn.addEventListener('click', function(){
-        const lineId = this.dataset.lineId || '';
-        // toggle this button active/inactive
-        document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(b => {
-          if(b.dataset.lineId === lineId){
-            b.classList.remove('bg-sky-600'); b.classList.remove('text-white');
-          }
-        });
-        const isActive = !(this.classList.contains('bg-sky-600'));
-        if(isActive){
-          this.classList.add('bg-sky-600'); this.classList.add('text-white');
-        } else {
-          this.classList.remove('bg-sky-600'); this.classList.remove('text-white');
-        }
-        updateSummaryFromDom();
-      });
-    });
-
-    // clear buttons
-    document.querySelectorAll('.clear-category').forEach(cb => {
-      cb.addEventListener('click', function(){
-        const parent = cb.closest('[data-line-id]');
-        if(!parent) return;
-        const lid = parent.dataset.lineId || '';
-        // clear UI
-        document.querySelectorAll('#renderedCategoryButtons .category-btn').forEach(b => {
-          if(b.dataset.lineId === lid){ b.classList.remove('bg-sky-600'); b.classList.remove('text-white'); }
-        });
-        // if there is a select for same line (unlikely in single-line view) clear it
-        const sel = document.querySelector('select.expense-category[data-line-id="' + lid + '"]');
-        if(sel) sel.value = '';
-        updateSummaryFromDom();
-      });
-    });
-  }
-
-  // watch hidden input changes (some flows set it programmatically before opening modal)
-  let lastSummaryValue = summaryInput ? summaryInput.value : '';
-  function pollSummaryInput(){
-    const now = summaryInput ? summaryInput.value : '';
-    if(now !== lastSummaryValue){
-      lastSummaryValue = now;
-      // re-render so UI matches new data
-      renderSummaryLines();
-    }
-  }
-  let pollTimer = null;
-  try {
-    pollTimer = setInterval(pollSummaryInput, 250);
-    window.addEventListener('beforeunload', ()=> { if(pollTimer) clearInterval(pollTimer); });
-  } catch(e){ /* ignore */ }
-
-  // ensure initial render on load (modal might be shown later)
-  try { renderSummaryLines(); } catch(e){ console.warn('initial renderSummaryLines failed', e); }
-
-  // also re-render whenever modal is shown (in case show logic sets display later)
-  const modal = document.getElementById('summaryModal');
-  if(modal){
-    // intercept style changes to detect show
-    const obs = new MutationObserver(muts => {
-      muts.forEach(m => {
-        if(m.attributeName === 'style' || m.attributeName === 'class'){
-          const disp = window.getComputedStyle(modal).display;
-          if(disp !== 'none'){
-            // modal visible -> render (ensure DOM inside ready)
-            setTimeout(renderSummaryLines, 10);
-          }
-        }
-      });
-    });
-    try { obs.observe(modal, { attributes: true, attributeFilter:['style','class'] }); } catch(e){ /* ignore */ }
-  }
-
-  // expose for debug
-  window._renderSummaryLines = renderSummaryLines;
-})();
-  function persist() {
-    summaryInput.value = JSON.stringify(obj || {});
-  }
-
-  if (!lines || lines.length === 0) {
-    container.innerHTML = '<div class="mt-4 p-3 bg-yellow-50 rounded">Δεν βρέθηκαν γραμμές για αυτό το MARK.</div>';
-    persist();
-    return;
-  }
-
-  if (lines.length > 1) {
-    // build table
-    const tbl = document.createElement('table');
-    tbl.className = 'w-full border-collapse';
-    tbl.innerHTML = `<thead class="bg-gray-100 sticky top-0">
-      <tr>
-        <th class="p-2 border text-left">#</th>
-        <th class="p-2 border text-left">ΦΠΑ Κατηγορία</th>
-        <th class="p-2 border text-right">Ποσό</th>
-        <th class="p-2 border text-right">ΦΠΑ</th>
-        <th class="p-2 border text-left">Κατηγορία Εξόδου</th>
-      </tr>
-    </thead>`;
-    const tbody = document.createElement('tbody');
-    lines.forEach((ln, idx) => {
-      const lid = (ln.id !== undefined) ? String(ln.id) : ('l' + idx);
-      const vat_cat = ln.vatCategory || ln.vat_category || ln.vat || '';
-      const amt = ln.amount || ln.lineTotal || ln.total || '';
-      const vatv = ln.vat || ln.vatRate || '';
-      const tr = document.createElement('tr');
-      tr.dataset.lineId = lid;
-      tr.dataset.vat = vat_cat;
-      tr.className = '';
-      tr.innerHTML = `
-        <td class="p-2 border text-sm text-gray-600">${idx+1}</td>
-        <td class="p-2 border break-words">${vat_cat}</td>
-        <td class="p-2 border text-right">${amt}</td>
-        <td class="p-2 border text-right">${vatv}</td>
-        <td class="p-2 border"></td>`;
-      // build select
-      const td = tr.querySelector('td:last-child');
-      const sel = document.createElement('select');
-      sel.className = 'expense-category p-1 border rounded w-full';
-      sel.dataset.lineId = lid;
-      const opt0 = document.createElement('option'); opt0.value = ''; opt0.innerText = '-- επίλεξε --'; sel.appendChild(opt0);
-      (window.CUSTOMER_CATEGORIES || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
-        if ((ln.category || '') === c) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.addEventListener('change', function(){
-        const val = this.value;
-        // find line in obj and update
-        const found = (obj.lines || []).find(x => String(x.id || x.line_id || '') === lid);
-        if(found) found.category = val;
-        persist();
-      });
-      td.appendChild(sel);
-      tbody.appendChild(tr);
-    });
-    tbl.appendChild(tbody);
-    // wrap in container
-    const wrapper = document.createElement('div');
-    wrapper.className = 'overflow-auto max-h-96 border rounded';
-    wrapper.appendChild(tbl);
-    container.appendChild(wrapper);
-    persist();
-    return;
-  }
-
-  // single line case -> render buttons
-  const single = lines[0];
-  const lid = (single.id !== undefined) ? String(single.id) : (single.line_id !== undefined ? String(single.line_id) : 'l0');
-  const amt = single.amount || single.lineTotal || '';
-  const vatv = single.vat || single.vatRate || '';
-  const vat_cat = single.vatCategory || single.vat_category || '';
-  const selected_cat = single.category || '';
-
-  const singleDiv = document.createElement('div');
-  singleDiv.id = 'singleLine';
-  singleDiv.className = 'border rounded p-4';
-  singleDiv.dataset.lineId = lid;
-  singleDiv.dataset.amount = amt;
-  singleDiv.dataset.vat = vatv;
-  singleDiv.dataset.vatcat = vat_cat;
-
-  const infoHtml = document.createElement('div');
-  infoHtml.className = 'mb-3 grid grid-cols-1 md:grid-cols-3 gap-3';
-  infoHtml.innerHTML = `<div><strong>ΦΠΑ Κατηγορία</strong><div>${vat_cat}</div></div>
-                        <div><strong>Ποσό</strong><div>${amt}</div></div>
-                        <div><strong>ΦΠΑ</strong><div>${vatv}</div></div>`;
-  singleDiv.appendChild(infoHtml);
-
-  const chooseWrap = document.createElement('div');
-  chooseWrap.className = 'mb-3';
-  chooseWrap.innerHTML = `<strong>Επίλεξε Κατηγορία Εξόδου</strong>`;
-  const btnRow = document.createElement('div');
-  btnRow.id = 'categoryButtons';
-  btnRow.className = 'mt-2 flex flex-wrap gap-2';
-
-  (window.CUSTOMER_CATEGORIES || []).forEach(c => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
-    b.dataset.cat = c;
-    b.dataset.lineId = lid;
-    b.innerText = c;
-    if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
-    b.addEventListener('click', function(){
-      const cat = this.dataset.cat;
-      // toggle selection
-      const currently = (obj.lines[0].category || '');
-      obj.lines[0].category = (currently === cat) ? '' : cat;
-      // reflect UI
-      Array.from(btnRow.querySelectorAll('button.category-btn')).forEach(bb=>{
-        bb.classList.toggle('bg-sky-600', bb.dataset.cat === obj.lines[0].category);
-        bb.classList.toggle('text-white', bb.dataset.cat === obj.lines[0].category);
-      });
-      persist();
-    });
-    btnRow.appendChild(b);
-  });
-
-  const clearBtn = document.createElement('button');
-  clearBtn.type = 'button';
-  clearBtn.id = 'clearCategory';
-  clearBtn.className = 'px-3 py-2 border rounded text-sm ml-2';
-  clearBtn.innerText = 'Καθαρισμός';
-  clearBtn.addEventListener('click', function(){
-    obj.lines[0].category = '';
-    Array.from(btnRow.querySelectorAll('button.category-btn')).forEach(bb=>{
-      bb.classList.remove('bg-sky-600', 'text-white');
-    });
-    persist();
-  });
-
-  btnRow.appendChild(clearBtn);
-  chooseWrap.appendChild(btnRow);
-  singleDiv.appendChild(chooseWrap);
-  container.appendChild(singleDiv);
-  persist();
-}
-
-/* Call this helper whenever you open the summary modal after you populated summaryJsonInput.
-   Examples of call sites are below (where modal.style.display='flex' is set). */
-
-
-function showFlash(message, type='info', timeout=3000){
-  try {
-    const container = document.getElementById('clientFlashContainer');
-    if(!container) return;
-    const el = document.createElement('div');
-    el.className = 'mb-2 p-3 rounded shadow text-sm';
-    if(type === 'success') el.classList.add('bg-green-50', 'text-green-800');
-    else if(type === 'error') el.classList.add('bg-red-50', 'text-red-800');
-    else el.classList.add('bg-gray-50', 'text-gray-800');
-    el.innerText = message;
-    container.appendChild(el);
-    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }catch(e){} }, timeout);
-  } catch(e){ console.warn('showFlash failed', e); }
-}
-
-// Helper API calls
-async function apiGetRepeatEntry(vat){
-  try {
-    const url = '/api/repeat_entry/get' + (vat ? ('?vat=' + encodeURIComponent(vat)) : '');
-    const res = await fetch(url, { credentials: 'same-origin' });
-    if (!res.ok) return { ok: false };
-    return await res.json();
-  } catch(e){
-    console.warn('apiGetRepeatEntry failed', e);
-    return { ok: false };
-  }
-}
-async function apiSaveRepeatEntry(enabled, mapping, vat){
-  try {
-    const res = await fetch('/api/repeat_entry/save', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'same-origin',
-      body: JSON.stringify({ enabled: !!enabled, mapping: mapping || {}, vat: vat || VAT })
-    });
-    if(!res.ok) {
-      const txt = await res.text().catch(()=>null);
-      return { ok: false, status: res.status, body: txt };
-    }
-    return await res.json();
-  } catch(e){
-    console.warn('apiSaveRepeatEntry failed', e);
-    return { ok: false, error: String(e) };
-  }
-}
-
-function removeForceEditParamFromUrl(){
-  try {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('force_edit')) {
-      url.searchParams.delete('force_edit');
-      history.replaceState(null, '', url.pathname + (url.search ? ('?' + url.searchParams.toString()) : '') + url.hash);
-    }
-  } catch(e){ console.warn('removeForceEditParamFromUrl failed', e); }
-}
-
-document.addEventListener('DOMContentLoaded', function(){
-  // ---------- DOM references ----------
-  const repeatSwitch = document.getElementById('repeatEntrySwitch');
-  const editRepeatBtn = document.getElementById('editRepeatMappingBtn');
-  const repeatModal = document.getElementById('repeatMappingModal');
-  const repeatModalList = document.getElementById('repeatMappingList');
-  const repeatModalSave = document.getElementById('repeatModalSave');
-  const repeatModalCancel = document.getElementById('repeatModalCancel');
-  const repeatModalCloseX = document.getElementById('repeatModalCloseX');
-  const summaryInput = document.getElementById('summaryJsonInput'); // may be null
-  const saveSummaryForm = document.getElementById('saveSummaryForm');
-
-  // New: receipts switch + url input
-  // ---------- Μικρή, local επιδιόρθωση για τα κουμπιά/Select στο modal summary ----------
-// ----- Prefill modal fields & categories from summaryJsonInput -----
-function prefillSummaryModal(){
-  try {
-    const input = document.getElementById('summaryJsonInput');
-    if(!input) return;
-    let data = {};
-    try { data = JSON.parse(input.value || '{}'); } catch(e) { data = {}; }
-
-    // Header fields mapping
-    const map = {
-      mark: 'summaryModalMark',
-      AA: 'summary_AA',
-      AFM_issuer: 'summary_AFM',
-      AFM: 'summary_AFM',
-      Name: 'summary_Name',
-      issuer_name: 'summary_Name',
-      issueDate: 'summary_issueDate',
-      type_name: 'summary_type_name',
-      totalNetValue: 'summary_totalNetValue',
-      totalVatAmount: 'summary_totalVatAmount',
-      totalValue: 'summary_totalValue'
-    };
-    Object.keys(map).forEach(k => {
-      const el = document.getElementById(map[k]);
-      if(!el) return;
-      el.innerText = (data[k] !== undefined && data[k] !== null) ? String(data[k]) : (data[k.toUpperCase()] || '');
-    });
-
-    // Ensure container exists
-    const container = document.getElementById('summaryLinesContainer') || document;
-    const lines = Array.isArray(data.lines) ? data.lines : [];
-
-    // For each line, set select/button states
-    lines.forEach(line => {
-      const lid = String(line.id || line.line_id || '').trim();
-      if(!lid) return;
-
-      // Try to find matching element inside modal (row or singleLine)
-      let row = container.querySelector('[data-line-id="'+lid+'"]');
-      if(!row){
-        // fallback: global lookup
-        row = document.querySelector('[data-line-id="'+lid+'"]');
-      }
-      if(!row) return;
-
-      const cat = line.category || line.cat || '';
-      // set select if present
-      const sel = row.querySelector('select.expense-category[data-line-id="'+lid+'"]');
-      if(sel){
-        try { sel.value = cat || ''; } catch(e){ /* ignore */ }
-      }
-      // set button states if buttons present
-      const btns = row.querySelectorAll('.category-btn[data-line-id="'+lid+'"]');
-      if(btns && btns.length){
-        btns.forEach(b => b.classList.remove('bg-sky-600','text-white'));
-        if(cat){
-          // try to find exact button
-          const esc = (window.CSS && CSS.escape) ? CSS.escape(cat) : cat.replace(/"/g,'\\"');
-          const target = row.querySelector('.category-btn[data-line-id="'+lid+'"][data-cat="'+cat+'"]') ||
-                         row.querySelector('.category-btn[data-line-id="'+lid+'"][data-cat="'+esc+'"]');
-          if(target) target.classList.add('bg-sky-600','text-white');
-        }
-      }
-    });
-  } catch(err){
-    console.warn('prefillSummaryModal error', err);
-  }
-}
-
-// Call prefill when modal gets shown by your existing code.
-// Find the places where you do: modal.style.display = 'flex' and add prefillSummaryModal().
-
-  (function(){
-  // helper: ασφαλής update του hidden json από το DOM
-  function updateSummaryFromDom(){
-    try {
-      const input = document.getElementById('summaryJsonInput');
-      if(!input) return;
-      let data = {};
-      try { data = JSON.parse(input.value || '{}'); } catch(e){ data = {}; }
-      data.lines = Array.isArray(data.lines) ? data.lines.slice() : [];
-
-      // For every element that has data-line-id inside the modal container, read category
-      const container = document.getElementById('summaryLinesContainer') || document;
-      container.querySelectorAll('[data-line-id]').forEach(el => {
-        const lid = String(el.dataset.lineId || '').trim();
-        if(!lid) return;
-        // prefer select.expense-category if present
-        let chosen = '';
-        const sel = el.querySelector('select.expense-category[data-line-id="'+lid+'"]');
-        if(sel && sel.value) chosen = sel.value;
-        else {
-          // else look for active category button in same element
-          const btn = el.querySelector('.category-btn.bg-sky-600');
-          if(btn) chosen = btn.dataset.cat || '';
-        }
-        // find or create line entry
-        let found = data.lines.find(x => String(x.id) === lid);
-        if(!found){
-          found = { id: lid, category: '' };
-          data.lines.push(found);
-        }
-        found.category = chosen || '';
-      });
-
-      input.value = JSON.stringify(data);
-    } catch(err){
-      console.warn('updateSummaryFromDom error', err);
-    }
-  }
-
-  // only operate inside the modal area to avoid interfering globally
-  const container = document.getElementById('summaryLinesContainer');
-  if(!container) {
-    // fallback: attach to document but remain minimal
-    console.warn('summaryLinesContainer not found — fix handlers limitedly');
-  }
-
-  // Event delegation: capture clicks on category buttons and selects inside modal
-  const targetRoot = container || document;
-  // Use capture true so we intercept before other handlers
-  targetRoot.addEventListener('click', function(e){
-    const btn = e.target.closest && e.target.closest('.category-btn');
-    if(btn && (container ? container.contains(btn) : true)){
-      // Prevent bubbling to other global handlers that open the receipts-modal
-      e.preventDefault();
-      e.stopPropagation();
-
-      // ensure it's not treated as a submit (defensive): set type=button if missing
-      try { if(btn.tagName === 'BUTTON' && !btn.hasAttribute('type')) btn.setAttribute('type','button'); } catch(_) {}
-
-      // determine line id: prefer dataset, else find closest ancestor with data-line-id
-      const lineEl = btn.closest('[data-line-id]');
-      const lineId = lineEl ? (lineEl.dataset.lineId || '') : (btn.dataset.lineId || '');
-
-      // Toggle active class for buttons of the same line only
-      if(lineId){
-        const group = (container || document).querySelectorAll('.category-btn[data-line-id="'+lineId+'"]');
-        group.forEach(b => { b.classList.remove('bg-sky-600','text-white'); });
-      } else {
-        // fallback: toggle only this button
-      }
-      const isActive = !btn.classList.contains('bg-sky-600');
-      if(isActive) btn.classList.add('bg-sky-600','text-white');
-      else btn.classList.remove('bg-sky-600','text-white');
-
-      // if there's a select corresponding to this line, keep it in sync
-      if(lineId){
-        const sel = (container || document).querySelector('select.expense-category[data-line-id="'+lineId+'"]');
-        if(sel) sel.value = isActive ? (btn.dataset.cat || '') : '';
-      }
-
-      // update hidden JSON immediately
-      updateSummaryFromDom();
-      return;
-    }
-
-    // if clicking on a select inside modal, prevent bubbling too
-    const sel = e.target.closest && e.target.closest('select.expense-category');
-    if(sel && (container ? container.contains(sel) : true)){
-      e.stopPropagation();
-      // let change event handle updating (below we also listen change)
-      return;
-    }
-  }, true);
-
-  // Listen change events on selects inside container and update JSON
-  (container || document).addEventListener('change', function(e){
-    const sel = e.target.closest && e.target.closest('select.expense-category');
-    if(sel && (container ? container.contains(sel) : true)){
-      e.stopPropagation();
-      // sync any visual button states (remove active if select chosen)
-      const lid = sel.dataset.lineId || (sel.closest('[data-line-id]') && sel.closest('[data-line-id]').dataset.lineId) || '';
-      if(lid){
-        // clear buttons for that line
-        const group = (container || document).querySelectorAll('.category-btn[data-line-id="'+lid+'"]');
-        group.forEach(b => b.classList.remove('bg-sky-600','text-white'));
-      }
-      updateSummaryFromDom();
-    }
-  }, true);
-
-  // Ensure Save form updates JSON right before submit (defensive)
-  const saveForm = document.getElementById('saveSummaryForm');
-  if(saveForm){
-    saveForm.addEventListener('submit', function(e){
-      try {
-        updateSummaryFromDom();
-        // small synchronous update only; let the submit continue
-      } catch(err){ console.warn('pre-submit update failed', err); }
-    });
-  }
-
-  // Expose helper in case other code wants to call it
-  window.updateSummaryFromDom = updateSummaryFromDom;
-})();
-
-  const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
-  // find or create an URL input (if not present in template we create one dynamically)
-  let urlInput = document.getElementById('scrapeUrlInput');
-  if(!urlInput){
-    urlInput = document.createElement('input');
-    urlInput.id = 'scrapeUrlInput';
-    urlInput.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-    urlInput.className = 'p-2 border rounded w-2/4 hidden';
-    urlInput.type = 'text';
-    // insert after markInput
-    const mi = document.getElementById('markInput');
-    if(mi && mi.parentElement) mi.parentElement.insertBefore(urlInput, mi.nextSibling);
-  }
-
-  // --- ensure search icon behaves same as input clear/submit ---
-  (function wireSearchIconBehavior(){
-    const mi = document.getElementById('markInput');
-    if (!mi) return;
-
-    const possibleSelectors = [
-      '.icon-search', '.btn-search', '#searchIcon', '.fa-search', '.magnifier',
-      'button[aria-label="search"]', 'button[data-action="search"]'
-    ];
-
-    let found = null;
-    for (const sel of possibleSelectors) {
-      const el = document.querySelector(sel);
-      if (el) { found = el; break; }
-    }
-
-    if (!found) {
-      const delBtn = document.querySelector('button#deleteSelected, button.delete-selected, button[data-action="delete-selected"]');
-      if (delBtn && delBtn.parentElement) {
-        const sibling = delBtn.parentElement.querySelector('button, a, svg, i');
-        if (sibling && sibling !== delBtn) found = sibling;
-      }
-    }
-
-    if (!found) return;
-
-    found.addEventListener('click', function(e){
-      try {
-        mi.value = '';
-        mi.dispatchEvent(new Event('input', { bubbles: true }));
-        mi.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Backspace' }));
-        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-          try {
-            const dt = $('.summary-table').DataTable();
-            dt.search('').columns().search('').draw();
-          } catch(ignore){}
-        }
-      } catch(err){
-        console.warn('search icon handler failed', err);
-      }
-    });
-  })();
-
-
-  // detect vat keys in summary
-  function detectVatKeysFromSummary(){
-    if(summaryInput && summaryInput.value){
-      try {
-        const obj = JSON.parse(summaryInput.value || '{}');
-        const lines = Array.isArray(obj.lines) ? obj.lines : [];
-        const set = new Set();
-        lines.forEach(l => {
-          const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-          if(key) set.add(key);
-        });
-        if(set.size) return Array.from(set);
-      } catch(e){ /* ignore */ }
-    }
-    return ['0%','6%','13%','24%'];
-  }
-
-  // Build repeat modal UI given an existing mapping (object)
-  function buildRepeatModalUI(existingMapping){
-    repeatModalList.innerHTML = '';
-    const vatKeys = detectVatKeysFromSummary();
-    const mapping = existingMapping || {};
-    // default row
-    const defaultRow = document.createElement('div');
-    defaultRow.className = 'flex items-center gap-3';
-    defaultRow.innerHTML = `<div class="w-36 text-sm font-medium">Προεπιλογή</div>`;
-    const defaultSelect = document.createElement('select');
-    defaultSelect.className = 'p-1 border rounded flex-1';
-    const opt0 = document.createElement('option'); opt0.value=''; opt0.innerText='-- (κανένα) --'; defaultSelect.appendChild(opt0);
-    CUSTOMER_CATEGORIES.forEach(c=>{
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(mapping['__default'] === c) o.selected = true;
-      defaultSelect.appendChild(o);
-    });
-    defaultRow.appendChild(defaultSelect);
-    repeatModalList.appendChild(defaultRow);
-
-    vatKeys.forEach(vk=>{
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-3';
-      const label = document.createElement('div');
-      label.className = 'w-36 text-sm font-medium';
-      label.innerText = vk || '(άγνωστο)';
-      const sel = document.createElement('select');
-      sel.className = 'p-1 border rounded flex-1';
-      const oEmpty = document.createElement('option'); oEmpty.value=''; oEmpty.innerText='-- (προεπιλογή) --'; sel.appendChild(oEmpty);
-      CUSTOMER_CATEGORIES.forEach(c=>{
-        const o=document.createElement('option'); o.value=c; o.innerText=c;
-        if(mapping[vk] === c) o.selected = true;
-        sel.appendChild(o);
-      });
-      row.appendChild(label);
-      row.appendChild(sel);
-      repeatModalList.appendChild(row);
-    });
-  }
-
-  function openRepeatModalWithMapping(mapping){
-    // If receipts mode is on, block editing mapping because receipts get fixed category
-    if(useReceiptsSwitch && useReceiptsSwitch.checked){
-      alert('Όταν είναι επιλεγμένες οι Αποδείξεις, δεν επιτρέπεται η επεξεργασία χαρακτηρισμών — οι αποδείξεις παίρνουν μόνο την κατηγορία "αποδειξακια".');
-      return;
-    }
-    buildRepeatModalUI(mapping || {});
-    repeatModal.style.display = 'flex';
-  }
-  function closeRepeatModal(){ repeatModal.style.display = 'none'; }
-
-  // collect mapping from modal selects
-  function collectMappingFromModal(){
-    const mapping = {};
-    const selects = repeatModalList.querySelectorAll('select');
-    if(selects.length){
-      const first = selects[0];
-      if(first && first.value) mapping['__default'] = first.value;
-      const vatKeys = detectVatKeysFromSummary();
-      for(let i=1;i<selects.length;i++){
-        const sel = selects[i];
-        const vatKey = vatKeys[i-1];
-        if(sel && sel.value) mapping[vatKey] = sel.value;
-      }
-    }
-    return mapping;
-  }
-
-  // apply given mapping to summary JSON and submit saveSummaryForm
-  function applyMappingToSummaryAndSubmitUsingMapping(mapping){
-    if(!summaryInput || !saveSummaryForm) return false;
-    try {
-      const data = JSON.parse(summaryInput.value || '{}');
-      if(!Array.isArray(data.lines)) data.lines = [];
-      data.lines = data.lines.map(l => {
-        const vatKey = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-        if(mapping && mapping[vatKey]) l.category = mapping[vatKey];
-        else if(mapping && mapping.__default) l.category = mapping.__default;
-        return l;
-      });
-      summaryInput.value = JSON.stringify(data);
-      saveSummaryForm.submit();
-      return true;
-    } catch(e){
-      console.warn('applyMappingToSummaryAndSubmitUsingMapping error', e);
-      return false;
-    }
-  }
-
-  // ---------- Initialization: load server repeat_entry config ----------
-  (async function initRepeatEntry(){
-    try {
-      const resp = await apiGetRepeatEntry(VAT);
-      if(resp && resp.ok){
-        const repeat = resp.repeat_entry || { enabled: false, mapping: {} };
-        if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
-          CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-        }
-        const enabled = !!repeat.enabled;
-        const mapping = repeat.mapping || {};
-
-        if(repeatSwitch){
-          repeatSwitch.checked = enabled;
-          // show edit button if mapping exists and receipts not selected
-          if(mapping && Object.keys(mapping).length && !(useReceiptsSwitch && useReceiptsSwitch.checked)) editRepeatBtn.classList.remove('hidden');
-          repeatSwitch.addEventListener('change', async function(){
-            const now = this.checked;
-            // if enabling and no mapping -> open modal to create mapping
-            if(now){
-              if(!mapping || Object.keys(mapping).length === 0){
-                // open modal letting user create mapping (but only if receipts not selected)
-                if(useReceiptsSwitch && useReceiptsSwitch.checked){
-                  // do not open — receipts use only αποδειξακια
-                  editRepeatBtn.classList.add('hidden');
-                } else {
-                  openRepeatModalWithMapping({});
-                }
-              } else {
-                if(useReceiptsSwitch && useReceiptsSwitch.checked){
-                  // receipts + repeat -> hide edit button
-                  editRepeatBtn.classList.add('hidden');
-                } else {
-                  editRepeatBtn.classList.remove('hidden');
-                }
-              }
-            } else {
-              editRepeatBtn.classList.add('hidden');
-            }
-            // Persist enabled flag immediately (keep mapping as-is)
-            const saveResp = await apiSaveRepeatEntry(now, mapping, VAT);
-            if(saveResp && saveResp.ok){
-              showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
-              if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
-                CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
-              }
-            } else {
-              showFlash('Αποτυχία αποθήκευσης ρύθμισης.', 'error');
-            }
-          });
-        }
-
-        // If repeat enabled and mapping exists and modal_summary present -> auto apply mapping now
-        if(enabled && mapping && Object.keys(mapping).length && summaryInput && !isForceEditMode()){
-          // If receipts is ON, do NOT auto-apply mapping
-          if(!(useReceiptsSwitch && useReceiptsSwitch.checked)){
-            const did = applyMappingToSummaryAndSubmitUsingMapping(mapping);
-            if(did){
-              const sm = document.getElementById('summaryModal');
-              if(sm) sm.style.display = 'none';
-            }
-          }
-        }
-
-        // Wire edit button
-        if(editRepeatBtn){
-          editRepeatBtn.classList.toggle('hidden', !mapping || Object.keys(mapping).length===0 || (useReceiptsSwitch && useReceiptsSwitch.checked));
-          editRepeatBtn.addEventListener('click', function(){
-            openRepeatModalWithMapping(mapping);
-          });
-        }
-      } else {
-        if(repeatSwitch) repeatSwitch.checked = false;
-      }
-    } catch(e){
-      console.warn('initRepeatEntry failed', e);
-    }
-  })();
-
-  // wire receipts switch to show/hide url input and to enforce mapping rule
-  if(useReceiptsSwitch){
-    useReceiptsSwitch.addEventListener('change', function(){
-      const on = !!this.checked;
-      // UI: swap inputs
-      if(on){
-        document.getElementById('markInput')?.classList.add('hidden');
-        urlInput?.classList.remove('hidden');
-        urlInput?.focus();
-        // when receipts are active, edit button must be hidden (even if repeat on)
-        if(editRepeatBtn) editRepeatBtn.classList.add('hidden');
-      } else {
-        document.getElementById('markInput')?.classList.remove('hidden');
-        urlInput?.classList.add('hidden');
-        document.getElementById('markInput')?.focus();
-        // restore edit button visibility based on repeatSwitch/mapping
-        // re-init repeat button visibility by calling initRepeatEntry lightly:
-        (async function(){
-          try {
-            const resp = await apiGetRepeatEntry(VAT);
-            if(resp && resp.ok){
-              const mapping = (resp.repeat_entry && resp.repeat_entry.mapping) ? resp.repeat_entry.mapping : {};
-              if(mapping && Object.keys(mapping).length && repeatSwitch && repeatSwitch.checked){
-                editRepeatBtn.classList.remove('hidden');
-              } else {
-                editRepeatBtn.classList.add('hidden');
-              }
-            }
-          } catch(e){}
-        })();
-      }
-    });
-  }
-
-  // repeat modal handlers
-  repeatModalCloseX?.addEventListener('click', closeRepeatModal);
-  repeatModalCancel?.addEventListener('click', closeRepeatModal);
-
-  repeatModalSave?.addEventListener('click', async function(){
-    // collect mapping
-    const mapping = collectMappingFromModal();
-    // persist to backend and enable repeat
-    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
-    if (resp && resp.ok) {
-      if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
-        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-      }
-      if (repeatSwitch) repeatSwitch.checked = true;
-      // if receipts mode is on, edited mapping should not be used—hide edit button
-      if (useReceiptsSwitch && useReceiptsSwitch.checked) editRepeatBtn.classList.add('hidden');
-      else editRepeatBtn.classList.remove('hidden');
-
-      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
-      closeRepeatModal();
-      setTimeout(function(){ try { window.location.reload(); } catch(e){ console.warn('reload failed', e); } }, 600);
-      return;
-    } else {
-      console.warn('Failed saving repeat mapping', resp);
-      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
-    }
-  });
-
-  // ---------- existing original JS (dismiss banner, force edit, summary modal wiring, etc) ----------
-  const forceBtn = document.getElementById('forceEditBtn');
-  const markInput = document.getElementById('markInput');
-  const existingBanner = document.getElementById('existingBanner');
-  const dismissBannerBtn = document.getElementById('dismissBannerBtn');
-
-  if(dismissBannerBtn){
-    dismissBannerBtn.addEventListener('click', function(){ if(existingBanner) existingBanner.style.display = 'none'; });
-  }
-
-  if (forceBtn){
-    forceBtn.addEventListener('click', function(){
-      const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
-      const markVal = encodeURIComponent(markValRaw || '');
-      if (!markVal){ alert('Δεν δόθηκε MARK για επιβεβαίωση.'); return; }
-      if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
-        if(existingBanner) existingBanner.style.display = 'none';
-        window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
-      }
-    });
-  }
-
-  const modal = document.getElementById('summaryModal');
-  const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
-  modalCloseBtns.forEach(b => b?.addEventListener('click', function(){
-    if(modal) modal.style.display = 'none';
-    removeForceEditParamFromUrl();
-  }));
-
-  {% if modal_summary and (request.args.get('force_edit') == '1' or not allow_edit_existing) %}
-  setTimeout(()=>{
-    const m = document.getElementById('summaryModal');
-    if (m) {
-      // ensure hidden input has the JSON server-provided summary (template already set it, but be safe)
-      try {
-        const summaryInput = document.getElementById('summaryJsonInput');
-        if (summaryInput && (!summaryInput.value || summaryInput.value === '{}')) {
-          summaryInput.value = {{ modal_summary | tojson | safe }};
-        }
-        // render into modal
-        const obj = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
-        renderSummaryLinesFromObject(obj);
-      } catch(e) { console.warn('renderSummaryLinesFromObject error', e); }
-      m.style.display = 'flex';
-      removeForceEditParamFromUrl();
-    }
-  }, 80);
-{% endif %}
-
-
-  {% if modal_warning %}
-  const afmModal = document.getElementById('afmWarningModal');
-  const afmModalBtn = document.getElementById('afmModalConfirm');
-  if (afmModal && afmModalBtn){
-    setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
-  }
-  {% endif %}
-
-  // --- the rest of your existing summary wiring (no changes) ---
-  if (summaryInput){
-  try {
-    let summaryData = JSON.parse(summaryInput.value || '{}');
-    if (!Array.isArray(summaryData.lines)) summaryData.lines = [];
-    summaryData.lines = summaryData.lines.map(l => {
-      if (!l) return {id:'', description:'', amount:'', vat:'', category:'', vatCategory:''};
-      l.id = (l.id!==undefined)?String(l.id):(l.line_id!==undefined?String(l.line_id):'');
-      l.category = l.category || l.cat || l.line_category || l['κατηγορία'] || '';
-      return l;
-    });
-
-    // multi-line selects
-    document.querySelectorAll('#linesTableBody tr[data-line-id]').forEach(tr => {
-      const lid = String(tr.dataset.lineId || '');
-      const sel = tr.querySelector('select.expense-category');
-      if (!sel) return;
-      let existing = summaryData.lines.find(x => String(x.id) === lid);
-      if (!existing){
-        existing = {id: lid, category: ''};
-        summaryData.lines.push(existing);
-      }
-      sel.value = existing.category || '';
-      sel.addEventListener('change', function(){ existing.category = sel.value; summaryInput.value = JSON.stringify(summaryData); });
-    });
-
-    // single-line buttons
-    const singleLine = document.getElementById('singleLine');
-    if (singleLine){
-      const lid = String(singleLine.dataset.lineId || '');
-      let existing = summaryData.lines.find(x => String(x.id) === lid);
-      if (!existing){
-        existing = {id: lid, category: ''};
-        summaryData.lines.push(existing);
-      }
-      const buttons = document.querySelectorAll('#categoryButtons .category-btn');
-      function markActive(cat){
-        buttons.forEach(b => {
-          b.classList.toggle('bg-sky-600', b.dataset.cat === cat);
-          b.classList.toggle('text-white', b.dataset.cat === cat);
-        });
-      }
-      if (existing.category) markActive(existing.category);
-      buttons.forEach(btn => {
-        btn.addEventListener('click', function(){
-          const cat = this.dataset.cat;
-          existing.category = (existing.category === cat) ? '' : cat;
-          markActive(existing.category);
-          summaryInput.value = JSON.stringify(summaryData);
-        });
-      });
-      const clearBtn = document.getElementById('clearCategory');
-      clearBtn?.addEventListener('click', function(){
-        existing.category = '';
-        markActive('');
-        summaryInput.value = JSON.stringify(summaryData);
-      });
-    }
-    summaryInput.value = JSON.stringify(summaryData);
-  } catch(e){
-    console.warn('summary JSON parse/normalize error', e);
-  }
-}
-
-
-  // --- the table / datatables logic code (kept unchanged) ---
-  const hasTable = document.querySelector('.summary-table') !== null;
-  if (hasTable){
-    const jq = window.jQuery;
-    const dtAvail = jq && jq.fn && jq.fn.dataTable;
-    if (dtAvail){
-      try {
-        const dt = $('.summary-table').DataTable({
-          paging: true,
-          scrollY: '55vh',
-          scrollX: true,
-          scrollCollapse: true,
-          fixedHeader: { header: true, headerOffset: 0 },
-          colReorder: true,
-          autoWidth: false,
-          columnDefs: [{ orderable: false, targets: 0 }]
-        });
-        if (typeof dt.colResize === 'function') {
-          try { dt.colResize({ resizeMode: 'flex' }); } catch(e){ console.warn('colResize failed', e); }
-        }
-        const globalSearch = document.getElementById('globalSearch');
-        if (globalSearch){
-          globalSearch.addEventListener('input', function(){ dt.search(this.value).draw(); });
-        }
-        setTimeout(()=>{ try{ dt.columns.adjust().draw(); }catch(e){} }, 120);
-      } catch(e){
-        console.warn('DataTables init failed — falling back', e);
-      }
-    } else {
-      const globalSearch = document.getElementById('globalSearch');
-      if (globalSearch){
-        globalSearch.addEventListener('input', function(){
-          const q = this.value.toLowerCase();
-          document.querySelectorAll('.summary-table tbody tr').forEach(tr => {
-            tr.style.display = tr.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
-          });
-        });
-      }
-    }
-
-    try {
-      const anyCheckbox = document.querySelector('input[name="delete_mark"]');
-      if (anyCheckbox){
-        const firstTh = document.querySelector('.summary-table thead th');
-        if (firstTh && !document.getElementById('selectAll')){
-          const chk = document.createElement('input');
-          chk.type = 'checkbox'; chk.id = 'selectAll'; chk.title = 'Επιλογή όλων';
-          chk.style.marginRight = '6px';
-          firstTh.prepend(chk);
-          chk.addEventListener('change', function(){ document.querySelectorAll('input[name="delete_mark"]').forEach(cb => cb.checked = this.checked); });
-        }
-        const headers = Array.from(document.querySelectorAll('.summary-table thead th')).map(h => h.innerText.trim().toLowerCase());
-        let markIdx = headers.findIndex(h => h.includes('mark'));
-        if (markIdx === -1) markIdx = headers.findIndex(h => h.includes('αφμ') || h.includes('afm'));
-        if (markIdx >= 0){
-          document.querySelectorAll('.summary-table tbody tr').forEach(row => {
-            const cb = row.querySelector('input[name="delete_mark"]');
-            if (cb){
-              const td = row.querySelectorAll('td')[markIdx];
-              if (td){
-                const v = td.innerText.trim();
-                if (v) cb.value = v;
-              }
-            }
-          });
-        }
-      }
-    } catch(e){ console.warn('select-all / mark mapping error', e); }
-  }
-
-  // --- new: restore table / reload when markInput cleared ---
-  (function wireRobustClearRestore(){
-    const mi = (typeof markInput !== 'undefined' && markInput) ? markInput : document.getElementById('markInput');
-    if (!mi) return;
-
-    let t = null;
-    let lastVal = mi.value || '';
-
-    function restoreAllRowsAndUi(){
-      try {
-        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-          try {
-            const dt = $('.summary-table').DataTable();
-            dt.search('').columns().search('').draw();
-            try {
-              dt.rows().nodes().to$().each(function(){ this.style.display = ''; });
-            } catch(e){ /* ignore */ }
-            try { dt.columns.adjust().draw(false); } catch(e){ /* ignore */ }
-          } catch(e) {
-            console.warn('DataTables restore failed, falling back to DOM restore', e);
-            document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
-          }
-        } else {
-          document.querySelectorAll('.summary-table tbody tr').forEach(tr => tr.style.display = '');
-        }
-
-        const selectAll = document.getElementById('selectAll') || document.querySelector('.summary-table thead input[type="checkbox"]#selectAll');
-        if (selectAll) selectAll.checked = false;
-
-        const evt = new Event('tableRestored');
-        document.querySelectorAll('.summary-table').forEach(t => t.dispatchEvent(evt));
-      } catch(err){
-        console.warn('restoreAllRowsAndUi failed', err);
-      }
-    }
-
-
-document.addEventListener('DOMContentLoaded', function(){
-  try {
-    const m = document.getElementById('summaryModal');
-    if(m && (m.style.display === 'flex' || getComputedStyle(m).display !== 'none')){
-      // small timeout to let template-rendered inner HTML settle
-      setTimeout(()=>{ try { prefillSummaryModal(); } catch(e){ console.warn(e); } }, 40);
-    }
-  } catch(e){ /* ignore */ }
-});
-    function maybeRestore(){
-      clearTimeout(t);
-      t = setTimeout(()=>{
-        try {
-          const v = (mi.value || '').trim();
-          if (v === '' && (lastVal && lastVal.trim() !== '')) {
-            try {
-              if (typeof INITIAL_MARK !== 'undefined' && INITIAL_MARK && INITIAL_MARK.trim() !== '') {
-                const cur = new URL(window.location.href);
-                if (cur.searchParams.has('mark') || cur.searchParams.has('force_edit')) {
-                  window.location = SEARCH_BASE_URL;
-                  return;
-                }
-              }
-            } catch(e){ /* ignore URL errors and fallthrough to client restore */ }
-
-            restoreAllRowsAndUi();
-          }
-          lastVal = v;
-        } catch(e){
-          console.warn(e);
-        }
-      }, 150);
-    }
-
-    mi.addEventListener('input', maybeRestore);
-    mi.addEventListener('keyup', maybeRestore);
-    mi.addEventListener('paste', function(){ setTimeout(maybeRestore, 50); });
-    mi.addEventListener('cut', function(){ setTimeout(maybeRestore, 50); });
-    mi.addEventListener('blur', maybeRestore);
-
-    let pollInterval = null;
-    try {
-      pollInterval = setInterval(() => {
-        const current = (mi.value || '').trim();
-        if (current !== (lastVal || '').trim()) {
-          maybeRestore();
-        }
-      }, 300);
-
-      window.addEventListener('beforeunload', () => {
-        if (pollInterval) clearInterval(pollInterval);
-      });
-    } catch(e){
-    }
-  })();
-
-  // ----- SCRAPER integration: auto call endpoint when URL provided and show modal -----
-  // Add a handler: when receipts switch ON and user submits form -> call /api/scrape_receipt and show modal
-  // ====================== RECEIPTS SCRAPE FLOW ======================
-document.getElementById('markSearchForm')?.addEventListener('submit', async function (evt) {
-  if (useReceiptsSwitch && useReceiptsSwitch.checked) {
-    evt.preventDefault();
-    const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
-    if (!url) {
-      showFlash('Εισάγετε URL για αποδείξεις.', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/scrape_receipt', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ url: url })
-      });
-
-      const j = await res.json().catch(() => null);
-      if (!res.ok || !j || j.ok === false) {
-        const msg = j && (j.error || j.message) ? (j.error || j.message) : ('Server ' + (res.status || ''));
-        showFlash('Σφάλμα scraper: ' + msg, 'error', 6000);
-        return;
-      }
-
-      if (j && j.is_invoice === true) {
-  openReceiptWarning('Το URL φαίνεται να περιέχει Τιμολόγιο — δεν θα αποθηκευτεί ως Απόδειξη. Έλεγξε το παραστατικό.');
-  return; // STOP
-        }
-        // ---- Έλεγχος έτους απόδειξης vs ενεργή χρήση (modal + STOP)
-try {
-  // 1) Πάρε ενεργή χρήση από ACTIVE_YEAR ή από το backend (fallback)
-  const activeYear = await getActiveFiscalYear();
-
-  // 2) Εξήγαγε issueYear από την απόκριση του scraper
-  let issueYear = null;
-  if (j && j.issue_year != null && String(j.issue_year).trim() !== '') {
-    // δέξου είτε καθαρό έτος είτε π.χ. "2025"
-    const m = String(j.issue_year).match(/\b(19|20)\d{2}\b/);
-    issueYear = m ? m[0] : String(j.issue_year);
-  } else if (j) {
-    const anyDate = j.issue_date || j.issueDate || j.date || '';
-    if (typeof anyDate === 'string') {
-      const m = anyDate.match(/\b(19|20)\d{2}\b/);
-      if (m) issueYear = m[0];
-    }
-  }
-
-  // 3) Αν δεν ταιριάζουν -> δείξε modal και σταμάτα
-  if (activeYear && issueYear && String(issueYear) !== String(activeYear)) {
-    openReceiptWarning(`Προσοχή: Η απόδειξη είναι του ${issueYear}, ενώ η ενεργή χρήση είναι ${activeYear}. Η διαδικασία μπλοκάρεται.`);
-    return; // STOP
-  }
-} catch (_) {
-  /* αν αποτύχει ο έλεγχος, δεν μπλοκάρουμε σιωπηλά */
-}
-
-
-      // Δημιουργία αυξανόμενου MARK 15 ψηφίων (από το backend)
-      const markRes = await fetch('/api/next_receipt_mark', { credentials: 'same-origin' });
-      const markData = await markRes.json().catch(() => null);
-      const nextMark = (markData && markData.mark) ? markData.mark : '';
-
-      // Prepare summary object για modal
-      const summaryObj = {
-        mark: nextMark,
-        AA: j.progressive_aa || '',
-        AFM_issuer: j.issuer_vat || '',
-        Name: j.issuer_name || '',
-        issueDate: j.issue_date || '',
-        type_name: 'ΑΠΟΔΕΙΞΗ',
-        totalValue: j.total_amount || '',
-        totalNetValue: j.total_amount || '',
-        totalVatAmount: (j.raw && (j.raw.totalVatAmount || j.raw.totalVat)) || '',
-        lines: []
-      ,
-  type: 'ΑΠΟΔΕΙΞΗ',
-  category: 'αποδειξακια',
-  is_receipt: true,
-  number: (j.progressive_aa || '')};
-
-      if (j.raw && Array.isArray(j.raw.lines) && j.raw.lines.length) {
-        j.raw.lines.forEach((l, idx) => {
-          summaryObj.lines.push({
-            id: l.id || ('r' + idx),
-            amount: l.amount || l.lineTotal || '',
-            vat: l.vat || l.vatRate || '',
-            vatCategory: l.vatCategory || l.vat_category || '',
-            description: l.description || l.desc || ''
-          });
-        });
-      } else {
-        summaryObj.lines.push({
-          id: 'r0',
-          amount: j.total_amount || '',
-          vat: (j.raw && (j.raw.vat || '')) || '',
-          vatCategory: (j.raw && (j.raw.vatCategory || '')) || '',
-          description: (j.raw && (j.raw.description || '')) || ''
-        });
-      }
-
-      // Populate modal inputs
-      const summaryInput = document.getElementById('summaryJsonInput');
-      if (summaryInput) summaryInput.value = JSON.stringify(summaryObj);
-
-      document.getElementById('scrapeUrlField')?.setAttribute('value', url);
-      const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια')
-        ? 'αποδειξακια'
-        : (CUSTOMER_CATEGORIES[0] || '');
-      document.getElementById('scrapeCategoryField')?.setAttribute('value', desiredCat);
-      document.getElementById('scrapeForceField')?.setAttribute('value', 'false');
-
-      // Ενημέρωση modal
-      const modal = document.getElementById('summaryModal');
-      if (modal) {
-        // ensure populate code runs (some populate watchers poll or listen for modal display)
-        // prefer calling RC_forcePopulateSummaryModal if present
-        if (window.RC_forcePopulateSummaryModal) {
-          try { window.RC_forcePopulateSummaryModal(); } catch(e){ console.warn('RC_forcePopulateSummaryModal failed', e); }
-        }
-        modal.style.display = 'flex';
-        showFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
-      }
-
-    } catch (err) {
-      console.error('scrape_receipt error', err);
-      showFlash('Σφάλμα scraper: ' + (err.message || err), 'error', 6000);
-    }
-  }
-});
-
-
-  // Intercept "Αποθήκευση στο Cache" to perform AJAX save for scraped receipts
-  // intercept saveSummaryForm submit when scrapeUrlField is present
-// --- replace the previous payload construction + fetch with this robust version ---
-document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
-  const scrapeUrl = document.getElementById('scrapeUrlField')?.value || '';
-  if(!scrapeUrl) return; // let normal (invoice) flow proceed
-  e.preventDefault();
-
-  let summary = {};
-  try {
-    summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
-  } catch(err){
-    console.warn('Failed parsing summaryJsonInput', err);
-    alert('Σφάλμα: άκυρα δεδομένα παραστατικού.');
-    return;
-  }
-
-  summary.is_receipt = true;
-  if (!summary.category || String(summary.category).trim() === '') summary.category = 'αποδειξακια';
-  if (!summary.type || String(summary.type).trim() === '') summary.type = 'ΑΠΟΔΕΙΞΗ';
-  if (!summary.type_name || String(summary.type_name).trim() === '') summary.type_name = 'Απόδειξη';
-
-  const aaCoalesce = summary.number || summary.AA || summary.aa || summary.progressive_aa || '';
-  summary.number = aaCoalesce;
-
-  if (!Array.isArray(summary.lines)) summary.lines = [];
-  summary.lines = summary.lines.map((l, i) => ({
-    id: (l && (l.id || l.line_id)) ? String(l.id || l.line_id) : ('r' + i),
-    description: (l && (l.description || l.desc)) || '',
-    amount: (l && (l.amount || l.lineTotal || l.total)) || '',
-    vat: (l && (l.vat || l.vatRate)) || '',
-    vatCategory: (l && (l.vatCategory || l.vat_category)) || '',
-    category: (l && l.category) || ''
-  }));
-
-  try {
-    const res = await fetch('/save_summary', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify(summary)
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(()=>'');
-      alert('Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
-      return;
-    }
-    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_) {}
-    window.location = window.location.pathname;
-  } catch (err) {
-    console.error('save_summary AJAX error', err);
-    alert('Σφάλμα αποθήκευσης: ' + (err.message || err));
-  }
-});
-
-document.getElementById('saveSummaryForm')?.addEventListener('submit', async function(e){
-  const scrapeUrl = document.getElementById('scrapeUrlField')?.value || '';
-  if(!scrapeUrl) return; // allow normal server flow for invoice flow
-  e.preventDefault();
-
-  // parse summary from hidden input
-  let summary = {};
-  try {
-    summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
-  } catch(err){
-    console.warn('Failed parsing summaryJsonInput', err);
-    showFlash('Σφάλμα: άκυρα δεδομένα παραστατικού.', 'error');
-    return;
-  }
-
-  // robust AFM extraction (try many variants)
-  const afmFromSummary = (summary && (summary.AFM_issuer || summary.AFM || summary.issuer_vat || summary.issuerVat || summary.issuer_vat)) ||
-                         (summary && summary.raw && (summary.raw.issuer_vat || summary.raw.issuerVat || summary.raw.AFM || summary.raw.AFM_issuer));
-  const afmVal = (typeof VAT !== 'undefined' && VAT) ? VAT : (afmFromSummary ? String(afmFromSummary).trim() : '');
-
-  // robust year extraction: prefer ACTIVE_YEAR, then summary.year, then parse issueDate, then fallback to current year
-  let yearVal = null;
-  try {
-    if (typeof ACTIVE_YEAR !== 'undefined' && ACTIVE_YEAR) yearVal = String(ACTIVE_YEAR);
-    else if (summary && (summary.year || summary.Year)) yearVal = String(summary.year || summary.Year);
-    else if (summary && summary.issueDate) {
-      const parts = (summary.issueDate || '').split('/');
-      if (parts.length >= 3) yearVal = parts[2];
-    }
-    if (!yearVal) yearVal = String((new Date()).getUTCFullYear());
-  } catch(e){
-    yearVal = String((new Date()).getUTCFullYear());
-  }
-
-  // final mark
-  const markVal = summary.mark || document.getElementById('scrapeUrlField')?.dataset.mark || '';
-
-  // if afm missing -> abort with client message (server requires AFM or active session)
-  if (!afmVal) {
-    console.warn('confirm_receipt abort: missing AFM', { summary });
-    showFlash('Αδύνατο να αποθηκευτεί: λείπει AFM του ενεργού πελάτη. Επιλέξτε ενεργό πελάτη ή βεβαιωθείτε ότι το παραστατικό περιέχει ΑΦΜ.', 'error', 7000);
-    return;
-  }
-
-  const payload = {
-    url: scrapeUrl,
-    summary: summary,
-    force: (document.getElementById('scrapeForceField')?.value === 'true'),
-    category: 'αποδειξακια',
-    afm: afmVal,
-    year: String(yearVal),
-    mark: (summary.mark || markVal || '')
-  };
-
-  console.log('[RC-DEBUG] FETCH -> /api/confirm_receipt called', '/api/confirm_receipt', payload);
-
-  // send to backend
-  try {
-    const res = await fetch('/api/confirm_receipt', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-      body: JSON.stringify(payload)
-    });
-    const j = await res.json().catch(()=>null);
-    if(!res.ok || !j || !j.ok){
-      console.warn('confirm_receipt failed', res.status, j);
-      showFlash('Σφάλμα αποθήκευσης: ' + ((j && j.error) ? j.error : ('Server ' + (res.status || ''))) , 'error', 7000);
-      return;
-    }
-    showFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
-    document.getElementById('summaryModal').style.display = 'none';
-    // clean hidden fields
-    document.getElementById('scrapeUrlField').value = '';
-    document.getElementById('scrapeForceField').value = 'false';
-  } catch(err){
-    console.error('confirm_receipt fetch error', err);
-    showFlash('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
-  }
-});
-
-// --- Fix: on page load, populate modal if summaryJsonInput already contains summary JSON ---
-// This replaces a missing populateSummaryModal call and uses the populate watcher (RC_forcePopulateSummaryModal) if available.
-// Robust startup: only show summary modal if summaryJsonInput actually contains meaningful data
-document.addEventListener("DOMContentLoaded", function(){
-  try {
-    const summaryEl = document.getElementById("summaryJsonInput");
-    const modal = document.getElementById("summaryModal");
-    if (!summaryEl) return;
-
-    let obj = {};
-    try { obj = JSON.parse(summaryEl.value || '{}'); } catch(e){ obj = {}; }
-
-    function isMeaningful(o){
-      if (!o || typeof o !== 'object') return false;
-
-      // quick acceptors: important single fields
-      const important = ['mark','MARK','AFM_issuer','AFM','totalValue','totalNetValue','total_amount','issueDate','issue_date','progressive_aa','AA'];
-      for (const k of important) {
-        if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return true;
-      }
-
-      // if lines array exists and has at least one line with some non-empty field -> accept
-      if (Array.isArray(o.lines) && o.lines.length) {
-        for (const ln of o.lines) {
-          if (!ln) continue;
-          if ( (ln.description && String(ln.description).trim() !== '') ||
-               (ln.amount && String(ln.amount).trim() !== '') ||
-               (ln.id && String(ln.id).trim() !== '') ) return true;
-        }
-      }
-
-      // fallback: if object has more than one non-empty key -> accept
-      const nonEmptyKeys = Object.keys(o).filter(k => {
-        try { return o[k] !== null && o[k] !== undefined && String(o[k]).trim() !== ''; } catch(e){ return false; }
-      });
-      if (nonEmptyKeys.length > 1) return true;
-
-      return false;
-    }
-
-    if (isMeaningful(obj)) {
-      // ask the populate watcher to run (if available), else run a safe local populate
-      if (window.RC_forcePopulateSummaryModal) {
-        try { window.RC_forcePopulateSummaryModal(); } catch(e){ console.warn('RC_forcePopulateSummaryModal failed', e); }
-      } else {
-        // try to populate basic fields if populate function not present
-        try {
-          if (typeof populateSummaryModal === 'function') try { populateSummaryModal(obj); } catch(_) {}
-        } catch(_) {}
-      }
-
-      if (modal) modal.style.display = 'flex';
-    } else {
-      // ensure modal remains hidden on load
-      if (modal) modal.style.display = 'none';
-    }
-  } catch(e){
-    console.warn('startup populate summary failed', e);
-  }
-});
-
-
-
-  // This expects rows to have 'input[type="radio"][name="active_name"]' and row id pattern cred-row-<name>
-  document.querySelectorAll('tr[id^="cred-row-"]').forEach(tr=>{
-    tr.addEventListener('dblclick', function(e){
-      try {
-        const radio = tr.querySelector('input[type="radio"][name="active_name"]');
-        if(radio){
-          radio.checked = true;
-          // also give visual feedback (optional)
-          tr.classList.add('bg-gray-100');
-          setTimeout(()=>tr.classList.remove('bg-gray-100'), 600);
-        }
-      } catch(err){ console.warn('dblclick select radio failed', err); }
-    });
-  });
-
-});
-
-// === DEBUG SNIPPET: paste near end of your existing scripts ===
-(function(){
-  function safeLog(...a){ try{ console.log('[RC-DEBUG]', ...a); }catch(e){} }
-
-  // Global JS error catcher
-  window.addEventListener('error', function(e){
-    safeLog('Window error', e.message, e.filename + ':' + e.lineno, e.error);
-  });
-  window.addEventListener('unhandledrejection', function(ev){
-    safeLog('Unhandled promise rejection', ev.reason);
-  });
-
-  // Watch important DOM elements existence
-  function checkDom(){
-    const names = [
-      'markSearchForm','useReceiptsSwitch','scrapeUrlInput',
-      'summaryModal','summaryJsonInput','saveSummaryForm',
-      'scrapeUrlField','scrapeCategoryField','scrapeForceField'
-    ];
-    const out = {};
-    names.forEach(n => out[n] = !!document.getElementById(n));
-    safeLog('DOM presence', out);
-  }
-  document.addEventListener('DOMContentLoaded', function(){ checkDom(); });
-
-  // Hook markSearchForm submit
-  const msf = document.getElementById('markSearchForm');
-  if(msf){
-    msf.addEventListener('submit', function(e){
-      try{
-        const useReceipts = !!(document.getElementById('useReceiptsSwitch') && document.getElementById('useReceiptsSwitch').checked);
-        safeLog('markSearchForm.submit fired', 'useReceipts=', useReceipts, 'mark=', (document.getElementById('markInput')?.value||''), 'urlInput=', (document.getElementById('scrapeUrlInput')?.value||''));
-      }catch(err){ safeLog('submit hook error', err); }
-    }, true);
-  } else safeLog('markSearchForm NOT FOUND');
-
-  // Hook receipts switch changes
-  const rs = document.getElementById('useReceiptsSwitch');
-  if(rs){
-    rs.addEventListener('change', function(e){
-      safeLog('useReceiptsSwitch change, checked=', rs.checked);
-      // show/hide created url input for visibility
-      const ui = document.getElementById('scrapeUrlInput');
-      if(ui) ui.style.outline = rs.checked ? '2px solid orange' : 'none';
-    });
-  } else safeLog('useReceiptsSwitch NOT FOUND');
-
-  // Monitor fetch to /api/scrape_receipt by wrapping fetch (only for debugging)
-  const origFetch = window.fetch;
-  window.fetch = async function(resource, init){
-    try{
-      if(typeof resource === 'string' && resource.indexOf('/api/scrape_receipt') !== -1){
-        safeLog('FETCH -> /api/scrape_receipt called', resource, init && init.body ? (init.body.length>100 ? init.body.slice(0,100)+'...' : init.body) : init);
-      }
-      if(typeof resource === 'string' && resource.indexOf('/api/confirm_receipt') !== -1){
-        safeLog('FETCH -> /api/confirm_receipt called', resource, init && init.body ? (function(){ try { return JSON.parse(init.body); } catch(e){ return init.body; } })() : init);
-        // Visual cue: flash border on modal
-        const m = document.getElementById('summaryModal');
-        if(m) { m.style.outline = '4px dashed lime'; setTimeout(()=>{ if(m) m.style.outline=''; }, 1200); }
-      }
-    }catch(e){ safeLog('fetch-wrap log failed', e); }
-    return origFetch.apply(this, arguments);
-  };
-
-  // Hook the saveSummaryForm submit (the interceptor should already exist in your code)
-  const ssf = document.getElementById('saveSummaryForm');
-  if(ssf){
-    ssf.addEventListener('submit', function(e){
-      try{
-        // show current fields
-        const summaryVal = (document.getElementById('summaryJsonInput')?.value) || null;
-        const scrapeUrl = document.getElementById('scrapeUrlField')?.value || null;
-        const scrapeCat = document.getElementById('scrapeCategoryField')?.value || null;
-        const scrapeForce = document.getElementById('scrapeForceField')?.value || null;
-        safeLog('saveSummaryForm.submit (intercept) summaryPresent=', !!summaryVal, 'scrapeUrl=', scrapeUrl, 'scrapeCat=', scrapeCat, 'scrapeForce=', scrapeForce);
-        // also pretty-print JSON if small
-        if(summaryVal){
-          try { safeLog('summary JSON', JSON.parse(summaryVal)); } catch(e){ safeLog('summary raw', summaryVal.slice(0,500)); }
-        }
-      }catch(err){ safeLog('saveSummaryForm submit hook error', err); }
-    }, true);
-  } else safeLog('saveSummaryForm NOT FOUND');
-
-  // When modal is shown/hidden, log it
-  const observer = new MutationObserver(function(muts){
-    try{
-      const modal = document.getElementById('summaryModal');
-      if(modal){
-        const style = window.getComputedStyle(modal);
-        if(style.display !== 'none'){
-          safeLog('summaryModal is visible');
-        } else {
-          // optional: safeLog('summaryModal is hidden');
-        }
-      }
-    }catch(e){ safeLog('mutation observer err', e); }
-  });
-  observer.observe(document.documentElement || document.body, { attributes: true, childList: true, subtree: true });
-
-  // Periodic sanity check: print whether modal and form are present every 2s for 6 checks
-  let checks = 0;
-  const interval = setInterval(function(){
-    checks++;
-    const present = {
-      modal: !!document.getElementById('summaryModal'),
-      summaryInput: !!document.getElementById('summaryJsonInput'),
-      saveForm: !!document.getElementById('saveSummaryForm'),
-      urlField: !!document.getElementById('scrapeUrlField')
-    };
-    safeLog('periodic-dom-check', present);
-    if(checks>6) clearInterval(interval);
-  }, 2000);
-
-  safeLog('RC-DEBUG injected');
-})();
-(function(){
-  function getSummaryData(){
-    const input = document.getElementById('summaryJsonInput');
-    if(!input) return null;
-    try {
-      const data = JSON.parse(input.value || '{}');
-      if(!Array.isArray(data.lines)) data.lines = [];
-      return { input, data };
-    } catch(e) {
-      return { input, data: { lines: [] } };
-    }
-  }
-
-  function saveSummaryData(obj){
-    if(!obj || !obj.input) return;
-    obj.input.value = JSON.stringify(obj.data);
-  }
-
-  // Click on category buttons (delegation)
-  document.addEventListener('click', function(ev){
-    const btn = ev.target.closest && ev.target.closest('.category-btn');
-    if(!btn) return;
-    ev.preventDefault();
-    // prevent other handlers (the "other modal" that opened)
-    try { ev.stopImmediatePropagation(); } catch(e){}
-    try { ev.stopPropagation(); } catch(e){}
-
-    const lid = btn.dataset.lineId || (btn.closest('[data-line-id]') && btn.closest('[data-line-id]').dataset.lineId) || '';
-    const cat = btn.dataset.cat || '';
-    if(!lid) return;
-
-    const state = getSummaryData();
-    if(!state) return;
-    let { data } = state;
-    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
-    if(!line){
-      line = { id: lid, category: '' };
-      data.lines.push(line);
-    }
-
-    // toggle: if already set -> clear, else set
-    line.category = (String(line.category || '') === String(cat)) ? '' : String(cat);
-
-    // update button classes for that line
-    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
-      b.classList.toggle('bg-sky-600', (b.dataset.cat === line.category));
-      b.classList.toggle('text-white', (b.dataset.cat === line.category));
-    });
-
-    // also update corresponding select if present
-    const sel = document.querySelector('select.expense-category[data-line-id="'+CSSescape(lid)+'"]');
-    if(sel) try { sel.value = line.category || ''; } catch(e){}
-
-    saveSummaryData(state);
-  }, true);
-
-  // change on line-selects
-  document.addEventListener('change', function(ev){
-    const sel = ev.target;
-    if(!sel || !sel.matches || !sel.matches('select.expense-category')) return;
-    const lid = sel.dataset.lineId || (sel.closest('[data-line-id]') && sel.closest('[data-line-id]').dataset.lineId) || '';
-    if(!lid) return;
-    const state = getSummaryData();
-    if(!state) return;
-    let { data } = state;
-    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
-    if(!line){
-      line = { id: lid, category: '' };
-      data.lines.push(line);
-    }
-    line.category = String(sel.value || '');
-    // update any buttons
-    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
-      b.classList.toggle('bg-sky-600', (b.dataset.cat === line.category));
-      b.classList.toggle('text-white', (b.dataset.cat === line.category));
-    });
-    saveSummaryData(state);
-  }, true);
-
-  // clear button (if exists)
-  document.addEventListener('click', function(ev){
-    const cb = ev.target.closest && ev.target.closest('#clearCategory');
-    if(!cb) return;
-    ev.preventDefault();
-    try { ev.stopImmediatePropagation(); } catch(e){}
-    const container = cb.closest('[data-line-id]') || document;
-    const lid = container && container.dataset && container.dataset.lineId ? container.dataset.lineId : '';
-    if(!lid) return;
-    const state = getSummaryData();
-    if(!state) return;
-    let { data } = state;
-    let line = data.lines.find(l => String(l.id || l.line_id || '') === String(lid));
-    if(!line){
-      line = { id: lid, category: '' };
-      data.lines.push(line);
-    }
-    line.category = '';
-    // update UI
-    document.querySelectorAll('.category-btn[data-line-id="'+CSSescape(lid)+'"]').forEach(b=>{
-      b.classList.remove('bg-sky-600','text-white');
-    });
-    const sel = document.querySelector('select.expense-category[data-line-id="'+CSSescape(lid)+'"]');
-    if(sel) sel.value = '';
-    saveSummaryData(state);
-  }, true);
-
-  // Ensure hidden input is up-to-date before normal form submit
-  const saveForm = document.getElementById('saveSummaryForm');
-  if(saveForm){
-    saveForm.addEventListener('submit', function(ev){
-      // just ensure input is stringified (handlers already update it live)
-      const s = getSummaryData();
-      if(s) saveSummaryData(s);
-      // allow normal submit (server-side will persist)
-    });
-  }
-
-  // small CSS.escape fallback used above
-  function CSSescape(s){
-    if(window.CSS && CSS.escape) return CSS.escape(s);
-    return String(s).replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g,'\\$1');
-  }
-})();
-
-(function RC_AUTO_INJECT_SUMMARY_MODAL(){
-  try {
-    console.log('[RC-DEBUG] periodic-dom-check starting');
-
-    function exists(id){ return !!document.getElementById(id); }
-
-    const needs = {
-      modal: exists('summaryModal'),
-      summaryInput: exists('summaryJsonInput'),
-      saveForm: exists('saveSummaryForm'),
-      urlField: exists('scrapeUrlField')
-    };
-    console.log('[RC-DEBUG] DOM presence (before inject)', needs);
-
-    if (needs.modal && needs.summaryInput && needs.saveForm) {
-      console.log('[RC-DEBUG] All required DOM elements present, no injection needed');
-      return;
-    }
-
-    // Build modal HTML (minimal, matches server-side expected IDs)
-    const modalHtml = `
-<div id="summaryModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-  <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span></h3>
-      <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      <div><strong>Α/Α Παραστατικού</strong><div id="summary_AA"></div></div>
-      <div><strong>ΑΦΜ</strong><div id="summary_AFM"></div></div>
-      <div><strong>Επωνυμία</strong><div id="summary_Name"></div></div>
-      <div><strong>Ημερομηνία</strong><div id="summary_issueDate"></div></div>
-      <div><strong>Τύπος Παραστατικού</strong><div id="summary_type_name"></div></div>
-      <div><strong>Καθαρή Αξία</strong><div id="summary_totalNetValue"></div></div>
-      <div><strong>ΦΠΑ</strong><div id="summary_totalVatAmount"></div></div>
-      <div><strong>Σύνολο</strong><div id="summary_totalValue"></div></div>
-    </div>
-
-    <h4 class="font-medium mt-4 mb-2">Γραμμές Παραστατικού (για χαρακτηρισμό)</h4>
-    <div id="summaryLinesContainer" class="overflow-auto max-h-96 border rounded p-2"></div>
-
-    <div class="mt-4 flex justify-between items-center">
-      <div class="text-sm text-gray-600">Σημείωση: οι κατηγορίες προέρχονται από τα settings του πελάτη.</div>
-      <div class="flex justify-end gap-2">
-        <form method="POST" action="{{ url_for('save_summary') }}" id="saveSummaryForm">
-          <input type="hidden" name="summary_json" id="summaryJsonInput" value='{}'>
-          <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση στο Cache</button>
-          <input type="hidden" id="scrapeUrlField" name="scrape_url" value="">
-          <input type="hidden" id="scrapeCategoryField" name="scrape_category" value="">
-          <input type="hidden" id="scrapeForceField" name="scrape_force" value="false">
-        </form>
-        <button id="modalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
       </div>
+      {% endif %}
+      <a class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
     </div>
   </div>
-</div>`.trim();
 
-    // Inject into document.body
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = modalHtml;
-    // append at end of body so it does not break layout
-    document.body.appendChild(wrapper.firstChild);
+  <div class="flex items-center gap-3 mb-4">
+    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+    <button id="deleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
+    <div id="deleteSpinner" class="ml-2 hidden text-gray-700">Αποστολή…</div>
+  </div>
 
-    // wire close buttons to hide modal (same behavior as original)
-    function hideModal(){
-      const m = document.getElementById('summaryModal');
-      if (m) m.style.display = 'none';
-      try { history.replaceState(null, '', location.pathname + (location.search || '') + location.hash); } catch(e){}
-    }
-    document.getElementById('modalCloseX')?.addEventListener('click', hideModal);
-    document.getElementById('modalCloseBtn')?.addEventListener('click', hideModal);
+  <div class="overflow-x-auto">
+    {% if table_html %}
+      {{ table_html | safe }}
+    {% else %}
+      <div class="p-3 text-gray-500">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
+    {% endif %}
+  </div>
+</div>
 
-    // Re-check presence
-    const needs_after = {
-      modal: exists('summaryModal'),
-      summaryInput: exists('summaryJsonInput'),
-      saveForm: exists('saveSummaryForm'),
-      urlField: exists('scrapeUrlField')
-    };
-    console.log('[RC-DEBUG] DOM presence (after inject)', needs_after);
-    console.log('[RC-DEBUG] Auto-injection done — the client flow should now find the modal and form.');
-
-  } catch (e) {
-    console.error('[RC-DEBUG] auto-inject error', e);
-  }
-})();
-(function RC_POPULATE_SUMMARY_MODAL(){
-  try {
-    console.log('[RC-DEBUG] summary-populate init');
-
-    const summaryInput = document.getElementById('summaryJsonInput');
-    const modal = document.getElementById('summaryModal');
-    const markEl = document.getElementById('summaryModalMark');
-    const aaEl = document.getElementById('summary_AA');
-    const afmEl = document.getElementById('summary_AFM');
-    const nameEl = document.getElementById('summary_Name');
-    const issueEl = document.getElementById('summary_issueDate');
-    const typeEl = document.getElementById('summary_type_name');
-    const netEl = document.getElementById('summary_totalNetValue');
-    const vatEl = document.getElementById('summary_totalVatAmount');
-    const totEl = document.getElementById('summary_totalValue');
-    const linesContainer = document.getElementById('summaryLinesContainer');
-
-    if (!summaryInput) {
-      console.warn('[RC-DEBUG] summaryJsonInput NOT FOUND — modal will not populate');
-      return;
-    }
-    if (!modal) {
-      console.warn('[RC-DEBUG] summaryModal NOT FOUND — abort populate watcher');
-      return;
-    }
-
-    let lastVal = '';
-    function safeText(node, v){
-      if(!node) return;
-      node.textContent = (v === null || v === undefined) ? '' : String(v);
-    }
-
-    function renderLines(lines){
-      if(!linesContainer) return;
-      linesContainer.innerHTML = '';
-      if(!Array.isArray(lines) || lines.length === 0){
-        const p = document.createElement('div'); p.className = 'p-2 text-sm text-gray-600'; p.textContent = 'Δεν βρέθηκαν γραμμές.';
-        linesContainer.appendChild(p);
-        return;
-      }
-
-      // build a small table
-      const tbl = document.createElement('table');
-      tbl.className = 'w-full text-sm';
-      tbl.style.borderCollapse = 'collapse';
-      const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th class="p-1 border text-left">#</th><th class="p-1 border text-left">Περιγραφή</th><th class="p-1 border text-right">Ποσό</th><th class="p-1 border text-right">ΦΠΑ</th></tr>';
-      tbl.appendChild(thead);
-      const tbody = document.createElement('tbody');
-      lines.forEach((ln, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="p-1 border text-left">${idx+1}</td>
-                        <td class="p-1 border text-left">${(ln.description||ln.desc||'').toString().slice(0,200)}</td>
-                        <td class="p-1 border text-right">${ln.amount||ln.lineTotal||''}</td>
-                        <td class="p-1 border text-right">${ln.vat||ln.vatRate||''}</td>`;
-        tbody.appendChild(tr);
-      });
-      tbl.appendChild(tbody);
-      linesContainer.appendChild(tbl);
-    }
-
-    function populateOnce(){
-      try {
-        const v = (summaryInput.value || '').trim();
-        if (!v) {
-          // nothing to show
-          return;
-        }
-        if (v === lastVal) return;
-        lastVal = v;
-        let obj = {};
-        try { obj = JSON.parse(v); } catch(err){
-          console.warn('[RC-DEBUG] failed parsing summaryJsonInput JSON', err, v);
-          return;
-        }
-        console.log('[RC-DEBUG] populate modal from summary JSON', obj);
-
-        safeText(markEl, obj.mark || obj.MARK || (obj.raw && obj.raw.MARK) || '');
-        safeText(aaEl, obj.AA || obj.aa || obj.progressive_aa || (obj.raw && obj.raw.progressive_aa) || '');
-        safeText(afmEl, obj.AFM_issuer || obj.AFM || obj.issuer_vat || (obj.raw && obj.raw.issuer_vat) || '');
-        safeText(nameEl, obj.Name || obj.Name_issuer || obj.issuer_name || (obj.raw && obj.raw.issuer_name) || '');
-        safeText(issueEl, obj.issueDate || obj.issue_date || (obj.raw && obj.raw.issue_date) || '');
-        safeText(typeEl, obj.type_name || obj.type || (obj.raw && obj.raw.doc_type) || '');
-        safeText(netEl, obj.totalNetValue || obj.total_amount || obj.totalValue || (obj.raw && obj.raw.total_amount) || '');
-        safeText(vatEl, obj.totalVatAmount || (obj.raw && obj.raw.totalVatAmount) || '');
-        safeText(totEl, obj.totalValue || obj.total_amount || (obj.raw && obj.raw.total_amount) || '');
-
-        // lines
-        let lines = [];
-        if (Array.isArray(obj.lines) && obj.lines.length) lines = obj.lines;
-        else if (obj.raw && Array.isArray(obj.raw.lines) && obj.raw.lines.length) lines = obj.raw.lines;
-        else if (obj.lines && typeof obj.lines === 'object') {
-          // sometimes backend sends object: try to collect values
-          try {
-            lines = Object.values(obj.lines).filter(x => x);
-          } catch(e){}
-        }
-        renderLines(lines);
-
-        // if modal is hidden, ensure it's visible when populate invoked by scraper flow
-        try {
-          if (modal && modal.style.display === 'none') {
-            modal.style.display = 'flex';
-          }
-        } catch(e){}
-
-      } catch(e){
-        console.error('[RC-DEBUG] populateOnce error', e);
-      }
-    }
-
-    // Start polling for changes to summaryJsonInput.value
-    const poll = setInterval(populateOnce, 250);
-
-    // Also populate when modal opens (observe style attribute)
-    const obs = new MutationObserver(muts => {
-      for(const m of muts){
-        if (m.type === 'attributes' && m.attributeName === 'style'){
-          try { if (modal.style.display !== 'none') populateOnce(); } catch(e){}
-        }
-      }
-    });
-    try { obs.observe(modal, { attributes: true, attributeFilter: ['style'] }); } catch(e){}
-
-    // expose a debug function on window to force populate
-    window.RC_forcePopulateSummaryModal = populateOnce;
-
-    console.log('[RC-DEBUG] summary-populate watcher started');
-
-    // Optional: stop polling after N seconds to be tidy
-    setTimeout(()=>{ clearInterval(poll); console.log('[RC-DEBUG] stopped summary-populate polling (timeout)'); }, 60*1000);
-
-  } catch (err) {
-    console.error('[RC-DEBUG] summary-populate init failed', err);
-  }
-})();
-
-(function RC_FORCE_MODAL_GUARD(){
-  try {
-    const dbg = (...a) => { try { console.log('[RC-MODAL-GUARD]', ...a); } catch(e) {} };
-
-    function parseSummary() {
-      const el = document.getElementById('summaryJsonInput');
-      if (!el) return {};
-      try { return JSON.parse(el.value || '{}') || {}; } catch(e){ dbg('parseSummary JSON error', e); return {}; }
-    }
-
-    function hasMeaningfulSummary(obj) {
-      if (!obj || typeof obj !== 'object') return false;
-      // important single fields that guarantee modal should open
-      const keys = ['mark','MARK','AFM_issuer','AFM','totalValue','totalNetValue','total_amount','issueDate','issue_date','progressive_aa','AA'];
-      for (const k of keys) {
-        if (obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') return true;
-      }
-      // check raw.* fields if present
-      if (obj.raw && typeof obj.raw === 'object') {
-        for (const k of ['MARK','issuer_vat','total_amount','issue_date','progressive_aa']) {
-          if (obj.raw[k] !== undefined && obj.raw[k] !== null && String(obj.raw[k]).trim() !== '') return true;
-        }
-      }
-      // lines array with at least one non-empty line
-      if (Array.isArray(obj.lines) && obj.lines.length) {
-        for (const ln of obj.lines) {
-          if (!ln) continue;
-          if ((ln.description && String(ln.description).trim() !== '') ||
-              (ln.amount && String(ln.amount).trim() !== '') ||
-              (ln.id && String(ln.id).trim() !== '')) return true;
-        }
-      }
-      // fallback: object with >1 non-empty keys
-      const nonEmpty = Object.keys(obj).filter(k=>{
-        try { return obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== ''; } catch(e){ return false; }
-      });
-      return nonEmpty.length > 1;
-    }
-
-    function ensureModalHiddenUnlessMeaningful() {
-      const modal = document.getElementById('summaryModal');
-      const summaryEl = document.getElementById('summaryJsonInput');
-      if (!modal || !summaryEl) { dbg('no modal/summaryEl present'); return; }
-
-      // Force-hide now (neutralize server/client auto-show)
-      try { modal.style.display = 'none'; } catch(_) {}
-
-      // If summary becomes meaningful, show it (and populate watcher should fill fields)
-      const checkAndMaybeShow = () => {
-        const obj = parseSummary();
-        if (hasMeaningfulSummary(obj)) {
-          dbg('summary meaningful -> showing modal', obj);
-          try {
-            // try to trigger your populate logic if present
-            if (window.RC_forcePopulateSummaryModal) {
-              try { window.RC_forcePopulateSummaryModal(); } catch(e){ dbg('RC_forcePopulateSummaryModal failed', e); }
-            } else if (typeof populateSummaryModal === 'function') {
-              try { populateSummaryModal(obj); } catch(e){ dbg('populateSummaryModal failed', e); }
-            }
-            modal.style.display = 'flex';
-          } catch(e){ dbg('show modal failed', e); }
-        } else {
-          // keep hidden
-          dbg('summary not meaningful -> keep modal hidden');
-          try { modal.style.display = 'none'; } catch(_) {}
-        }
-      };
-
-      // run immediate check after tiny delay (let other init finish)
-      setTimeout(checkAndMaybeShow, 60);
-
-      // observe changes to summaryJsonInput.value (detect writes by other code)
-      try {
-        let lastVal = summaryEl.value || '';
-        const poll = setInterval(() => {
-          try {
-            const cur = summaryEl.value || '';
-            if (cur !== lastVal) {
-              lastVal = cur;
-              dbg('summaryJsonInput changed -> recheck');
-              checkAndMaybeShow();
-            }
-          } catch(e){ dbg('poll error', e); }
-        }, 200);
-        // auto-stop polling after 60s
-        setTimeout(()=>clearInterval(poll), 60*1000);
-      } catch(e){ dbg('poll install failed', e); }
-
-      // observe modal style changes by others: if someone tries to open it while summary not meaningful, immediately hide
-      try {
-        const mo = new MutationObserver(muts => {
-          try {
-            const obj = parseSummary();
-            if (!hasMeaningfulSummary(obj)) {
-              const modalEl = document.getElementById('summaryModal');
-              if (modalEl) {
-                const disp = window.getComputedStyle(modalEl).display;
-                if (disp !== 'none') {
-                  dbg('modal was opened by other code while summary not meaningful -> hiding it');
-                  modalEl.style.display = 'none';
-                }
-              }
-            }
-          } catch(e){ dbg('mutation observer callback error', e); }
-        });
-        const modalNode = document.getElementById('summaryModal');
-        if (modalNode) mo.observe(modalNode, { attributes: true, attributeFilter: ['style', 'class'] });
-      } catch(e){ dbg('mutation observer install failed', e); }
-    }
-
-    // Run after DOM ready (also run if DOM already ready)
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', ensureModalHiddenUnlessMeaningful);
-    } else {
-      setTimeout(ensureModalHiddenUnlessMeaningful, 10);
-    }
-
-    dbg('RC_FORCE_MODAL_GUARD installed');
-  } catch(err) {
-    try { console.error('[RC-MODAL-GUARD] init failed', err); } catch(e){}
-  }
-})();
-
-document.addEventListener('click', function(ev){
-  const btn = ev.target.closest('.category-btn');
-  if(!btn) return;
-
-  // 1) Αποτροπή bubbling για να μην ανοίγει άλλο modal
-  ev.preventDefault();
-  try { ev.stopImmediatePropagation(); } catch(e){}
-  try { ev.stopPropagation(); } catch(e){}
-
-  // 2) Ενημέρωση κουμπιών (UI)
-  const lineId = btn.dataset.lineId;
-  const cat = btn.dataset.cat;
-  const siblings = btn.parentElement.querySelectorAll('.category-btn');
-  siblings.forEach(s => s.classList.remove('bg-sky-600','text-white'));
-  btn.classList.add('bg-sky-600','text-white');
-
-  // 3) Ενημέρωση του select για compatibility
-  const sel = document.querySelector('select.expense-category[data-line-id="'+lineId+'"]');
-  if(sel) sel.value = cat;
-
-  // 4) Ενημέρωση του hidden JSON input
-  const input = document.getElementById('summaryJsonInput');
-  if(!input) return;
-  let data = {};
-  try { data = JSON.parse(input.value || '{}'); } catch(e){ data = {}; }
-
-  // Ensure lines array exists
-  if(!Array.isArray(data.lines)) data.lines = [];
-
-  // Update or add line
-  let line = data.lines.find(l => String(l.id || l.line_id || '') === lineId);
-  if(!line){
-    line = {id: lineId};
-    data.lines.push(line);
-  }
-  line.category = cat; // <--- εδώ γράφεται η κατηγορία
-
-  // Save back
-  input.value = JSON.stringify(data);
-});
-
-document.querySelectorAll('.category-btn').forEach(btn=>{
-  btn.addEventListener('click', function(ev){
-    ev.preventDefault(); // δεν χρειάζεται stopPropagation
-
-    const lineId = this.dataset.lineId;
-    const cat = this.dataset.cat;
-
-    // Αποτύπωση UI
-    const siblings = this.parentElement.querySelectorAll('.category-btn');
-    siblings.forEach(s => s.classList.remove('bg-sky-600','text-white'));
-    this.classList.add('bg-sky-600','text-white');
-
-    // Ενημέρωση select για συμβατότητα
-    const sel = document.querySelector('select.expense-category[data-line-id="'+lineId+'"]');
-    if(sel) sel.value = cat;
-
-    // Ενημέρωση summaryJsonInput
-    const input = document.getElementById('summaryJsonInput');
-    if(!input) return;
-    let data = {};
-    try { data = JSON.parse(input.value || '{}'); } catch(e){ data={}; }
-    if(!Array.isArray(data.lines)) data.lines = [];
-    let line = data.lines.find(l => String(l.id||l.line_id||'')===lineId);
-    if(!line){
-      line = {id: lineId};
-      data.lines.push(line);
-    }
-    line.category = cat;
-    input.value = JSON.stringify(data);
-
-    // !!! Σημαντικό: μην καλείς stopPropagation εδώ !!!
-    // Άλλο modal handler θα πρέπει να φιλτράρει ποιο στοιχείο το ενεργοποιεί
-  });
-});
-document.addEventListener('click', function(ev){
-  // Αν το click προέρχεται από κουμπί category, αγνόησε
-  if(ev.target.closest('.category-btn')) return;
-
-  // άλλος κώδικας που ανοίγει modal
-});
-
-
-
-
-
-// === Frontend patch: enrich delete_invoices POST + clear client-side cache ===
-document.addEventListener('submit', function(ev){
-  try{
-    const form = ev.target;
-    if(!form || !form.action) return;
-    // Match delete_invoices endpoint (relative or absolute)
-    const a = document.createElement('a'); a.href = form.action;
-    const path = (a.pathname || '') + (a.search || '');
-    if(!/delete_invoices/.test(path)) return;
-
-    // 1) Ensure active_vat is posted
-    const existingHv = form.querySelector('input[name="active_vat"]');
-    if(!existingHv){
-      const hv = document.createElement('input');
-      hv.type = 'hidden';
-      hv.name = 'active_vat';
-      const activeVat = (document.querySelector('#vatSelector')?.value
-                      || document.querySelector('[name="vat"]')?.value
-                      || document.body.dataset.activeVat
-                      || '').toString().trim();
-      hv.value = activeVat;
-      form.appendChild(hv);
-    }
-
-    // 2) Collect marks to delete
-    let marks = Array.from(form.querySelectorAll('input[name="delete_mark"]')).map(i => (i.value||'').trim()).filter(Boolean);
-    if(!marks.length){
-      marks = Array.from(document.querySelectorAll('input[name="delete_mark"]:checked')).map(i => (i.value||'').trim()).filter(Boolean);
-    }
-
-    // 3) Clear client-side caches (localStorage keys that reference these MARKs)
-    try{
-      marks.forEach(mk => {
-        // common per-mark keys
-        localStorage.removeItem(`epsilon_summary_${mk}`);
-        localStorage.removeItem(`EPSILON:INV:${mk}`);
-      });
-      // any key containing one of the marks
-      for(let i=localStorage.length-1; i>=0; i--){
-        const k = localStorage.key(i);
-        if(!k) continue;
-        if(marks.some(mk => k.includes(mk))){
-          localStorage.removeItem(k);
-        }
-      }
-      // also clear any prefilled summary hidden input to avoid stale reopen
-      const sumInp = document.getElementById('summaryJsonInput');
-      if(sumInp) sumInp.value = '';
-    }catch(e){ /* ignore storage errors */ }
-
-  }catch(err){
-    console.warn('delete_invoices frontend patch failed', err);
-  }
-}, true);
-
-
-</script>
+<!-- Delete modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-30">
+  <div class="bg-white p-6 rounded-lg w-80 shadow-lg text-center">
+    <div id="deleteModalMessage" class="mb-4 font-semibold text-gray-800"></div>
+    <div class="flex gap-3 justify-center">
+      <button id="deleteCancel" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Ακύρωση</button>
+      <button id="deleteConfirm" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">Διαγραφή</button>
+    </div>
+  </div>
+</div>
 
 <style>
-    /* minimal styling for the toggle switch */
-    /* μόνο για modal */
-    .modal-summary-table th {
-        background-color: #0d6efd;
-        color: white;
-        border: 1px solid #ccc;
-    }
-
-    .modal-summary-table td {
-        border: 1px solid #e2e8f0;
-    }
-
-    .modal-summary-table tr:nth-child(even) {
-        background-color: #f9fafb;
-    }
-
-    .modal-summary-table tr:hover {
-        background-color: #e6f0ff;
-    }
-
-    .modal-summary-table tfoot td {
-        background-color: #f1f5f9;
-    }
-
-    /* κλείδωμα κλικ πίσω από modal */
-    .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.45);
-        z-index: 99998;
-    }
-
-    #summaryModal {
-        z-index: 99999;
-        position: fixed;
-        inset: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-
-        #summaryModal.show {
-            display: flex;
-        }
-
-    body.modal-open #page-root {
-        pointer-events: none;
-    }
-    /* βάλε id=page-root στο κύριο wrapper της σελίδας */
-    body.modal-open #summaryModal,
-    body.modal-open #summaryModal * {
-        pointer-events: auto;
-    }
-
-    .toggle-switch {
-        width: 42px;
-        height: 24px;
-        -webkit-appearance: none;
-        appearance: none;
-        background: #e5e7eb;
-        border-radius: 999px;
-        position: relative;
-        outline: none;
-        cursor: pointer;
-        vertical-align: middle;
-    }
-
-        .toggle-switch:checked {
-            background: #0ea5a4;
-        }
-
-        .toggle-switch::after {
-            content: "";
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            background: white;
-            transition: transform .15s ease;
-        }
-
-        .toggle-switch:checked::after {
-            transform: translateX(18px);
-        }
-</style>
-{% endblock %}
-
-<!-- === BEGIN: Repeat-entry & empty-submit guards === -->
-<script>
-// --- Helper: ελέγχει αν το summary είναι ουσιαστικό για αποθήκευση ---
-function isMeaningfulSummaryObject(obj){
-  try{
-    if (!obj || typeof obj !== 'object') return false;
-    const mark = String(obj.mark || obj.MARK || '').trim();
-    if (!/^\d{15}$/.test(mark)) return false;  // θέλουμε 15ψήφιο MARK
-    const lines = Array.isArray(obj.lines) ? obj.lines : [];
-    if (lines.length === 0) return false;
-    // τουλάχιστον μία γραμμή με κάποιο πεδίο γεμάτο
-    return lines.some(l => {
-      if (!l) return false;
-      const desc = (l.description || l.desc || '').toString().trim();
-      const amt  = (l.amount || l.lineTotal || l.total || '').toString().trim();
-      const id   = (l.id || l.line_id || '').toString().trim();
-      return (!!desc || !!amt || !!id);
-    });
-  }catch(_){ return false; }
+.summary-table th {
+  background-color: #0d6efd;
+  color: white;
+  border: 1px solid #ccc;
+}
+.summary-table td {
+  border: 1px solid #e2e8f0;
+}
+.summary-table tr:nth-child(even) { background-color: #f9fafb; }
+.summary-table tr:hover { background-color: #e6f0ff; }
+.summary-table tfoot td {
+  background-color: #f1f5f9;
 }
 
-// --- GUARD 1: μην υποβάλεις τη φόρμα αναζήτησης χωρίς input ---
-(function guardEmptySearchSubmit(){
-  const form = document.getElementById('markSearchForm');
-  if (!form) return;
-  form.addEventListener('submit', (e) => {
-    const mark = (document.getElementById('markInput')?.value || '').trim();
-    const url  = (document.getElementById('scrapeUrlInput')?.value || '').trim();
-    if (!mark && !url) {
-      e.preventDefault(); // STOP
-      return;
-    }
-  }, true);
-})();
+/* ⬇️ Κρύψε ΜΟΝΟ το tfoot μέσα στο scrollBody (δεύτερη «στατική» γραμμή) χωρίς να χαλάει η στοίχιση */
+.dataTables_wrapper .dataTables_scrollBody table tfoot {
+  visibility: hidden;            /* ΟΧΙ display:none */
+}
 
-// --- GUARD 2: μπλόκαρε event submit προς /save_summary αν δεν είναι ουσιαστικό ---
-(function guardSaveSummarySubmitEvent(){
-  document.addEventListener('submit', function(e){
-    const form = e.target;
-    if (!form || !(form instanceof HTMLFormElement)) return;
-    const action = (form.getAttribute('action') || '').toString();
-    if (!/\/save_summary\b/.test(action)) return;
+/* Βεβαιώσου ότι το ορατό footer (scrollFoot) μένει ορατό */
+.dataTables_wrapper .dataTables_scrollFoot table tfoot {
+  visibility: visible;
+  display: table-footer-group;
+}
 
-    let data = {};
-    try { data = JSON.parse(document.getElementById('summaryJsonInput')?.value || '{}'); } catch(_){}
-    if (!isMeaningfulSummaryObject(data)) {
-      e.preventDefault(); // STOP
-      console.warn('[GUARD] Blocked submit to /save_summary (non-meaningful summary)');
-      return;
-    }
-  }, true);
-})();
+/* ⬇️ Κρύψε ΚΑΘΕ extra σειρά στο ορατό footer εκτός από τη δυναμική με data-totals="1" */
+.dataTables_wrapper .dataTables_scrollFoot table tfoot tr:not([data-totals="1"]) {
+  display: none !important;
+}
+/* (προληπτικά και για non-DataTables layouts) */
+.summary-table > tfoot tr:not([data-totals="1"]) {
+  display: none !important;
+}
+</style>
 
-// --- GUARD 3: μπλόκαρε programmatic form.submit() προς /save_summary όταν είναι άδειο ---
-(function monkeypatchFormSubmitForSaveSummary(){
-  const origSubmit = HTMLFormElement.prototype.submit;
-  HTMLFormElement.prototype.submit = function(){
-    try {
-      const action = (this.getAttribute('action') || '').toString();
-      const isSave = /\/save_summary\b/.test(action) || this.id === 'saveSummaryForm';
-      if (isSave) {
-        let data = {};
-        try { data = JSON.parse(document.getElementById('summaryJsonInput')?.value || '{}'); } catch(_){}
-        if (!isMeaningfulSummaryObject(data)) {
-          console.warn('[GUARD] Blocked form.submit() to /save_summary (non-meaningful summary)');
-          return; // STOP
-        }
+<script>
+(function(){
+  const $ = window.jQuery;
+
+  function greekNorm(s){
+    return (s||'').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  }
+  function parseLocalizedNumber(str){
+    if (str===undefined || str===null) return 0;
+    const v = parseFloat(String(str).replace(/\./g,'').replace(',','.'));
+    return Number.isFinite(v) ? v : 0;
+  }
+  function formatGreekNumber(n){
+    const sign = n<0?'-':'';
+    const absn=Math.abs(Number(n)||0);
+    const parts=absn.toFixed(2).split('.');
+    const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decPart=parts[1]||'00';
+    return sign+intPart+','+decPart;
+  }
+
+  function findHeaderIndexes(table){
+    const ths = Array.from(table.querySelectorAll('thead th'));
+    const names = ths.map(h => greekNorm(h.innerText || h.textContent || ''));
+    const idx = (...alts) => names.findIndex(t => alts.map(greekNorm).includes(t));
+    return {
+      net:   idx('καθαρη αξια','καθαρη','καθαρή','net','netvalue','totalnet'),
+      vat:   idx('φπα','vat'),
+      total: idx('συνολο','total','totalvalue','sum')
+    };
+  }
+
+  // Κρύψε τυχόν server-side «ΣΥΝΟΛΑ» μέσα στο tbody (χωρίς να αλλάξεις στήλες)
+  function hideServerTotalsRows(table){
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      const txt = greekNorm(tr.innerText || tr.textContent || '');
+      if (txt.startsWith('συνολα')){
+        tr.setAttribute('data-server-totals','1');
+        tr.style.display='none';
       }
-    } catch(_) {}
-    return origSubmit.apply(this, arguments);
-  };
-})();
+    });
+  }
 
-// --- GUARD 4: μπλόκαρε fetch('/save_summary', ...) όταν είναι άδειο ---
-(function guardFetchSaveSummary(){
-  const origFetch = window.fetch;
-  window.fetch = function(resource, init){
+  // Δημιούργησε/συντήρησε footer με ίδιο πλήθος κελιών όπως τα headers
+  function ensureFooter(table){
+    let tfoot = table.tFoot;
+    if(!tfoot){
+      tfoot = document.createElement('tfoot');
+      table.appendChild(tfoot);
+    }
+    table.appendChild(tfoot);
+    const thCount = table.querySelectorAll('thead th').length;
+    let tr = tfoot.querySelector('tr[data-totals="1"]');
+    if (!tr){
+      tfoot.innerHTML = '';
+      tr = document.createElement('tr');
+      tr.setAttribute('data-totals','1');
+      for(let i=0;i<thCount;i++){
+        const td=document.createElement('td');
+        td.className='p-2 border text-right font-medium';
+        if(i===0){ td.className='p-2 border text-left font-semibold'; td.textContent='ΣΥΝΟΛΑ'; }
+        tr.appendChild(td);
+      }
+      tfoot.appendChild(tr);
+    } else {
+      const currentCount = tr.children.length;
+      if (currentCount !== thCount){
+        tfoot.innerHTML = '';
+        return ensureFooter(table);
+      }
+    }
+    return tr;
+  }
+
+  // ⬇️ Συγχρονισμός ορατού footer (scrollFoot) με το original tfoot
+  function syncCloneFooter(table){
     try{
-      const url = (typeof resource === 'string') ? resource : (resource && resource.url) || '';
-      if (url && url.indexOf('/save_summary') !== -1) {
-        let payload = null;
-
-        if (init && init.body && typeof init.body === 'string') {
-          try { payload = JSON.parse(init.body); } catch(_){}
-        }
-        if (!payload) {
-          try { payload = JSON.parse(document.getElementById('summaryJsonInput')?.value || '{}'); } catch(_){}
-        }
-        if (!isMeaningfulSummaryObject(payload)) {
-          console.warn('[GUARD] Blocked fetch(/save_summary) with non-meaningful summary');
-          return Promise.resolve(new Response(
-            JSON.stringify({ ok:false, error:'client_guard_blocked_empty_summary' }),
-            { status: 204, headers: { 'Content-Type':'application/json' } }
-          ));
-        }
-      }
+      if (!($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable(table))) return;
+      const $wrap = $(table).closest('.dataTables_wrapper');
+      const $clone = $wrap.find('.dataTables_scrollFoot table tfoot');
+      if (!$clone.length || !table.tFoot) return;
+      $clone.html(table.tFoot.innerHTML);
     }catch(_){}
-    return origFetch.apply(this, arguments);
-  };
+  }
+
+  function computeAndRenderTotals(table){
+    const idxs = findHeaderIndexes(table);
+    let net=0, vat=0, total=0;
+
+    if ($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable(table)) {
+      const dt = $(table).DataTable();
+      dt.rows({ filter: 'applied' }).every(function(){
+        const node = this.node();
+        if (node && node.getAttribute && node.getAttribute('data-server-totals')==='1') return;
+        const tds = $(this.node()).find('td').toArray();
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    } else {
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        if (tr.style.display==='none') return;
+        if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') return;
+        const tds = tr.querySelectorAll('td');
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    }
+
+    const tr = ensureFooter(table);
+    const tds = tr.querySelectorAll('td');
+    if (idxs.net  >= 0 && tds[idxs.net])   tds[idxs.net].textContent   = formatGreekNumber(net);
+    if (idxs.vat  >= 0 && tds[idxs.vat])   tds[idxs.vat].textContent   = formatGreekNumber(vat);
+    if (idxs.total>= 0 && tds[idxs.total]) tds[idxs.total].textContent = formatGreekNumber(total);
+
+    // ⬇️ Αν υπάρχει κλώνος (scrollFoot), αντέγραψέ του το footer
+    syncCloneFooter(table);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const table = document.querySelector('.summary-table');
+    if(!table) return;
+
+    hideServerTotalsRows(table);
+
+    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+      const $t = jQuery('.summary-table');
+
+      const bind = ()=>{
+        hideServerTotalsRows(table);
+        ensureFooter(table);
+        computeAndRenderTotals(table);
+
+        $t.off('draw.dt._dynTotals').on('draw.dt._dynTotals', ()=>{
+          hideServerTotalsRows(table);
+          computeAndRenderTotals(table);   // θα κάνει και syncCloneFooter
+        });
+        $t.off('column-visibility.dt._dynTotals').on('column-visibility.dt._dynTotals', ()=>{
+          ensureFooter(table);
+          computeAndRenderTotals(table);
+        });
+      };
+
+      if (jQuery.fn.dataTable.isDataTable($t)) {
+        bind();
+      } else {
+        $t.off('init.dt._dynTotals').on('init.dt._dynTotals', () => bind());
+      }
+    } else {
+      // Fallback χωρίς DataTables
+      ensureFooter(table);
+      computeAndRenderTotals(table);
+      const globalSearch = document.getElementById('globalSearch');
+      if (globalSearch){
+        const recalc = ()=>{
+          const q = (globalSearch.value||'').toLowerCase();
+          table.querySelectorAll('tbody tr').forEach(tr=>{
+            if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') { tr.style.display='none'; return; }
+            tr.style.display = (tr.innerText||tr.textContent||'').toLowerCase().includes(q) ? '' : 'none';
+          });
+          computeAndRenderTotals(table);
+        };
+        globalSearch.addEventListener('input', ()=>setTimeout(recalc,0));
+        globalSearch.addEventListener('keydown', e=>{ if(e.key==='Escape'){ globalSearch.value=''; setTimeout(recalc,0);} });
+      }
+    }
+  });
+})();  
+
+/* ======= ΔΕΥΤΕΡΟ SCRIPT (διατηρημένο) — τρέχει ΜΟΝΟ χωρίς DataTables ======= */
+(function(){
+  const qs = (s,r=document)=>r.querySelector(s);
+  const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
+
+  function parseLocalizedNumber(str){
+    if(!str) return 0;
+    return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0;
+  }
+
+  function formatGreekNumber(n){
+    if(n===null||n===undefined) n=0;
+    const sign = n<0?'-':'';
+    const absn=Math.abs(Number(n)||0);
+    const parts=absn.toFixed(2).split('.');
+    const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decPart=parts[1]||'00';
+    return sign+intPart+','+decPart;
+  }
+
+  function reorderColumns(){
+    const table = qs('.summary-table');
+    if(!table) return;
+    const headers = Array.from(table.querySelectorAll('thead th'));
+    const headerTexts = headers.map(h => (h.innerText || h.textContent || '').trim().toLowerCase());
+    const moveLast = ['φπα_κατηγορια','είδος'];
+    const indexesToMove = moveLast.map(name => headerTexts.findIndex(h => h === name.toLowerCase()))
+                                  .filter(idx => idx >= 0);
+    if(!indexesToMove.length) return;
+    const allRows = [ ...qsa('thead tr', table), ...qsa('tbody tr', table) ];
+    allRows.forEach(tr => {
+      indexesToMove.forEach(idx => {
+        const cell = tr.children[idx];
+        if(cell) tr.appendChild(cell);
+      });
+    });
+  }
+
+  function computeTableTotals(){
+    try {
+      const table=qs('.summary-table');
+      if(!table) return;
+      const thead=table.querySelector('thead');
+      const headers=thead?Array.from(thead.querySelectorAll('th')):[];
+      const headerTexts=headers.map(h => (h.innerText || h.textContent || '').toString().trim().toLowerCase());
+
+      const netKeys=['καθαρή','καθαρη','net','netvalue','totalnet','καθαρη αξια','καθαρή αξία'];
+      const vatKeys=['φπα','vat']; 
+      const totalKeys=['σύνολο','συνολο','total','totalvalue','sum'];
+
+      function findIndexByKeywords(keys){
+        for(let i=0;i<headerTexts.length;i++){
+          const t=headerTexts[i];
+          if(!t) continue;
+          for(const k of keys) if(t===k) return i;
+        }
+        return -1;
+      }
+
+      const netIdx=findIndexByKeywords(netKeys);
+      const vatIdx=findIndexByKeywords(vatKeys);
+      const totalIdx=findIndexByKeywords(totalKeys);
+
+      let netSum=0, vatSum=0, totalSum=0;
+      const tbody=table.querySelector('tbody');
+      if(!tbody) return;
+
+      Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
+        if(tr.style.display==='none') return; // Μόνο ορατές γραμμές
+        const tds=Array.from(tr.querySelectorAll('td'));
+        if(netIdx>=0 && tds[netIdx]) netSum+=parseLocalizedNumber(tds[netIdx].innerText);
+        if(vatIdx>=0 && tds[vatIdx]) vatSum+=parseLocalizedNumber(tds[vatIdx].innerText);
+        if(totalIdx>=0 && tds[totalIdx]) totalSum+=parseLocalizedNumber(tds[totalIdx].innerText);
+      });
+
+      const existingTfoot=table.querySelector('tfoot');
+      if(existingTfoot) existingTfoot.remove();
+
+      const tfoot=document.createElement('tfoot');
+      const tr=document.createElement('tr');
+      const colCount=headers.length || (table.querySelectorAll('tr:first-child td').length || 0);
+
+      for(let i=0;i<colCount;i++){
+        const td=document.createElement('td');
+        td.className='p-2 border text-right font-medium';
+        if(i===0){
+          td.className='p-2 border text-left font-semibold';
+          td.innerText='ΣΥΝΟΛΑ';
+        } else if(i===netIdx) td.innerText=formatGreekNumber(netSum);
+        else if(i===vatIdx) td.innerText=formatGreekNumber(vatSum);
+        else if(i===totalIdx) td.innerText=formatGreekNumber(totalSum);
+        else td.innerText='';
+        tr.appendChild(td);
+      }
+      tfoot.appendChild(tr);
+      table.appendChild(tfoot);
+    } catch(e){ console.warn('computeTableTotals failed', e); }
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // ⬇️ Τρέξε αυτό το κομμάτι ΜΟΝΟ όταν ΔΕΝ υπάρχει DataTables
+    const hasDT = !!(window.jQuery && jQuery.fn && jQuery.fn.dataTable && jQuery('.summary-table').length && jQuery.fn.dataTable.isDataTable(jQuery('.summary-table')[0]));
+    if (hasDT) return;
+
+    reorderColumns();
+    computeTableTotals();
+
+    // Μικρότερο πλάτος για checkbox
+    const firstTh = qs('.summary-table thead th:first-child');
+    if(firstTh) firstTh.style.width = '40px';
+    qsa('.summary-table tbody tr').forEach(tr => {
+      const firstTd = tr.querySelector('td:first-child');
+      if(firstTd) firstTd.style.width = '40px';
+    });
+
+    // Toggle checkbox σε διπλό κλικ
+    const tbody = qs('.summary-table tbody');
+    if(tbody){
+      tbody.addEventListener('dblclick', e => {
+        const tr = e.target.closest('tr');
+        if(!tr) return;
+        const cb = tr.querySelector('input[name="delete_mark"]');
+        if(cb) cb.checked = !cb.checked;
+      });
+    }
+
+    // --- Global Search + dynamic totals (fallback) ---
+    const globalSearch = qs('#globalSearch');
+    function applyFilter(){
+      const q = (globalSearch.value||'').toLowerCase();
+      qsa('.summary-table tbody tr').forEach(tr=>{
+        tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none';
+      });
+      computeTableTotals();
+    }
+    if(globalSearch){
+      globalSearch.addEventListener('input', applyFilter);
+      globalSearch.addEventListener('keyup', e => {
+        if(['Delete','Backspace'].includes(e.key) || (e.metaKey||e.ctrlKey && e.key.toLowerCase()==='a')){
+          setTimeout(applyFilter, 10);
+        }
+      });
+      globalSearch.addEventListener('keydown', e=>{
+        if(e.key==='Escape'){
+          globalSearch.value='';
+          applyFilter();
+        }
+      });
+      const mo = new MutationObserver(applyFilter);
+      mo.observe(globalSearch, { attributes:true, attributeFilter:['value'] });
+      window.addEventListener('beforeunload', ()=>mo.disconnect());
+    }
+
+    // --- Download dropdown ---
+    const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
+    if(toggle && menu){
+      toggle.addEventListener('click', e=>{
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+        toggle.setAttribute('aria-expanded', menu.classList.contains('hidden')?'false':'true');
+      });
+      document.addEventListener('click', e=>{
+        if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)){
+          menu.classList.add('hidden');
+          toggle.setAttribute('aria-expanded','false');
+        }
+      });
+      document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
+      qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
+    }
+
+    // --- Delete button ---
+    const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
+      const modal=qs('#deleteModal');
+      const modalMsg=qs('#deleteModalMessage');
+      const cancelBtn=qs('#deleteCancel');
+      const confirmBtn=qs('#deleteConfirm');
+      const spinner=qs('#deleteSpinner');
+      let toDelete=[];
+      deleteBtn.addEventListener('click', ()=>{
+        toDelete=qsa('input[name="delete_mark"]:checked').map(cb=>cb.value).filter(v=>v.trim()!=='');
+        if(!toDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
+        modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
+        modal.classList.remove('hidden');
+      });
+      cancelBtn?.addEventListener('click', ()=>modal.classList.add('hidden'));
+      confirmBtn?.addEventListener('click', ()=>{
+        confirmBtn.disabled=true; spinner?.classList.remove('hidden');
+        const form=document.createElement('form'); form.method='POST'; form.action="{{ url_for('delete_invoices') }}";
+        const existingCsrf=qs('input[name="csrf_token"]'); 
+        if(existingCsrf){ const t=document.createElement('input'); t.type='hidden'; t.name='csrf_token'; t.value=existingCsrf.value; form.appendChild(t); }
+        toDelete.forEach(v=>{ const inp=document.createElement('input'); inp.type='hidden'; inp.name='delete_mark'; inp.value=v; form.appendChild(inp); });
+        document.body.appendChild(form); form.submit();
+      });
+    }
+  });
 })();
 </script>
-<!-- === END: Repeat-entry & empty-submit guards === -->
