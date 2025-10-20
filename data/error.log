@@ -300,3 +300,10 @@
 2025-10-20 10:51:30+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
 2025-10-20 10:51:30+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
 2025-10-20 10:51:30+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:54+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-20 10:58:54+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:54+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:55+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:55+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:55+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search
+2025-10-20 10:58:55+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://solid-spoon-7vjpqg99vwq6cx9qx-5001.app.github.dev/search

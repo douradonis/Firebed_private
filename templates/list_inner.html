@@ -105,6 +105,14 @@
 .dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td{
   border-top: 1px solid #e2e8f0;
 }
+.summary-table thead th {
+  white-space: normal !important;     /* επιτρέπει 2η γραμμή (π.χ. Καθαρή Αξία) */
+  vertical-align: middle !important;
+}
+.dataTables_wrapper .dataTables_scrollHead thead th {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;    /* DataTables μερικές φορές τα μηδενίζει */
+}
 </style>
 
 <script>
@@ -202,6 +210,22 @@
       });
     }catch(_){}
   }
+    // Κλείδωμα ύψους header (για να μη «μαζεύει» μετά από sorts/redraws)
+  function lockHeaderHeight(tableOr$){
+    try{
+      const $t = ($ && $.fn) ? ($(tableOr$).length ? $(tableOr$) : $(tableOr$[0])) : null;
+      if(!$t || !$t.length) return;
+      const $wrap = $t.closest('.dataTables_wrapper');
+      requestAnimationFrame(()=>{
+        const $ths = $wrap.find('.dataTables_scrollHead thead th');
+        if(!$ths.length) return;
+        const maxH = Math.max.apply(null, $ths.map((i,el)=>$(el).outerHeight()).get());
+        // Σταθεροποίησε ύψος για όλα τα th
+        $ths.css({ height: maxH, boxSizing: 'border-box' });
+      });
+    }catch(_){}
+  }
+
 
   function computeAndRenderTotals(table){
     const idxs = findHeaderIndexes(table);
@@ -246,20 +270,31 @@
     if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
       const $t = jQuery('.summary-table');
 
-      const bind = ()=>{
+            const bind = ()=>{
         hideServerTotalsRows(table);
         ensureFooter(table);
         computeAndRenderTotals(table);
 
+        // κλείδωσε ύψος header στην αρχική τιμή
+        lockHeaderHeight($t);
+
+        // Re-lock μετά από redraw/order/visibility/column sizing
         $t.off('draw.dt._dynTotals').on('draw.dt._dynTotals', ()=>{
           hideServerTotalsRows(table);
           computeAndRenderTotals(table);
+          lockHeaderHeight($t);
         });
-        $t.off('column-visibility.dt._dynTotals').on('column-visibility.dt._dynTotals', ()=>{
-          ensureFooter(table);
-          computeAndRenderTotals(table);
+        $t.off('order.dt._hdr').on('order.dt._hdr', ()=> lockHeaderHeight($t));
+        $t.off('column-visibility.dt._hdr').on('column-visibility.dt._hdr', ()=> lockHeaderHeight($t));
+        $t.off('column-sizing.dt._hdr').on('column-sizing.dt._hdr', ()=> lockHeaderHeight($t));
+
+        // και σε window resize (debounced)
+        let _hdrTO=null;
+        $(window).off('resize._hdr').on('resize._hdr', ()=>{
+          clearTimeout(_hdrTO); _hdrTO=setTimeout(()=>lockHeaderHeight($t), 60);
         });
       };
+
 
       if (jQuery.fn.dataTable.isDataTable($t)) {
         bind();
