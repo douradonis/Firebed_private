@@ -156,6 +156,7 @@
 <div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
 
 {% include 'list_inner.html' %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -163,6 +164,65 @@
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 
 <script>
+  (function () {
+  const KEY = 'UI:useReceipts'; // '1' = Αποδείξεις, '0' = Τιμολόγια
+
+  function fireChange(el){
+    if(!el) return;
+    try {
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    } catch {
+      const evt = document.createEvent('Event');
+      evt.initEvent('change', true, true);
+      el.dispatchEvent(evt);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const sw = document.getElementById('useReceiptsSwitch');
+    if (!sw) return;
+
+    // Αν υπάρχει ?use_receipts=1/0 στο URL, γράψ’ το στο localStorage (authoritative)
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.has('use_receipts')) {
+        localStorage.setItem(KEY, q.get('use_receipts') === '1' ? '1' : '0');
+      }
+    } catch {}
+
+    // Restore από localStorage
+    const saved = localStorage.getItem(KEY);
+    if (saved !== null) sw.checked = (saved === '1');
+
+    // ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ:
+    // Τρέξε τον υπάρχοντα change handler του switch ώστε να εμφανίσει/κρύψει
+    // τα σωστά inputs (MARK vs URL). Το κάνουμε 2 φορές (rAF + microtask)
+    // για να “πιάσει” σε DOM που φτιάχνεται δυναμικά.
+    requestAnimationFrame(() => {
+      fireChange(sw);
+      setTimeout(() => fireChange(sw), 0);
+    });
+
+    // Persist σε κάθε αλλαγή χρήστη
+    sw.addEventListener('change', () => {
+      try { localStorage.setItem(KEY, sw.checked ? '1' : '0'); } catch {}
+      // Προαιρετικό: κρατάμε και ένα data-mode στο body αν το θες για CSS hooks
+      document.body.dataset.mode = sw.checked ? 'receipts' : 'invoices';
+    });
+
+    // Όταν κάνεις submit/save απόδειξης, κλείδωσε το mode σε “Αποδείξεις”
+    // ώστε στο redirect/refresh να παραμείνει.
+    document.getElementById('saveSummaryForm')?.addEventListener('submit', () => {
+      try {
+        const raw = document.getElementById('summaryJsonInput')?.value || '';
+        const s = raw ? JSON.parse(raw) : {};
+        const isReceipt = s.is_receipt === true ||
+                          /αποδει/i.test(`${s.type_name || ''} ${s.category || s.characteristic || ''}`);
+        if (isReceipt) localStorage.setItem(KEY, '1');
+      } catch {}
+    });
+  });
+})();  
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
 const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
 const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
@@ -2871,6 +2931,7 @@ document.addEventListener('submit', function(ev){
 
 
 <script>
+
 /* ===== Auto-submit segmented toggle + guarded auto-detect (receipts & invoices) ===== */
 (function(){
   try {
@@ -3108,6 +3169,7 @@ document.addEventListener('submit', function(ev){
     return false;
   };
 })();
+
 </script>
 
 <script>
@@ -3219,6 +3281,7 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     return false;
   }
 };
+  
 </script>
 
 {% endblock %}

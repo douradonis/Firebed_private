@@ -87,7 +87,7 @@
     ]
   },
   {
-    "mark": "400011219241352",
+    "mark": "400011219241353",
     "issueDate": "25/09/2025",
     "series": "",
     "aa": "165",
@@ -109,6 +109,35 @@
         "id": "r0",
         "description": "",
         "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241354",
+    "issueDate": "10/10/2025",
+    "series": "",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
         "vat": "",
         "category": "αποδειξακια",
         "vat_category": ""
