@@ -11,6 +11,15 @@
     {% endif %}
 
     <form method="post" class="flex gap-2 items-center" id="markSearchForm">
+        <!-- Auto-submit segmented toggle (scoped to client) -->
+        <div class="flex items-center gap-2 ml-4" id="autoSubmitGroup">
+            <span class="text-sm">Auto‑submit</span>
+            <div class="inline-flex rounded-md overflow-hidden border border-gray-300">
+                <button type="button" id="autoSubmitBtnOff" class="px-2 py-1 text-sm focus:outline-none">Off</button>
+                <button type="button" id="autoSubmitBtnOn" class="px-2 py-1 text-sm focus:outline-none">On</button>
+            </div>
+        </div>
+
         <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
         <div class="flex items-center gap-2 ml-4">
@@ -154,65 +163,6 @@
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 
 <script>
-(function () {
-  const KEY = 'UI:useReceipts'; // '1' = Αποδείξεις, '0' = Τιμολόγια
-
-  function fireChange(el){
-    if(!el) return;
-    try {
-      el.dispatchEvent(new Event('change', { bubbles:true }));
-    } catch {
-      const evt = document.createEvent('Event');
-      evt.initEvent('change', true, true);
-      el.dispatchEvent(evt);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const sw = document.getElementById('useReceiptsSwitch');
-    if (!sw) return;
-
-    // Αν υπάρχει ?use_receipts=1/0 στο URL, γράψ’ το στο localStorage (authoritative)
-    try {
-      const q = new URLSearchParams(location.search);
-      if (q.has('use_receipts')) {
-        localStorage.setItem(KEY, q.get('use_receipts') === '1' ? '1' : '0');
-      }
-    } catch {}
-
-    // Restore από localStorage
-    const saved = localStorage.getItem(KEY);
-    if (saved !== null) sw.checked = (saved === '1');
-
-    // ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ:
-    // Τρέξε τον υπάρχοντα change handler του switch ώστε να εμφανίσει/κρύψει
-    // τα σωστά inputs (MARK vs URL). Το κάνουμε 2 φορές (rAF + microtask)
-    // για να “πιάσει” σε DOM που φτιάχνεται δυναμικά.
-    requestAnimationFrame(() => {
-      fireChange(sw);
-      setTimeout(() => fireChange(sw), 0);
-    });
-
-    // Persist σε κάθε αλλαγή χρήστη
-    sw.addEventListener('change', () => {
-      try { localStorage.setItem(KEY, sw.checked ? '1' : '0'); } catch {}
-      // Προαιρετικό: κρατάμε και ένα data-mode στο body αν το θες για CSS hooks
-      document.body.dataset.mode = sw.checked ? 'receipts' : 'invoices';
-    });
-
-    // Όταν κάνεις submit/save απόδειξης, κλείδωσε το mode σε “Αποδείξεις”
-    // ώστε στο redirect/refresh να παραμείνει.
-    document.getElementById('saveSummaryForm')?.addEventListener('submit', () => {
-      try {
-        const raw = document.getElementById('summaryJsonInput')?.value || '';
-        const s = raw ? JSON.parse(raw) : {};
-        const isReceipt = s.is_receipt === true ||
-                          /αποδει/i.test(`${s.type_name || ''} ${s.category || s.characteristic || ''}`);
-        if (isReceipt) localStorage.setItem(KEY, '1');
-      } catch {}
-    });
-  });
-})();  
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
 const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
 const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
@@ -1011,62 +961,6 @@ function prefillSummaryModal(){
 })();
 
   const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
-  (function persistReceiptsToggle(){
-  const KEY = 'UI:useReceipts';                       // 1 = Αποδείξεις, 0 = Τιμολόγια
-  const rs  = document.getElementById('useReceiptsSwitch'); // ο διακόπτης
-  const mi  = document.getElementById('markInput');          // input MARK
-  // Το urlInput μπορεί να είναι δυναμικά δημιουργημένο στο αρχείο σου
-  let ui = document.getElementById('scrapeUrlInput');
-  if (!ui) { ui = document.querySelector('#scrapeUrlInput'); }
-
-  // Αν υπάρχει query ?use_receipts=1/0, κάν’ το authoritative και γράψ’ το στο localStorage
-  try {
-    const q = new URLSearchParams(location.search);
-    if (q.has('use_receipts')) {
-      localStorage.setItem(KEY, q.get('use_receipts') === '1' ? '1' : '0');
-    }
-  } catch(_) {}
-
-  function apply(on){
-    if (rs) rs.checked = !!on;
-    // Εναλλαγή ορατότητας inputs
-    if (on) {
-      mi?.classList.add('hidden');
-      ui?.classList.remove('hidden');
-      ui?.focus();
-    } else {
-      mi?.classList.remove('hidden');
-      ui?.classList.add('hidden');
-      mi?.focus();
-    }
-  }
-
-  // 1) Restore στην εκκίνηση
-  try {
-    const saved = localStorage.getItem(KEY);
-    apply(saved === '1');
-  } catch(_) { /* ignore */ }
-
-  // 2) Persist σε κάθε αλλαγή
-  rs?.addEventListener('change', () => {
-    try { localStorage.setItem(KEY, rs.checked ? '1' : '0'); } catch(_) {}
-    apply(rs.checked);
-  });
-
-  // 3) Προαιρετικό: όταν γίνεται submit “Save” απόδειξης, δέσε το σε receipts mode
-  document.getElementById('saveSummaryForm')?.addEventListener('submit', () => {
-    try {
-      const raw = document.getElementById('summaryJsonInput')?.value || '';
-      const obj = raw ? JSON.parse(raw) : {};
-      const isReceipt = !!(obj.is_receipt ||
-                           /αποδει/i.test(obj.type_name || '') ||
-                           /αποδει/i.test(obj.category || obj.characteristic || obj['χαρακτηρισμός'] || ''));
-      if (isReceipt) {
-        localStorage.setItem(KEY, '1');              // Μείνε στις Αποδείξεις μετά το refresh
-      }
-    } catch(_) {}
-  });
-})();
   // find or create an URL input (if not present in template we create one dynamically)
   let urlInput = document.getElementById('scrapeUrlInput');
   if(!urlInput){
@@ -1686,7 +1580,14 @@ document.addEventListener('DOMContentLoaded', function(){
   // ====================== RECEIPTS SCRAPE FLOW ======================
 document.getElementById('markSearchForm')?.addEventListener('submit', async function (evt) {
   if (useReceiptsSwitch && useReceiptsSwitch.checked) {
-    evt.preventDefault();
+    
+    // --- de-dupe receipts submit (scrape) ---
+    const form = evt.currentTarget;
+    if (form && form.dataset.receiptsSubmitting === '1') { evt.preventDefault(); return; 
+    if (form) form.dataset.receiptsSubmitting='';
+}
+    if (form) form.dataset.receiptsSubmitting = '1';
+evt.preventDefault();
     const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
     if (!url) {
       showFlash('Εισάγετε URL για αποδείξεις.', 'error');
@@ -1787,6 +1688,7 @@ try {
       // Populate modal inputs
       const summaryInput = document.getElementById('summaryJsonInput');
       if (summaryInput) summaryInput.value = JSON.stringify(summaryObj);
+          
 
       document.getElementById('scrapeUrlField')?.setAttribute('value', url);
       const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια')
@@ -1803,8 +1705,8 @@ try {
         if (window.RC_forcePopulateSummaryModal) {
           try { window.RC_forcePopulateSummaryModal(); } catch(e){ console.warn('RC_forcePopulateSummaryModal failed', e); }
         }
-        modal.style.display = 'flex';
-        showFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000);
+        if (!(window.__RC_FLAGS && window.__RC_FLAGS.autoHandled)) { modal.style.display = 'flex'; }
+        if (!(window.__RC_FLAGS && window.__RC_FLAGS.autoHandled)) { showFlash('Λήφθηκε απόδειξη — ελέγξτε τα στοιχεία και πατήστε "Αποθήκευση στο Cache".', 'success', 5000); }
       }
 
     } catch (err) {
@@ -2002,7 +1904,7 @@ document.addEventListener("DOMContentLoaded", function(){
         } catch(_) {}
       }
 
-      if (modal) modal.style.display = 'flex';
+      if (modal) if (!(window.__RC_FLAGS && window.__RC_FLAGS.autoHandled)) { modal.style.display = 'flex'; }
     } else {
       // ensure modal remains hidden on load
       if (modal) modal.style.display = 'none';
@@ -2459,7 +2361,7 @@ document.addEventListener("DOMContentLoaded", function(){
         // if modal is hidden, ensure it's visible when populate invoked by scraper flow
         try {
           if (modal && modal.style.display === 'none') {
-            modal.style.display = 'flex';
+            if (!(window.__RC_FLAGS && window.__RC_FLAGS.autoHandled)) { modal.style.display = 'flex'; }
           }
         } catch(e){}
 
@@ -2553,7 +2455,7 @@ document.addEventListener("DOMContentLoaded", function(){
             } else if (typeof populateSummaryModal === 'function') {
               try { populateSummaryModal(obj); } catch(e){ dbg('populateSummaryModal failed', e); }
             }
-            modal.style.display = 'flex';
+            if (!(window.__RC_FLAGS && window.__RC_FLAGS.autoHandled)) { modal.style.display = 'flex'; }
           } catch(e){ dbg('show modal failed', e); }
         } else {
           // keep hidden
@@ -2965,4 +2867,358 @@ document.addEventListener('submit', function(ev){
             transform: translateX(18px);
         }
 </style>
+
+
+
+<script>
+/* ===== Auto-submit segmented toggle + guarded auto-detect (receipts & invoices) ===== */
+(function(){
+  try {
+    // Globals
+    window.__RC_FLAGS  = window.__RC_FLAGS  || {};
+    window.__RC_LOCKS  = window.__RC_LOCKS  || {};
+    const AUTO_KEY = 'rc:autoSubmitEnabled';
+
+    // UI refs (may be absent in some partial renders)
+    const form     = document.getElementById('markSearchForm');
+    const markEl   = document.getElementById('markInput');
+    const urlEl    = document.getElementById('scrapeUrlInput'); // may be dynamically created in your code
+    const btnOn    = document.getElementById('autoSubmitBtnOn');
+    const btnOff   = document.getElementById('autoSubmitBtnOff');
+    const receiptsSwitch = document.getElementById('useReceiptsSwitch');
+
+    // State helpers
+    function getAuto(){ try { return localStorage.getItem(AUTO_KEY) === '1'; } catch(_) { return false; } }
+    function setAuto(v){
+      try { localStorage.setItem(AUTO_KEY, v ? '1' : '0'); } catch(_) {}
+      window.__RC_FLAGS.auto_submit_enabled = !!v;
+      updateUi();
+    }
+    function updateUi(){
+      const on = getAuto();
+      if (btnOn && btnOff) {
+        btnOn.classList.toggle('bg-sky-600', on);
+        btnOn.classList.toggle('text-white', on);
+        btnOff.classList.toggle('bg-sky-600', !on);
+        btnOff.classList.toggle('text-white', !on);
+      }
+    }
+    updateUi();
+    if (btnOn)  btnOn.addEventListener('click', ()=> setAuto(true));
+    if (btnOff) btnOff.addEventListener('click', ()=> setAuto(false));
+
+    // Utilities
+    function isVisible(el){
+      if(!el) return false;
+      const cs = getComputedStyle(el);
+      return !(cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0');
+    }
+    function warningOpen(){
+      const ids = ['receiptWarn','afmWarningModal','receiptWarningModal','yearWarningModal'];
+      for (const id of ids){ const el = document.getElementById(id); if (el && isVisible(el)) return true; }
+      // generic: any visible dialog that is not the summary modal
+      const nodes = document.querySelectorAll('[role="dialog"],[aria-modal="true"],.modal,.modal-root');
+      for (const n of nodes){
+        if (!isVisible(n)) continue;
+        if (n.id === 'summaryModal' || n.id === 'receiptsModal') continue;
+        const t = (n.textContent || '').toLowerCase();
+        if (/\bπροειδοπ|\bπροσοχ|warning|σφάλμα|error/.test(t)) return true;
+      }
+      return false;
+    }
+
+    const normMark = v => (v||'').replace(/\D/g,'');
+    const isMark   = v => normMark(v).length === 15;
+    const isUrl    = v => {
+      const s = (v||'').trim();
+      return /^https?:\/\/\S+/i.test(s) || /^www\.\S+/i.test(s);
+    };
+    const extractMark = s => {
+      const m = String(s||'').match(/\b(\d{15})\b/);
+      return m ? m[1] : '';
+    };
+
+    function currentKey(){
+      const mv = (markEl && markEl.value) ? markEl.value.trim() : '';
+      const uv = (document.getElementById('scrapeUrlInput')?.value || '').trim(); // requery in case it was injected after
+      const receipts = !!(receiptsSwitch && receiptsSwitch.checked);
+
+      // For receipts: prefer a URL, but accept MARK inside URL as fallback
+      if (receipts) {
+        if (isUrl(uv)) return 'url:'+uv.replace(/\/+$/,'');
+        const ex = extractMark(uv); if (ex) return 'mark:'+ex;
+        // also allow mark typed in markInput if user didn't switch field
+        if (isMark(mv)) return 'mark:'+normMark(mv);
+        return null;
+      }
+
+      // For invoices: prefer MARK; but accept URL too
+      if (isMark(mv)) return 'mark:'+normMark(mv);
+      if (isUrl(mv)) return 'url:'+mv.replace(/\/+$/,'');
+      return null;
+    }
+
+    let pending = false;
+    const KEY_LAST = 'rc:lastSubmitKey';
+    const TTL_MS   = 20000;
+    function readLast(){
+      try {
+        const raw = sessionStorage.getItem(KEY_LAST);
+        if(!raw) return null;
+        const o = JSON.parse(raw);
+        if(!o || !o.ts || (Date.now()-o.ts)>TTL_MS) return null;
+        return o.k || null;
+      }catch(_){ return null; }
+    }
+    function writeLast(k){
+      try { sessionStorage.setItem(KEY_LAST, JSON.stringify({k, ts: Date.now()})); } catch(_) {}
+    }
+
+    const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+
+    function trySubmit(){
+      if (!form || !getAuto()) return;
+      if (warningOpen()) return;
+      const k = currentKey();
+      if (!k) return;
+
+      // prevent collisions with existing receipts lock if present
+      if (window.__RC_LOCKS && window.__RC_LOCKS.scrape) return;
+
+      // prevent duplicate submits on same key
+      const last = readLast();
+      if (last && last === k) return;
+
+      // submit once
+      writeLast(k);
+      if (pending) return;
+      pending = true;
+      try {
+        if (form.requestSubmit) form.requestSubmit(); else form.submit();
+      } finally {
+        setTimeout(()=>{ pending=false; }, 500);
+      }
+    }
+
+    const onChange = debounce(trySubmit, 140);
+
+    // Wire inputs if present
+    if (markEl) {
+      markEl.addEventListener('input', onChange);
+      markEl.addEventListener('keyup', onChange);
+      markEl.addEventListener('paste', ()=>setTimeout(onChange,0));
+    }
+    // url input could be injected later; observe for appearance
+    let tries = 30;
+    const iv = setInterval(()=>{
+      const u = document.getElementById('scrapeUrlInput');
+      if (u) {
+        u.addEventListener('input', onChange);
+        u.addEventListener('keyup', onChange);
+        u.addEventListener('paste', ()=>setTimeout(onChange,0));
+        clearInterval(iv);
+      }
+      if(--tries<=0) clearInterval(iv);
+    }, 200);
+
+    // Initial pass (for browser autofill)
+    window.addEventListener('load', ()=> setTimeout(onChange, 60));
+
+    // Ensure a stub exists to avoid ReferenceError when other code calls it
+    if (typeof window.autoSubmitReceipt !== 'function') {
+      window.autoSubmitReceipt = function(){ /* stub to avoid ReferenceError; actual flow handled elsewhere */ };
+    }
+  } catch (err) {
+    console.warn('Auto-submit toggle patch failed', err);
+  }
+})();
+</script>
+
+<script>
+/* === Persist Receipts/Invoices toggle across refresh === */
+<script>
+/* === Persist Receipts/Invoices toggle across refresh (v2) === */
+(function persistReceiptsToggle(){
+  const KEY = 'rc:useReceipts';
+  const sw  = document.getElementById('useReceiptsSwitch');
+  const markInput = document.getElementById('markInput');
+  function ensureUrlInput(){
+    let el = document.getElementById('scrapeUrlInput');
+    if (!el) {
+      // try to locate after markInput if dynamically created later by other code
+      el = document.createElement('input');
+      el.id = 'scrapeUrlInput';
+      el.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
+      el.className = 'p-2 border rounded w-2/4 hidden';
+      el.type = 'text';
+      if (markInput && markInput.parentElement) {
+        markInput.parentElement.insertBefore(el, markInput.nextSibling);
+      } else {
+        document.body.appendChild(el);
+      }
+    }
+    return el;
+  }
+  function applyUI(isReceipts){
+    const urlInput = ensureUrlInput();
+    if (isReceipts){
+      markInput && markInput.classList.add('hidden');
+      urlInput && urlInput.classList.remove('hidden');
+    } else {
+      markInput && markInput.classList.remove('hidden');
+      urlInput && urlInput.classList.add('hidden');
+    }
+  }
+
+  if (!sw) return;
+  // restore saved value
+  const saved = localStorage.getItem(KEY);
+  if (saved !== null) sw.checked = (saved === '1');
+  applyUI(sw.checked);
+
+  // if URL input appears later (other scripts), re-apply for a short window
+  let tries = 20;
+  const iv = setInterval(()=>{
+    applyUI(sw.checked);
+    if (--tries <= 0) clearInterval(iv);
+  }, 200);
+
+  sw.addEventListener('change', () => {
+    localStorage.setItem(KEY, sw.checked ? '1' : '0');
+    applyUI(sw.checked);
+  });
+})();
+</script>
+
+<script>
+/* === Lightweight warning detector (client/server modals) === */
+(function ensureWarningOpenHelper(){
+  if (typeof window.__rc_warningOpen === 'function') return;
+  window.__rc_warningOpen = function(){
+    function vis(el){ if(!el) return false; const cs=getComputedStyle(el); return !(cs.display==='none'||cs.visibility==='hidden'||cs.opacity==='0'); }
+    const ids=['receiptWarn','afmWarningModal','receiptWarningModal','yearWarningModal'];
+    for (const id of ids){ const el=document.getElementById(id); if (el && vis(el)) return true; }
+    const nodes=document.querySelectorAll('[role="dialog"],[aria-modal="true"],.modal,.modal-root');
+    for (const n of nodes){
+      if (!vis(n)) continue;
+      if (n.id==='summaryModal' || n.id==='receiptsModal') continue;
+      const t=(n.textContent||'').toLowerCase();
+      if (/(προειδοπ|προσοχ|warning|σφάλμα|error)/.test(t)) return true;
+    }
+    return false;
+  };
+})();
+</script>
+
+<script>
+/* === RC helpers μόνο για flow Αποδείξεων === */
+window.RC = window.RC || {};
+
+RC.hasWarnings = function(){ return (typeof window.__rc_warningOpen === 'function') ? window.__rc_warningOpen() : false; };
+
+RC.normalizeReceiptSummary = function (summaryObj) {
+  summaryObj.is_receipt = true;
+  summaryObj.type = summaryObj.type || 'ΑΠΟΔΕΙΞΗ';
+  summaryObj.type_name = summaryObj.type_name || 'ΑΠΟΔΕΙΞΗ';
+  summaryObj.category = 'αποδειξακια';
+  if (!Array.isArray(summaryObj.lines) || !summaryObj.lines.length) {
+    const tot = summaryObj.total_amount || summaryObj.totalValue || summaryObj.totalNetValue || '';
+    summaryObj.lines = [{ id:'r0', description:'', amount:String(tot||''), vat:'', vatCategory:'', category:'αποδειξακια' }];
+  } else {
+    summaryObj.lines = summaryObj.lines.map((l,i)=>({
+      id: String(l?.id || l?.line_id || ('r'+i)),
+      description: String(l?.description || l?.desc || ''),
+      amount: String(l?.amount || l?.lineTotal || l?.total || ''),
+      vat: String(l?.vat || l?.vatRate || ''),
+      vatCategory: String(l?.vatCategory || l?.vat_category || ''),
+      category: String(l?.category || '') || 'αποδειξακια'
+    }));
+  }
+  return summaryObj;
+};
+
+RC.confirmReceiptOnce = async function(summaryObj, scrapeUrl){
+  window.__RC_LOCKS = window.__RC_LOCKS || {};
+  if (window.__RC_LOCKS.confirm) return { ok:false, reason:'locked' };
+  window.__RC_LOCKS.confirm = true;
+
+  try {
+    const VAT = "{{ vat or '' }}";
+    const afmVal = (VAT || summaryObj.AFM_issuer || summaryObj.AFM || (summaryObj.raw && summaryObj.raw.issuer_vat) || '').toString().trim();
+    if (!afmVal) return { ok:false, reason:'missing_afm' };
+
+    if (!/\b\d{15}\b/.test(String(summaryObj.mark||'').trim())) {
+      const r = await fetch('/api/next_receipt_mark', { credentials:'same-origin' });
+      const j = await r.json().catch(()=>null);
+      if (j && j.mark) summaryObj.mark = j.mark;
+    }
+
+    let yearVal = "{{ active_year|default('') }}";
+    if (!yearVal) {
+      try { const fy = await fetch('/get_fiscal_year', { credentials:'same-origin' }); const fyj = await fy.json(); if (fyj && fyj.exists) yearVal = String(fyj.fiscal_year); } catch(_){}
+    }
+    if (!yearVal) {
+      const any = summaryObj.issueDate || summaryObj.issue_date || (summaryObj.raw && summaryObj.raw.issue_date) || '';
+      const m = String(any).match(/\b(19|20)\d{2}\b/);
+      yearVal = m ? m[0] : String((new Date()).getUTCFullYear());
+    }
+
+    const payload = {
+      url: (scrapeUrl||'').trim(),
+      summary_json: JSON.stringify(summaryObj),
+      force: false,
+      category: 'αποδειξακια',
+      afm: afmVal,
+      year: String(yearVal),
+      mark: String(summaryObj.mark||'')
+    };
+
+    const res = await fetch('/api/confirm_receipt', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify(payload)
+    });
+    const jj = await res.json().catch(()=>null);
+    if (!res.ok || !jj || !jj.ok) return { ok:false, reason: (jj&&jj.error) || ('HTTP '+res.status) };
+
+    return { ok:true };
+  } finally {
+    window.__RC_LOCKS.confirm = false;
+  }
+};
+
+RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
+  try {
+    const repeatOn = !!document.getElementById('repeatEntrySwitch')?.checked;
+    const forceEdit = (typeof FORCE_EDIT !== 'undefined') ? !!FORCE_EDIT : false;
+    if (!repeatOn || forceEdit || RC.hasWarnings()) return false;
+
+    RC.normalizeReceiptSummary(summaryObj);
+    const summaryInput = document.getElementById('summaryJsonInput');
+    if (summaryInput) summaryInput.value = JSON.stringify(summaryObj);
+
+    const r = await RC.confirmReceiptOnce(summaryObj, scrapeUrl);
+    if (!r.ok) {
+      if (r.reason === 'missing_afm') {
+        window.openReceiptWarning && openReceiptWarning('Λείπει AFM ενεργού πελάτη.');
+      } else {
+        showFlash('Σφάλμα αποθήκευσης: ' + (r.reason || 'άγνωστο'), 'error', 6000);
+      }
+      return false;
+    }
+    window.__RC_FLAGS = window.__RC_FLAGS || {}; window.__RC_FLAGS.autoHandled = true;
+    showFlash('Αποθηκεύτηκε η απόδειξη (repeat).', 'success', 900);
+    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_){}
+    try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
+    try { document.getElementById('markInput').value = ''; } catch(_){}
+    window.location = window.location.pathname;
+    return true;
+  } catch (e) {
+    console.warn('handleReceiptAfterScrape failed', e);
+    return false;
+  }
+};
+</script>
+
 {% endblock %}
