@@ -23,11 +23,12 @@
         <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
         <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">Τιμολόγια<label>
-            <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-            <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις</label>
+            <label for="useReceiptsSwitch" class="text-sm">
+                Τιμολόγια<label>
+                    <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
+                    <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις</label>
         </div>
-        
+
         <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
         <div class="flex items-center gap-2 ml-4">
             <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
@@ -36,7 +37,7 @@
         </div>
 
         <!-- Toggle switch for receipts scrape -->
-        
+
     </form>
 </div>
 
@@ -166,7 +167,7 @@
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 
 <script>
-  
+
   (function () {
   const KEY = 'UI:useReceipts'; // '1' = Αποδείξεις, '0' = Τιμολόγια
 
@@ -225,7 +226,7 @@
       } catch {}
     });
   });
-})();  
+})();
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
 const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
 const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
@@ -1379,10 +1380,32 @@ function prefillSummaryModal(){
     }
   } catch(_){}
 
+
   if ((receiptsOn || isReceiptSummary) && repeatOn && !FORCE_EDIT) {
-    // skip opening modal (auto-flow των αποδείξεων όταν repeat)
+    // auto-flow αποδείξεων όταν είναι ενεργό το "Επαναληψιμη εισαγωγή"
+    try {
+      let raw = (document.getElementById('summaryJsonInput')?.value || '').trim();
+      if (!raw || raw === '{}' || raw === 'null') {
+        try { raw = JSON.stringify({{ modal_summary | tojson | safe }}); } catch(_) {}
+      }
+      const sobj = raw ? JSON.parse(raw) : {};
+      // Κανονικοποίησε σαν απόδειξη και επιβεβαίωσε μία φορά
+      const url = document.getElementById('scrapeUrlInput')?.value || '';
+      (async () => {
+        try {
+          await RC.confirmReceiptOnce(RC.normalizeReceiptSummary(sobj), url);
+          // κράτα το mode σε receipts και κάνε hard redirect για καθαρή κατάσταση
+          try { localStorage.setItem('useReceiptsSwitch','1'); } catch(_){}
+          const base = location.pathname + '?use_receipts=1';
+          location.replace(base);
+        } catch(e) {
+          console.warn('auto-confirm receipt failed', e);
+        }
+      })();
+    } catch(e) { console.warn('auto-flow receipts error', e); }
     return;
   }
+
 
   // Αλλιώς, άνοιξέ το κανονικά
   try {
@@ -1643,13 +1666,17 @@ document.addEventListener('DOMContentLoaded', function(){
   // ====================== RECEIPTS SCRAPE FLOW ======================
 document.getElementById('markSearchForm')?.addEventListener('submit', async function (evt) {
   if (useReceiptsSwitch && useReceiptsSwitch.checked) {
-    
+
     // --- de-dupe receipts submit (scrape) ---
-    const form = evt.currentTarget;
-    if (form && form.dataset.receiptsSubmitting === '1') { evt.preventDefault(); return; 
-    if (form) form.dataset.receiptsSubmitting='';
-}
-    if (form) form.dataset.receiptsSubmitting = '1';
+    // --- de-dupe receipts submit (scrape) ---
+  const form = evt.currentTarget;
+  if (form && form.dataset.receiptsSubmitting === '1') {
+    evt.preventDefault();
+    return;
+  }
+  if (form) form.dataset.receiptsSubmitting = '';
+  if (form) form.dataset.receiptsSubmitting = '1';
+
 evt.preventDefault();
     const url = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
     if (!url) {
@@ -1751,7 +1778,7 @@ try {
       // Populate modal inputs
       const summaryInput = document.getElementById('summaryJsonInput');
       if (summaryInput) summaryInput.value = JSON.stringify(summaryObj);
-          
+
 
       document.getElementById('scrapeUrlField')?.setAttribute('value', url);
       const desiredCat = CUSTOMER_CATEGORIES.includes('αποδειξακια')
@@ -2933,9 +2960,7 @@ document.addEventListener('submit', function(ev){
 
 
 
-<script>
-
-/* ===== Auto-submit segmented toggle + guarded auto-detect (receipts & invoices) ===== */
+<script>/* ===== Auto-submit segmented toggle + guarded auto-detect (receipts & invoices) ===== */
 (function(){
   try {
     // Globals
@@ -3112,11 +3137,9 @@ document.addEventListener('submit', function(ev){
   } catch (err) {
     console.warn('Auto-submit toggle patch failed', err);
   }
-})();
-</script>
+})();</script>
 
-<script>
-/* === Persist Receipts/Invoices toggle across refresh === */
+<script>/* === Persist Receipts/Invoices toggle across refresh === */
 <script>
 /* === Persist Receipts/Invoices toggle across refresh (v2) === */
 (function persistReceiptsToggle(){
@@ -3168,11 +3191,9 @@ document.addEventListener('submit', function(ev){
     localStorage.setItem(KEY, sw.checked ? '1' : '0');
     applyUI(sw.checked);
   });
-})();
-</script>
+})();</script>
 
-<script>
-/* === Lightweight warning detector (client/server modals) === */
+<script>/* === Lightweight warning detector (client/server modals) === */
 (function ensureWarningOpenHelper(){
   if (typeof window.__rc_warningOpen === 'function') return;
   window.__rc_warningOpen = function(){
@@ -3188,9 +3209,7 @@ document.addEventListener('submit', function(ev){
     }
     return false;
   };
-})();
-
-</script>
+})();</script>
 
 <script>
 /* === RC helpers μόνο για flow Αποδείξεων === */
@@ -3301,7 +3320,525 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     return false;
   }
 };
-    
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+
+  const isReceipts =
+    (params.get('use_receipts') === '1') ||
+    (localStorage.getItem('pref_use_receipts') === '1');
+
+  const repeatOn =
+    (params.get('repeat') === '1') ||
+    (localStorage.getItem('pref_repeat') === '1');
+
+  const autoOn = params.has('auto_submit')
+    ? (params.get('auto_submit') === '1')
+    : (localStorage.getItem('pref_auto_submit') === '1');
+
+  if (!(isReceipts && repeatOn && autoOn)) return;
+
+  // 1) Κρύψε ό,τι modal επιβεβαίωσης υπάρχει για αποδείξεις
+  const hideModal = () => {
+    ['#receiptsModal', '#summaryModal', '[data-role="modal-warning"]', '#warningModal']
+      .forEach(sel => {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        el.classList?.add('hidden');
+        el.style.display = 'none';
+      });
+  };
+  hideModal();
+
+  // 2) Βεβαιώσου ότι στο submit περνάει repeat_enabled=1
+  const ensureRepeatHidden = (form) => {
+    if (!form) return;
+    let h = form.querySelector('input[name="repeat_enabled"]');
+    if (!h) {
+      h = document.createElement('input');
+      h.type = 'hidden';
+      h.name = 'repeat_enabled';
+      form.appendChild(h);
+    }
+    h.value = '1';
+  };
+
+  // 3) Αυτόματο submit μόλις είναι έτοιμη η φόρμα/δεδομένα
+  let submitted = false;
+  const tryAutoSubmit = () => {
+    if (submitted) return;
+
+    // Βρες τη φόρμα αποθήκευσης
+    const form = document.querySelector('form[action$="/save_summary"]');
+    if (!form) return;
+
+    // Έλεγξε ότι υπάρχει payload: summary_json (input/textarea) ή τουλάχιστον το mark
+    const payloadEl = form.querySelector('input[name="summary_json"],textarea[name="summary_json"]');
+    const hasPayload = payloadEl ? String(payloadEl.value || '').trim().length > 0 : false;
+    const hasMark = String((form.querySelector('[name="mark"]') || {}).value || '').trim().length === 15;
+
+    if (!hasPayload && !hasMark) return;
+
+    ensureRepeatHidden(form);
+    submitted = true;
+    hideModal();
+    form.submit();
+  };
+
+  // Δοκίμασε άμεσα & με μικρό retry
+  tryAutoSubmit();
+  const i1 = setInterval(() => {
+    if (submitted) { clearInterval(i1); return; }
+    tryAutoSubmit();
+  }, 150);
+
+  // Παρακολούθησε DOM changes (όταν γεμίσει το modal/φόρμα από το fetch)
+  const mo = new MutationObserver(() => tryAutoSubmit());
+  mo.observe(document.body, { subtree: true, childList: true, attributes: false });
+
+  // Safety stop μετά από ~6s για να μην τρέχει για πάντα
+  setTimeout(() => mo.disconnect(), 6000);
+});
+
 </script>
 
 {% endblock %}
+
+<!-- === BEGIN: Injected fix (v2) for receipts auto-flow & afm_epsilon cleanup === -->
+<script><script>
+/* RC-REPEAT-STATE bridge για Αποδείξεις & Τιμολόγια
+   - Διαβάζει το state από backend (/api/repeat_state/get) στην εκκίνηση
+   - Το περνάει και σε localStorage (REPEAT:enabled) & body dataset (data-repeat-enabled)
+   - Όταν αλλάζει ο διακόπτης repeatEntrySwitch, κάνει POST στο /api/repeat_state/set
+   - Στο submit της φόρμας αναζήτησης, κάνει ένα φρεσκάρισμα του state πριν τη ροή
+*/
+(function() {
+  const LS_KEY_REPEAT_ENABLED = 'REPEAT:enabled';
+
+  async function refreshRepeatState() {
+    try {
+      const r = await fetch('/api/repeat_state/get', { credentials: 'include' });
+      const j = await r.json();
+      const enabled = !!(j && j.ok && j.enabled);
+      localStorage.setItem(LS_KEY_REPEAT_ENABLED, enabled ? '1' : '0');
+      document.body.dataset.repeatEnabled = enabled ? '1' : '0';
+      window.REPEAT_ENABLED = enabled;
+
+      // συγχρόνισε και το switch αν υπάρχει
+      const sw = document.getElementById('repeatEntrySwitch');
+      if (sw) {
+        sw.checked = enabled;
+      }
+      console.debug('[RC-REPEAT-STATE] GET ->', { enabled });
+    } catch (e) {
+      console.warn('[RC-REPEAT-STATE] GET failed', e);
+    }
+  }
+
+  async function setRepeatEnabled(enabled) {
+    try {
+      const r = await fetch('/api/repeat_state/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ enabled: !!enabled })
+      });
+      const j = await r.json();
+      if (!j || !j.ok) throw new Error(j && j.error || 'unknown');
+      // persist τοπικά
+      localStorage.setItem(LS_KEY_REPEAT_ENABLED, enabled ? '1' : '0');
+      document.body.dataset.repeatEnabled = enabled ? '1' : '0';
+      window.REPEAT_ENABLED = !!enabled;
+      console.debug('[RC-REPEAT-STATE] SET ->', { enabled });
+    } catch (e) {
+      console.warn('[RC-REPEAT-STATE] SET failed', e);
+    }
+  }
+
+  // bootstrap: στην εκκίνηση
+  document.addEventListener('DOMContentLoaded', () => {
+    refreshRepeatState();
+    const sw = document.getElementById('repeatEntrySwitch');
+    if (sw) {
+      sw.addEventListener('change', function() {
+        setRepeatEnabled(this.checked);
+      });
+    }
+
+    // στο submit της αναζήτησης: κάνε ένα γρήγορο refresh για να «δει» σωστά το autosave των αποδείξεων
+    const form = document.getElementById('markSearchForm');
+    if (form) {
+      form.addEventListener('submit', () => {
+        // fire-and-forget, δεν μπλοκάρουμε το submit
+        refreshRepeatState();
+      });
+    }
+  });
+})();</script>
+
+ (function(){
+  function isDetailed(x){
+    try{
+      if(!x || typeof x !== 'object') return false;
+      if (Array.isArray(x.lines) && x.lines.length) {
+        // any non-empty field in a line
+        for (const l of x.lines) {
+          if (l && (String(l.amount||'').trim() || String(l.description||'').trim() || String(l.vat||'').trim())) {
+            return true;
+          }
+        }
+      }
+      if (String(x.totalNetValue||'').trim() || String(x.totalValue||'').trim()) return true;
+      const t = (x.type||x.type_name||'').toString().toLowerCase();
+      if ((t.includes('απόδει') || t.includes('receipt')) && String(x.totalValue||'').trim()) return true;
+      return false;
+    }catch(e){ return false; }
+  }
+  function isReceipt(x){
+    try{
+      if (x && x.is_receipt) return true;
+      const t = (x?.type || x?.type_name || '').toString().toLowerCase();
+      if (t.includes('απόδει') || t.includes('receipt')) return true;
+      const ch = (x?.category || x?.χαρακτηρισμός || x?.characteristic || '');
+      return ch === 'αποδειξακια';
+    }catch(e){ return false; }
+  }
+  function prefer(a,b){
+    const da = isDetailed(a), db = isDetailed(b);
+    if (da && !db) return a;
+    if (db && !da) return b;
+    const la = Array.isArray(a?.lines) ? a.lines.length : 0;
+    const lb = Array.isArray(b?.lines) ? b.lines.length : 0;
+    if (lb > la) return b;
+    return a;
+  }
+  function sanitizeAfmEpsilon(arr){
+    try{
+      if(!Array.isArray(arr)) return arr;
+      const byMark = new Map();
+      for(const item of arr){
+        const m = String(item?.mark || '').trim();
+        if(!m) continue;
+        if(!byMark.has(m)) byMark.set(m, item);
+        else byMark.set(m, prefer(byMark.get(m), item));
+      }
+      let out = Array.from(byMark.values());
+      out = out.filter(isDetailed); // drop placeholders
+      return out;
+    }catch(e){
+      console.warn('sanitizeAfmEpsilon failed', e);
+      return arr;
+    }
+  }
+
+  // Clean global cache once
+  try { if (window.afm_epsilon) { window.afm_epsilon = sanitizeAfmEpsilon(window.afm_epsilon); } } catch(e){}
+
+  // Pick ONE receipt to submit when repeat+receipts is ON
+  function pickReceiptSummary(){
+    try{
+      // Priority 1: explicit modal summary if page defines it
+      if (window.modal_summary && isReceipt(window.modal_summary)) return window.modal_summary;
+      // Priority 2: data attribute on any modal container
+      const el = document.querySelector('[data-modal-summary]');
+      if (el){
+        try{
+          const obj = JSON.parse(el.getAttribute('data-modal-summary'));
+          if (isReceipt(obj)) return obj;
+        }catch(_){}
+      }
+      // Priority 3: last detailed receipt from afm_epsilon
+      const arr = Array.isArray(window.afm_epsilon) ? window.afm_epsilon.slice() : [];
+      const receipts = arr.filter(x => isReceipt(x) && isDetailed(x));
+      if (receipts.length) return receipts[receipts.length - 1];
+    }catch(e){ console.warn('pickReceiptSummary failed', e); }
+    return null;
+  }
+
+  try {
+    const repeatSwitch = document.getElementById('repeatEntrySwitch');
+    const useReceipts   = document.getElementById('useReceiptsSwitch');
+    const summaryInput  = document.getElementById('summaryJsonInput');
+    const saveForm      = document.getElementById('saveSummaryForm');
+    const auto = !!(useReceipts && useReceipts.checked) && !!(repeatSwitch && repeatSwitch.checked);
+    if (auto && summaryInput && saveForm) {
+      const chosen = pickReceiptSummary();
+      if (!chosen) {
+        console.warn('Auto-submit suppressed: no detailed receipt summary found.');
+        return;
+      }
+      // Ensure per-line category and flags
+      try{
+        if (!Array.isArray(chosen.lines)) chosen.lines = [];
+        if (chosen.lines.length === 0) {
+          // synthesize a simple line from totalValue when missing
+          const lid = (String(chosen.mark||'') + '_r0').replace(/^_+|_+$/g,'') || 'r0';
+          chosen.lines = [{
+            id: lid, description: "", amount: String(chosen.totalValue||""), vat: "", category: "αποδειξακια", vatCategory: ""
+          }];
+        } else {
+          chosen.lines = chosen.lines.map(l => (l && typeof l === 'object') ? {
+            ...l,
+            category: l.category || 'αποδειξακια'
+          } : l);
+        }
+        chosen.is_receipt = true;
+        chosen.category = chosen.category || 'αποδειξακια';
+        chosen.characteristic = chosen.characteristic || 'αποδειξακια';
+      }catch(_){}
+      summaryInput.value = JSON.stringify(chosen);
+      setTimeout(function(){
+        if (!saveForm.dataset._autoSubmitted) {
+          saveForm.dataset._autoSubmitted = '1';
+          saveForm.requestSubmit ? saveForm.requestSubmit() : saveForm.submit();
+        }
+      }, 30);
+    }
+  } catch(e) { console.warn('receipts auto-confirm failed', e); }
+})();</script>
+<!-- === END: Injected fix (v2) === -->
+<!-- RC_RECEIPT_AUTOPILOT_PATCH -->
+<script>(function(){'use strict';
+  // ====== Robust receipts repeat autopilot (no UI break) ======
+  window.__RC_FLAGS = window.__RC_FLAGS || {};
+
+  function lsget(key, fallback){ try{ const v=localStorage.getItem(key); if(v===null) return fallback; if(v==='1') return true; if(v==='0') return false; return v; }catch(_){
+    return fallback; } }
+
+  function receiptsSwitchOn(){ try{ return !!document.getElementById('useReceiptsSwitch')?.checked; }catch(_){
+    return !!lsget('rc:useReceipts','receipts')==='receipts'; } }
+
+  function autoSubmitOn(){ return !!lsget('rc:autoSubmitEnabled', true); }
+  function repeatSwitchOn(){ try{ return !!document.getElementById('repeatEntrySwitch')?.checked; }catch(_){ return !!lsget('rc:repeat_enabled', false); } }
+
+  async function serverRepeatEnabled(){
+    try{ const r = await fetch('/api/repeat_entry/get', { credentials:'include' });
+         const j = await r.json(); return !!(j && (j.enabled || j.repeat_enabled)); }
+    catch(_){ return repeatSwitchOn(); }
+  }
+
+  function hideReceiptBanner(){
+    const nodes = document.querySelectorAll('#existingBanner, .flash, .alert');
+    nodes.forEach(el => {
+      try{ if(/Λήφθηκε απόδειξη/i.test(el.textContent||'')) el.style.display='none'; }catch(_){}
+    });
+  }
+
+  function tryAutoSave(){
+    const form = document.getElementById('saveSummaryForm');
+    const input = document.getElementById('summaryJsonInput');
+    if (!form || !input) return false;
+    // mark flags to suppress informational toast
+    window.__RC_FLAGS.autoHandled = true;
+    hideReceiptBanner();
+    // Submit the server form (keeps server-side logic, excel write etc.)
+    // Use a microtask so any last-second JSON sync runs first
+    setTimeout(() => {
+      try { form.submit(); } catch(e) {
+        try { form.dispatchEvent(new Event('submit', { cancelable:false })); } catch(_){}
+      }
+    }, 30);
+    return true;
+  }
+
+  function observeModalAndAuto(){
+    const modal = document.getElementById('summaryModal');
+    if (!modal) return;
+    let done = false;
+    const doIt = () => {
+      if (done) return;
+      const visible = getComputedStyle(modal).display !== 'none';
+      if (!visible) return;
+      if (tryAutoSave()) { done = true; modal.style.display = 'none'; }
+    };
+    try { new MutationObserver(doIt).observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
+    setTimeout(doIt, 80);
+  }
+
+  // Kickoff when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    // Make search submit more reliable when auto-submit is ON
+    const form = document.getElementById('markSearchForm');
+    if (form) {
+      form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && autoSubmitOn()) {
+          const mark = (document.getElementById('markInput')?.value || '').trim();
+          const url  = (document.getElementById('scrapeUrlInput')?.value || document.getElementById('scrapeUrlField')?.value || '').trim();
+          if (!mark && !url) e.preventDefault(); // guard empty
+        }
+      }, true);
+    }
+
+    // Always ensure page comes back to a clean state after any save
+    const saveForm = document.getElementById('saveSummaryForm');
+    if (saveForm) {
+      let reloaded = false;
+      const reloadSoon = () => { if (!reloaded) { reloaded = true; setTimeout(() => location.reload(), 300); } };
+      saveForm.addEventListener('ajax:done', reloadSoon, { once:true });
+      saveForm.addEventListener('submit', () => setTimeout(reloadSoon, 1200), { once:true });
+    }
+
+    // If receipts + repeat are ON, suppress the "Λήφθηκε..." toast and auto-save
+    Promise.resolve(serverRepeatEnabled()).then((rep) => {
+      if (receiptsSwitchOn() && rep) {
+        window.__RC_FLAGS.repeat_enabled = true;
+        window.__RC_FLAGS.autoHandled = true; // prevents info message in existing code
+        if (!tryAutoSave()) observeModalAndAuto();
+      }
+    });
+  });
+})();</script>
+
+
+<!-- ===== Receipts repeat auto-confirm SHIM (appended) ===== -->
+<script>(function(){
+  // small utility: safe JSON parse
+  function parseJSON(x){ try{ return JSON.parse(x); }catch(_){ return null; } }
+  function getLS(k, d){ try{ const v = localStorage.getItem(k); return (v===null||v===undefined)?d:v; }catch(_){ return d; } }
+  function setLS(k, v){ try{ localStorage.setItem(k, v); }catch(_){ } }
+  function isTruthy(v){ return v === true || v === '1' || v === 1 || v === 'true'; }
+
+  // Read repeat + receipts mode from both localStorage and globals/switches
+  function getRepeatOn(){
+    const ls = getLS('REPEAT:enabled', null);
+    if (ls !== null) return isTruthy(ls);
+    if (window.REPEAT_ENABLED !== undefined) return !!window.REPEAT_ENABLED;
+    const sw = document.getElementById('repeatEntrySwitch');
+    return !!(sw && sw.checked);
+  }
+  function getReceiptsModeOn(){
+    const ls = getLS('UI:useReceipts', null);
+    if (ls !== null) return isTruthy(ls);
+    if (window.USE_RECEIPTS !== undefined) return !!window.USE_RECEIPTS;
+    const sw = document.getElementById('useReceiptsSwitch');
+    return !!(sw && sw.checked);
+  }
+
+  function isReceiptSummary(obj){
+    if(!obj || typeof obj !== 'object') return false;
+    if (obj.is_receipt === true) return true;
+    const t = String(obj.type_name || obj.type || '').toLowerCase();
+    const cat = String(obj.category || obj.characteristic || obj['χαρακτηρισμός'] || '').toLowerCase();
+    return (t.includes('απόδει') || t.includes('receipt') || cat === 'αποδειξακια');
+  }
+
+  function hasMeaningfulLines(obj){
+    const arr = Array.isArray(obj && obj.lines) ? obj.lines : [];
+    if (arr.length === 0) return false;
+    // any non-empty amount OR category is enough
+    return arr.some(l => {
+      const amt = String(l && (l.amount || l.total || l.lineTotal || '')).trim();
+      const cat = String(l && (l.category || l.cat || '')).trim();
+      return !!(amt || cat);
+    });
+  }
+
+  function readSummaryObject(){
+    const input = document.getElementById('summaryJsonInput');
+    if(!input) return null;
+    return parseJSON(input.value || '{}') || null;
+  }
+
+  function getScrapeUrl(){
+    const u = document.getElementById('scrapeUrlInput') || document.getElementById('scrapeUrlField');
+    return u ? (u.value || '') : '';
+  }
+
+  let lastMarkTried = null;
+  let busy = false;
+
+  async function tryAutoConfirm(){
+    if (busy) return;
+    const rep = getRepeatOn();
+    const inRec = getReceiptsModeOn();
+    if (!rep || !inRec) return;
+
+    const s = readSummaryObject();
+    if (!s || !isReceiptSummary(s) || !hasMeaningfulLines(s)) return;
+
+    // avoid double firing for the same mark
+    const mk = String(s.mark || s.MARK || '').trim();
+    if (!mk || mk === lastMarkTried) return;
+    lastMarkTried = mk;
+
+    // hide modal pre-emptively to avoid flicker
+    try {
+      const modal = document.getElementById('summaryModal');
+      if (modal) modal.style.display = 'none';
+    } catch(_){}
+
+    if (!(window.RC && RC.confirmReceiptOnce && RC.normalizeReceiptSummary)) {
+      // RC not yet ready; retry later
+      return;
+    }
+
+    busy = true;
+    try {
+      await RC.confirmReceiptOnce(RC.normalizeReceiptSummary(s), getScrapeUrl());
+      // keep receipts mode sticky on refresh
+      setLS('UI:useReceipts', '1');
+      // soft reload to clear form quickly
+      setTimeout(function(){
+        try {
+          const base = location.pathname + '?use_receipts=1';
+          location.replace(base);
+        } catch(_){ location.reload(); }
+      }, 120);
+    } catch(err){
+      console.warn('[RC-AUTOCONFIRM] failed', err);
+      // allow another attempt
+      lastMarkTried = null;
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Poll for summary changes & conditions (fast but lightweight)
+  let pollId = null;
+  function startPoll(){
+    if (pollId) return;
+    pollId = setInterval(tryAutoConfirm, 200);
+  }
+  function stopPoll(){
+    if (pollId) { clearInterval(pollId); pollId = null; }
+  }
+
+  // Start ASAP
+  startPoll();
+
+  // Re-run when user submits the search form (so mode is immediately persisted)
+  document.addEventListener('submit', function(e){
+    const f = e.target;
+    if (f && f.id === 'markSearchForm') {
+      // persist current mode for autosave
+      try {
+        const sw = document.getElementById('useReceiptsSwitch');
+        if (sw) setLS('UI:useReceipts', sw.checked ? '1' : '0');
+      } catch(_){}
+      setTimeout(tryAutoConfirm, 0);
+    }
+  }, true);
+
+  // Also, when repeat switch toggles, persist immediately
+  document.addEventListener('change', function(e){
+    const sw = e.target && e.target.id === 'repeatEntrySwitch' ? e.target : null;
+    if (sw){
+      setLS('REPEAT:enabled', sw.checked ? '1' : '0');
+      setTimeout(tryAutoConfirm, 0);
+    }
+  }, true);
+
+  // One-time bootstrap from server state (if available via endpoint)
+  // This is best-effort; if it fails, user toggles or previous LS values will be used.
+  (async function bootstrapRepeatOnce(){
+    try {
+      const r = await fetch('/api/repeat_entry/get', { credentials: 'same-origin' });
+      const j = await r.json();
+      if (j && j.ok && j.repeat_entry) {
+        setLS('REPEAT:enabled', j.repeat_entry.enabled ? '1' : '0');
+        // leave mapping to backend; we only need the enabled bit here
+        setTimeout(tryAutoConfirm, 0);
+      }
+    } catch(_){}
+  })();
+})();</script>
+<!-- ===== end SHIM ===== -->
