@@ -157,13 +157,16 @@
 
 {% include 'list_inner.html' %}
 
+
 {% endblock %}
 
 {% block scripts %}
+
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 
 <script>
+  
   (function () {
   const KEY = 'UI:useReceipts'; // '1' = Αποδείξεις, '0' = Τιμολόγια
 
@@ -2951,10 +2954,27 @@ document.addEventListener('submit', function(ev){
     // State helpers
     function getAuto(){ try { return localStorage.getItem(AUTO_KEY) === '1'; } catch(_) { return false; } }
     function setAuto(v){
-      try { localStorage.setItem(AUTO_KEY, v ? '1' : '0'); } catch(_) {}
-      window.__RC_FLAGS.auto_submit_enabled = !!v;
-      updateUi();
+  try { localStorage.setItem(AUTO_KEY, v ? '1' : '0'); } catch(_) {}
+  window.__RC_FLAGS.auto_submit_enabled = !!v;
+  updateUi();
+
+  // reload με συγχρονισμό querystring
+  try {
+    const p = new URLSearchParams(location.search);
+    if (v) p.set('auto_submit','1'); else p.delete('auto_submit');
+    const newQS = p.toString();
+    const cur  = location.pathname + location.search;
+    const next = location.pathname + (newQS ? '?' + newQS : '');
+    if (next === cur) {
+      location.reload();          // αν δεν αλλάζει το URL, αναγκαστικό reload
+    } else {
+      location.search = newQS;    // αλλάζοντας το query κάνει reload μόνο του
     }
+  } catch (e) {
+    location.reload();
+  }
+}
+
     function updateUi(){
       const on = getAuto();
       if (btnOn && btnOff) {
@@ -3281,7 +3301,7 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     return false;
   }
 };
-  
+    
 </script>
 
 {% endblock %}
