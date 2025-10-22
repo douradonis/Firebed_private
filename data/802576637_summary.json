@@ -459,5 +459,101 @@
     "progressive_aa": "165",
     "AFM": "094386010",
     "created_at": "2025-10-20T11:02:09"
+  },
+  {
+    "mark": "400011219241356",
+    "AA": "165",
+    "AFM_issuer": "094386010",
+    "Name": "",
+    "issueDate": "25/09/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "9,4",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "165",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400011219241356",
+    "aa": "165",
+    "progressive_aa": "165",
+    "AFM": "094386010",
+    "created_at": "2025-10-22T09:52:53"
+  },
+  {
+    "mark": "400011219241357",
+    "AA": "165",
+    "AFM_issuer": "094386010",
+    "Name": "",
+    "issueDate": "25/09/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "9,4",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "165",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400011219241357",
+    "aa": "165",
+    "progressive_aa": "165",
+    "AFM": "094386010",
+    "created_at": "2025-10-22T10:48:00"
+  },
+  {
+    "mark": "400011219241358",
+    "AA": "165",
+    "AFM_issuer": "094386010",
+    "Name": "",
+    "issueDate": "25/09/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "9,4",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "165",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400011219241358",
+    "aa": "165",
+    "progressive_aa": "165",
+    "AFM": "094386010",
+    "created_at": "2025-10-22T10:48:14"
   }
 ]
