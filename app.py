@@ -69,6 +69,21 @@ from flask import current_app
 import importlib
 scrape_receipt_callable = None
 
+def strip_server_totals(html: str) -> str:
+    """Αφαιρεί οτιδήποτε <tfoot> και όποια τυχόν 'ΣΥΝΟΛΑ' γραμμή έχει
+    τρυπώσει στο <tbody>, ώστε να αφήσουμε ΜΟΝΟ τα δυναμικά totals client-side."""
+    try:
+        if not html:
+            return html
+        # Καθάρισε προϋπάρχον <tfoot> (server-side)
+        html = re.sub(r"(?is)<tfoot[\s\S]*?</tfoot>", "", html, flags=re.I)
+
+        # Καθάρισε όποια γραμμή tbody περιέχει τη λέξη ΣΥΝΟΛΑ (αν έχει μπει ως tr)
+        html = re.sub(r"(?is)<tr[^>]*>[^<]*συνολ[άα][^<]*</tr>", "", html, flags=re.I)
+
+        return html
+    except Exception:
+        return html
 def _normalize_receipt_res(res):
     """Normalize the various possible outputs of the receipt scraper into a dict."""
     try:
@@ -155,20 +170,70 @@ REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "
 @app.before_request
 def log_request_path():
     log.info("Incoming request: method=%s path=%s remote=%s ref=%s", request.method, request.path, request.remote_addr, request.referrer)
-# Logging (unchanged)
+# --- Logging (Europe/Athens timezone) ---
+import datetime
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Προσπάθεια για DST-aware ζώνη ώρας Ελλάδας
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+    GREECE_TZ = ZoneInfo("Europe/Athens")
+except Exception:
+    try:
+        import pytz  # fallback αν λείπει zoneinfo
+        GREECE_TZ = pytz.timezone("Europe/Athens")
+    except Exception:
+        # έσχατο fallback: σταθερό UTC+3 (χωρίς DST)
+        GREECE_TZ = datetime.timezone(datetime.timedelta(hours=3))
+
+class GreeceTZFormatter(logging.Formatter):
+    """Formatter που τυπώνει timestamps σε Europe/Athens."""
+    def __init__(self, fmt=None, datefmt=None, tz=GREECE_TZ):
+        super().__init__(fmt=fmt, datefmt=datefmt)
+        self.tz = tz
+
+    def formatTime(self, record, datefmt=None):
+        # Χτίζουμε timezone-aware datetime από το record.created
+        dt = datetime.datetime.fromtimestamp(record.created, self.tz)
+        if datefmt:
+            return dt.strftime(datefmt)
+        # default: ISO-like χωρίς milliseconds
+        return dt.isoformat(timespec="seconds")
+
 log = logging.getLogger("mydata_app")
 log.setLevel(logging.INFO)
+
 if not log.handlers:
+    fmt = "%(asctime)s %(levelname)s %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S%z"
+
+    # Console
     sh = logging.StreamHandler(sys.stdout)
-    sh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    sh.setLevel(logging.INFO)
+    sh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
     log.addHandler(sh)
 
+    # Rotating file
     fh = RotatingFileHandler(ERROR_LOG, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
     fh.setLevel(logging.INFO)
-    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s\n"))
+    fh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
     log.addHandler(fh)
 
+# (προαιρετικά) συντόνισε και τον werkzeug logger να γράφει με το ίδιο formatter
+try:
+    wlog = logging.getLogger("werkzeug")
+    wlog.setLevel(logging.INFO)
+    if not wlog.handlers:
+        wsh = logging.StreamHandler(sys.stdout)
+        wsh.setLevel(logging.INFO)
+        wsh.setFormatter(GreeceTZFormatter(fmt=fmt, datefmt=datefmt, tz=GREECE_TZ))
+        wlog.addHandler(wsh)
+except Exception:
+    pass
+
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
+
 GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
 # keep settings inside data/ so it's co-located with other app files
 SETTINGS_FILE = os.path.join(DATA_DIR, "credentials_settings.json")
@@ -187,6 +252,42 @@ VAT_MAP = {
 # --- helper: parse year from a variety of date strings ---
 APP_DIR = Path(__file__).resolve().parent
 SCRAPER_PATH = APP_DIR / "scraper_receipt.py"
+
+# --- add near the top of app.py (μαζί με τα υπόλοιπα imports)
+
+
+# --- add near your other small helpers ---
+def _meaningful_summary(d: dict) -> bool:
+    """True αν υπάρχει 15ψήφιο MARK ή τουλάχιστον μία ουσιαστική γραμμή/σύνολο."""
+    try:
+        if not isinstance(d, dict):
+            return False
+
+        mark = str(d.get("mark") or d.get("MARK") or "").strip()
+        if re.fullmatch(r"\d{15}", mark):
+            return True
+
+        # Γραμμές με ουσία (id ή περιγραφή ή ποσό)
+        lines = d.get("lines") or []
+        for ln in lines:
+            if not ln:
+                continue
+            if str(ln.get("id") or ln.get("line_id") or "").strip():
+                return True
+            if str(ln.get("description") or ln.get("desc") or "").strip():
+                return True
+            if str(ln.get("amount") or ln.get("lineTotal") or ln.get("total") or "").strip():
+                return True
+
+        # Ή συνολικά ποσά (αν υπάρχουν)
+        total = str(d.get("totalValue") or d.get("total_amount") or "").strip()
+        if total and total not in ("0", "0.00", "0,00"):
+            return True
+
+        return False
+    except Exception:
+        return False
+
 def save_receipt(afm: str, year: str, summary: dict, lines: list, active_years: list):
     """
     Αποθηκεύει μια απόδειξη στα αρχεία AFM_invoices.xlsx και AFM_epsilon_invoices.json
@@ -349,32 +450,142 @@ def get_next_mark():
 
 # --- helper: append receipt entry to Excel (pandas) with file lock ---
 def append_receipt_to_excel(entry, excel_path=EPSILON_EXCEL_PATH):
+    """
+    Γράφει απόδειξη στο Excel με σίγουρο Α/Α + τύπο/είδος.
+    - Coalesce AA από πολλά κλειδιά (entry/raw/summary).
+    - Γράφει AA στα: 'Α/Α', 'Α/Α Παραστατικού', 'progressive_aa'
+    - Γράφει τύπο/είδος στα: 'τύπος','τυπος','είδος','ειδος'
+    - Όλα ως string.
+    """
+    import os, json
+    import pandas as pd
+    from filelock import FileLock
+
+    # ---- helpers ----
+    def _first(*vals):
+        for v in vals:
+            if v is None: 
+                continue
+            s = str(v).strip()
+            if s and s.lower() not in ('none','nan'):
+                return s
+        return ''
+
+    # Κάποια flows περνάνε "summary" μέσα στο entry· κάνε coalesce κι από εκεί
+    raw   = (entry.get('raw') or {}) if isinstance(entry, dict) else {}
+    summ  = (entry.get('summary') or {}) if isinstance(entry, dict) else {}
+
+    aa = _first(
+        entry.get('progressive_aa'), entry.get('AA'), entry.get('aa'), entry.get('receipt_aa'),
+        entry.get('Α/Α'), entry.get('Α/Α Παραστατικού'),
+        raw.get('progressive_aa'), raw.get('AA'), raw.get('aa'), raw.get('receipt_aa'),
+        summ.get('progressive_aa'), summ.get('AA'), summ.get('aa')
+    )
+
+    # Τύπος/Είδος: προτιμάμε ό,τι έρχεται, αλλιώς 'αποδειξη'
+    tipo = _first(entry.get('τύπος'), entry.get('τυπος'), raw.get('τύπος'), raw.get('τυπος'),
+                  summ.get('τύπος'), summ.get('τυπος'), 'αποδειξη')
+    eidos = _first(entry.get('είδος'), entry.get('ειδος'), raw.get('είδος'), raw.get('ειδος'),
+                   summ.get('είδος'), summ.get('ειδος'), 'αποδειξη')
+
     lock_path = excel_path + '.lock'
     lock = FileLock(lock_path, timeout=10)
     with lock:
-        # normalize columns we want to store (flat)
         flat = {
-            'MARK': entry.get('MARK'),
-            'saved_at': entry.get('saved_at'),
-            'url': entry.get('url'),
-            'issuer_vat': entry.get('issuer_vat'),
-            'issuer_name': entry.get('issuer_name'),
-            'issue_date': entry.get('issue_date'),
-            'progressive_aa': entry.get('progressive_aa'),
-            'total_amount': entry.get('total_amount')
+            'MARK':            _first(entry.get('MARK'), entry.get('mark'), summ.get('MARK'), summ.get('mark')),
+            'saved_at':        _first(entry.get('saved_at'), summ.get('saved_at')),
+            'url':             _first(entry.get('url'), summ.get('url')),
+            'issuer_vat':      _first(entry.get('issuer_vat'), raw.get('issuer_vat'), summ.get('issuer_vat')),
+            'issuer_name':     _first(entry.get('issuer_name'), raw.get('issuer_name'), summ.get('issuer_name')),
+            'issue_date':      _first(entry.get('issue_date'), raw.get('issue_date'), summ.get('issue_date')),
+            # A/A σε όλα τα headers που μπορεί να κοιτά το template
+            'progressive_aa':  aa,
+            'Α/Α':             aa,
+            'Α/Α Παραστατικού':aa,
+            # Τύπος/Είδος σε όλα τα headers (με και χωρίς τόνο)
+            'τύπος':           tipo,
+            'τυπος':           tipo,
+            'είδος':           eidos,
+            'ειδος':           eidos,
+            'total_amount':    _first(entry.get('total_amount'), raw.get('total_amount'), summ.get('total_amount')),
+            # προαιρετικό: αποθήκευσε το raw για debugging
+            'raw':             json.dumps(entry.get('raw', {}), ensure_ascii=False)
         }
-        # include raw as JSON string optionally
-        flat['raw'] = json.dumps(entry.get('raw', {}), ensure_ascii=False)
+
+        # όλα ως string
+        for k, v in list(flat.items()):
+            flat[k] = '' if v is None else str(v)
+
+        base_cols = [
+            'MARK','saved_at','url','issuer_vat','issuer_name','issue_date',
+            'progressive_aa','Α/Α','Α/Α Παραστατικού',
+            'τύπος','τυπος','είδος','ειδος',
+            'total_amount','raw'
+        ]
+
         if os.path.exists(excel_path):
             try:
-                df_existing = pd.read_excel(excel_path, dtype=str)
+                df = pd.read_excel(excel_path, dtype=str).fillna('')
             except Exception:
-                df_existing = pd.DataFrame()
-            df_new = pd.DataFrame([flat])
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-            df_combined.to_excel(excel_path, index=False)
+                df = pd.DataFrame(columns=base_cols)
+            for c in base_cols:
+                if c not in df.columns:
+                    df[c] = ''
+            df_new = pd.DataFrame([flat], columns=base_cols).fillna('')
+            df = pd.concat([df, df_new], ignore_index=True, sort=False)
         else:
-            pd.DataFrame([flat]).to_excel(excel_path, index=False)
+            df = pd.DataFrame([flat], columns=base_cols).fillna('')
+
+        # Επιμονή σε string στα κρίσιμα
+        for col in ['progressive_aa','Α/Α','Α/Α Παραστατικού','τύπος','τυπος','είδος','ειδος']:
+            if col in df.columns:
+                df[col] = df[col].astype(str).fillna('')
+
+        df.to_excel(excel_path, index=False)
+
+
+def _repeat_state_path():
+    # DATA_DIR υπάρχει ήδη στο app σου
+    return os.path.join(DATA_DIR, "repeat_state.json")
+
+def _repeat_state_load():
+    p = _repeat_state_path()
+    try:
+        if not os.path.exists(p):
+            return {}
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+def _repeat_state_save(d: dict):
+    p = _repeat_state_path()
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d or {}, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, p)
+
+def _repeat_state_get_enabled_for_vat(vat: str):
+    # σειρά προτεραιότητας: session -> repeat_state.json -> credentials.repeat_entry.enabled -> False
+    try:
+        if "repeat_enabled" in session:
+            return bool(session.get("repeat_enabled"))
+    except Exception:
+        pass
+    try:
+        data = _repeat_state_load()
+        if vat and vat in data:
+            return bool(data[vat].get("enabled", False))
+    except Exception:
+        pass
+    try:
+        cred = get_active_credential_from_session() or {}
+        re = cred.get("repeat_entry") or {}
+        return bool(re.get("enabled", False))
+    except Exception:
+        pass
+    return False
 def get_existing_client_ids() -> set:
     """
     Return a set of existing client IDs (ΑΦΜ) from current client_db (if any).
@@ -714,91 +925,93 @@ def _normalize_summary_row_for_excel(summary):
 
 def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None, cred_name: Optional[str] = None):
     """
-    Ensure an excel exists (create if missing) and either update existing row matching mark or append new row.
-    Uses pandas to load/edit/save — simpler and reliable for small files.
+    Update ή append στο Excel του ενεργού ΑΦΜ, ευθυγραμμισμένα ΜΟΝΟ με τα υπάρχοντα headers.
+    Δεν δημιουργεί νέες στήλες. Γράφει AA/AFM/Name/issueDate/totalValue/category/note/created_at όταν υπάρχουν.
     """
+    import pandas as pd, os
     path = excel_path_for(cred_name=cred_name, vat=vat)
-    # headers consistent with DEFAULT_EXCEL_FILE usage above
-    headers = ["MARK","AA","AFM","Name","issueDate","totalValue","category","note","created_at"]
 
-    # create file if missing with headers
+    # Φτιάξε αρχείο αν λείπει (κράτα τη δομή που ήδη χρησιμοποιείς)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        df = pd.DataFrame(columns=headers)
-        df.to_excel(path, index=False)
-    # load existing
+        # Αν το φτιάχνεις από την αρχή, βάλε τα headers που χρησιμοποιείς στα τιμολόγια σου
+        cols = ["MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος","ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"]
+        # αν χρησιμοποιείς «Α/Α» αντί «Αριθμός», βάλε ΚΑΙ αυτό
+        if "Α/Α" not in cols:
+            cols.append("Α/Α")
+        pd.DataFrame(columns=cols).to_excel(path, index=False)
+
     try:
-        df = pd.read_excel(path, dtype=str)
+        df = pd.read_excel(path, engine="openpyxl", dtype=str).fillna("")
     except Exception:
-        # fallback: make empty DF with headers
-        df = pd.DataFrame(columns=headers)
+        df = pd.DataFrame()
 
-    # normalize types: ensure all header cols exist
-    for h in headers:
-        if h not in df.columns:
-            df[h] = ""
+    # Αν για κάποιο λόγο είναι άδειο χωρίς headers, βάλε canonical σου
+    if df.empty and not list(df.columns):
+        df = pd.DataFrame(columns=["MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος","ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"])
 
-    row = _normalize_summary_row_for_excel(summary)
-    mark_val = str(row.get("MARK","")).strip()
+    cols = list(df.columns)
 
-    # try to find existing row by mark (use _match_row_by_mark logic)
-    found = False
-    if mark_val:
-        # use vectorized comparison across likely colnames
+    # Τιμές από το summary (υποθέτω έχει ήδη γίνει hydrate πιο πάνω)
+    mark_val = str(summary.get("MARK") or summary.get("mark") or "").strip()
+    afm_val  = str(summary.get("AFM") or summary.get("AFM_issuer") or "").strip()
+    name_val = str(summary.get("Name") or summary.get("Name_issuer") or "").strip()
+    series   = str(summary.get("series") or "").strip()
+    number   = str(summary.get("number") or summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
+    date_val = str(summary.get("issueDate") or "").strip()
+    tipo     = str(summary.get("type") or "").strip()
+    vat_cat  = str(summary.get("vatCategory") or "").strip()
+    total_net = str(summary.get("totalNetValue") or "").strip()
+    total_vat = str(summary.get("totalVatAmount") or "").strip()
+    total_sum = str(summary.get("totalValue") or "").strip()
+
+    is_receipt = (str(summary.get("category") or "").strip() == "αποδειξακια") or bool(summary.get("is_receipt"))
+
+    # Στήσε full row
+    row_full = {
+        "MARK": mark_val,
+        "ΑΦΜ": afm_val,
+        "Επωνυμία": name_val,
+        "Σειρά": series,
+        "Αριθμός": number,               # <-- για όσα αρχεία έχουν «Αριθμός»
+        "Ημερομηνία": date_val,
+        "Είδος": ("ΑΠΟΔΕΙΞΗ" if is_receipt else tipo),  # <-- Απόδειξη
+        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": vat_cat,
+        "Καθαρή Αξία": total_net,
+        "ΦΠΑ": total_vat,
+        "Σύνολο": total_sum,
+    }
+    # Αν το αρχείο έχει στήλη «Α/Α», γέμισέ την επίσης
+    if "Α/Α" in cols and not row_full.get("Α/Α"):
+        row_full["Α/Α"] = number
+
+    # Ευθυγράμμιση ΜΟΝΟ στα υπάρχοντα headers
+    row_aligned = {c: row_full.get(c, "") for c in cols}
+
+    if not mark_val:
+        return  # χωρίς MARK δεν γράφουμε
+
+    # Update by MARK αν υπάρχει, αλλιώς append (ΧΩΡΙΣ .append της pandas)
+    if "MARK" in df.columns:
+        mask = df["MARK"].astype(str).fillna("").str.strip() == mark_val
+    else:
         mask = pd.Series([False]*len(df), index=df.index)
-        # prefer 'MARK' column, else try any object/string column
-        if "MARK" in df.columns:
-            try:
-                mask = df["MARK"].fillna("").astype(str).str.strip() == mark_val
-            except Exception:
-                mask = (df["MARK"].fillna("") == mark_val)
-        if not mask.any():
-            # scan other string columns
-            for c in df.columns:
-                try:
-                    if df[c].dtype == 'O' or df[c].dtype == 'string':
-                        m2 = df[c].fillna("").astype(str).str.strip() == mark_val
-                        if m2.any():
-                            mask = m2
-                            break
-                except Exception:
-                    continue
 
-        if mask.any():
-            # update first match
-            idx = mask[mask].index[0]
-            for h in headers:
-                # don't overwrite MARK,AA if blank in new row? We'll overwrite with new data
-                df.at[idx, h] = row.get(h,"")
-            found = True
+    if mask.any():
+        idx = mask[mask].index[0]
+        for c in cols:
+            df.at[idx, c] = row_aligned.get(c, df.at[idx, c])
+    else:
+        df = pd.concat([df, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False)
 
-    if not found:
-        # append new row
-        df = df.append(row, ignore_index=True)
-
-    # ensure AFM and MARK are saved as text in Excel: pandas will save as strings; that's OK
-    try:
-        df.to_excel(path, index=False)
-    except Exception:
-        # final fallback - try openpyxl write: create workbook with headers then append row
+    # BONUS: Αν υπάρχει «Τύπος» αντί για «Είδος», γέμισέ το για αποδείξεις
+    if "Τύπος" in df.columns and is_receipt:
         try:
-            from openpyxl import Workbook, load_workbook
-            if not os.path.exists(path):
-                wb = Workbook()
-                ws = wb.active
-                ws.append(headers)
-                wb.save(path)
-            wb = load_workbook(path)
-            ws = wb.active
-            # if updated, easier to rewrite entire excel from df
-            for r in dataframe_to_rows(df, index=False, header=True):
-                pass
-            # simpler: use pandas to_excel in a temp file and replace
-            tmp = path + ".tmp.xlsx"
-            df.to_excel(tmp, index=False)
-            os.replace(tmp, path)
+            df.loc[df["MARK"].astype(str).str.strip() == mark_val, "Τύπος"] = "ΑΠΟΔΕΙΞΗ"
         except Exception:
-            log.exception("Failed to write excel for summary for mark=%s", mark_val)
+            pass
+
+    df.to_excel(path, index=False, engine="openpyxl")
 
 def _extract_headers_from_upload(file_stream, ext):
     """
@@ -1507,30 +1720,39 @@ def build_epsilon_from_invoices(vat: str) -> List[Dict]:
         })
     return epsilon_list
 
-def load_epsilon_cache_for_vat(vat: str) -> List[Dict]:
+def load_epsilon_cache_for_vat(vat: str):
     """
-    Αν υπάρχει το per-vat epsilon αρχείο το διαβάζει, αλλιώς το χτίζει
-    από το {vat}_invoices.json (με build_epsilon_from_invoices) και το αποθηκεύει.
+    ΜΟΝΟ διαβάζει το DATA_DIR/epsilon/<vat>_epsilon_invoices.json.
+    - Αν δεν υπάρχει: επιστρέφει [].
+    - Αν είναι άδειο/χαλασμένο: επιστρέφει [].
+    ΔΕΝ κάνει auto-build από Excel ή άλλα αρχεία.
     """
-    path = epsilon_file_path_for(vat)
-    if os.path.exists(path):
-        try:
-            return json_read(path)
-        except Exception:
-            log.exception("Could not read epsilon cache for %s", vat)
-            return []
-    # build from invoices if possible
     try:
-        epsilon_list = build_epsilon_from_invoices(vat)
-        if epsilon_list:
-            try:
-                json_write(path, epsilon_list)
-                log.info("Built epsilon cache for %s from %s_invoices.json (%d entries)", vat, vat, len(epsilon_list))
-            except Exception:
-                log.exception("Could not write newly built epsilon cache for %s", vat)
-        return epsilon_list
+        eps_dir = os.path.join(DATA_DIR, "epsilon")
+        os.makedirs(eps_dir, exist_ok=True)
+        path = os.path.join(eps_dir, f"{vat}_epsilon_invoices.json")
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                txt = f.read().strip()
+                if not txt:
+                    return []
+                data = json.loads(txt)
+                if isinstance(data, list):
+                    return data
+                # παλιό shape dict => γύρνα το σε λίστα όσο γίνεται
+                out = []
+                if isinstance(data, dict):
+                    for v in data.values():
+                        if isinstance(v, dict):
+                            out.append(v)
+                return out
+        except Exception:
+            log.exception("load_epsilon_cache_for_vat: JSON decode error -> return []")
+            return []
     except Exception:
-        log.exception("Failed to build epsilon cache from invoices for %s", vat)
+        log.exception("load_epsilon_cache_for_vat: unexpected error")
         return []
 
 def save_epsilon_cache_for_vat(vat: str, data: List[Dict]):
@@ -1905,61 +2127,304 @@ def validate_date_field_against_active_fiscal(date_str, field_name='date'):
 
 @app.route('/api/repeat_entry/get', methods=['GET'])
 def api_repeat_entry_get():
-    creds = read_credentials_list()
+    """
+    Επιστρέφει στοιχεία repeat_entry + expense_tags και -όταν είναι διαθέσιμο-
+    το afm/vat του ενεργού πελάτη ώστε το frontend να το χρησιμοποιεί.
+    Παράμετρος query: ?vat=... (προαιρετικό)
+    """
+    try:
+        creds = read_credentials_list()
+    except Exception:
+        creds = None
+
+    # default empty response structure
+    base_resp = {"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []}
+
+    # try to get vat from query param or from session active credential
+    vat_param = request.args.get('vat') or None
+    session_cred = (get_active_credential_from_session() or {}) if 'get_active_credential_from_session' in globals() else {}
+    vat_from_session = session_cred.get('vat') if isinstance(session_cred, dict) else None
+    vat = vat_param or vat_from_session
+
     if not creds:
-        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
-    vat = request.args.get('vat') or (get_active_credential_from_session() or {}).get('vat')
-    idx = find_active_client_index(creds, vat=vat)
+        # still include any afm/vat from session if present
+        afm_from_session = ""
+        try:
+            # try common keys
+            if isinstance(session_cred, dict):
+                afm_from_session = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+            afm_from_session = str(afm_from_session).strip() if afm_from_session else ""
+        except Exception:
+            afm_from_session = ""
+        resp = dict(base_resp)
+        if afm_from_session:
+            resp['afm'] = afm_from_session
+            resp['vat'] = afm_from_session
+        return jsonify(resp)
+
+    # find index of active client if possible
+    idx = find_active_client_index(creds, vat=vat) if 'find_active_client_index' in globals() else None
     if idx is None:
-        return jsonify({"ok": True, "repeat_entry": {"enabled": False, "mapping": {}}, "expense_tags": []})
-    repeat = creds[idx].get('repeat_entry', {"enabled": False, "mapping": {}})
-    # ensure expense_tags is a list of strings
-    raw_tags = creds[idx].get('expense_tags') or []
+        # not found — still try to return session info if available
+        afm_guess = ""
+        try:
+            if isinstance(session_cred, dict):
+                afm_guess = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+            afm_guess = str(afm_guess).strip() if afm_guess else ""
+        except Exception:
+            afm_guess = ""
+
+        resp = dict(base_resp)
+        # if we can extract expense_tags from session_cred, include them
+        try:
+            raw_tags = (session_cred.get('expense_tags') if isinstance(session_cred, dict) else None) or []
+            if isinstance(raw_tags, str):
+                expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
+            elif isinstance(raw_tags, list):
+                expense_tags = [str(t) for t in raw_tags]
+            else:
+                expense_tags = []
+            if expense_tags:
+                resp['expense_tags'] = expense_tags
+        except Exception:
+            pass
+
+        if afm_guess:
+            resp['afm'] = afm_guess
+            resp['vat'] = afm_guess
+        return jsonify(resp)
+
+    # we have creds and an index -> build response
+    client_rec = creds[idx] if idx is not None and idx < len(creds) else None
+    repeat = (client_rec.get('repeat_entry') if isinstance(client_rec, dict) else {}) or {"enabled": False, "mapping": {}}
+
+    # normalize expense_tags
+    raw_tags = (client_rec.get('expense_tags') if isinstance(client_rec, dict) else None) or []
     if isinstance(raw_tags, str):
         expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
     elif isinstance(raw_tags, list):
         expense_tags = [str(t) for t in raw_tags]
     else:
         expense_tags = []
-    return jsonify({"ok": True, "repeat_entry": repeat, "expense_tags": expense_tags})
+
+    # try to extract afm/vat from client_rec (many possible key names)
+    afm_found = ""
+    vat_found = ""
+    try:
+        if isinstance(client_rec, dict):
+            # check common keys
+            for k in ("afm", "AFM", "vat", "VAT", "vat_number", "vatNumber"):
+                v = client_rec.get(k)
+                if v:
+                    val = str(v).strip()
+                    if not afm_found and (k.lower().startswith('afm') or (len(val) == 9 and val.isdigit())):
+                        afm_found = val
+                    if not vat_found and (k.lower().startswith('vat') or (len(val) >= 8)):
+                        vat_found = val
+            # nested structures
+            for nested in ("active_client", "client", "credential"):
+                if not afm_found and isinstance(client_rec.get(nested), dict):
+                    nc = client_rec.get(nested)
+                    for k in ("afm", "AFM", "vat", "VAT", "vat_number"):
+                        if k in nc and nc[k]:
+                            afm_found = afm_found or str(nc[k]).strip()
+                            vat_found = vat_found or str(nc[k]).strip()
+            # as fallback use name fields (not AFM, but useful info)
+            client_name = client_rec.get('client_name') or client_rec.get('name') or client_rec.get('company') or client_rec.get('client') or ""
+        else:
+            client_name = ""
+    except Exception:
+        afm_found = afm_found or ""
+        vat_found = vat_found or ""
+        client_name = client_name if 'client_name' in locals() else ""
+
+    # fallback to session credential values if nothing found
+    try:
+        if not afm_found and isinstance(session_cred, dict):
+            afm_found = (session_cred.get('afm') or session_cred.get('vat') or "") or afm_found
+        if not vat_found and isinstance(session_cred, dict):
+            vat_found = (session_cred.get('vat') or session_cred.get('afm') or "") or vat_found
+    except Exception:
+        pass
+
+    afm_found = (str(afm_found).strip() or "")
+    vat_found = (str(vat_found).strip() or "")
+
+    resp = {
+        "ok": True,
+        "repeat_entry": repeat,
+        "expense_tags": expense_tags
+    }
+    # include descriptive client object (don't leak secrets) - include some fields if present
+    try:
+        client_summary = {}
+        if isinstance(client_rec, dict):
+            for fld in ("client_name", "name", "company"):
+                if fld in client_rec and client_rec.get(fld):
+                    client_summary["name"] = client_rec.get(fld)
+                    break
+            # include provided vat/afm if present
+            if afm_found:
+                client_summary["afm"] = afm_found
+            elif vat_found:
+                client_summary["vat"] = vat_found
+            # include original entry for debugging only when debug enabled (optional)
+            if app.debug:
+                client_summary["_raw"] = client_rec
+        if client_summary:
+            resp["client"] = client_summary
+    except Exception:
+        pass
+
+    if afm_found:
+        resp['afm'] = afm_found
+    elif vat_found:
+        resp['vat'] = vat_found
+
+    # also return the vat param echoed (helpful for debugging)
+    if vat_param:
+        resp['_queried_vat'] = vat_param
+
+    return jsonify(resp)
 
 
-@app.route('/api/repeat_entry/save', methods=['POST'])
+
+@app.route("/api/repeat_entry/save", methods=["POST"])
 def api_repeat_entry_save():
-    payload = request.get_json(silent=True) or {}
-    enabled = bool(payload.get('enabled', False))
-    mapping = payload.get('mapping', {}) or {}
+    """
+    Αποθήκευση ρυθμίσεων 'Επαναληψιμης' για τον ενεργό πελάτη ή για συγκεκριμένο vat.
+    - Δεν βασίζεται σε helpers ορισμένους μέσα στο search().
+    - Κάνει sanitize σε mapping, βάζει no-store headers και επιστρέφει καθαρά errors.
+    """
+    import os, json
+    from datetime import datetime, timezone
 
-    # sanitize + normalize mapping keys and values
-    normalized_mapping = {}
-    for k, v in mapping.items():
-        nk = normalize_vat_key(k)
-        if not nk:
-            # allow storing __default specially (leave as-is)
-            if str(k).strip() == '__default' and v:
-                normalized_mapping['__default'] = str(v).strip()
-            continue
-        normalized_mapping[nk] = str(v).strip()
+    # ---- μικρο-helpers τοπικά για να μην εξαρτόμαστε από search() ----
+    def _credentials_path():
+        try:
+            base = DATA_DIR  # αν το έχεις global
+        except Exception:
+            base = os.path.join(os.getcwd(), "data")
+        os.makedirs(base, exist_ok=True)
+        return os.path.join(base, "credentials.json")
 
-    creds = read_credentials_list()
-    vat = payload.get('vat') or (get_active_credential_from_session() or {}).get('vat')
-    idx = find_active_client_index(creds, vat=vat)
-    if idx is None:
-        return jsonify({"ok": False, "error": "No credentials found"}), 400
+    def _load_creds():
+        p = _credentials_path()
+        if not os.path.exists(p):
+            return []
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f) or []
+        except Exception:
+            return []
 
-    creds[idx].setdefault('repeat_entry', {})
-    creds[idx]['repeat_entry']['enabled'] = enabled
-    creds[idx]['repeat_entry']['mapping'] = normalized_mapping
-    creds[idx]['repeat_entry']['updated_at'] = datetime.datetime.utcnow().isoformat() + 'Z'
-    creds[idx]['repeat_entry']['user'] = (get_active_credential_from_session() or {}).get('user') or 'unknown'
+    def _save_creds(creds):
+        p = _credentials_path()
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(creds, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, p)
+        return True
+
+    def _find_idx(creds, vat=None):
+        """Βρες index του ενεργού πελάτη. Αν δοθεί vat, προτιμάται αυτό."""
+        if not creds:
+            return None
+        if vat:
+            s_vat = str(vat).strip()
+            for i, c in enumerate(creds):
+                try:
+                    if str(c.get("vat") or c.get("AFM") or "").strip() == s_vat:
+                        return i
+                except Exception:
+                    pass
+        for i, c in enumerate(creds):
+            try:
+                if c.get("active"):
+                    return i
+            except Exception:
+                pass
+        return 0  # fallback
 
     try:
-        write_credentials_list(creds)
-        # optionally: return expense_tags too, if you earlier wanted that
-        return jsonify({"ok": True, "repeat_entry": creds[idx]['repeat_entry']})
+        payload = request.get_json(silent=True) or {}
+        enabled = bool(payload.get("enabled", False))
+        mapping = payload.get("mapping") or {}
+        vat_in = (payload.get("vat") or "").strip()
+
+        # sanitize mapping: κράτα μόνο "μη-κενά" κλειδιά/τιμές
+        if isinstance(mapping, dict):
+            sanitized = {}
+            for k, v in mapping.items():
+                ks = str(k).strip()
+                vs = ("" if v is None else str(v)).strip()
+                if ks and vs:
+                    sanitized[ks] = vs
+            mapping = sanitized
+        else:
+            mapping = {}
+
+        # Βρες VAT: προτιμά payload.vat, αλλιώς active session
+        active = None
+        try:
+            active = get_active_credential_from_session()
+        except Exception:
+            active = None
+        vat = vat_in or (active.get("vat") if active else "")
+        if not vat:
+            resp = jsonify({"ok": False, "error": "No active VAT"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 400
+
+        # φόρτωσε/γράψε credentials.json
+        creds = _load_creds()
+        idx = _find_idx(creds, vat)
+        if idx is None or idx >= len(creds):
+            resp = jsonify({"ok": False, "error": "Credentials not found"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 404
+
+        entry = {
+            "enabled": enabled,
+            "mapping": mapping,
+            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
+        }
+        # Μην αφήνεις παλιά "σκουπίδια"
+        try:
+            if not isinstance(creds[idx], dict):
+                creds[idx] = {}
+        except Exception:
+            creds[idx] = {}
+        creds[idx]["repeat_entry"] = entry
+
+        _save_ok = _save_creds(creds)
+        if not _save_ok:
+            resp = jsonify({"ok": False, "error": "Failed to write credentials"})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp, 500
+
+        resp = jsonify({"ok": True})
+        # no-store για να μη γίνει replay μετά από refresh
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp, 200
+
     except Exception as e:
-        log.exception("Failed saving repeat_entry")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        log.exception("api_repeat_entry_save: unexpected error")
+        resp = jsonify({"ok": False, "error": "Server error"})
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp, 500
+
+
 
 
 
@@ -2727,6 +3192,12 @@ def search():
     modal_warning = None
     fiscal_mismatch_block = False
 
+    # active year for template (used by receipts fiscal check)
+    try:
+        active_year_val = get_active_fiscal_year()
+    except Exception:
+        active_year_val = None
+
     # ---------- helpers ----------
     def _map_invoice_type_local(code):
         INVOICE_TYPE_MAP = {
@@ -2914,6 +3385,12 @@ def search():
         if request.method == "POST" and not request.is_json:
             mark = request.form.get("mark", "").strip()
 
+        # --- receipt vs invoice mode from form (hidden input expect_receipt=1) ---
+        expect_receipt = (
+            (request.form.get("expect_receipt") == "1") or
+            (request.args.get("expect_receipt") == "1")
+        )
+
         import re
         from urllib.parse import urlparse
         # existing invoice scrapers
@@ -2927,44 +3404,61 @@ def search():
         input_is_url = re.match(r'^https?://', mark)
         if input_is_url:
             domain = urlparse(mark).netloc.lower()
-            scraped_afm = None
-            scraped_marks = []
-            try:
-                if "wedoconnect" in domain:
-                    scraped_marks, scraped_afm = scrape_wedoconnect(mark)
-                elif "mydatapi.aade.gr" in domain:
-                    data = scrape_mydatapi(mark)
-                    scraped_marks = [data.get("MARK", "N/A")]
-                    scraped_afm = data.get("ΑΦΜ Πελάτη")
-                elif "einvoice.s1ecos.gr" in domain:
-                    scraped_marks, scraped_afm = scrape_einvoice(mark)
-                elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
-                    scraped_marks = scrape_impact(mark)
-                elif "epsilonnet.gr" in domain:
-                    mark_val, scraped_afm, _ = scrape_epsilon(mark)
-                    if mark_val:
-                        scraped_marks = [mark_val]
-                else:
-                    # fallback try receipt detector
-                    if detect_and_scrape_receipt:
-                        try:
-                            rd = detect_and_scrape_receipt(mark)
-                            if isinstance(rd, dict) and rd.get("MARK"):
-                                scraped_marks = [str(rd.get("MARK"))]
-                                scraped_afm = rd.get("issuer_vat") or rd.get("issuer_afm")
-                        except Exception:
-                            log.exception("Receipt detect_and_scrape failed for URL %s", mark)
-                    if not scraped_marks:
-                        error = "Άγνωστο URL για scraping."
-            except Exception as e:
-                log.exception("Scraping failed for URL %s", mark)
-                error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
-                modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
+            # --- NEW: αν είναι ενεργό "Αποδείξεις" αλλά το URL είναι "τιμολογιακό", δείξε warning και ΜΗ συνεχίσεις ---
+            invoice_domains = (
+                "wedoconnect",
+                "mydatapi.aade.gr",
+                "einvoice.s1ecos.gr",
+                "impact.gr",
+                "einvoice.impact.gr",
+                "epsilonnet.gr",
+            )
+            is_invoice_url = any(d in domain for d in invoice_domains)
+            if expect_receipt and is_invoice_url:
+                modal_warning = (
+                    "Έχεις επιλεγμένη «Αποδείξεις», αλλά το URL φαίνεται να είναι Τιμολογίου. "
+                    "Η εισαγωγή μπλοκάρεται — βάλε URL απόδειξης ή άλλαξε σε «Τιμολόγια»."
+                )
+            else:
+                scraped_afm = None
+                scraped_marks = []
+                try:
+                    if "wedoconnect" in domain:
+                        scraped_marks, scraped_afm = scrape_wedoconnect(mark)
+                    elif "mydatapi.aade.gr" in domain:
+                        data = scrape_mydatapi(mark)
+                        scraped_marks = [data.get("MARK", "N/A")]
+                        scraped_afm = data.get("ΑΦΜ Πελάτη")
+                    elif "einvoice.s1ecos.gr" in domain:
+                        scraped_marks, scraped_afm = scrape_einvoice(mark)
+                    elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
+                        scraped_marks = scrape_impact(mark)
+                    elif "epsilonnet.gr" in domain:
+                        mark_val, scraped_afm, _ = scrape_epsilon(mark)
+                        if mark_val:
+                            scraped_marks = [mark_val]
+                    else:
+                        # fallback try receipt detector
+                        if detect_and_scrape_receipt:
+                            try:
+                                rd = detect_and_scrape_receipt(mark)
+                                if isinstance(rd, dict) and rd.get("MARK"):
+                                    scraped_marks = [str(rd.get("MARK"))]
+                                    scraped_afm = rd.get("issuer_vat") or rd.get("issuer_afm")
+                            except Exception:
+                                log.exception("Receipt detect_and_scrape failed for URL %s", mark)
+                        if not scraped_marks:
+                            error = "Άγνωστο URL για scraping."
+                except Exception as e:
+                    log.exception("Scraping failed for URL %s", mark)
+                    error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
 
-            if scraped_marks:
-                mark = scraped_marks[0]
+                if scraped_afm and vat and str(scraped_afm).strip() != str(vat).strip():
+                    modal_warning = f"Το URL επιστρέφει ΑΦΜ {scraped_afm}, διαφορετικό από τον ενεργό πελάτη {vat}."
+
+                if scraped_marks:
+                    mark = scraped_marks[0]
 
         if not input_is_url:
             if not vat:
@@ -3003,7 +3497,7 @@ def search():
                 log.exception("Could not read Excel to check duplicate MARK")
 
             # If not in cache, try receipt scraper to produce a single doc
-            if not docs_for_mark and detect_and_scrape_receipt:
+            if not docs_for_mark and detect_and_scrape_receipt and not modal_warning:
                 try:
                     rd = detect_and_scrape_receipt(mark)
                     if isinstance(rd, dict) and rd.get("MARK"):
@@ -3022,7 +3516,9 @@ def search():
                     log.exception("Receipt scraper failed for mark %s", mark)
 
             if not docs_for_mark:
-                error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
+                # ΜΗ βγάζεις error αν υπάρχει modal_warning — αφήνουμε το warning modal να εμφανιστεί
+                if not modal_warning:
+                    error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
             else:
                 if not classified_flag:
                     try:
@@ -3058,256 +3554,182 @@ def search():
                             log.info("search: fiscal year mismatch for MARK %s vat %s invoice_year=%s selected_year=%s", mark, vat, issue_year, sel_year_int)
                             modal_summary = None
                             invoice_lines = []
-                            # keep customer_categories as default but don't allow edit
                             allow_edit_existing = False
                         else:
-                            # detect receipts vs invoices
-                            RECEIPT_TYPE_CODES = {"8.4", "8.5", "11.5"}
-                            def is_receipt_doc(d):
+                            # =======================
+                            #   HARD STOP ΓΙΑ ΤΙΜΟΛΟΓΙΑ
+                            # =======================
+                            if not expect_receipt:
+                                FORBIDDEN_CODES = {"8.2", "8.4", "8.5", "8.6", "9.3", "11.1", "11.2", "11.5"}
+                                FORBIDDEN_NAMES = {
+                                    "Τέλος ανθεκτικότητας κλιματικής κρίσης",
+                                    "Απόδειξη Είσπραξης POS",
+                                    "Απόδειξη Επιστροφής POS",
+                                    "Δελτίο Παραγγελίας Εστίασης",
+                                    "Δελτίο Αποστολής",
+                                    "ΑΛΠ",
+                                    "ΑΠΥ",
+                                    "Απόδειξη Λιανικής Πώλησης για Λογαριασμό Τρίτων",
+                                }
+
+                                forbidden_hit_code = None
+                                forbidden_hit_name = None
                                 try:
-                                    if d.get("_is_receipt"):
-                                        return True
-                                    t = str(pick(d, "type", "invoiceType", "docType", default="")).strip()
-                                    if t in RECEIPT_TYPE_CODES or t.lower() in ("receipt", "apodeixis", "απόδειξη"):
-                                        return True
-                                    desc = str(pick(d, "description", "desc", "Name", "Name_issuer", default="")).lower()
-                                    if "απόδειξη" in desc or "receipt" in desc or "λιανική" in desc or "pos" in desc:
-                                        return True
-                                    has_net = any(k in d for k in ("totalNetValue", "totalNet", "lineTotal", "net"))
-                                    has_vat = any(k in d for k in ("totalVatAmount", "totalVat", "vat", "vatRate"))
-                                    if (not has_net) and (("totalValue" in d) or ("amount" in d)) and (not has_vat):
-                                        return True
+                                    for inst in docs_for_mark:
+                                        code = str(pick(inst, "type", "invoiceType", "docType", "doc_type", default="")).strip()
+                                        # ελληνική ονομασία από τον κωδικό (αν υπάρχει)
+                                        name_guess = _map_invoice_type_local(code) if code else ""
+                                        # μπορεί να έχει έρθει ήδη ως name
+                                        name_field = str(pick(inst, "type_name", "doc_name", default="")).strip()
+
+                                        if (code in FORBIDDEN_CODES) or (name_guess in FORBIDDEN_NAMES) or (name_field in FORBIDDEN_NAMES):
+                                            forbidden_hit_code = code or None
+                                            # Βάλε ως name προτεραιότητα: name_field -> name_guess -> mapper(code) -> code
+                                            resolved_name = (
+                                                name_field
+                                                or name_guess
+                                                or (_map_invoice_type_local(code) if code else "")
+                                                or code
+                                            )
+                                            forbidden_hit_name = resolved_name
+                                            break
                                 except Exception:
                                     pass
-                                return False
 
-                            receipt_votes = sum(1 for dd in docs_for_mark if is_receipt_doc(dd))
-                            is_group_receipt = (receipt_votes >= max(1, len(docs_for_mark) // 2))
-
-                            if is_group_receipt:
-                                # Build receipt modal
-                                invoice_lines = []
-                                for idx, inst in enumerate(docs_for_mark):
-                                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                                    amount_raw = pick(inst, "totalValue", "amount", "lineTotal", "total", default=pick(inst, "value", "price", default=0))
-                                    vat_raw = pick(inst, "totalVatAmount", "vat", "vatRate", default="")
-                                    desc = pick(inst, "description", "desc", "Name", "note", default=f"Απόδειξη #{idx+1}")
-                                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "VATCategory", default="")
-                                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                                    invoice_lines.append({
-                                        "id": line_id,
-                                        "description": desc,
-                                        "amount": amount_raw,
-                                        "vat": vat_raw,
-                                        "category": "",
-                                        "vatCategory": mapped_vatcat
-                                    })
-
-                                total_net = 0.0
-                                total_vat = 0.0
-                                total_value = 0.0
-                                for ln in invoice_lines:
-                                    v = float_from_comma(ln.get("amount", 0))
-                                    total_value += v
-                                    vv = float_from_comma(ln.get("vat", 0))
-                                    total_vat += vv
-                                total_net = total_value - total_vat if total_vat else total_value
-
-                                def fmt(x):
+                                if forbidden_hit_name:
+                                    # --- ΝΕΟ: απόδοση ΟΠΩΣΔΗΠΟΤΕ σε ελληνική περιγραφή για το warning
+                                    display_name = forbidden_hit_name
                                     try:
-                                        return f"{x:.2f}".replace(".", ",")
-                                    except Exception:
-                                        return str(x)
-
-                                for ml in invoice_lines:
-                                    try:
-                                        ml_v = float_from_comma(ml.get("amount", 0))
-                                        ml["amount"] = fmt(ml_v)
-                                    except Exception:
-                                        pass
-                                    try:
-                                        mv = float_from_comma(ml.get("vat", 0))
-                                        ml["vat"] = fmt(mv)
+                                        # Αν αυτό που έχουμε μοιάζει με κωδικό, χαρτογράφησέ το
+                                        if display_name == forbidden_hit_code or display_name.replace(".", "").isdigit():
+                                            mapped = _map_invoice_type_local(forbidden_hit_code or display_name)
+                                            if mapped:
+                                                display_name = mapped
                                     except Exception:
                                         pass
 
-                                modal_summary = {
-                                    "mark": mark,
-                                    "AA": pick(docs_for_mark[0], "AA", "aa", default=""),
-                                    "AFM": pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat),
-                                    "Name": pick(docs_for_mark[0], "Name_issuer", "Name", default=""),
-                                    "series": pick(docs_for_mark[0], "series", "Series", default=""),
-                                    "number": pick(docs_for_mark[0], "number", "aa", "AA", default=""),
-                                    "issueDate": pick(docs_for_mark[0], "issueDate", "issue_date", default=""),
-                                    "totalNetValue": fmt(total_net),
-                                    "totalVatAmount": fmt(total_vat),
-                                    "totalValue": fmt(total_value),
-                                    "type": "receipt",
-                                    "type_name": "Απόδειξη",
-                                    "lines": invoice_lines,
-                                    "is_receipt": True,
-                                    # lock classification for receipts
-                                    "χαρακτηρισμός": "αποδειξακια"
-                                }
+                                    modal_warning = (
+                                        f"Προσοχή: Το παραστατικό είναι {display_name}. "
+                                        "Η ροή Τιμολογίων δεν το υποστηρίζει. Η διαδικασία μπλοκάρεται — "
+                                        "έλεγξε το URL/MARK ή χρησιμοποίησε ροή Αποδείξεων εφόσον είναι κατάλληλο."
+                                    )
+                                    log.info(
+                                        "search: invoice-flow blocked (forbidden type) code=%s name=%s mark=%s vat=%s",
+                                        forbidden_hit_code, display_name, mark, vat
+                                    )
+                                    modal_summary = None
+                                    invoice_lines = []
+                                    allow_edit_existing = False
 
-                                # receipts should NOT show repeat-entry editing / categories
-                                customer_categories = []
-
-                                # prefill from epsilon if exists (merge per-line categories if any)
-                                try:
-                                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                                    eps_list = json_read(epsilon_path) or []
-                                    matched = None
-                                    for it in (eps_list or []):
-                                        try:
-                                            if str(it.get("mark", "")).strip() == str(mark).strip():
-                                                matched = it
-                                                break
-                                        except Exception:
-                                            continue
-                                    if matched:
-                                        modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or "αποδειξακια"
-                                        eps_lines = matched.get("lines", []) or []
-                                        eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
-                                        for ml in modal_summary.get("lines", []):
-                                            lid = str(ml.get("id", ""))
-                                            if not lid:
-                                                continue
-                                            eps_line = eps_by_id.get(lid)
-                                            if eps_line:
-                                                if not ml.get("category") and eps_line.get("category"):
-                                                    ml["category"] = eps_line.get("category")
-                                                if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
-                                                    ml["vatCategory"] = eps_line.get("vat_category")
-                                except Exception:
-                                    log.exception("Could not prefill epsilon cache for receipts")
-
+                            # Αν βάλαμε modal_warning από το guard, ΜΗ συνεχίσεις.
+                            if modal_warning:
+                                pass
                             else:
-                                # Invoice flow (restore categories selection)
-                                invoice_lines = []
-                                for idx, inst in enumerate(docs_for_mark):
-                                    line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                                    description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
-                                    amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
-                                    vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
-                                    raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
-                                    mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                                    invoice_lines.append({
-                                        "id": line_id,
-                                        "description": description,
-                                        "amount": amount,
-                                        "vat": vat_rate,
-                                        "category": "",
-                                        "vatCategory": mapped_vatcat
-                                    })
-
-                                first = docs_for_mark[0]
-                                total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
-                                total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
-                                total_value = total_net + total_vat
-
-                                NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
-                                inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
-                                is_negative = inv_type in NEGATIVE_TYPES
-
-                                for ml in invoice_lines:
+                                # detect receipts vs invoices
+                                RECEIPT_TYPE_CODES = {"8.4", "8.5", "11.5"}
+                                def is_receipt_doc(d):
                                     try:
-                                        v = float_from_comma(ml.get("amount", 0))
-                                        ml["amount"] = f"{-abs(v):.2f}".replace(".", ",") if is_negative else f"{v:.2f}".replace(".", ",")
+                                        if d.get("_is_receipt"):
+                                            return True
+                                        t = str(pick(d, "type", "invoiceType", "docType", default="")).strip()
+                                        if t in RECEIPT_TYPE_CODES or t.lower() in ("receipt", "apodeixis", "απόδειξη"):
+                                            return True
+                                        desc = str(pick(d, "description", "desc", "Name", "Name_issuer", default="")).lower()
+                                        if "απόδειξη" in desc or "receipt" in desc or "λιανική" in desc or "pos" in desc:
+                                            return True
+                                        has_net = any(k in d for k in ("totalNetValue", "totalNet", "lineTotal", "net"))
+                                        has_vat = any(k in d for k in ("totalVatAmount", "totalVat", "vat", "vatRate"))
+                                        if (not has_net) and (("totalValue" in d) or ("amount" in d)) and (not has_vat):
+                                            return True
                                     except Exception:
                                         pass
+                                    return False
+
+                                receipt_votes = sum(1 for dd in docs_for_mark if is_receipt_doc(dd))
+                                is_group_receipt = (receipt_votes >= max(1, len(docs_for_mark) // 2))
+
+                                if is_group_receipt:
+                                    # Build receipt modal
+                                    invoice_lines = []
+                                    for idx, inst in enumerate(docs_for_mark):
+                                        line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                                        amount_raw = pick(inst, "totalValue", "amount", "lineTotal", "total", default=pick(inst, "value", "price", default=0))
+                                        vat_raw = pick(inst, "totalVatAmount", "vat", "vatRate", default="")
+                                        desc = pick(inst, "description", "desc", "Name", "note", default=f"Απόδειξη #{idx+1}")
+                                        raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "VATCategory", default="")
+                                        mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
+                                        invoice_lines.append({
+                                            "id": line_id,
+                                            "description": desc,
+                                            "amount": amount_raw,
+                                            "vat": vat_raw,
+                                            "category": "",
+                                            "vatCategory": mapped_vatcat
+                                        })
+
+                                    total_net = 0.0
+                                    total_vat = 0.0
+                                    total_value = 0.0
+                                    for ln in invoice_lines:
+                                        v = float_from_comma(ln.get("amount", 0))
+                                        total_value += v
+                                        vv = float_from_comma(ln.get("vat", 0))
+                                        total_vat += vv
+                                    total_net = total_value - total_vat if total_vat else total_value
+
+                                    def fmt(x):
+                                        try:
+                                            return f"{x:.2f}".replace(".", ",")
+                                        except Exception:
+                                            return str(x)
+
+                                    for ml in invoice_lines:
+                                        try:
+                                            ml_v = float_from_comma(ml.get("amount", 0))
+                                            ml["amount"] = fmt(ml_v)
+                                        except Exception:
+                                            pass
+                                        try:
+                                            mv = float_from_comma(ml.get("vat", 0))
+                                            ml["vat"] = fmt(mv)
+                                        except Exception:
+                                            pass
+
+                                    modal_summary = {
+                                        "mark": mark,
+                                        "AA": pick(docs_for_mark[0], "AA", "aa", default=""),
+                                        "AFM": pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat),
+                                        "Name": pick(docs_for_mark[0], "Name_issuer", "Name", default=""),
+                                        "series": pick(docs_for_mark[0], "series", "Series", default=""),
+                                        "number": pick(docs_for_mark[0], "number", "aa", "AA", default=""),
+                                        "issueDate": pick(docs_for_mark[0], "issueDate", "issue_date", default=""),
+                                        "totalNetValue": fmt(total_net),
+                                        "totalVatAmount": fmt(total_vat),
+                                        "totalValue": fmt(total_value),
+                                        "type": "Απόδειξη",
+                                        "type_name": "Απόδειξη",
+                                        "lines": invoice_lines,
+                                        "is_receipt": True,
+                                        "χαρακτηρισμός": "αποδειξακια"
+                                    }
+
+                                    # receipts should NOT show repeat-entry editing / categories
+                                    customer_categories = []
+
+                                    # prefill from epsilon if exists
                                     try:
-                                        vv = float_from_comma(ml.get("vat", 0))
-                                        ml["vat"] = f"{-abs(vv):.2f}".replace(".", ",") if is_negative else f"{vv:.2f}".replace(".", ",")
-                                    except Exception:
-                                        pass
-
-                                modal_summary = {
-                                    "mark": mark,
-                                    "AA": pick(first, "AA", "aa", default=""),
-                                    "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
-                                    "Name": pick(first, "Name", "Name_issuer", default=""),
-                                    "series": pick(first, "series", "Series", "serie", default=""),
-                                    "number": pick(first, "number", "aa", "AA", default=""),
-                                    "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
-                                    "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
-                                    "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
-                                    "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
-                                    "type": inv_type,
-                                    "type_name": mapper(inv_type),
-                                    "lines": invoice_lines,
-                                    "is_receipt": False
-                                }
-
-                                # preserve existing epsilon prefill behavior for invoices
-                                try:
-                                    epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
-                                    eps_list = json_read(epsilon_path) or []
-
-                                    if not eps_list:
-                                        try:
-                                            has_detail = False
-                                            if modal_summary and (modal_summary.get("issueDate") or modal_summary.get("AFM") or modal_summary.get("AFM_issuer")):
-                                                has_detail = True
-                                            if invoice_lines and any((ln.get("description") or ln.get("amount") or ln.get("vat")) for ln in invoice_lines):
-                                                has_detail = True
-                                            if has_detail and modal_summary:
-                                                epsilon_entry = {
-                                                    "mark": str(modal_summary.get("mark", "")).strip(),
-                                                    "issueDate": modal_summary.get("issueDate", "") or "",
-                                                    "series": modal_summary.get("series", "") or "",
-                                                    "aa": modal_summary.get("number", "") or modal_summary.get("AA", ""),
-                                                    "AA": modal_summary.get("number", "") or modal_summary.get("AA", ""),
-                                                    "type": modal_summary.get("type", "") or "",
-                                                    "vatCategory": modal_summary.get("vatCategory", "") or "",
-                                                    "totalNetValue": modal_summary.get("totalNetValue", "") or "",
-                                                    "totalVatAmount": modal_summary.get("totalVatAmount", "") or "",
-                                                    "totalValue": modal_summary.get("totalValue", "") or "",
-                                                    "classification": modal_summary.get("classification", "") or "",
-                                                    "χαρακτηρισμός": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
-                                                    "characteristic": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
-                                                    "AFM_issuer": modal_summary.get("AFM_issuer", "") or modal_summary.get("AFM", "") or "",
-                                                    "Name_issuer": modal_summary.get("Name", "") or modal_summary.get("Name_issuer", "") or "",
-                                                    "AFM": modal_summary.get("AFM", "") or vat,
-                                                    "lines": []
-                                                }
-                                                for ln in invoice_lines:
-                                                    epsilon_entry["lines"].append({
-                                                        "id": ln.get("id", ""),
-                                                        "description": ln.get("description", ""),
-                                                        "amount": ln.get("amount", ""),
-                                                        "vat": ln.get("vat", ""),
-                                                        "category": ln.get("category", "") or "",
-                                                        "vat_category": ln.get("vatCategory", "") or ""
-                                                    })
-                                                eps_list.append(epsilon_entry)
-                                                try:
-                                                    _safe_save_epsilon_cache(vat, eps_list)
-                                                    log.info("Built per-mark epsilon entry for mark %s (vat %s)", epsilon_entry.get("mark"), vat)
-                                                except Exception:
-                                                    log.exception("Failed to save newly built per-mark epsilon entry")
-                                        except Exception:
-                                            log.exception("Failed building per-mark epsilon entry")
-
-                                    # prefill from matched eps entry
-                                    def match_epsilon_item(item, mark_val):
-                                        for k in ('mark', 'MARK', 'invoice_id', 'Αριθμός Μητρώου', 'id'):
-                                            if k in item and str(item[k]).strip() == str(mark_val).strip():
-                                                return True
-                                        return False
-
-                                    matched = None
-                                    for it in (eps_list or []):
-                                        try:
-                                            if match_epsilon_item(it, mark):
-                                                matched = it
-                                                break
-                                        except Exception:
-                                            continue
-
-                                    if matched:
-                                        modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
-                                        try:
+                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        eps_list = json_read(epsilon_path) or []
+                                        matched = None
+                                        for it in (eps_list or []):
+                                            try:
+                                                if str(it.get("mark", "")).strip() == str(mark).strip():
+                                                    matched = it
+                                                    break
+                                            except Exception:
+                                                continue
+                                        if matched:
+                                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or "αποδειξακια"
                                             eps_lines = matched.get("lines", []) or []
                                             eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
                                             for ml in modal_summary.get("lines", []):
@@ -3320,16 +3742,157 @@ def search():
                                                         ml["category"] = eps_line.get("category")
                                                     if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
                                                         ml["vatCategory"] = eps_line.get("vat_category")
+                                    except Exception:
+                                        log.exception("Could not prefill epsilon cache for receipts")
+
+                                else:
+                                    # Invoice flow (κανονικά)
+                                    invoice_lines = []
+                                    for idx, inst in enumerate(docs_for_mark):
+                                        line_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
+                                        description = pick(inst, "description", "desc", "Description", "Name", "Name_issuer") or f"Instance #{idx+1}"
+                                        amount = pick(inst, "amount", "lineTotal", "totalNetValue", "totalValue", "value", default="")
+                                        vat_rate = pick(inst, "vat", "vatRate", "vatPercent", "totalVatAmount", default="")
+                                        raw_vatcat = pick(inst, "vatCategory", "vat_category", "vatClass", "vatCategoryCode", "VATCategory", "vatCat", default="")
+                                        mapped_vatcat = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
+                                        invoice_lines.append({
+                                            "id": line_id,
+                                            "description": description,
+                                            "amount": amount,
+                                            "vat": vat_rate,
+                                            "category": "",
+                                            "vatCategory": mapped_vatcat
+                                        })
+
+                                    first = docs_for_mark[0]
+                                    total_net = sum(float_from_comma(pick(d, "totalNetValue", "totalNet", "lineTotal", default=0)) for d in docs_for_mark)
+                                    total_vat = sum(float_from_comma(pick(d, "totalVatAmount", "totalVat", default=0)) for d in docs_for_mark)
+                                    total_value = total_net + total_vat
+
+                                    NEGATIVE_TYPES = {"5.1", "5.2", "11.4"}
+                                    inv_type = str(pick(first, "type", "invoiceType", default="")).strip()
+                                    is_negative = inv_type in NEGATIVE_TYPES
+                                    type_mapped = mapper(inv_type)
+
+                                    for ml in invoice_lines:
+                                        try:
+                                            v = float_from_comma(ml.get("amount", 0))
+                                            ml["amount"] = f"{-abs(v):.2f}".replace(".", ",") if is_negative else f"{v:.2f}".replace(".", ",")
                                         except Exception:
-                                            log.exception("Failed to merge per-line categories from epsilon")
-                                except Exception:
-                                    log.exception("Could not read epsilon cache for prefill")
+                                            pass
+                                        try:
+                                            vv = float_from_comma(ml.get("vat", 0))
+                                            ml["vat"] = f"{-abs(vv):.2f}".replace(".", ",") if is_negative else f"{vv:.2f}".replace(".", ",")
+                                        except Exception:
+                                            pass
+
+                                    modal_summary = {
+                                        "mark": mark,
+                                        "AA": pick(first, "AA", "aa", default=""),
+                                        "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
+                                        "Name": pick(first, "Name", "Name_issuer", default=""),
+                                        "series": pick(first, "series", "Series", "serie", default=""),
+                                        "number": pick(first, "number", "aa", "AA", default=""),
+                                        "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
+                                        "totalNetValue": (f"-{abs(total_net):.2f}" if is_negative else f"{total_net:.2f}").replace(".", ","),
+                                        "totalVatAmount": (f"-{abs(total_vat):.2f}" if is_negative else f"{total_vat:.2f}").replace(".", ","),
+                                        "totalValue": (f"-{abs(total_value):.2f}" if is_negative else f"{total_value:.2f}").replace(".", ","),
+                                        "type": type_mapped,
+                                        "type_code": inv_type,
+                                        "type_name": type_mapped,
+                                        "lines": invoice_lines,
+                                        "is_receipt": False
+                                    }
+
+                                    # epsilon prefill (όπως πριν)
+                                    try:
+                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        eps_list = json_read(epsilon_path) or []
+
+                                        if not eps_list:
+                                            try:
+                                                has_detail = False
+                                                if modal_summary and (modal_summary.get("issueDate") or modal_summary.get("AFM") or modal_summary.get("AFM_issuer")):
+                                                    has_detail = True
+                                                if invoice_lines and any((ln.get("description") or ln.get("amount") or ln.get("vat")) for ln in invoice_lines):
+                                                    has_detail = True
+                                                if has_detail and modal_summary:
+                                                    epsilon_entry = {
+                                                        "mark": str(modal_summary.get("mark", "")).strip(),
+                                                        "issueDate": modal_summary.get("issueDate", "") or "",
+                                                        "series": modal_summary.get("series", "") or "",
+                                                        "aa": modal_summary.get("number", "") or modal_summary.get("AA", ""),
+                                                        "AA": modal_summary.get("number", "") or modal_summary.get("AA", ""),
+                                                        "type": modal_summary.get("type_code", inv_type) or "",
+                                                        "vatCategory": modal_summary.get("vatCategory", "") or "",
+                                                        "totalNetValue": modal_summary.get("totalNetValue", "") or "",
+                                                        "totalVatAmount": modal_summary.get("totalVatAmount", "") or "",
+                                                        "totalValue": modal_summary.get("totalValue", "") or "",
+                                                        "classification": modal_summary.get("classification", "") or "",
+                                                        "χαρακτηρισμός": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
+                                                        "characteristic": modal_summary.get("χαρακτηρισμός") or modal_summary.get("characteristic") or "",
+                                                        "AFM_issuer": modal_summary.get("AFM_issuer", "") or modal_summary.get("AFM", "") or "",
+                                                        "Name_issuer": modal_summary.get("Name", "") or modal_summary.get("Name_issuer", "") or "",
+                                                        "AFM": modal_summary.get("AFM", "") or vat,
+                                                        "lines": []
+                                                    }
+                                                    for ln in invoice_lines:
+                                                        epsilon_entry["lines"].append({
+                                                            "id": ln.get("id", ""),
+                                                            "description": ln.get("description", ""),
+                                                            "amount": ln.get("amount", ""),
+                                                            "vat": ln.get("vat", ""),
+                                                            "category": ln.get("category", "") or "",
+                                                            "vat_category": ln.get("vatCategory", "") or ""
+                                                        })
+                                                    eps_list.append(epsilon_entry)
+                                                    try:
+                                                        _safe_save_epsilon_cache(vat, eps_list)
+                                                        log.info("Built per-mark epsilon entry for mark %s (vat %s)", epsilon_entry.get("mark"), vat)
+                                                    except Exception:
+                                                        log.exception("Failed to save newly built per-mark epsilon entry")
+                                            except Exception:
+                                                log.exception("Failed building per-mark epsilon entry")
+
+                                        def match_epsilon_item(item, mark_val):
+                                            for k in ('mark', 'MARK', 'invoice_id', 'Αριθμός Μητρώου', 'id'):
+                                                if k in item and str(item[k]).strip() == str(mark_val).strip():
+                                                    return True
+                                            return False
+
+                                        matched = None
+                                        for it in (eps_list or []):
+                                            try:
+                                                if match_epsilon_item(it, mark):
+                                                    matched = it
+                                                    break
+                                            except Exception:
+                                                continue
+
+                                        if matched:
+                                            modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
+                                            try:
+                                                eps_lines = matched.get("lines", []) or []
+                                                eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}
+                                                for ml in modal_summary.get("lines", []):
+                                                    lid = str(ml.get("id", ""))
+                                                    if not lid:
+                                                        continue
+                                                    eps_line = eps_by_id.get(lid)
+                                                    if eps_line:
+                                                        if not ml.get("category") and eps_line.get("category"):
+                                                            ml["category"] = eps_line.get("category")
+                                                        if (not ml.get("vatCategory") or ml.get("vatCategory") == "") and eps_line.get("vat_category"):
+                                                            ml["vatCategory"] = eps_line.get("vat_category")
+                                            except Exception:
+                                                log.exception("Failed to merge per-line categories from epsilon")
+                                    except Exception:
+                                        log.exception("Could not read epsilon cache for prefill")
 
                     except Exception:
                         log.exception("search: fiscal year validation or modal build failed")
                         modal_summary = None
                         invoice_lines = []
-                        # restore categories from defaults already loaded above
                         try:
                             raw_tags = active_cred.get("expense_tags") if active_cred else None
                             if isinstance(raw_tags, str):
@@ -3356,6 +3919,7 @@ def search():
                     modal_summary = None
                     invoice_lines = []
                     # categories remain default
+
     # ---------- Read credentials to extract repeat_entry config to pass to template ----------
     repeat_entry_conf = {}
     try:
@@ -3402,13 +3966,15 @@ def search():
         allow_edit_existing=allow_edit_existing,
         vat=vat,
         active_page="search",
-        table_html=table_html,
+        table_html = strip_server_totals(table_html),
         file_exists=file_exists,
         css_numcols=css_numcols,
         modal_warning=modal_warning,
         fiscal_mismatch_block=fiscal_mismatch_block,
-        repeat_entry_conf=repeat_entry_conf
+        repeat_entry_conf=repeat_entry_conf,
+        active_year=active_year_val
     )
+
 
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
@@ -3712,55 +4278,156 @@ def save_accounts():
     return redirect(url_for("credentials"))
 
 # ---------------- Save summary from modal to Excel & per-customer JSON ----------------
+
+# --- BEGIN PATCH v3: /save_summary with repeat-entry also for receipts (per-line = "αποδειξακια") ---
+# Paste this over your existing save_summary() in app.py
+
 @app.route("/save_summary", methods=["POST"])
 def save_summary():
     """
     Save summary and update epsilon:
-      - αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
-      - αν υπάρχει μόνο placeholder για το mark -> διαγράφουμε τα placeholders και δημιουργούμε Excel + append
-      - αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
+      - Αν υπάρχει ήδη detailed εγγραφή στο epsilon για το mark -> update-only per-line
+      - Αν υπάρχει μόνο placeholder -> σβήνουμε placeholders και γράφουμε Excel + append πλήρους εγγραφής
+      - Αλλιώς -> γράφει Excel και προσθέτει πλήρη εγγραφή στο epsilon
 
-    Χρησιμοποιεί υπάρχοντες helpers του project: json_read/json_write, _safe_save_epsilon_cache,
-    load_epsilon_cache_for_vat, append_summary_to_customer_file, excel_path_for, DEFAULT_EXCEL_FILE, VAT_MAP, κ.λπ.
+    Επιπλέον:
+      - Κόβει άκυρα/άδεια summaries (τέλος τα placeholders).
+      - Εφαρμόζει **επαναληψιμη** (repeat-entry) κατηγοριοποίηση:
+         * ΤΙΜΟΛΟΓΙΑ: category ανά γραμμή από mapping (VAT% -> κατηγορία).
+         * ΑΠΟΔΕΙΞΕΙΣ: ΠΑΝΤΑ category ανά γραμμή = "αποδειξακια" (και top-level χαρακτηρισμός "αποδειξακια").
     """
+    import os, json, re
+
     try:
         from datetime import datetime as _dt, timezone as _tz
     except Exception:
         _dt = None
         _tz = None
 
-    # canonical columns που θέλεις να εμφανίζονται στο Excel (προσαρμόζονται αν χρειαστεί)
     EXCEL_COLUMNS = [
-        "MARK",
-        "ΑΦΜ",
-        "Επωνυμία",
-        "Σειρά",
-        "Αριθμός",
-        "Ημερομηνία",
-        "Είδος",
-        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ",
-        "Καθαρή Αξία",
-        "ΦΠΑ",
-        "Σύνολο"
+        "MARK","ΑΦΜ","Επωνυμία","Σειρά","Αριθμός","Ημερομηνία","Είδος",
+        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ","Καθαρή Αξία","ΦΠΑ","Σύνολο"
     ]
 
+    # ---------- local helpers ----------
+    def _first(*vals):
+        for v in vals:
+            if v is None:
+                continue
+            s = str(v).strip()
+            if s and s.lower() not in ("none","nan"):
+                return s
+        return ""
+
+    def _pfloat(x):
+        try:
+            return float(str(x).replace('.','').replace(',','.'))
+        except Exception:
+            return 0.0
+
+    def _is_receipt(summary: dict) -> bool:
+        s = summary or {}
+        if s.get("is_receipt"):
+            return True
+        t  = str(s.get("type","")).strip()
+        tn = str(s.get("type_name","")).lower()
+        ch = str(s.get("χαρακτηρισμός") or s.get("characteristic") or s.get("category") or "")
+        if ch == "αποδειξακια":
+            return True
+        if t in {"8.4","8.5","11.5"}:
+            return True
+        if any(h in tn for h in ("απόδειξη","apod","receipt","λιαν","pos")):
+            return True
+        if not s.get("totalVatAmount") and not s.get("totalNetValue") and s.get("totalValue"):
+            return True
+        return False
+
+    
+    def _hydrate_summary_for_excel(summary: dict, vat: str = "") -> dict:
+        try:
+            s   = dict(summary or {})
+            raw = s.get("raw") or {}
+            m = _first(s.get("MARK"), s.get("mark")); s["MARK"] = m; s["mark"] = m
+            aa = _first(s.get("number"), s.get("AA"), s.get("aa"), s.get("progressive_aa"),
+                        raw.get("AA") if isinstance(raw, dict) else None,
+                        raw.get("progressive_aa") if isinstance(raw, dict) else None)
+            s["AA"] = aa; s["aa"] = aa
+            if not s.get("number"): s["number"] = aa
+            if not s.get("progressive_aa"): s["progressive_aa"] = aa
+            s["AFM"]  = _first(s.get("AFM"), s.get("AFM_issuer"), s.get("issuer_vat"), vat)
+            s["Name"] = _first(s.get("Name"), s.get("Name_issuer"), s.get("issuer_name"))
+            s["issueDate"] = _first(s.get("issueDate"), s.get("issue_date"))
+            tv = _first(s.get("totalValue"), s.get("total_value"), s.get("total_amount"))
+            if not tv and isinstance(s.get("lines"), list):
+                amt = sum(_pfloat(l.get("amount") or l.get("lineTotal") or l.get("total") or 0) for l in s["lines"])
+                tv = f"{amt:.2f}"
+            if tv: s["totalValue"] = str(tv)
+            if _is_receipt(s):
+                s["is_receipt"] = True
+                s["category"] = s.get("category") or "αποδειξακια"
+                s["χαρακτηρισμός"] = s.get("χαρακτηρισμός") or s.get("characteristic") or "αποδειξακια"
+                if not s.get("type_name"): s["type_name"] = "Απόδειξη"
+            if not str(s.get("created_at") or "").strip():
+                s["created_at"] = _dt.utcnow().isoformat(timespec="seconds") if _dt else ""
+            return s
+        except Exception:
+            return summary or {}
+
+    def _extract_vat_percent(line: dict) -> str:
+        """
+        Επιστρέφει κανονικοποιημένο κλειδί ποσοστού ΦΠΑ, π.χ. '24%' ή '0%'
+        Διαβάζει από vatCategory ('ΦΠΑ 24%','24%') ή από vat ('24','24,00').
+        """
+        try:
+            cand = _first(line.get("vatCategory"), line.get("vat_category"))
+            if cand:
+                m = re.search(r"(\d+)\s*%", str(cand))
+                if m: return m.group(1) + "%"
+                m = re.search(r"(\d+)", str(cand))
+                if m: return m.group(1) + "%"
+            cand2 = _first(line.get("vat"), line.get("vatRate"))
+            if cand2:
+                m = re.search(r"(\d+)", str(cand2).replace(',', '.'))
+                if m: return m.group(1) + "%"
+        except Exception:
+            pass
+        return ""
+
+    def _load_repeat_entry_for_vat(vat: str):
+        """Διαβάζει credentials.json και επιστρέφει repeat_entry για συγκεκριμένο ΑΦΜ."""
+        try:
+            creds_path = os.path.join(DATA_DIR, "credentials.json")
+            if not os.path.exists(creds_path):
+                return {"enabled": False, "mapping": {}}
+            with open(creds_path, "r", encoding="utf-8") as f:
+                arr = json.load(f) or []
+            v = str(vat or "").strip()
+            for c in arr:
+                try:
+                    if str(c.get("vat") or c.get("AFM") or c.get("tax_number") or "").strip() == v:
+                        out = c.get("repeat_entry") or {}
+                        return {
+                            "enabled": bool(out.get("enabled")),
+                            "mapping": out.get("mapping") or {}
+                        }
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        return {"enabled": False, "mapping": {}}
+
+    # ---------------- parse payload ----------------
     try:
         log.info("save_summary: start request from %s", request.remote_addr)
-        # Προσπαθούμε πρώτα form field 'summary_json', μετά raw body (JSON), αλλιώς εναλλακτικά φτιάχνουμε minimal summary
         raw = None
         if request.form and request.form.get("summary_json"):
             raw = request.form.get("summary_json")
+            summary = None
         else:
-            # try JSON body
-            try:
-                # if content-type application/json, get_json will parse; else fallback to raw text
-                if request.is_json:
-                    summary = request.get_json(force=True)
-                    raw = None  # parsed already
-                else:
-                    raw = request.get_data(as_text=True) or None
-                    summary = None
-            except Exception:
+            if request.is_json:
+                summary = request.get_json(force=True)
+                raw = None
+            else:
                 raw = request.get_data(as_text=True) or None
                 summary = None
 
@@ -3773,12 +4440,10 @@ def save_summary():
                 summary = None
 
         if summary is None:
-            # build minimal from form fields if possible
             summary = {}
             if request.form.get("mark"):
                 summary["mark"] = request.form.get("mark")
-                summary["AFM"] = request.form.get("vat") or request.form.get("AFM") or ""
-            # optionally try other form keys
+                summary["AFM"]  = request.form.get("vat") or request.form.get("AFM") or ""
             if request.form.get("issueDate"):
                 summary["issueDate"] = request.form.get("issueDate")
     except Exception:
@@ -3786,7 +4451,7 @@ def save_summary():
         flash("Invalid summary payload", "error")
         return redirect(url_for("search"))
 
-    # active VAT
+    # ---------------- active VAT ----------------
     active = get_active_credential_from_session()
     vat = (active.get("vat") if active else None) or summary.get("AFM") or summary.get("AFM_issuer") or summary.get("AFM")
     if not vat:
@@ -3794,83 +4459,116 @@ def save_summary():
         flash("No active customer selected (VAT)", "error")
         return redirect(url_for("search"))
 
-    # helper to convert numeric strings like "1.234,56"
+    # ---------------- ensure lines / normalize ----------------
     def float_from_comma(value):
-        if value is None:
-            return 0.0
-        if isinstance(value, (int, float)):
-            return float(value)
-        s = str(value).strip().replace(".", "").replace(",", ".")
-        try:
-            return float(s)
-        except Exception:
-            return 0.0
+        if value is None: return 0.0
+        if isinstance(value,(int,float)): return float(value)
+        s = str(value).strip().replace(".","").replace(",",".")
+        try: return float(s)
+        except Exception: return 0.0
 
-    # --- ensure lines exist (reconstruct from per-customer invoices if needed) ---
     lines = summary.get("lines", []) or []
     if not lines:
         try:
-            mark = str(summary.get("mark", "")).strip()
+            mark = str(summary.get("mark","")).strip()
             docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
             all_docs = json_read(docs_file) or []
-            docs_for_mark = [d for d in all_docs if str(d.get("mark", "")).strip() == mark]
+            docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
             reconstructed = []
             for idx, inst in enumerate(docs_for_mark):
                 ln_id = inst.get("id") or inst.get("line_id") or inst.get("LineId") or f"{mark}_inst{idx}"
-                description = inst.get("description") or inst.get("desc") or inst.get("Description") or inst.get("Name") or inst.get("Name_issuer") or f"Instance #{idx+1}"
-                amount = inst.get("amount") or inst.get("lineTotal") or inst.get("totalNetValue") or inst.get("totalValue") or ""
-                vat_rate = inst.get("vat") or inst.get("vatRate") or inst.get("vatPercent") or inst.get("totalVatAmount") or ""
-                raw_vatcat = inst.get("vatCategory") or inst.get("vat_category") or inst.get("VATCategory") or inst.get("vatCat") or ""
-                if not raw_vatcat:
-                    raw_vatcat = inst.get("vatCategoryCode") or inst.get("vat_code") or ""
+                description = _first(inst.get("description"), inst.get("desc"), inst.get("Description"), inst.get("Name"), inst.get("Name_issuer"), f"Instance #{idx+1}")
+                amount = _first(inst.get("amount"), inst.get("lineTotal"), inst.get("totalNetValue"), inst.get("totalValue"))
+                vat_rate = _first(inst.get("vat"), inst.get("vatRate"), inst.get("vatPercent"), inst.get("totalVatAmount"))
+                raw_vatcat = _first(inst.get("vatCategory"), inst.get("vat_category"), inst.get("VATCategory"), inst.get("vatCat"), inst.get("vatCategoryCode"), inst.get("vat_code"))
                 vat_cat_mapped = VAT_MAP.get(str(raw_vatcat).strip(), raw_vatcat) if raw_vatcat else ""
-                reconstructed.append({
-                    "id": ln_id,
-                    "description": description,
-                    "amount": amount,
-                    "vat": vat_rate,
-                    "category": "",
-                    "vatCategory": vat_cat_mapped
-                })
+                reconstructed.append({"id": ln_id,"description": description,"amount": amount,"vat": vat_rate,"category": "","vatCategory": vat_cat_mapped})
             lines = reconstructed
             log.debug("save_summary: reconstructed %d lines from %s", len(lines), docs_file)
         except Exception:
             log.exception("save_summary: failed to reconstruct lines")
             lines = []
 
-    # --- normalize lines ---
     normalized_lines = []
     for idx, ln in enumerate(lines):
         if not isinstance(ln, dict):
             continue
         ln_id = ln.get("id") or f"{summary.get('mark','')}_l{idx}"
-        raw_vcat = ln.get("vatCategory") or ln.get("vat_category") or ln.get("vatCat") or ln.get("vat_cat") or ""
+        raw_vcat = _first(ln.get("vatCategory"), ln.get("vat_category"), ln.get("vatCat"), ln.get("vat_cat"))
         vcat_mapped = VAT_MAP.get(str(raw_vcat).strip(), raw_vcat) if raw_vcat else ""
         normalized_lines.append({
             "id": ln_id,
-            "description": ln.get("description", "") or ln.get("desc", "") or "",
-            "amount": ln.get("amount", "") or ln.get("lineTotal", "") or "",
-            "vat": ln.get("vat", "") or ln.get("vatRate", "") or "",
-            "category": ln.get("category", "") or "",
+            "description": _first(ln.get("description"), ln.get("desc")),
+            "amount": _first(ln.get("amount"), ln.get("lineTotal")),
+            "vat": _first(ln.get("vat"), ln.get("vatRate")),
+            "category": ln.get("category","") or "",
             "vatCategory": vcat_mapped
         })
     summary["lines"] = normalized_lines
 
-    # --- append to per-customer summary JSON (best-effort) ---
+    # ---------------- HYDRATE & repeat-entry ----------------
+    summary = _hydrate_summary_for_excel(summary, vat=str(vat or ""))
+    is_receipt = _is_receipt(summary)
+
+    conf = _load_repeat_entry_for_vat(vat)
+    # ΤΙΜΟΛΟΓΙΑ: mapping ανά VAT%
+    if not is_receipt:
+        if conf.get("enabled") and isinstance(conf.get("mapping"), dict) and summary.get("lines"):
+            mapping = conf["mapping"]
+            for ln in summary["lines"]:
+                if not ln: 
+                    continue
+                if str(ln.get("category","")).strip():
+                    continue  # μην πατήσεις την επιλογή του χρήστη
+                key = ""
+                # normalized VAT key (π.χ. "24%")
+                cand = _extract_vat_percent(ln)
+                if cand:
+                    key = cand
+                if key in mapping:
+                    ln["category"] = mapping[key]
+                else:
+                    key2 = key.replace('%','')
+                    if key2 in mapping:
+                        ln["category"] = mapping[key2]
+    else:
+        # ΑΠΟΔΕΙΞΕΙΣ: ΠΑΝΤΑ ανά γραμμή "αποδειξακια" (αν λείπει)
+        if summary.get("lines"):
+            for ln in summary["lines"]:
+                if ln is None: 
+                    continue
+                if not str(ln.get("category","")).strip():
+                    ln["category"] = "αποδειξακια"
+
+    # --- GUARD: μπλοκάρουμε άδεια/άκυρα summaries ---
+    try:
+        if not _meaningful_summary(summary):
+            log.info("save_summary: blocked empty/invalid summary (no 15-digit MARK or no meaningful lines/totals)")
+            if request.is_json:
+                return jsonify({"ok": False, "error": "Empty or invalid summary"}), 400
+            try:
+                flash("Δεν υπάρχουν δεδομένα για αποθήκευση.", "error")
+            except Exception:
+                pass
+            return redirect(url_for("search"))
+    except Exception:
+        log.exception("save_summary: validation failed")
+        if request.is_json:
+            return jsonify({"ok": False, "error": "Validation error"}), 400
+        return redirect(url_for("search"))
+
+    # ---------------- best-effort append στο per-customer JSON ----------------
     try:
         append_summary_to_customer_file(summary, vat)
     except Exception:
         log.exception("save_summary: append_summary_to_customer_file failed")
 
-    # --- helper to detect placeholder vs detailed epsilon item ---
+    # ---------------- epsilon cache (placeholders/detailed) ----------------
     def epsilon_item_has_detail(item):
         try:
-            if not item or not isinstance(item, dict):
-                return False
-            if item.get("issueDate"):
-                return True
-            if item.get("totalNetValue") or item.get("totalValue"):
-                return True
+            if not item or not isinstance(item, dict): return False
+            if item.get("issueDate"): return True
+            if item.get("totalNetValue") or item.get("totalValue"): return True
             lines_local = item.get("lines") or []
             if isinstance(lines_local, list):
                 for l in lines_local:
@@ -3883,148 +4581,111 @@ def save_summary():
             pass
         return False
 
-    # --- load epsilon cache for vat ---
     try:
-        epsilon_cache = load_epsilon_cache_for_vat(vat)  # returns list or None
-        if epsilon_cache is None:
-            epsilon_cache = []
-        log.debug("save_summary: loaded epsilon_cache len=%d for vat=%s", len(epsilon_cache), vat)
+        epsilon_cache = load_epsilon_cache_for_vat(vat) or []
     except Exception:
         log.exception("save_summary: failed loading epsilon cache")
         epsilon_cache = []
 
-    mark = str(summary.get("mark", "")).strip()
-
-    # --- locate existing detailed entry + collect placeholders ---
+    mark = str(summary.get("mark","")).strip()
     existing_index = None
     placeholder_indices = []
     try:
         for i, d in enumerate(epsilon_cache):
-            try:
-                d_mark = d.get("mark") or d.get("MARK") or d.get("invoice_id") or d.get("Αριθμός Μητρώου") or d.get("id")
-                if d_mark is None or str(d_mark).strip() != mark:
-                    continue
-                if not epsilon_item_has_detail(d):
-                    placeholder_indices.append(i)
-                    log.debug("save_summary: found placeholder at idx=%d keys=%s", i, list(d.keys())[:6])
-                    continue
-                existing_index = i
-                log.debug("save_summary: found detailed entry at idx=%d", i)
-                break
-            except Exception:
-                log.exception("save_summary: error scanning epsilon_cache index %s", i)
+            d_mark = _first(d.get("mark"), d.get("MARK"), d.get("invoice_id"), d.get("Αριθμός Μητρώου"), d.get("id"))
+            if not d_mark or d_mark != mark: 
                 continue
+            if not epsilon_item_has_detail(d): 
+                placeholder_indices.append(i); 
+                continue
+            existing_index = i; 
+            break
     except Exception:
-        log.exception("save_summary: scanning epsilon_cache failed unexpectedly")
+        log.exception("save_summary: scanning epsilon_cache failed")
 
-    # --- if placeholders exist, remove them so we force Excel creation ---
     if placeholder_indices:
         try:
             for idx in sorted(placeholder_indices, reverse=True):
-                try:
-                    removed = epsilon_cache.pop(idx)
-                    log.info("save_summary: removed placeholder epsilon entry idx=%d mark=%s vat=%s keys=%s", idx, mark, vat, list(removed.keys())[:6])
-                except Exception:
-                    log.exception("save_summary: failed to pop placeholder idx=%s", idx)
-            try:
-                _safe_save_epsilon_cache(vat, epsilon_cache)
-                log.info("save_summary: persisted epsilon cache after removing placeholders for vat=%s", vat)
-            except Exception:
-                log.exception("save_summary: failed persisting epsilon cache after placeholder removal")
+                try: epsilon_cache.pop(idx)
+                except Exception: log.exception("save_summary: pop placeholder idx=%s", idx)
+            try: _safe_save_epsilon_cache(vat, epsilon_cache)
+            except Exception: log.exception("save_summary: persist after placeholder removal failed")
             existing_index = None
         except Exception:
             log.exception("save_summary: error removing placeholders")
 
-    # --- if existing detailed entry -> update per-line categories only ---
+    # ---------------- update-only per-line on existing detailed ----------------
     if existing_index is not None:
         try:
             existing = epsilon_cache[existing_index]
             existing_lines = existing.get("lines", []) or []
-            existing_by_id = {str(l.get("id", "")): l for l in existing_lines if l.get("id") is not None}
+            by_id = {str(l.get("id","")): l for l in existing_lines if l.get("id") is not None}
             updated = False
-            for ln in normalized_lines:
-                lid = str(ln.get("id", ""))
-                if not lid:
+            for ln in summary["lines"]:
+                lid = str(ln.get("id","")); 
+                if not lid: 
                     continue
-                if lid in existing_by_id:
-                    el = existing_by_id[lid]
-                    new_cat = ln.get("category", "") or ""
-                    if new_cat and str(el.get("category", "")) != new_cat:
-                        el["category"] = new_cat
-                        el["vat_category"] = ln.get("vatCategory", "") or el.get("vat_category", "")
-                        updated = True
-                    elif ln.get("vatCategory") and str(el.get("vat_category", "")) != ln.get("vatCategory"):
-                        el["vat_category"] = ln.get("vatCategory")
-                        updated = True
+                if lid in by_id:
+                    el = by_id[lid]
+                    new_cat = ln.get("category","") or ""
+                    # Για αποδείξεις, αν λείπει στο υπάρχον -> γράψε "αποδειξακια"
+                    if not new_cat and is_receipt:
+                        new_cat = "αποδειξακια"
+                    if new_cat and str(el.get("category","")) != new_cat:
+                        el["category"] = new_cat; updated = True
+                    if ln.get("vatCategory") and str(el.get("vat_category","")) != ln.get("vatCategory"):
+                        el["vat_category"] = ln.get("vatCategory"); updated = True
                 else:
-                    new_el = {
-                        "id": lid,
-                        "description": ln.get("description", ""),
-                        "amount": ln.get("amount", ""),
-                        "vat": ln.get("vat", ""),
-                        "category": ln.get("category", "") or "",
-                        "vat_category": ln.get("vatCategory", "") or ""
-                    }
-                    existing_lines.append(new_el)
-                    existing_by_id[lid] = new_el
-                    updated = True
+                    existing_lines.append({
+                        "id": lid, "description": ln.get("description",""),
+                        "amount": ln.get("amount",""), "vat": ln.get("vat",""),
+                        "category": (ln.get("category","") or ("αποδειξακια" if is_receipt else "")),
+                        "vat_category": ln.get("vatCategory","") or ""
+                    }); updated = True
 
             if updated:
                 try:
-                    if _dt and _tz:
+                    if _dt and _tz: 
                         existing["_updated_at"] = _dt.now(_tz.utc).isoformat()
                 except Exception:
-                    existing["_updated_at"] = existing.get("_updated_at", "")
+                    existing["_updated_at"] = existing.get("_updated_at","")
                 existing["lines"] = existing_lines
                 epsilon_cache[existing_index] = existing
-
                 try:
                     _safe_save_epsilon_cache(vat, epsilon_cache)
-                    log.info("save_summary: updated epsilon per-line categories for mark=%s vat=%s", mark, vat)
-                    flash("Ενημερώθηκε ο χαρακτηρισμός στο cache (epsilon).", "success")
                 except Exception:
                     log.exception("save_summary: failed saving epsilon cache after update")
-                    flash("Failed updating epsilon cache (see server logs)", "error")
 
-                # ---- ensure Excel exists (if not, create it from summary/existing) ----
+                # ensure excel exists (αν λείπει, φτιάξ'το με σωστό Είδος/Τύπος)
                 try:
                     excel_path = excel_path_for(vat=vat)
                     if not os.path.exists(excel_path):
-                        try:
-                            total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue", "") or 0))
-                            total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount", "") or 0))
-                        except Exception:
-                            total_net = 0.0
-                            total_vat = 0.0
+                        tn = "ΑΠΟΔΕΙΞΗ" if is_receipt else _first(summary.get("type_name"), summary.get("type"))
+                        total_net = float_from_comma(summary.get("totalNetValue", existing.get("totalNetValue","") or 0))
+                        total_vat = float_from_comma(summary.get("totalVatAmount", existing.get("totalVatAmount","") or 0))
                         total_value = total_net + total_vat
                         row = {
-                            "MARK": str(summary.get("mark", existing.get("mark", ""))),
+                            "MARK": str(summary.get("mark", existing.get("mark",""))),
                             "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
-                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer", "") or ""),
-                            "Σειρά": summary.get("series", existing.get("series", "") or ""),
-                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa", ""))),
-                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate", "")),
-                            "Είδος": summary.get("type", existing.get("type", "")),
-                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory", "") or ""),
-                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-                            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-                            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+                            "Επωνυμία": summary.get("Name", existing.get("Name_issuer","") or ""),
+                            "Σειρά": summary.get("series", existing.get("series","") or ""),
+                            "Αριθμός": summary.get("number", existing.get("AA", existing.get("aa",""))),
+                            "Ημερομηνία": summary.get("issueDate", existing.get("issueDate","")),
+                            "Είδος": tn,
+                            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", existing.get("vatCategory","") or ""),
+                            "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+                            "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+                            "Σύνολο": f"{total_value:.2f}".replace(".",",")
                         }
                         import pandas as pd
-                        df_new = pd.DataFrame([row]).astype(str).fillna("")
-                        # ensure canonical columns only
-                        df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
                         os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
-                        df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                        log.info("save_summary: existing epsilon updated but excel was missing -> created excel %s", excel_path)
-                    else:
-                        log.debug("save_summary: epsilon updated and excel already exists at %s; not re-writing", excel_path)
+                        pd.DataFrame([row]).astype(str).fillna("").reindex(columns=EXCEL_COLUMNS, fill_value="").to_excel(excel_path, index=False, engine="openpyxl")
                 except Exception:
-                    log.exception("save_summary: failed ensuring/creating excel after epsilon update")
+                    log.exception("save_summary: ensure/create excel failed")
 
+                flash("Ενημερώθηκε ο χαρακτηρισμός στο cache (epsilon).", "success")
                 return redirect(url_for("search"))
             else:
-                log.info("save_summary: no per-line changes for mark=%s vat=%s", mark, vat)
                 flash("Δεν υπήρξε αλλαγή στις κατηγορίες.", "info")
                 return redirect(url_for("search"))
         except Exception:
@@ -4032,45 +4693,42 @@ def save_summary():
             flash("Server error while processing update", "error")
             return redirect(url_for("search"))
 
-    # --- ELSE: no existing detailed entry -> create/write excel + append epsilon entry ---
+    # ---------------- create/write excel + append epsilon entry ----------------
     excel_path = excel_path_for(vat=vat)
     excel_written = False
     try:
         total_net = float_from_comma(summary.get("totalNetValue", 0))
         total_vat = float_from_comma(summary.get("totalVatAmount", 0))
         total_value = float_from_comma(summary.get("totalValue", total_net + total_vat))
+        tipo_excel = "ΑΠΟΔΕΙΞΗ" if is_receipt else _first(summary.get("type_name"), summary.get("type"))
 
         row = {
-            "MARK": str(summary.get("mark", "")),
+            "MARK": str(summary.get("mark","")),
             "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
-            "Επωνυμία": summary.get("Name", ""),
-            "Σειρά": summary.get("series", ""),
-            "Αριθμός": summary.get("number", ""),
-            "Ημερομηνία": summary.get("issueDate", ""),
-            "Είδος": summary.get("type", ""),
-            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory", ""),
-            "Καθαρή Αξία": f"{total_net:.2f}".replace(".", ","),
-            "ΦΠΑ": f"{total_vat:.2f}".replace(".", ","),
-            "Σύνολο": f"{total_value:.2f}".replace(".", ",")
+            "Επωνυμία": summary.get("Name",""),
+            "Σειρά": summary.get("series",""),
+            "Αριθμός": summary.get("number",""),
+            "Ημερομηνία": summary.get("issueDate",""),
+            "Είδος": tipo_excel,
+            "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory",""),
+            "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+            "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+            "Σύνολο": f"{total_value:.2f}".replace(".",",")
         }
 
         import pandas as pd
         df_new = pd.DataFrame([row]).astype(str).fillna("")
-        # ensure df_new has only canonical columns (and in correct order)
         df_new = df_new.reindex(columns=EXCEL_COLUMNS, fill_value="")
 
-        # if there's a higher-level helper, prefer calling it (backward compat)
         helper = globals().get("_ensure_excel_and_update_or_append") or globals().get("_append_to_excel")
         if helper and callable(helper):
             try:
                 log.debug("save_summary: calling helper %s for excel update", helper.__name__)
-                # prefer passing summary if helper expects it, otherwise pass row+vat
                 try:
-                    helper(summary, vat=vat)
+                    helper(summary, vat=vat)  # προτίμησε ολόκληρο το summary
                 except TypeError:
                     helper(row, vat=vat)
                 excel_written = True
-                log.info("save_summary: helper %s completed", helper.__name__)
             except Exception:
                 log.exception("save_summary: helper %s failed; falling back to inline Excel write", helper.__name__)
 
@@ -4078,66 +4736,90 @@ def save_summary():
             if os.path.exists(excel_path):
                 try:
                     df_existing = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                    # coerce to strings and remove any non-canonical columns
                     df_existing = df_existing.astype(str).fillna("")
-                    # keep only canonical columns and in canonical order (drops anything else)
-                    df_existing = df_existing.reindex(columns=EXCEL_COLUMNS, fill_value="")
-                    # concat and ensure final has canonical columns only
-                    df_concat = pd.concat([df_existing, df_new], ignore_index=True, sort=False)
-                    df_concat = df_concat.reindex(columns=EXCEL_COLUMNS, fill_value="")
-                    df_concat.to_excel(excel_path, index=False, engine="openpyxl")
-                    log.info("save_summary: appended row to existing excel %s", excel_path)
+                    cols = list(df_existing.columns)
+
+                    aa_val = _first(summary.get("number"), summary.get("AA"), summary.get("aa"), summary.get("progressive_aa"))
+
+                    row_full = {
+                        "MARK": str(summary.get("mark","")),
+                        "ΑΦΜ": summary.get("AFM_issuer") or summary.get("AFM") or vat,
+                        "Επωνυμία": summary.get("Name",""),
+                        "Σειρά": summary.get("series",""),
+                        "Ημερομηνία": summary.get("issueDate",""),
+                        "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ": summary.get("vatCategory",""),
+                        "Καθαρή Αξία": f"{total_net:.2f}".replace(".",","),
+                        "ΦΠΑ": f"{total_vat:.2f}".replace(".",","),
+                        "Σύνολο": f"{total_value:.2f}".replace(".",","),
+                    }
+                    if "Αριθμός" in cols: row_full["Αριθμός"] = aa_val
+                    if "Α/Α"     in cols: row_full["Α/Α"]   = aa_val
+                    if "Είδος"   in cols: row_full["Είδος"] = tipo_excel
+                    if "Τύπος"   in cols and is_receipt: row_full["Τύπος"] = "ΑΠΟΔΕΙΞΗ"
+
+                    row_aligned = {c: row_full.get(c, "") for c in cols}
+                    pd.concat([df_existing, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False).to_excel(excel_path, index=False, engine="openpyxl")
+                    flash("Saved to Excel.", "success")
                 except Exception:
-                    log.exception("save_summary: failed to append to existing excel %s", excel_path)
+                    log.exception("save_summary: inline append to excel failed")
                     raise
             else:
                 try:
                     os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
                     df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                    log.info("save_summary: created new excel and wrote row %s", excel_path)
+                    flash("Saved to Excel.", "success")
                 except Exception:
-                    log.exception("save_summary: failed to create/write new excel %s", excel_path)
+                    log.exception("save_summary: create/write new excel failed")
                     raise
-            flash("Saved to Excel.", "success")
     except Exception:
         log.exception("save_summary: Excel write failed")
         flash("Excel save failed", "error")
 
-    # --- Build epsilon entry and append it to cache ---
+    # ---------------- Build epsilon entry & append ----------------
     try:
         epsilon_entry = {
             "mark": mark,
-            "issueDate": summary.get("issueDate", ""),
-            "series": summary.get("series", ""),
-            "aa": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "AA": summary.get("number", "") or summary.get("AA", "") or summary.get("aa", ""),
-            "type": summary.get("type", ""),
-            "vatCategory": summary.get("vatCategory", ""),
-            "totalNetValue": summary.get("totalNetValue", ""),
-            "totalVatAmount": summary.get("totalVatAmount", ""),
-            "totalValue": summary.get("totalValue", ""),
-            "classification": summary.get("classification", ""),
-            "χαρακτηρισμός": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "characteristic": summary.get("χαρακτηρισμός") or summary.get("characteristic") or "",
-            "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
-            "Name_issuer": summary.get("Name_issuer") or summary.get("Name", ""),
-            "AFM": summary.get("AFM", "") or vat,
+            "issueDate": summary.get("issueDate",""),
+            "series": summary.get("series",""),
+            "aa": _first(summary.get("number"), summary.get("AA"), summary.get("aa")),
+            "AA": _first(summary.get("number"), summary.get("AA"), summary.get("aa")),
+            "type": summary.get("type",""),
+            "vatCategory": summary.get("vatCategory",""),
+            "totalNetValue": summary.get("totalNetValue",""),
+            "totalVatAmount": summary.get("totalVatAmount",""),
+            "totalValue": summary.get("totalValue",""),
+            "classification": summary.get("classification",""),
+            "category": ("αποδειξακια" if is_receipt else (summary.get("category") or "")),
+            "χαρακτηρισμός": (summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if is_receipt else "")),
+            "characteristic": (summary.get("χαρακτηρισμός") or summary.get("characteristic") or ("αποδειξακια" if is_receipt else "")),
+            "AFM_issuer": summary.get("AFM_issuer","") or summary.get("AFM",""),
+            "Name_issuer": summary.get("Name_issuer") or summary.get("Name",""),
+            "AFM": summary.get("AFM","") or vat,
             "lines": []
         }
-        for ln in normalized_lines:
+        for ln in summary["lines"]:
             epsilon_entry["lines"].append({
-                "id": ln.get("id", ""),
-                "description": ln.get("description", ""),
-                "amount": ln.get("amount", ""),
-                "vat": ln.get("vat", ""),
-                "category": ln.get("category", "") or "",
-                "vat_category": ln.get("vatCategory", "") or ""
+                "id": ln.get("id",""),
+                "description": ln.get("description",""),
+                "amount": ln.get("amount",""),
+                "vat": ln.get("vat",""),
+                "category": (ln.get("category","") or ("αποδειξακια" if is_receipt else "")),
+                "vat_category": ln.get("vatCategory","") or ""
             })
 
-        epsilon_cache.append(epsilon_entry)
+        # skip append αν δεν υπάρχει 15ψήφιο mark ή καθόλου ουσιαστικές lines
+        _mk_ok = bool(re.fullmatch(r"\d{15}", str(mark or "").strip()))
+        _has_lines = bool(summary["lines"]) and any(
+            (str(x.get("description") or x.get("amount") or x.get("vat") or "").strip())
+            for x in summary["lines"]
+        )
+        if not _mk_ok or not _has_lines:
+            log.info("save_summary: skip epsilon append due to empty mark/lines (mk_ok=%s, has_lines=%s)", _mk_ok, _has_lines)
+            return redirect(url_for("search"))
+
         try:
+            epsilon_cache.append(epsilon_entry)
             _safe_save_epsilon_cache(vat, epsilon_cache)
-            log.info("save_summary: appended new epsilon entry for mark=%s vat=%s", mark, vat)
             flash("Saved summary and appended new epsilon entry.", "success")
         except Exception:
             log.exception("save_summary: failed saving new epsilon cache")
@@ -4147,6 +4829,10 @@ def save_summary():
         flash("Failed updating epsilon cache", "error")
 
     return redirect(url_for("search"))
+# --- END PATCH v3 ---
+
+
+
 
 
 @app.route("/save_receipt", methods=["POST"])
@@ -4182,263 +4868,249 @@ def save_receipt():
     flash("Η απόδειξη αποθηκεύτηκε επιτυχώς!", "success")
     return redirect(url_for("search"))
 
+@app.route("/api/repeat_state/get", methods=["GET"])
+def api_repeat_state_get():
+    try:
+        active = get_active_credential_from_session() or {}
+        vat = active.get("vat") or ""
+        enabled = _repeat_state_get_enabled_for_vat(vat)
+        return jsonify({"ok": True, "enabled": bool(enabled), "vat": vat})
+    except Exception as e:
+        log.exception("repeat_state/get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/api/repeat_state/set", methods=["POST"])
+def api_repeat_state_set():
+    """
+    Body: { "enabled": true/false }
+    Προαιρετικά μπορείς να στείλεις και { "mapping": {...} } – θα αγνοηθεί εδώ,
+    κρατάμε μόνο το enabled ώστε να είναι ultra-stable για receipts autosave.
+    """
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        enabled = bool(payload.get("enabled", False))
+
+        active = get_active_credential_from_session() or {}
+        vat = active.get("vat") or ""
+
+        # ενημέρωσε session
+        try:
+            session["repeat_enabled"] = enabled
+        except Exception:
+            pass
+
+        # ενημέρωσε repeat_state.json (per VAT)
+        data = _repeat_state_load()
+        if vat not in data:
+            data[vat] = {}
+        data[vat]["enabled"] = enabled
+        _repeat_state_save(data)
+
+        # optional: ενημέρωσε και το credentials repeat_entry.enabled αν θες να συμβαδίζει
+        try:
+            if active.get("repeat_entry") is None:
+                active["repeat_entry"] = {}
+            active["repeat_entry"]["enabled"] = enabled
+            # αν έχεις helper για persist credentials, κάλεσέ τον εδώ (π.χ. save_credentials(active))
+            # αλλιώς άστο έτσι — το session + repeat_state.json αρκούν για receipts.
+        except Exception:
+            pass
+
+        return jsonify({"ok": True, "enabled": enabled, "vat": vat})
+    except Exception as e:
+        log.exception("repeat_state/set failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/confirm_receipt", methods=["POST"])
 def api_confirm_receipt():
-    import os, json, traceback
-    from datetime import datetime
-    from filelock import FileLock
-    import pandas as pd
-
-    debug_dump_path = "/tmp/confirm_receipt_debug.json"
+    """
+    Επιβεβαίωση/Αποθήκευση ΑΠΟΔΕΙΞΗΣ:
+      - Normalizes summary σε μορφή 'ΑΠΟΔΕΙΞΗ' + 1 γραμμή αν δεν υπάρχουν lines.
+      - Θέτει category 'αποδειξακια' ανά γραμμή (αν λείπει).
+      - Idempotent ενημέρωση epsilon cache (update-by-mark).
+      - Γράφει/ενημερώνει Excel (μία φορά).
+    Επιστρέφει JSON: { ok, saved, mark, excel_written, updated_existing }
+    """
     try:
-        payload = request.get_json(silent=True)
-        if not payload:
-            payload = request.form.to_dict() or {}
+        payload = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        payload = {}
+    summary = payload.get("summary") or payload
 
-        # debug dump
-        try:
-            with open(debug_dump_path, "w", encoding="utf-8") as df:
-                json.dump({"received_at": datetime.utcnow().isoformat()+"Z", "payload": payload}, df, ensure_ascii=False, indent=2)
-        except Exception as e:
-            app.logger.warning("Could not write debug dump: %s", e)
-
-        app.logger.info("api_confirm_receipt: payload keys: %s", list(payload.keys()))
-
-        summary = payload.get("summary") or {}
-        # Extract important fields (robust)
-        supplied_afm = (payload.get("afm") or payload.get("AFM") or "").strip()
-        # try session active credential if not supplied
-        client_afm = supplied_afm or ""
-        if not client_afm:
+    # --- unify/normalize receipt shape ---
+    def _norm_receipt(s: dict) -> dict:
+        s = dict(s or {})
+        s["type"] = s.get("type") or "ΑΠΟΔΕΙΞΗ"
+        s["type_name"] = s.get("type_name") or "ΑΠΟΔΕΙΞΗ"
+        s["is_receipt"] = True
+        # κύρια πεδία
+        s["mark"] = str(s.get("mark") or s.get("MARK") or "").strip()
+        s["AA"] = str(s.get("AA") or s.get("aa") or s.get("number") or "").strip()
+        s["issueDate"] = str(s.get("issueDate") or s.get("date") or "").strip()
+        s["AFM_issuer"] = s.get("AFM_issuer") or s.get("AFM") or ""
+        s["AFM"] = s.get("AFM") or s.get("AFM_issuer") or ""
+        # γραμμές
+        lines = s.get("lines") or []
+        if not lines:
+            amt = str(s.get("totalValue") or s.get("total_amount") or s.get("totalNetValue") or "").strip()
+            if amt:
+                lines = [{
+                    "id": "r0", "description": "",
+                    "amount": amt, "vat": "",
+                    "category": s.get("category") or "",
+                    "vat_category": s.get("vatCategory") or ""
+                }]
+        # εξασφάλισε 'αποδειξακια' ανά γραμμή
+        fixed = []
+        for idx, ln in enumerate(lines):
+            if not isinstance(ln, dict):
+                continue
+            cat = (ln.get("category") or "").strip() or "αποδειξακια"
+            fixed.append({
+                "id": ln.get("id") or f"r{idx}",
+                "description": ln.get("description") or "",
+                "amount": ln.get("amount") or ln.get("total") or "",
+                "vat": ln.get("vat") or ln.get("vatRate") or "",
+                "category": cat,
+                "vat_category": ln.get("vat_category") or ln.get("vatCategory") or ""
+            })
+        s["lines"] = fixed
+        # totals (συμπλήρωσε αν λείπουν)
+        if not str(s.get("totalValue") or "").strip():
             try:
-                active = session.get("active_credential") if session else None
-                if active and active.get("vat"):
-                    client_afm = str(active.get("vat")).strip()
+                tot = sum(float(str(x.get("amount") or "0").replace(".", "").replace(",", ".")) for x in fixed)
+                s["totalValue"] = f"{tot:.2f}".replace(".", ",")
             except Exception:
-                client_afm = client_afm
+                pass
+        # set top-level receipt category
+        s["category"] = s.get("category") or "αποδειξακια"
+        s["χαρακτηρισμός"] = s.get("χαρακτηρισμός") or s.get("characteristic") or "αποδειξακια"
+        s["characteristic"] = s["χαρακτηρισμός"]
+        return s
 
-        if not client_afm:
-            return jsonify({"ok": False, "error": "Missing AFM for active client (session)."}), 400
+    summary = _norm_receipt(summary)
 
-        # normalize summary values
-        mark = (payload.get("mark") or summary.get("mark") or "").strip()
-        issue_date = (summary.get("issueDate") or summary.get("issue_date") or "").strip()
-        total_amount = (summary.get("totalValue") or summary.get("total_amount") or payload.get("total_amount") or "").strip()
-        progressive_aa = (summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
-        issuer_vat = (summary.get("AFM_issuer") or summary.get("AFM") or (summary.get("issuer_vat") if summary.get("issuer_vat") else "")).strip()
-        issuer_name = (summary.get("Name") or summary.get("Name_issuer") or summary.get("issuer_name") or "").strip()
-        doc_type = (summary.get("type") or summary.get("type_name") or summary.get("doc_type") or "").strip()
-        # category we want receipts to have
-        chosen_category = (payload.get("category") or summary.get("category") or "αποδειξακια").strip()
+    # --- guard: απαιτούμε τουλάχιστον mark 15ψήφιο ή “ουσιαστικές” γραμμές/σύνολο ---
+    if not _meaningful_summary(summary):
+        log.info("api_confirm_receipt: not meaningful payload -> 400")
+        return jsonify({"ok": False, "error": "Empty or invalid receipt"}), 400
 
-        # if the scraped data reports an invoice, refuse saving as receipt (frontend usually warns)
-        if (summary.get("is_invoice") is True) or (str(doc_type).lower().startswith("1") and summary.get("is_invoice") is not True):
-            return jsonify({"ok": False, "error": "Document is an invoice, not a receipt (will not save as receipt)."}), 400
+    # active VAT
+    active = get_active_credential_from_session()
+    vat = (active.get("vat") if active else None) or summary.get("AFM") or summary.get("AFM_issuer")
+    if not vat:
+        return jsonify({"ok": False, "error": "No active VAT"}), 400
 
-        # derive year
-        year = str(payload.get("year") or summary.get("year") or "")
-        if not year:
-            try:
-                if issue_date:
-                    parts = issue_date.split("/")
-                    if len(parts) >= 3:
-                        year = parts[-1]
-                if not year:
-                    year = str(datetime.utcnow().year)
-            except Exception:
-                year = str(datetime.utcnow().year)
+    # φόρτωσε epsilon cache χωρίς auto-build
+    try:
+        epsilon_cache = load_epsilon_cache_for_vat(vat) or []
+    except Exception:
+        log.exception("api_confirm_receipt: load_epsilon_cache_for_vat failed")
+        epsilon_cache = []
 
-        # ensure mark present (fallback to timestamp-based mark to avoid empty MARK)
-        if not mark:
-            mark = datetime.utcnow().strftime("%Y%m%d%H%M%S")  # fallback unique-ish mark
+    mark = str(summary.get("mark") or "").strip()
 
-        # ensure directories
-        base_data = os.path.join("data")
-        excel_dir = os.path.join(base_data, "excel")
-        epsilon_dir = os.path.join(base_data, "epsilon")
-        os.makedirs(excel_dir, exist_ok=True)
-        os.makedirs(epsilon_dir, exist_ok=True)
-
-        # Use ONE excel per client AFM + fiscal year as you requested:
-        excel_filename = f"{client_afm}_{year}_invoices.xlsx"
-        excel_path = os.path.join(excel_dir, excel_filename)
-        json_path = os.path.join(epsilon_dir, f"{client_afm}_epsilon_invoices.json")
-
-        app.logger.info("api_confirm_receipt: saving for client_afm=%s year=%s mark=%s -> excel=%s json=%s",
-                        client_afm, year, mark, excel_path, json_path)
-
-        # --- Write Excel (append/replace row for MARK) ---
+    # index by mark
+    existing_idx = None
+    for i, it in enumerate(epsilon_cache):
         try:
-            lock_excel = FileLock(excel_path + ".lock")
-            with lock_excel:
-                if os.path.exists(excel_path):
-                    try:
-                        df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
-                    except Exception as e:
-                        app.logger.warning("Failed reading existing excel, creating new. err=%s", e)
-                        df = pd.DataFrame()
-                else:
-                    df = pd.DataFrame()
-
-                # Desired columns for invoices/receipts sheet (keep compatibility)
-                desired_cols = ["MARK", "issueDate", "AFM_issuer", "AA", "series", "totalNetValue", "totalVatAmount", "totalValue", "character", "type"]
-                for c in desired_cols:
-                    if c not in df.columns:
-                        df[c] = ""
-
-                # remove existing same MARK (robust)
-                try:
-                    df = df[~(df["MARK"].astype(str).fillna("").str.strip() == str(mark).strip())]
-                except Exception:
-                    df = df[df["MARK"].astype(str).fillna("") != str(mark)]
-
-                row = {
-                    "MARK": mark,
-                    "issueDate": issue_date or "",
-                    "AFM_issuer": issuer_vat or "",
-                    "AA": progressive_aa or "",
-                    "series": summary.get("series") or "",
-                    # For receipts we often only have total -> store both net and total same
-                    "totalNetValue": summary.get("totalNetValue") or total_amount or "",
-                    "totalVatAmount": summary.get("totalVatAmount") or "",
-                    "totalValue": summary.get("totalValue") or total_amount or "",
-                    "character": chosen_category or "αποδειξακια",
-                    "type": doc_type or (summary.get("type_name") or "")
-                }
-                # append keeping dataframe columns
-                df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
-                # write back (index=False keeps clean excel)
-                df.to_excel(excel_path, index=False)
-                app.logger.info("api_confirm_receipt: excel saved ok (%s rows)", len(df))
-        except Exception as e:
-            app.logger.exception("api_confirm_receipt: excel write failed: %s", e)
-            # do not abort — attempt json write as well
-
-        # --- Write JSON (list) ---
-        try:
-            lock_json = FileLock(json_path + ".lock")
-            with lock_json:
-                existing = []
-                if os.path.exists(json_path):
-                    try:
-                        with open(json_path, "r", encoding="utf-8") as f:
-                            existing = json.load(f)
-                    except Exception as e:
-                        app.logger.warning("Existing json parse failed, will reset to empty list. err=%s", e)
-                        existing = []
-
-                # normalize existing to list
-                if isinstance(existing, dict):
-                    converted = []
-                    for k, v in existing.items():
-                        if isinstance(v, dict):
-                            converted.append(v)
-                    existing = converted
-                if not isinstance(existing, list):
-                    existing = []
-
-                # Build entry following example structure
-                entry = {
-                    "mark": mark,
-                    "issueDate": issue_date or "",
-                    "series": summary.get("series") or "",
-                    "aa": progressive_aa or "",
-                    "AA": progressive_aa or "",
-                    "type": doc_type or summary.get("type_name") or "",
-                    "vatCategory": summary.get("vatCategory") or "",
-                    "totalNetValue": (summary.get("totalNetValue") or total_amount or ""),
-                    "totalVatAmount": (summary.get("totalVatAmount") or ""),
-                    "totalValue": (summary.get("totalValue") or total_amount or ""),
-                    "classification": "",
-                    "χαρακτηρισμός": chosen_category or "αποδειξακια",
-                    "characteristic": chosen_category or "αποδειξακια",
-                    "AFM_issuer": issuer_vat or "",
-                    "Name_issuer": issuer_name or "",
-                    "AFM": issuer_vat or "",
-                    "Name": issuer_name or "",
-                    "lines": []
-                }
-
-                # collect lines from summary (respect category if present; default 'αποδειξακια')
-                incoming_lines = summary.get("lines") or summary.get("raw", {}).get("lines") or []
-                if isinstance(incoming_lines, dict):
-                    try:
-                        incoming_lines = list(incoming_lines.values())
-                    except Exception:
-                        incoming_lines = []
-
-                if not isinstance(incoming_lines, list) or len(incoming_lines) == 0:
-                    # create single-line from total if no lines provided
-                    entry["lines"].append({
-                        "id": entry["mark"] + "_inst0",
-                        "description": summary.get("Name") or summary.get("issuer_name") or "",
-                        "amount": total_amount or "",
-                        "vat": summary.get("totalVatAmount") or "",
-                        "category": chosen_category or "αποδειξακια",
-                        "vat_category": summary.get("vatCategory") or ""
-                    })
-                else:
-                    for idx, ln in enumerate(incoming_lines):
-                        try:
-                            # accept both dict-like or objects
-                            if not isinstance(ln, dict):
-                                ln = dict(ln)
-                        except Exception:
-                            ln = {}
-                        try:
-                            lid = ln.get("id") or ln.get("line_id") or ln.get("LineId") or (f"{entry['mark']}_inst{idx}")
-                            desc = ln.get("description") or ln.get("desc") or ln.get("descriptionText") or ""
-                            amt = ln.get("amount") or ln.get("lineTotal") or ln.get("total") or ""
-                            vat = ln.get("vat") or ln.get("vatRate") or ""
-                            ln_cat = ln.get("category") or chosen_category or "αποδειξακια"
-                            vat_cat = ln.get("vatCategory") or ln.get("vat_category") or ""
-                            entry["lines"].append({
-                                "id": lid,
-                                "description": desc,
-                                "amount": amt,
-                                "vat": vat,
-                                "category": ln_cat,
-                                "vat_category": vat_cat
-                            })
-                        except Exception:
-                            continue
-
-                entry["_updated_at"] = datetime.utcnow().isoformat() + "+00:00"
-
-                # Replace or append by mark
-                replaced = False
-                for i, it in enumerate(existing):
-                    try:
-                        if str((it.get("mark") or it.get("MARK") or "")).strip() == str(mark).strip():
-                            existing[i] = entry
-                            replaced = True
-                            break
-                    except Exception:
-                        continue
-                if not replaced:
-                    existing.append(entry)
-
-                with open(json_path, "w", encoding="utf-8") as f:
-                    json.dump(existing, f, ensure_ascii=False, indent=2)
-                app.logger.info("api_confirm_receipt: json saved ok (entries=%d)", len(existing))
-        except Exception as e:
-            app.logger.exception("api_confirm_receipt: json write failed: %s", e)
-            return jsonify({"ok": False, "error": "json write failed: " + str(e)}), 500
-
-        return jsonify({"ok": True, "excel": excel_path, "json": json_path})
-    except Exception as e:
-        app.logger.exception("api_confirm_receipt: unexpected error: %s", e)
-        try:
-            with open(debug_dump_path, "a", encoding="utf-8") as df:
-                df.write("\n\nEXCEPTION:\n")
-                df.write(traceback.format_exc())
+            m = str(it.get("mark") or it.get("MARK") or "").strip()
+            if m == mark:
+                existing_idx = i
+                break
         except Exception:
-            pass
-        return jsonify({"ok": False, "error": str(e)}), 500
+            continue
 
+    updated_existing = False
 
+    # ετοίμασε item προς αποθήκευση (receipt)
+    epsilon_item = {
+        "mark": mark,
+        "issueDate": summary.get("issueDate", ""),
+        "series": summary.get("series", ""),
+        "aa": summary.get("AA", "") or summary.get("aa", "") or summary.get("number", ""),
+        "AA": summary.get("AA", "") or summary.get("aa", "") or summary.get("number", ""),
+        "type": "ΑΠΟΔΕΙΞΗ",
+        "vatCategory": summary.get("vatCategory", ""),
+        "totalNetValue": summary.get("totalNetValue", ""),
+        "totalVatAmount": summary.get("totalVatAmount", ""),
+        "totalValue": summary.get("totalValue", ""),
+        "classification": summary.get("classification", ""),
+        "category": "αποδειξακια",
+        "χαρακτηρισμός": "αποδειξακια",
+        "characteristic": "αποδειξακια",
+        "AFM_issuer": summary.get("AFM_issuer", "") or summary.get("AFM", ""),
+        "Name_issuer": summary.get("Name_issuer", "") or summary.get("Name", ""),
+        "AFM": summary.get("AFM", "") or vat,
+        "lines": [{
+            "id": ln.get("id", ""),
+            "description": ln.get("description", ""),
+            "amount": ln.get("amount", ""),
+            "vat": ln.get("vat", ""),
+            "category": (ln.get("category") or "αποδειξακια"),
+            "vat_category": ln.get("vat_category", "") or ""
+        } for ln in (summary.get("lines") or [])]
+    }
+
+    # idempotent update
+    if existing_idx is not None:
+        existing = epsilon_cache[existing_idx]
+        existing_lines = existing.get("lines")
+        if not isinstance(existing_lines, list):
+            existing_lines = []
+            existing["lines"] = existing_lines
+
+        by_id = {str(l.get("id", "")): l for l in existing_lines if isinstance(l, dict)}
+        changed = False
+
+        for ln in epsilon_item["lines"]:
+            lid = str(ln.get("id") or "")
+            if not lid:
+                continue
+            if lid in by_id:
+                cur = by_id[lid]
+                if (cur.get("category") or "") != (ln.get("category") or ""):
+                    cur["category"] = ln["category"]
+                    changed = True
+                if (cur.get("vat_category") or "") != (ln.get("vat_category") or ""):
+                    cur["vat_category"] = ln["vat_category"]
+                    changed = True
+            else:
+                existing_lines.append(ln)
+                changed = True
+
+        if changed:
+            epsilon_cache[existing_idx] = existing
+            updated_existing = True
+    else:
+        epsilon_cache.append(epsilon_item)
+
+    # save epsilon atomically
+    try:
+        _safe_save_epsilon_cache(vat, epsilon_cache)
+    except Exception:
+        log.exception("api_confirm_receipt: _safe_save_epsilon_cache failed")
+
+    # ensure excel line exists (single write)
+    excel_written = False
+    try:
+        helper = globals().get("_ensure_excel_and_update_or_append") or globals().get("_append_to_excel")
+        if helper and callable(helper):
+            try:
+                helper(summary, vat=vat)
+                excel_written = True
+            except Exception:
+                log.exception("api_confirm_receipt: excel helper failed")
+    except Exception:
+        log.exception("api_confirm_receipt: excel write outer failed")
+
+    return jsonify({
+        "ok": True,
+        "saved": True,
+        "mark": mark,
+        "excel_written": bool(excel_written),
+        "updated_existing": bool(updated_existing)
+    })
 
 
 
@@ -4460,10 +5132,14 @@ def list_invoices():
     else:
         excel_path = DEFAULT_EXCEL_FILE
 
+    # download
     if request.args.get("download") and os.path.exists(excel_path):
-        # download the active client's file
-        return send_file(excel_path, as_attachment=True, download_name=os.path.basename(excel_path),
-                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        return send_file(
+            excel_path,
+            as_attachment=True,
+            download_name=os.path.basename(excel_path),
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     table_html = ""
     error = ""
@@ -4474,27 +5150,49 @@ def list_invoices():
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
 
+            # Κόψε εσωτερική ανάλυση ΦΠΑ
             if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
                 df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
 
+            # Πρώτη στήλη με checkbox
             if "MARK" in df.columns:
-                checkboxes = df["MARK"].apply(lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">')
+                checkboxes = df["MARK"].apply(
+                    lambda v: f'<input type="checkbox" name="delete_mark" value="{str(v)}">'
+                )
                 df.insert(0, "✓", checkboxes)
 
+            # HTML πίνακας
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
-            table_html = table_html.replace("<th>✓</th>", '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>')
+
+            # Header checkbox
+            table_html = table_html.replace(
+                "<th>✓</th>",
+                '<th><input type="checkbox" id="selectAll" title="Επιλογή όλων"></th>'
+            )
+
+            # Περιτύλιγμα κελιών
             table_html = table_html.replace("<td>", '<td><div class="cell-wrap">').replace("</td>", "</div></td>")
 
-            import re
-            headers = re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=re.S)
+            # ✨ ΚΑΘΑΡΙΣΜΑ: κόψε οποιοδήποτε server-side totals (tfoot ή tr με "ΣΥΝΟΛΑ")
+            table_html = strip_server_totals(table_html)
+
+            # CSS στοίχισης αριθμητικών στηλών
+            import re as _re
+            headers = _re.findall(r'<th[^>]*>(.*?)</th>', table_html, flags=_re.S)
             num_indices = []
             for i, h in enumerate(headers):
-                text = re.sub(r'<.*?>', '', h).strip()
-                if text in ("Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT") or "ΦΠΑ" in text or "ΠΟΣΟ" in text:
-                    num_indices.append(i+1)
+                text = _re.sub(r'<.*?>', '', h).strip()
+                if (
+                    text in ("Καθαρή Αξία", "ΦΠΑ", "Σύνολο", "Total", "Net", "VAT")
+                    or "ΦΠΑ" in text
+                    or "ΠΟΣΟ" in text
+                ):
+                    num_indices.append(i + 1)
             css_rules = []
             for idx in num_indices:
-                css_rules.append(f".summary-table td:nth-child({idx}), .summary-table th:nth-child({idx}) {{ text-align: right; }}")
+                css_rules.append(
+                    f".summary-table td:nth-child({idx}), .summary-table th:nth-child({idx}) {{ text-align: right; }}"
+                )
             css_numcols = "\n".join(css_rules)
 
         except Exception as e:
@@ -4502,15 +5200,16 @@ def list_invoices():
     else:
         error = f"Δεν βρέθηκε το αρχείο {os.path.basename(excel_path)}."
 
-    # pass active_credential name so navbar and templates can reflect it
     active_name = session.get("active_credential")
-    return safe_render("list.html",
-                       table_html=Markup(table_html),
-                       error=error,
-                       file_exists=os.path.exists(excel_path),
-                       css_numcols=css_numcols,
-                       active_page="list_invoices",
-                       active_credential=active_name)
+    return safe_render(
+        "list.html",
+        table_html=Markup(table_html),
+        error=error,
+        file_exists=os.path.exists(excel_path),
+        css_numcols=css_numcols,
+        active_page="list_invoices",
+        active_credential=active_name
+    )
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
@@ -4651,6 +5350,53 @@ def delete_invoices():
             log.info("delete_invoices: No active VAT available; skipped epsilon deletion.")
     except Exception:
         log.exception("delete_invoices: Error while deleting from epsilon cache")
+        # --- Fallback: if nothing was removed (or no active VAT), also scan all epsilon caches and remove these MARKs ---
+    try:
+        if deleted_from_epsilon == 0:
+            eps_dir = os.path.join(DATA_DIR, "epsilon")
+            if os.path.isdir(eps_dir):
+                for fname in os.listdir(eps_dir):
+                    if not fname.endswith("_epsilon_invoices.json"):
+                        continue
+                    eps_path = os.path.join(eps_dir, fname)
+                    # read cache
+                    try:
+                        eps_cache = json_read(eps_path) or []
+                    except Exception:
+                        try:
+                            with open(eps_path, "r", encoding="utf-8") as f:
+                                eps_cache = json.load(f) or []
+                        except Exception:
+                            eps_cache = []
+                    before_len = len(eps_cache)
+
+                    def _mark_from_item(it):
+                        for k in ("mark", "MARK", "invoice_id", "Αριθμός Μητρώου", "id"):
+                            if isinstance(it, dict) and k in it and it.get(k) not in (None, ""):
+                                return str(it.get(k)).strip()
+                        return ""
+
+                    new_cache = [e for e in eps_cache if _mark_from_item(e) not in marks_to_delete]
+                    if len(new_cache) != before_len:
+                        # write back
+                        try:
+                            if globals().get("_safe_save_epsilon_cache"):
+                                vat_code = fname.split("_epsilon_invoices.json")[0]
+                                _safe_save_epsilon_cache(vat_code, new_cache)
+                            else:
+                                try:
+                                    json_write(eps_path, new_cache)
+                                except Exception:
+                                    tmp = eps_path + ".tmp"
+                                    with open(tmp, "w", encoding="utf-8") as f:
+                                        json.dump(new_cache, f, ensure_ascii=False, indent=2)
+                                    os.replace(tmp, eps_path)
+                        except Exception:
+                            log.exception("delete_invoices: fallback write failed for %s", eps_path)
+                        # update counter
+                        deleted_from_epsilon += (before_len - len(new_cache))
+    except Exception:
+        log.exception("delete_invoices: fallback cross-VAT epsilon deletion failed")
 
     # Final summary
     total_requested = len(marks_to_delete)

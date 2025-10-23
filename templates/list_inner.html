@@ -61,9 +61,268 @@
 .summary-table tfoot td {
   background-color: #f1f5f9;
 }
+
+/* ——— Κρύψε ΠΛΗΡΩΣ το tfoot μέσα στο scrollBody χωρίς να αφήνει κενό ——— */
+.dataTables_wrapper .dataTables_scrollBody table tfoot{
+  display: table-footer-group; /* για να κρατήσει τα πλάτη των στηλών */
+}
+.dataTables_wrapper .dataTables_scrollBody table tfoot tr{
+  height: 0 !important;
+}
+.dataTables_wrapper .dataTables_scrollBody table tfoot th,
+.dataTables_wrapper .dataTables_scrollBody table tfoot td{
+  padding: 0 !important;
+  border: 0 !important;
+  height: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  color: transparent !important;
+}
+
+/* ——— Ορατό footer (scrollFoot) — στοίχιση + εμφανές 'ΣΥΝΟΛΑ' στο 1ο κελί ——— */
+.dataTables_wrapper .dataTables_scrollFoot table tfoot{
+  display: table-footer-group;
+  visibility: visible;
+}
+.dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td:first-child{
+  position: relative;
+  text-align: left !important;
+}
+.dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td:first-child::before{
+  content: 'ΣΥΝΟΛΑ';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 600;
+  color: #1f2937; /* text-gray-800 */
+  white-space: nowrap;
+  pointer-events: none;
+  /* Δεν αλλάζουμε πλάτη στήλης -> δεν «σπάει» το alignment */
+}
+
+/* μικρό οπτικό φινίρισμα στη γραμμή συνολικών */
+.dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td{
+  border-top: 1px solid #e2e8f0;
+}
+.summary-table thead th {
+  white-space: normal !important;     /* επιτρέπει 2η γραμμή (π.χ. Καθαρή Αξία) */
+  vertical-align: middle !important;
+}
+.dataTables_wrapper .dataTables_scrollHead thead th {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;    /* DataTables μερικές φορές τα μηδενίζει */
+}
 </style>
 
 <script>
+(function(){
+  const $ = window.jQuery;
+
+  function greekNorm(s){
+    return (s||'').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  }
+  function parseLocalizedNumber(str){
+    if (str===undefined || str===null) return 0;
+    const v = parseFloat(String(str).replace(/\./g,'').replace(',','.'));
+    return Number.isFinite(v) ? v : 0;
+  }
+  function formatGreekNumber(n){
+    const sign = n<0?'-':'';
+    const absn=Math.abs(Number(n)||0);
+    const parts=absn.toFixed(2).split('.');
+    const intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decPart=parts[1]||'00';
+    return sign+intPart+','+decPart;
+  }
+
+  function findHeaderIndexes(table){
+    const ths = Array.from(table.querySelectorAll('thead th'));
+    const names = ths.map(h => greekNorm(h.innerText || h.textContent || ''));
+    const idx = (...alts) => names.findIndex(t => alts.map(greekNorm).includes(t));
+    return {
+      net:   idx('καθαρη αξια','καθαρη','καθαρή','net','netvalue','totalnet'),
+      vat:   idx('φπα','vat'),
+      total: idx('συνολο','total','totalvalue','sum')
+    };
+  }
+
+  // Κρύψε τυχόν server-side «ΣΥΝΟΛΑ» μέσα στο tbody
+  function hideServerTotalsRows(table){
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      const txt = greekNorm(tr.innerText || tr.textContent || '');
+      if (txt.startsWith('συνολα')){
+        tr.setAttribute('data-server-totals','1');
+        tr.style.display='none';
+      }
+    });
+  }
+
+  // Δημιούργησε/συντήρησε footer με ίδιο πλήθος κελιών όπως τα headers
+  function ensureFooter(table){
+    let tfoot = table.tFoot;
+    if(!tfoot){
+      tfoot = document.createElement('tfoot');
+      table.appendChild(tfoot);
+    }
+    table.appendChild(tfoot);
+    const thCount = table.querySelectorAll('thead th').length;
+    let tr = tfoot.querySelector('tr[data-totals="1"]');
+    if (!tr){
+      tfoot.innerHTML = '';
+      tr = document.createElement('tr');
+      tr.setAttribute('data-totals','1');
+      for(let i=0;i<thCount;i++){
+        const td=document.createElement('td');
+        td.className='p-2 border text-right font-medium';
+        if(i===0){ td.className='p-2 border text-left font-semibold'; td.textContent=''; } /* θα μπει με ::before */
+        tr.appendChild(td);
+      }
+      tfoot.appendChild(tr);
+    } else {
+      const currentCount = tr.children.length;
+      if (currentCount !== thCount){
+        tfoot.innerHTML = '';
+        return ensureFooter(table);
+      }
+    }
+    return tr;
+  }
+
+  // Συγχρονισμός κλώνου footer & πλατών για τέλεια στοίχιση
+  function syncCloneFooter(table){
+    try{
+      if (!($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable(table))) return;
+      const $wrap  = $(table).closest('.dataTables_wrapper');
+      const $clone = $wrap.find('.dataTables_scrollFoot table tfoot');
+      if (!$clone.length || !table.tFoot) return;
+
+      // 1) ίδιο περιεχόμενο
+      $clone.html(table.tFoot.innerHTML);
+
+      // 2) ίδιο πλάτος ανά στήλη με το thead
+      const $headCells = $wrap.find('.dataTables_scrollHead table thead th');
+      const $footCells = $clone.find('tr:first-child').children();
+      $headCells.each(function(i){
+        const w = $(this).outerWidth();
+        $footCells.eq(i).css({ width: w, boxSizing:'border-box' });
+      });
+    }catch(_){}
+  }
+    // Κλείδωμα ύψους header (για να μη «μαζεύει» μετά από sorts/redraws)
+  function lockHeaderHeight(tableOr$){
+    try{
+      const $t = ($ && $.fn) ? ($(tableOr$).length ? $(tableOr$) : $(tableOr$[0])) : null;
+      if(!$t || !$t.length) return;
+      const $wrap = $t.closest('.dataTables_wrapper');
+      requestAnimationFrame(()=>{
+        const $ths = $wrap.find('.dataTables_scrollHead thead th');
+        if(!$ths.length) return;
+        const maxH = Math.max.apply(null, $ths.map((i,el)=>$(el).outerHeight()).get());
+        // Σταθεροποίησε ύψος για όλα τα th
+        $ths.css({ height: maxH, boxSizing: 'border-box' });
+      });
+    }catch(_){}
+  }
+
+
+  function computeAndRenderTotals(table){
+    const idxs = findHeaderIndexes(table);
+    let net=0, vat=0, total=0;
+
+    if ($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable(table)) {
+      const dt = $(table).DataTable();
+      dt.rows({ filter: 'applied' }).every(function(){
+        const node = this.node();
+        if (node && node.getAttribute && node.getAttribute('data-server-totals')==='1') return;
+        const tds = $(this.node()).find('td').toArray();
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    } else {
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        if (tr.style.display==='none') return;
+        if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') return;
+        const tds = tr.querySelectorAll('td');
+        if (idxs.net  >= 0 && tds[idxs.net])   net   += parseLocalizedNumber(tds[idxs.net].innerText);
+        if (idxs.vat  >= 0 && tds[idxs.vat])   vat   += parseLocalizedNumber(tds[idxs.vat].innerText);
+        if (idxs.total>= 0 && tds[idxs.total]) total += parseLocalizedNumber(tds[idxs.total].innerText);
+      });
+    }
+
+    const tr = ensureFooter(table);
+    const tds = tr.querySelectorAll('td');
+    if (idxs.net  >= 0 && tds[idxs.net])   tds[idxs.net].textContent   = formatGreekNumber(net);
+    if (idxs.vat  >= 0 && tds[idxs.vat])   tds[idxs.vat].textContent   = formatGreekNumber(vat);
+    if (idxs.total>= 0 && tds[idxs.total]) tds[idxs.total].textContent = formatGreekNumber(total);
+
+    syncCloneFooter(table);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const table = document.querySelector('.summary-table');
+    if(!table) return;
+
+    hideServerTotalsRows(table);
+
+    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable){
+      const $t = jQuery('.summary-table');
+
+            const bind = ()=>{
+        hideServerTotalsRows(table);
+        ensureFooter(table);
+        computeAndRenderTotals(table);
+
+        // κλείδωσε ύψος header στην αρχική τιμή
+        lockHeaderHeight($t);
+
+        // Re-lock μετά από redraw/order/visibility/column sizing
+        $t.off('draw.dt._dynTotals').on('draw.dt._dynTotals', ()=>{
+          hideServerTotalsRows(table);
+          computeAndRenderTotals(table);
+          lockHeaderHeight($t);
+        });
+        $t.off('order.dt._hdr').on('order.dt._hdr', ()=> lockHeaderHeight($t));
+        $t.off('column-visibility.dt._hdr').on('column-visibility.dt._hdr', ()=> lockHeaderHeight($t));
+        $t.off('column-sizing.dt._hdr').on('column-sizing.dt._hdr', ()=> lockHeaderHeight($t));
+
+        // και σε window resize (debounced)
+        let _hdrTO=null;
+        $(window).off('resize._hdr').on('resize._hdr', ()=>{
+          clearTimeout(_hdrTO); _hdrTO=setTimeout(()=>lockHeaderHeight($t), 60);
+        });
+      };
+
+
+      if (jQuery.fn.dataTable.isDataTable($t)) {
+        bind();
+      } else {
+        $t.off('init.dt._dynTotals').on('init.dt._dynTotals', () => bind());
+      }
+    } else {
+      // Fallback χωρίς DataTables
+      ensureFooter(table);
+      computeAndRenderTotals(table);
+      const globalSearch = document.getElementById('globalSearch');
+      if (globalSearch){
+        const recalc = ()=>{
+          const q = (globalSearch.value||'').toLowerCase();
+          table.querySelectorAll('tbody tr').forEach(tr=>{
+            if (tr.getAttribute && tr.getAttribute('data-server-totals')==='1') { tr.style.display='none'; return; }
+            tr.style.display = (tr.innerText||tr.textContent||'').toLowerCase().includes(q) ? '' : 'none';
+          });
+          computeAndRenderTotals(table);
+        };
+        globalSearch.addEventListener('input', ()=>setTimeout(recalc,0));
+        globalSearch.addEventListener('keydown', e=>{ if(e.key==='Escape'){ globalSearch.value=''; setTimeout(recalc,0);} });
+      }
+    }
+  });
+})();  
+
+/* ======= ΔΕΥΤΕΡΟ SCRIPT (όπως το είχες) — τρέχει ΜΟΝΟ χωρίς DataTables ======= */
 (function(){
   const qs = (s,r=document)=>r.querySelector(s);
   const qsa = (s,r=document)=>Array.from((r||document).querySelectorAll(s));
@@ -163,10 +422,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    // ΜΟΝΟ όταν δεν υπάρχει DataTables
+    const hasDT = !!(window.jQuery && jQuery.fn && jQuery.fn.dataTable && jQuery('.summary-table').length && jQuery.fn.dataTable.isDataTable(jQuery('.summary-table')[0]));
+    if (hasDT) return;
+
     reorderColumns();
     computeTableTotals();
 
-    // Μικρότερο πλάτος για checkbox
     const firstTh = qs('.summary-table thead th:first-child');
     if(firstTh) firstTh.style.width = '40px';
     qsa('.summary-table tbody tr').forEach(tr => {
@@ -174,7 +436,6 @@
       if(firstTd) firstTd.style.width = '40px';
     });
 
-    // Toggle checkbox σε διπλό κλικ
     const tbody = qs('.summary-table tbody');
     if(tbody){
       tbody.addEventListener('dblclick', e => {
@@ -185,29 +446,14 @@
       });
     }
 
-    // --- Global Search + dynamic totals ---
     const globalSearch = qs('#globalSearch');
-
     function applyFilter(){
       const q = (globalSearch.value||'').toLowerCase();
-
-      // DataTables API search
-      if(window.jQuery && jQuery.fn && jQuery.fn.dataTable){
-        const dt = $('.summary-table').DataTable();
-        if(dt){
-          dt.search(globalSearch.value).draw();
-          computeTableTotals(); // Totals after DataTables filter
-          return;
-        }
-      }
-
-      // fallback manual filtering
       qsa('.summary-table tbody tr').forEach(tr=>{
         tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none';
       });
-      computeTableTotals(); // Totals μετά το manual filter
+      computeTableTotals();
     }
-
     if(globalSearch){
       globalSearch.addEventListener('input', applyFilter);
       globalSearch.addEventListener('keyup', e => {
@@ -226,7 +472,6 @@
       window.addEventListener('beforeunload', ()=>mo.disconnect());
     }
 
-    // --- Download dropdown ---
     const toggle = qs('#downloadToggle'), menu = qs('#downloadMenu');
     if(toggle && menu){
       toggle.addEventListener('click', e=>{
@@ -244,7 +489,6 @@
       qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
     }
 
-    // --- Delete button ---
     const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
       const modal=qs('#deleteModal');
       const modalMsg=qs('#deleteModalMessage');
@@ -268,8 +512,6 @@
         document.body.appendChild(form); form.submit();
       });
     }
-
   });
 })();
 </script>
-
