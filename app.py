@@ -323,6 +323,120 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+# ==== app.py (HEAD) ====
+from pathlib import Path
+import os, json, uuid, datetime
+
+ROOT_DIR = Path(__file__).resolve().parent
+DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
+CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
+
+VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+
+def _ensure_paths():
+    global CREDENTIALS_PATH
+    if isinstance(CREDENTIALS_PATH, str):
+        CREDENTIALS_PATH = Path(CREDENTIALS_PATH)
+    CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+def _load_json_file(path: Path, default):
+    try:
+        if not path.exists():
+            return default
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+            return default if data is None else data
+    except Exception:
+        return default
+
+def _save_json_file(path: Path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def _load_credentials():
+    _ensure_paths()
+    return _load_json_file(CREDENTIALS_PATH, [])
+
+def _save_credentials(creds):
+    _ensure_paths()
+    _save_json_file(CREDENTIALS_PATH, creds)
+
+# ---- credentials helpers (δουλεύουν και με list και με dict-style) ----
+def _get_customer(creds, vat: str, create=False):
+    vat = (vat or "").strip()
+    if isinstance(creds, list):
+        for i, c in enumerate(creds):
+            if str(c.get("vat", "")).strip() == vat:
+                return c, ("list", i)
+        if create and vat:
+            newc = {"vat": vat, "expense_tags": []}
+            creds.append(newc)
+            return newc, ("list", len(creds)-1)
+        return None, ("list", None)
+    elif isinstance(creds, dict):
+        customers = creds.setdefault("customers", {})
+        if vat in customers:
+            return customers[vat], ("dict", vat)
+        if create and vat:
+            customers[vat] = {"vat": vat, "expense_tags": []}
+            return customers[vat], ("dict", vat)
+        return None, ("dict", None)
+    return None, ("unknown", None)
+
+def _get_expense_tags(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    tags = []
+    if isinstance(cust, dict):
+        tags = list(cust.get("expense_tags") or [])
+    # φιλτράρουμε το 'αποδειξακια'
+    tags = [t for t in tags if (t or "").strip() and t.strip().lower() != "αποδειξακια"]
+    return tags
+
+def _get_char_profiles(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    if isinstance(cust, dict):
+        lst = cust.get("char_profiles") or []
+        # sanitize
+        out = []
+        for p in lst:
+            mp = p.get("mapping") or {}
+            # κρατάμε μόνο τα ποσοστά
+            mapping = {k: v for k, v in mp.items() if k in VAT_KEYS and (v or "").strip()}
+            out.append({"id": p.get("id") or p.get("name") or str(uuid.uuid4()),
+                        "name": p.get("name") or "",
+                        "mapping": mapping,
+                        "updated_at": p.get("updated_at")})
+        return out
+    return []
+
+def _set_char_profiles(creds, vat: str, profiles: list):
+    cust, where = _get_customer(creds, vat, create=True)
+    if not isinstance(cust, dict):
+        return creds
+    cust["char_profiles"] = profiles
+    # για list δεν χρειάζεται ειδικό χειρισμό, το dict είναι reference
+    return creds
+
+def _get_repeat_entry(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    if not isinstance(cust, dict):
+        return {"enabled": False, "mapping": {}}
+    rep = cust.get("repeat_entry") or {}
+    mp = rep.get("mapping") or {}
+    # κρατάμε μόνο ποσοστά
+    mapping = {k: v for k, v in mp.items() if k in VAT_KEYS and (v or "").strip()}
+    return {"enabled": bool(rep.get("enabled")), "mapping": mapping}
+
+def _save_repeat_entry(creds, vat: str, enabled: bool, mapping: dict):
+    cust, _ = _get_customer(creds, vat, create=True)
+    mapping = {k: (mapping.get(k) or "").strip() for k in VAT_KEYS}
+    cust["repeat_entry"] = {
+        "enabled": bool(enabled),
+        "mapping": mapping,
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    return creds
 
 # --- helper: parse year from a variety of date strings ---
 APP_DIR = Path(__file__).resolve().parent
@@ -2199,6 +2313,97 @@ def validate_date_field_against_active_fiscal(date_str, field_name='date'):
         # produce message with allowed year info
         return False, f"Η επιλεγμένη χρήση είναι {fiscal_year}. Η ημερομηνία στο πεδίο {field_name} ({date_str}) δεν ανήκει στη χρήση αυτή."
     return True, "OK"
+# --- NEW: safer GET that also returns profile_name ---
+@app.route('/api/repeat_entry/get_v2', methods=['GET'])
+def api_repeat_entry_get_v2():
+    """
+    Επιστρέφει repeat_entry {enabled, mapping, profile_name} + expense_tags (χωρίς 'αποδειξάκια').
+    Δεν πειράζει τίποτα από το υπάρχον /api/repeat_entry/get.
+    Query param: ?vat=...
+    """
+    try:
+        creds = read_credentials_list()  # δική σου helper
+    except Exception:
+        creds = None
+
+    vat = (request.args.get('vat') or "").strip() or None
+    session_cred = (get_active_credential_from_session() if 'get_active_credential_from_session' in globals() else {}) or {}
+
+    if not vat and isinstance(session_cred, dict):
+        vat = (session_cred.get('vat') or session_cred.get('afm') or "").strip() or None
+
+    base_resp = {"ok": True,
+                 "repeat_entry": {"enabled": False, "mapping": {}, "profile_name": ""},
+                 "expense_tags": []}
+
+    # αν δεν υπάρχουν credentials, επέστρεψε ό,τι μπορείς από το session
+    if not creds:
+        guess = ""
+        try:
+            if isinstance(session_cred, dict):
+                guess = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+                guess = str(guess).strip()
+        except Exception:
+            pass
+        if guess:
+            base_resp["afm"] = guess
+            base_resp["vat"] = guess
+        return jsonify(base_resp)
+
+    # βρες ενεργό πελάτη
+    idx = find_active_client_index(creds, vat=vat) if 'find_active_client_index' in globals() else None
+    client_rec = None
+    if idx is not None and 0 <= idx < len(creds) and isinstance(creds[idx], dict):
+        client_rec = creds[idx]
+    else:
+        # fallback: απλή αναζήτηση
+        if vat:
+            for rec in creds:
+                if isinstance(rec, dict):
+                    v = str(rec.get('vat') or rec.get('afm') or "").strip()
+                    if v and v == str(vat).strip():
+                        client_rec = rec
+                        break
+        if client_rec is None:
+            # έσχατο fallback: τίποτα
+            return jsonify(base_resp)
+
+    # repeat_entry (με profile_name)
+    repeat_raw = (client_rec.get('repeat_entry') or {}) if isinstance(client_rec, dict) else {}
+    repeat = {
+        "enabled": bool(repeat_raw.get("enabled")),
+        "mapping": repeat_raw.get("mapping") or {},
+        "profile_name": (repeat_raw.get("profile_name") or "").strip(),
+    }
+
+    # expense_tags (χωρίς 'αποδειξάκια')
+    raw_tags = client_rec.get('expense_tags') or []
+    if isinstance(raw_tags, str):
+        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
+    elif isinstance(raw_tags, list):
+        tags = [str(t) for t in raw_tags]
+    else:
+        tags = []
+    tags = [t for t in tags if t.strip().lower() not in ("αποδειξακια", "αποδειξάκια")]
+
+    # afm/vat για πληρότητα
+    afm_guess = ""
+    for k in ("afm", "AFM", "vat", "VAT", "vat_number", "vatNumber"):
+        val = client_rec.get(k)
+        if val:
+            afm_guess = str(val).strip()
+            break
+
+    resp = {
+        "ok": True,
+        "repeat_entry": repeat,
+        "expense_tags": tags,
+    }
+    if afm_guess:
+        resp["afm"] = afm_guess
+        resp["vat"] = afm_guess
+    return jsonify(resp)
+
 
 @app.route('/api/repeat_entry/get', methods=['GET'])
 def api_repeat_entry_get():
@@ -2362,142 +2567,57 @@ def api_repeat_entry_get():
 
     return jsonify(resp)
 
-
-
-@app.route("/api/repeat_entry/save", methods=["POST"])
+@app.post("/api/repeat_entry/save")
 def api_repeat_entry_save():
-    """
-    Αποθήκευση ρυθμίσεων 'Επαναληψιμης' για τον ενεργό πελάτη ή για συγκεκριμένο vat.
-    - Δεν βασίζεται σε helpers ορισμένους μέσα στο search().
-    - Κάνει sanitize σε mapping, βάζει no-store headers και επιστρέφει καθαρά errors.
-    """
-    import os, json
-    from datetime import datetime, timezone
+    data = request.get_json(force=True) or {}
 
-    # ---- μικρο-helpers τοπικά για να μην εξαρτόμαστε από search() ----
-    def _credentials_path():
-        try:
-            base = DATA_DIR  # αν το έχεις global
-        except Exception:
-            base = os.path.join(os.getcwd(), "data")
-        os.makedirs(base, exist_ok=True)
-        return os.path.join(base, "credentials.json")
+    vat = str(data.get("vat") or "").strip()
+    enabled = bool(data.get("enabled"))
+    mapping_in = data.get("mapping") or {}
+    # "" => Γενικό
+    profile_name = (data.get("profile_name") or "").strip()
 
-    def _load_creds():
-        p = _credentials_path()
-        if not os.path.exists(p):
-            return []
-        try:
-            with open(p, "r", encoding="utf-8") as f:
-                return json.load(f) or []
-        except Exception:
-            return []
+    # Επιτρέπουμε ΜΟΝΟ ποσοστά ΦΠΑ
+    VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+    mapping = {k: (mapping_in.get(k) or "") for k in VAT_KEYS}
 
-    def _save_creds(creds):
-        p = _credentials_path()
-        tmp = p + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(creds, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, p)
-        return True
+    # Έλεγχος για κενές επιλογές
+    missing = [k for k in VAT_KEYS if not mapping[k]]
+    if missing:
+        return jsonify(ok=False, error="Συμπλήρωσε κατηγορία για " + ", ".join(missing) + "."), 400
 
-    def _find_idx(creds, vat=None):
-        """Βρες index του ενεργού πελάτη. Αν δοθεί vat, προτιμάται αυτό."""
-        if not creds:
-            return None
-        if vat:
-            s_vat = str(vat).strip()
-            for i, c in enumerate(creds):
-                try:
-                    if str(c.get("vat") or c.get("AFM") or "").strip() == s_vat:
-                        return i
-                except Exception:
-                    pass
-        for i, c in enumerate(creds):
-            try:
-                if c.get("active"):
-                    return i
-            except Exception:
-                pass
-        return 0  # fallback
+    creds = read_credentials_list() or []
+    idx = find_active_client_index(creds, vat=vat)
+    if idx is None:
+        return jsonify(ok=False, error="Πελάτης δεν βρέθηκε."), 404
 
-    try:
-        payload = request.get_json(silent=True) or {}
-        enabled = bool(payload.get("enabled", False))
-        mapping = payload.get("mapping") or {}
-        vat_in = (payload.get("vat") or "").strip()
+    client = creds[idx] if isinstance(creds[idx], dict) else {}
 
-        # sanitize mapping: κράτα μόνο "μη-κενά" κλειδιά/τιμές
-        if isinstance(mapping, dict):
-            sanitized = {}
-            for k, v in mapping.items():
-                ks = str(k).strip()
-                vs = ("" if v is None else str(v)).strip()
-                if ks and vs:
-                    sanitized[ks] = vs
-            mapping = sanitized
-        else:
-            mapping = {}
+    repeat = (client.get("repeat_entry") if isinstance(client, dict) else {}) or {}
+    repeat.update({
+        "enabled": enabled,
+        "mapping": mapping,
+        # Χρησιμοποιούμε το module datetime:
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        # ΠΑΝΤΑ γράφουμε το profile_name — κενό σημαίνει «Γενικό»
+        "profile_name": profile_name,
+    })
+    client["repeat_entry"] = repeat
+    creds[idx] = client
 
-        # Βρες VAT: προτιμά payload.vat, αλλιώς active session
-        active = None
-        try:
-            active = get_active_credential_from_session()
-        except Exception:
-            active = None
-        vat = vat_in or (active.get("vat") if active else "")
-        if not vat:
-            resp = jsonify({"ok": False, "error": "No active VAT"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 400
+    write_credentials_list(creds)
 
-        # φόρτωσε/γράψε credentials.json
-        creds = _load_creds()
-        idx = _find_idx(creds, vat)
-        if idx is None or idx >= len(creds):
-            resp = jsonify({"ok": False, "error": "Credentials not found"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 404
+    # Κανονικοποίηση expense_tags για ασφαλή επιστροφή (λίστα strings)
+    raw_tags = client.get("expense_tags") or []
+    if isinstance(raw_tags, str):
+        expense_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
+    elif isinstance(raw_tags, list):
+        expense_tags = [str(t) for t in raw_tags]
+    else:
+        expense_tags = []
 
-        entry = {
-            "enabled": enabled,
-            "mapping": mapping,
-            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
-        }
-        # Μην αφήνεις παλιά "σκουπίδια"
-        try:
-            if not isinstance(creds[idx], dict):
-                creds[idx] = {}
-        except Exception:
-            creds[idx] = {}
-        creds[idx]["repeat_entry"] = entry
+    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags)
 
-        _save_ok = _save_creds(creds)
-        if not _save_ok:
-            resp = jsonify({"ok": False, "error": "Failed to write credentials"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 500
-
-        resp = jsonify({"ok": True})
-        # no-store για να μη γίνει replay μετά από refresh
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp, 200
-
-    except Exception as e:
-        log.exception("api_repeat_entry_save: unexpected error")
-        resp = jsonify({"ok": False, "error": "Server error"})
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp, 500
 
 
 
@@ -2741,14 +2861,13 @@ def upload_client_db():
         return jsonify(success=False, message='Εσωτερικό σφάλμα server.'), 500
 
 
-@app.route("/profiles", methods=["GET"])
-def profiles_page():
-    return render_template("profiles.html")
+
 
 @app.route("/api/profiles", methods=["GET"])
 def api_profiles_list():
     profs, options = _profiles_get_for_active()
     return jsonify({"ok": True, "profiles": profs, "options": options})
+
 
 @app.route("/api/profiles/save", methods=["POST"])
 def api_profiles_save():
@@ -4101,6 +4220,13 @@ def search():
         repeat_entry_conf=repeat_entry_conf,
         active_year=active_year_val
     )
+@app.get("/profiles")
+def profiles_page():
+    vat = (request.args.get("vat") or "").strip()
+    creds = _load_credentials()
+    categories = _get_expense_tags(creds, vat)
+    # δίνουμε πάντα λίστα (όχι Undefined)
+    return render_template("profiles.html", vat=vat, customer_categories=categories)
 
 @app.get("/api/char_profiles")
 def api_char_profiles_get():
@@ -4147,6 +4273,9 @@ def api_char_profiles_save():
     client["char_profiles"] = arr
     _save_credentials(creds)
     return jsonify(ok=True, profile={"name": name, "mapping": mapping})
+# ------- repeat entry mapping (πάντα ποσοστά) -------
+
+
 
 @app.post("/api/char_profiles/delete")
 def api_char_profiles_delete():
