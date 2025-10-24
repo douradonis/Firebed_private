@@ -183,6 +183,8 @@
 
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
+
+
 <script>
 function isReceiptsOn(){
   const r = document.getElementById('useReceiptsSwitch');
@@ -495,11 +497,20 @@ function setActiveProfileHint(name){
 
   document.getElementById('repeatMappingModal').style.display = 'flex';
 }
-  window.openRepeatModal = openModal;
+  
   document.getElementById('editRepeatMappingBtn')?.addEventListener('click', openModal);
+  
 
   // Εξαγωγή για χρήση από αλλού
   window.openRepeatModal = openModal;
+  // auto-open του modal όταν έρχομαι από profiles με ?open_repeat=1
+try {
+  const p = new URLSearchParams(location.search);
+  if (p.get('open_repeat') === '1') {
+    setTimeout(() => { window.openRepeatModal && window.openRepeatModal(); }, 0);
+  }
+} catch {}
+
 })();
 </script>
 
@@ -4318,5 +4329,6 @@ document.addEventListener('click', function(e){
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
 <script src="{{ url_for('static', filename='receipts_autosubmit_strict.js') }}"></script>
+
 
 <!-- ===== end SHIM ===== -->

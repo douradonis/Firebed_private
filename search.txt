@@ -468,18 +468,24 @@ function setActiveProfileHint(name){
       try{
         const m = JSON.parse(sel.selectedOptions[0].dataset.mapping || "{}");
         renderMapping(m);
+        setActiveProfileHint(savedName);
+
       }catch{
         renderMapping(defaultMap);
       }
     } else {
       sel.value = "";
       renderMapping(defaultMap); // "Γενικό"
+      setActiveProfileHint("");
+
     }
 
     sel.onchange = () => {
       const opt = sel.selectedOptions[0];
       const m = (opt && opt.dataset.mapping) ? JSON.parse(opt.dataset.mapping) : defaultMap;
       renderMapping(m);
+      setActiveProfileHint(sel.value || "");
+
       hint && (hint.style.display='none', hint.textContent='');
     };
   } else {
@@ -489,11 +495,20 @@ function setActiveProfileHint(name){
 
   document.getElementById('repeatMappingModal').style.display = 'flex';
 }
-  window.openRepeatModal = openModal;
+  
   document.getElementById('editRepeatMappingBtn')?.addEventListener('click', openModal);
+  
 
   // Εξαγωγή για χρήση από αλλού
   window.openRepeatModal = openModal;
+  // auto-open του modal όταν έρχομαι από profiles με ?open_repeat=1
+try {
+  const p = new URLSearchParams(location.search);
+  if (p.get('open_repeat') === '1') {
+    setTimeout(() => { window.openRepeatModal && window.openRepeatModal(); }, 0);
+  }
+} catch {}
+
 })();
 </script>
 
