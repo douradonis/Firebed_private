@@ -184,18 +184,27 @@
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 <script>
+function isReceiptsOn(){
+  const r = document.getElementById('useReceiptsSwitch');
+  return !!(r && r.checked);
+}
+
 function setActiveProfileHint(name){
   const el = document.getElementById('activeRepeatProfileHint');
   const sw = document.getElementById('repeatEntrySwitch');
   if(!el || !sw) return;
-  if (sw.checked) {
+
+  // Δείξε μόνο όταν: επαναληψιμη ON ΚΑΙ ΔΕΝ είμαστε σε Αποδείξεις
+  if (sw.checked && !isReceiptsOn()) {
     el.style.display = '';
-    el.textContent = "Ενεργό προφίλ : " + (name || "Γενικό");
+    el.textContent = "Ενεργό προφίλ επαναληψιμης: " + (name || "Γενικό");
   } else {
     el.style.display = 'none';
     el.textContent = "";
   }
 }
+
+
 </script>
 
 <script>
@@ -1349,6 +1358,13 @@ function prefillSummaryModal(){
 })();
 
   const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+  useReceiptsSwitch?.addEventListener('change', () => {
+  // ποιο όνομα να δείξω στο hint; πάρε την τρέχουσα επιλογή από το select του modal,
+  // αλλιώς άφησε κενό => θα εμφανιστεί "Γενικό"
+  const name = (document.getElementById('charProfileSelect')?.value || "");
+  setActiveProfileHint(name);
+});
+
   // find or create an URL input (if not present in template we create one dynamically)
   let urlInput = document.getElementById('scrapeUrlInput');
   if(!urlInput){
@@ -1469,7 +1485,74 @@ function openRepeatModalWithMapping(mapping){
   function closeRepeatModal(){ repeatModal.style.display = 'none'; }
 
   
-  
+// --- normalize VAT γραμμής σε ένα από τα κλειδιά 0/6/13/17/24 ---
+function normalizeVatKey(s){
+  const t = (s || '').toString().toLowerCase().trim().replace(',', '.');
+
+  // τυπικά patterns που επιστρέφει myDATA / scrapers
+  if (/\b17\b|17%|17\.0/.test(t)) return '17%';
+  if (/\b24\b|24%|24\.0|κανονικ/.test(t)) return '24%';
+  if (/\b13\b|13%|13\.0/.test(t)) return '13%';
+  if (/\b6\b|6%|6\.0|μειωμ|reduced/.test(t)) return '6%';
+  // 0: μηδενικό, απαλλασσόμενο, χωρίς ΦΠΑ
+  if (/\b0\b|0%|0\.0|μηδεν|απαλλ|χωρις|χωρίς|exempt|no\s*vat/.test(t)) return '0%';
+
+  return ''; // άγνωστο -> θα αφήσει το modal ανοιχτό
+}
+
+// --- εφαρμογή του ενεργού mapping στις γραμμές + auto submit ---
+function applyMappingToSummaryAndSubmitUsingMapping(mapping){
+  const input = document.getElementById('summaryJsonInput');
+  const form  = document.getElementById('saveSummaryForm');
+  if (!input || !form) return false;
+
+  let obj;
+  try { obj = JSON.parse(input.value || '{}'); } catch(e){ obj = {}; }
+  const lines = Array.isArray(obj.lines) ? obj.lines : [];
+  if (!lines.length) return false;
+
+  // Βεβαιώσου ότι έχουμε όλα τα κλειδιά ποσοστών
+  const M = Object.assign(
+    {"0%":"","6%":"","13%":"","17%":"","24%":""},
+    mapping || {}
+  );
+
+  let missing = false;
+  lines.forEach((ln, idx) => {
+    // αν λείπει id, φτιάξτο για συνέπεια
+    if (!ln.id && ln.line_id !== undefined) ln.id = String(ln.line_id);
+    if (!ln.id) ln.id = 'l' + idx;
+
+    const rawVat = (ln.vatCategory || ln.vat_category || ln.vat || '').toString();
+    const key    = normalizeVatKey(rawVat);
+    const cat    = key ? (M[key] || '') : '';
+
+    ln.category = cat;
+    if (!cat) missing = true;
+  });
+
+  // γράψε πίσω στο hidden input
+  input.value = JSON.stringify(obj);
+
+  // Αν λείπουν κατηγορίες -> άστο να φανεί το modal για χειροκίνητα
+  if (missing) return false;
+
+  // Προστασία: μην ξανα-γίνει submit δεύτερη φορά
+  if (window.__repeat_auto_submitting) return true;
+  window.__repeat_auto_submitting = true;
+
+  // Καθάρισε τυχόν πεδία receipts (για να μην μπερδέψουν το submit)
+  const u = document.getElementById('scrapeUrlField');
+  const c = document.getElementById('scrapeCategoryField');
+  const f = document.getElementById('scrapeForceField');
+  if (u) u.value = '';
+  if (c) c.value = '';
+  if (f) f.value = 'false';
+
+  // Κάνε submit στο υπάρχον flow σου
+  try { form.submit(); } catch(_) { window.__repeat_auto_submitting = false; return false; }
+  return true;
+}
   // ---------- Initialization: load server repeat_entry config ----------
   (async function initRepeatEntry(){
     try {

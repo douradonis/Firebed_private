@@ -1380,3 +1380,73 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-10-25 01:39:20+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
 2025-10-25 01:39:20+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
 2025-10-25 01:39:20+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:48+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:49+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:52+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:50:55+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:01+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:05+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:05+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-25 01:51:05+0300 ERROR Unhandled exception: [Errno 2] No such file or directory: '/workspaces/Firebed_private/data/credentials.json.tmp' -> '/workspaces/Firebed_private/data/credentials.json'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 2608, in api_repeat_entry_save
+    write_credentials_list(creds)
+  File "/workspaces/Firebed_private/app.py", line 1542, in write_credentials_list
+    os.replace(tmp, CREDENTIALS_FILE)
+FileNotFoundError: [Errno 2] No such file or directory: '/workspaces/Firebed_private/data/credentials.json.tmp' -> '/workspaces/Firebed_private/data/credentials.json'
+

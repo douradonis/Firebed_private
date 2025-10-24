@@ -184,18 +184,27 @@
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 <script>
+function isReceiptsOn(){
+  const r = document.getElementById('useReceiptsSwitch');
+  return !!(r && r.checked);
+}
+
 function setActiveProfileHint(name){
   const el = document.getElementById('activeRepeatProfileHint');
   const sw = document.getElementById('repeatEntrySwitch');
   if(!el || !sw) return;
-  if (sw.checked) {
+
+  // Δείξε μόνο όταν: επαναληψιμη ON ΚΑΙ ΔΕΝ είμαστε σε Αποδείξεις
+  if (sw.checked && !isReceiptsOn()) {
     el.style.display = '';
-    el.textContent = "Ενεργό προφίλ : " + (name || "Γενικό");
+    el.textContent = "Ενεργό προφίλ επαναληψιμης: " + (name || "Γενικό");
   } else {
     el.style.display = 'none';
     el.textContent = "";
   }
 }
+
+
 </script>
 
 <script>
@@ -459,18 +468,24 @@ function setActiveProfileHint(name){
       try{
         const m = JSON.parse(sel.selectedOptions[0].dataset.mapping || "{}");
         renderMapping(m);
+        setActiveProfileHint(savedName);
+
       }catch{
         renderMapping(defaultMap);
       }
     } else {
       sel.value = "";
       renderMapping(defaultMap); // "Γενικό"
+      setActiveProfileHint("");
+
     }
 
     sel.onchange = () => {
       const opt = sel.selectedOptions[0];
       const m = (opt && opt.dataset.mapping) ? JSON.parse(opt.dataset.mapping) : defaultMap;
       renderMapping(m);
+      setActiveProfileHint(sel.value || "");
+
       hint && (hint.style.display='none', hint.textContent='');
     };
   } else {
@@ -1349,6 +1364,13 @@ function prefillSummaryModal(){
 })();
 
   const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+  useReceiptsSwitch?.addEventListener('change', () => {
+  // ποιο όνομα να δείξω στο hint; πάρε την τρέχουσα επιλογή από το select του modal,
+  // αλλιώς άφησε κενό => θα εμφανιστεί "Γενικό"
+  const name = (document.getElementById('charProfileSelect')?.value || "");
+  setActiveProfileHint(name);
+});
+
   // find or create an URL input (if not present in template we create one dynamically)
   let urlInput = document.getElementById('scrapeUrlInput');
   if(!urlInput){
