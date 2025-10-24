@@ -163,8 +163,52 @@ app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
 REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
+CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 
+def _load_all_credentials():
+    try:
+        with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f) or []
+    except FileNotFoundError:
+        return []
+    except Exception:
+        return []
 
+def _save_all_credentials(creds):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+        json.dump(creds, f, ensure_ascii=False, indent=2)
+
+def _active_cred_index(creds):
+    active = get_active_credential_from_session() or {}
+    vat = (active.get("vat") or "").strip()
+    name = (active.get("name") or "").strip()
+    for i,c in enumerate(creds):
+        if vat and str(c.get("vat") or "").strip() == vat:
+            return i
+    for i,c in enumerate(creds):
+        if name and str(c.get("name") or "").strip() == name:
+            return i
+    return 0 if creds else -1
+
+def _profiles_get_for_active():
+    creds = _load_all_credentials()
+    idx = _active_cred_index(creds)
+    if idx < 0:
+        return [], []
+    c = creds[idx]
+    c.setdefault("char_profiles", [])  # [{id,name,map}]
+    tags = [t for t in (c.get("expense_tags") or []) if str(t).strip().lower() != "αποδειξακια"]
+    return c["char_profiles"], tags
+
+def _profiles_set_for_active(profiles):
+    creds = _load_all_credentials()
+    idx = _active_cred_index(creds)
+    if idx < 0:
+        return False
+    creds[idx]["char_profiles"] = profiles
+    _save_all_credentials(creds)
+    return True
 
 
 @app.before_request
@@ -2666,7 +2710,59 @@ def upload_client_db():
         return jsonify(success=False, message='Εσωτερικό σφάλμα server.'), 500
 
 
+@app.route("/profiles", methods=["GET"])
+def profiles_page():
+    return render_template("profiles.html")
 
+@app.route("/api/profiles", methods=["GET"])
+def api_profiles_list():
+    profs, options = _profiles_get_for_active()
+    return jsonify({"ok": True, "profiles": profs, "options": options})
+
+@app.route("/api/profiles/save", methods=["POST"])
+def api_profiles_save():
+    payload = request.get_json(force=True, silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "missing name"}), 400
+    mapping = payload.get("map") or {}
+
+    # sanitize for invoices: never allow 'αποδειξακια'
+    sanitized = {}
+    for k,v in (mapping or {}).items():
+        if str(v).strip().lower() == "αποδειξακια":
+            continue
+        sanitized[k] = v
+
+    profs, _ = _profiles_get_for_active()
+    pid = (payload.get("id") or "").strip()
+    if pid:
+        found = False
+        for p in profs:
+            if str(p.get("id") or "") == pid:
+                p["name"] = name
+                p["map"]  = sanitized
+                found = True
+                break
+        if not found:
+            profs.append({"id": pid, "name": name, "map": sanitized})
+    else:
+        import uuid
+        profs.append({"id": str(uuid.uuid4()), "name": name, "map": sanitized})
+
+    _profiles_set_for_active(profs)
+    return jsonify({"ok": True})
+
+@app.route("/api/profiles/delete", methods=["POST"])
+def api_profiles_delete():
+    payload = request.get_json(force=True, silent=True) or {}
+    pid = (payload.get("id") or "").strip()
+    if not pid:
+        return jsonify({"ok": False, "error": "missing id"}), 400
+    profs, _ = _profiles_get_for_active()
+    profs = [p for p in profs if str(p.get("id") or "") != pid]
+    _profiles_set_for_active(profs)
+    return jsonify({"ok": True})
 
 # --- client_db_info route ---
 @app.route('/client_db_info', methods=['GET'])

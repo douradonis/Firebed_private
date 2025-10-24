@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Προφίλ Χαρακτηρισμών{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white rounded shadow p-6">
+  <h2 class="text-xl font-semibold mb-4">Προφίλ Χαρακτηρισμών Τιμολογίων</h2>
+  <p class="text-sm text-gray-600 mb-4">Ορισμός σετ χαρακτηρισμών ανά κατηγορία ΦΠΑ (ποτέ «αποδειξάκια»).</p>
+
+  <div class="mb-4">
+    <label class="block text-sm font-medium mb-1">Όνομα προφίλ</label>
+    <input id="profName" type="text" class="w-full border rounded px-3 py-2" placeholder="π.χ. Βασικό ΦΠΑ Β" />
+  </div>
+
+  <div id="rows" class="space-y-3"></div>
+
+  <div class="mt-4 flex items-center gap-2">
+    <button id="addRow" class="px-3 py-2 border rounded">+ Κατηγορία ΦΠΑ</button>
+    <button id="saveProf" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
+    <button id="newProf" class="px-3 py-2 border rounded">Νέο</button>
+  </div>
+
+  <hr class="my-6"/>
+
+  <h3 class="font-semibold mb-2">Αποθηκευμένα προφίλ</h3>
+  <div id="list" class="divide-y"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='char_profiles.js') }}"></script>
+{% endblock %}
