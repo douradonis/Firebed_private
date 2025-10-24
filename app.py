@@ -166,13 +166,19 @@ REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "
 CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 
 def _load_credentials():
-    if not CREDENTIALS_PATH.exists():
+    p = Path(CREDENTIALS_PATH)
+    if not p.exists():
         return []
-    with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except Exception:
-            return []
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        # Δέξου είτε λίστα είτε μοναδικό αντικείμενο
+        if isinstance(data, dict):
+            data = [data]
+        return data
+    except Exception as e:
+        app.logger.warning("Failed to load credentials.json: %s", e)
+        return []
 
 def _save_credentials(items):
     CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)

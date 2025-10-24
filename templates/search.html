@@ -131,8 +131,6 @@
               <label class="text-sm font-medium">Προφίλ</label>
               <select id="charProfileSelect" class="border rounded px-2 py-1"></select>
               <a href="{{ url_for('profiles_page', vat=vat) }}" class="px-2 py-1 border rounded" target="_blank">+</a>
-              </div>
-              <div class="text-sm text-red-600 mb-2" id="charMissingHint" style="display:none"></div>
               <script>
               document.addEventListener('click', function(e){
               const a = e.target.closest('#charProfilesLink');
@@ -141,6 +139,9 @@
               window.location.href = a.getAttribute('href'); // redirect στο ίδιο tab
               });
               </script>
+              </div>
+              <div class="text-sm text-red-600 mb-2" id="charMissingHint" style="display:none"></div>
+              
 
             <div id="repeatMappingList" class="space-y-2"></div>
         </div>
@@ -1099,20 +1100,21 @@ function prefillSummaryModal(){
 
   // detect vat keys in summary
   function detectVatKeysFromSummary(){
-    if(summaryInput && summaryInput.value){
-      try {
-        const obj = JSON.parse(summaryInput.value || '{}');
-        const lines = Array.isArray(obj.lines) ? obj.lines : [];
-        const set = new Set();
-        lines.forEach(l => {
-          const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-          if(key) set.add(key);
-        });
-        if(set.size) return Array.from(set);
-      } catch(e){ /* ignore */ }
-    }
-    return ['0%','6%','13%','24%'];
+  if(summaryInput && summaryInput.value){
+    try {
+      const obj = JSON.parse(summaryInput.value || '{}');
+      const lines = Array.isArray(obj.lines) ? obj.lines : [];
+      const found = new Set();
+      lines.forEach(l => {
+        const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
+        if(key) found.add(key);
+      });
+      if(found.size) return Array.from(found);
+    } catch(e){}
   }
+  return ['0%','6%','13%','17%','24%'];
+}
+
       async function getExpenseTagsForVat(vat){
   // 1. Πρώτα από /api/repeat_entry/get (ήταν η παλιά πηγή)
   try{
@@ -1149,103 +1151,127 @@ function prefillSummaryModal(){
   const repeatModalList = document.getElementById('repeatMappingList');
   const hint = document.getElementById('charMissingHint');
   const selProfile = document.getElementById('charProfileSelect');
+
   repeatModalList.innerHTML = '';
   hint.style.display='none'; hint.textContent='';
 
-  const VAT = "{{ vat or '' }}";
+  // Χρησιμοποίησε τις ενεργές κατηγορίες από Credentials (όπως δούλευε πριν)
+  const tags = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES.slice() : [];
 
-  // Φέρε κατηγορίες από Credentials (όπως δούλευε πριν)
-  const tags = await getExpenseTagsForVat(VAT);
-
-  // Φέρε προφίλ για τον ίδιο πελάτη
+  // Φέρε διαθέσιμα προφίλ (αν έχεις endpoint, κρατάμε το ίδιο)
   let profiles = [];
   try{
-    const r = await fetch(`/api/char_profiles?vat=${encodeURIComponent(VAT)}`, {credentials:'same-origin'});
+    const r = await fetch('/api/char_profiles', {credentials:'same-origin'});
     const j = await r.json();
     profiles = Array.isArray(j.profiles) ? j.profiles : [];
   }catch(_){ profiles = []; }
 
-  // Γέμισε το dropdown Προφίλ
+  // Dropdown "Προφίλ"
   selProfile.innerHTML = '';
   const o0 = document.createElement('option'); o0.value=''; o0.textContent='— καμία —'; selProfile.appendChild(o0);
-  profiles.forEach(p=>{ const o=document.createElement('option'); o.value=p.name; o.textContent=p.name; selProfile.appendChild(o); });
+  profiles.forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.name; o.textContent=p.name;
+    selProfile.appendChild(o);
+  });
 
-  function row(label, key){
-    const wrap = document.createElement('div');
-    wrap.className="flex items-center gap-3";
-    wrap.innerHTML = `<div class="w-36 text-sm font-medium">${label}</div>`;
+  // Σειρά ποσοστών ΦΠΑ (σταθερή)
+  const VAT_ORDER = ['0%','6%','13%','17%','24%'];
+
+  // βοηθητικό: πάρε τιμή από existing mapping είτε με ποσοστό είτε με legacy key
+  function valFromExisting(vat){
+    if(!existingMapping) return '';
+    if (vat in existingMapping) return existingMapping[vat] || '';
+    // legacy kat_fpa_* → αντιστοίχιση
+    const legacyMap = {
+      '0%':'kat_fpa_d', '6%':'kat_fpa_g', '13%':'kat_fpa_b', '17%':'kat_fpa_e', '24%':'kat_fpa_a'
+    };
+    const lk = legacyMap[vat];
+    return (lk && existingMapping[lk]) ? existingMapping[lk] : '';
+  }
+
+  // Γράψε σειρές για κάθε ΦΠΑ
+  const selectsByVat = {};
+  VAT_ORDER.forEach(vat => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3';
+    row.innerHTML = `<div class="w-36 text-sm font-medium">ΦΠΑ ${vat}</div>`;
     const sel = document.createElement('select');
     sel.className="p-1 border rounded flex-1";
     sel.required = true;
-    sel.name = key;      // kat_fpa_a/b/g/d
-    sel.dataset.charKey = key;
-    const x = document.createElement('option'); x.value=''; x.textContent='— επίλεξε —'; sel.appendChild(x);
-    tags.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
-    wrap.appendChild(sel);
-    repeatModalList.appendChild(wrap);
-    return sel;
-  }
+    sel.dataset.vat = vat;
 
-  const selA = row('ΦΠΑ Α','kat_fpa_a');
-  const selB = row('ΦΠΑ Β','kat_fpa_b');
-  const selG = row('ΦΠΑ Γ','kat_fpa_g');
-  const selD = row('ΦΠΑ Δ','kat_fpa_d');
+    const optEmpty = document.createElement('option');
+    optEmpty.value=''; optEmpty.textContent='— επίλεξε —';
+    sel.appendChild(optEmpty);
 
-  // Prefill από παλιό mapping (αν υπάρχει)
-  try{
-    if(existingMapping){
-      selA.value = existingMapping.kat_fpa_a || selA.value;
-      selB.value = existingMapping.kat_fpa_b || selB.value;
-      selG.value = existingMapping.kat_fpa_g || selG.value;
-      selD.value = existingMapping.kat_fpa_d || selD.value;
-    }
-  }catch(_){}
+    tags.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      sel.appendChild(o);
+    });
 
-  // Επιλογή Προφίλ => γεμίζει τις 4 επιλογές
-  selProfile.addEventListener('change', ()=>{
-    const name = selProfile.value;
-    if(!name) return;
-    const p = profiles.find(x=>x.name===name);
-    if(!p || !p.mapping) return;
-    selA.value = p.mapping.kat_fpa_a || '';
-    selB.value = p.mapping.kat_fpa_b || '';
-    selG.value = p.mapping.kat_fpa_g || '';
-    selD.value = p.mapping.kat_fpa_d || '';
+    // prefill από existingMapping
+    sel.value = valFromExisting(vat) || '';
+
+    row.appendChild(sel);
+    repeatModalList.appendChild(row);
+    selectsByVat[vat] = sel;
   });
 
-  // Αποθήκευση με validation + repeat save
+  // Αλλαγή προφίλ ⇒ γεμίζει τις τιμές των 5 selects
+  selProfile.onchange = () => {
+    const p = profiles.find(x => x.name === selProfile.value);
+    if (!p || !p.mapping) return;
+    VAT_ORDER.forEach(vat => {
+      const v = (p.mapping[vat]) || // νέο
+                (vat==='24%' && p.mapping.kat_fpa_a) ||
+                (vat==='13%' && p.mapping.kat_fpa_b) ||
+                (vat==='6%'  && p.mapping.kat_fpa_g) ||
+                (vat==='0%'  && p.mapping.kat_fpa_d) ||
+                (vat==='17%' && p.mapping.kat_fpa_e) || '';
+      if (selectsByVat[vat]) selectsByVat[vat].value = v || '';
+    });
+  };
+
+  // Save κουμπί του modal
   const btnSave = document.getElementById('repeatModalSave');
-  btnSave.onclick = async function(){
-    const missing = [];
-    [selA,selB,selG,selD].forEach(s=>{ if(!s.value) missing.push(s.name); });
-    if(missing.length){
+  btnSave.onclick = async () => {
+    // έλεγχος συμπλήρωσης
+    const missing = VAT_ORDER.filter(v => !selectsByVat[v].value);
+    if (missing.length){
       hint.style.display='block';
-      hint.textContent = "Συμπλήρωσε όλες τις κατηγορίες (ΦΠΑ Α/Β/Γ/Δ).";
+      hint.textContent = "Συμπλήρωσε όλες τις κατηγορίες (0%, 6%, 13%, 17%, 24%).";
       return;
     }
 
-    // Αντιστοίχιση σε keys ΦΠΑ (προσαρμόσ’ το αν χρειάζεται)
+    // mapping με ποσοστά ΚΑΙ legacy keys (για συμβατότητα)
     const mapping = {
-      "24%": selA.value,
-      "13%": selB.value,
-      "6%":  selG.value,
-      "0%":  selD.value,
-      kat_fpa_a: selA.value,
-      kat_fpa_b: selB.value,
-      kat_fpa_g: selG.value,
-      kat_fpa_d: selD.value
+      '0%':  selectsByVat['0%'].value,
+      '6%':  selectsByVat['6%'].value,
+      '13%': selectsByVat['13%'].value,
+      '17%': selectsByVat['17%'].value,
+      '24%': selectsByVat['24%'].value,
+      // legacy aliases για όποιον κώδικα τα κοιτάει ακόμη
+      kat_fpa_d: selectsByVat['0%'].value,
+      kat_fpa_g: selectsByVat['6%'].value,
+      kat_fpa_b: selectsByVat['13%'].value,
+      kat_fpa_e: selectsByVat['17%'].value,
+      kat_fpa_a: selectsByVat['24%'].value,
     };
 
     const saveResp = await apiSaveRepeatEntry(true, mapping, VAT);
-    if(saveResp && saveResp.ok){
+    if (saveResp && saveResp.ok){
       document.getElementById('repeatMappingModal').style.display='none';
-      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις.', 'success', 800);
-      setTimeout(()=>location.reload(), 500);
+      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις.', 'success', 900);
+      setTimeout(()=>location.reload(), 650);
     } else {
       showFlash('Αποτυχία αποθήκευσης ρυθμίσεων.', 'error', 5000);
     }
   };
 }
+
+
 
 function openRepeatModalWithMapping(mapping){
     // If receipts mode is on, block editing mapping because receipts get fixed category
@@ -3951,6 +3977,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_){}
   })();
 })();</script>
+<script>
+document.addEventListener('click', function(e){
+  const a = e.target.closest('#charProfilesLink');
+  if(!a) return;
+  e.preventDefault();
+  window.location.href = a.getAttribute('href');
+});
+</script>
+
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
 <script src="{{ url_for('static', filename='receipts_autosubmit_strict.js') }}"></script>

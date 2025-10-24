@@ -199,5 +199,62 @@ async function loadData(){
   });
 }
 </script>
+<script>
+const VAT_PCT_KEYS = ["0%","6%","13%","17%","24%"];
+
+async function getExpenseTagsForVat(vat){
+  try{
+    const r = await fetch('/api/repeat_entry/get' + (vat?('?vat='+encodeURIComponent(vat)):''),
+                          {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length)
+      return j.expense_tags.filter(t => t !== 'αποδειξακια');
+  }catch(_){}
+  try{
+    const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(vat||''), {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length)
+      return j.expense_tags.filter(t => t !== 'αποδειξακια');
+  }catch(_){}
+  return [];
+}
+
+function normIn(mapping){
+  const alias = { kat_fpa_0:"0%", kat_fpa_6:"6%", kat_fpa_13:"13%", kat_fpa_17:"17%", kat_fpa_24:"24%",
+                  kat_fpa_a:"24%", kat_fpa_b:"13%", kat_fpa_g:"6%", kat_fpa_d:"0%" };
+  const out = {};
+  VAT_PCT_KEYS.forEach(k => { if (mapping && mapping[k]) out[k] = mapping[k]; });
+  Object.keys(alias).forEach(a => { if (!out[alias[a]] && mapping && mapping[a]) out[alias[a]] = mapping[a]; });
+  return out;
+}
+</script>
+<script>
+  // Πρέπει ο server να περνά (όπως στην αναζήτηση) τις ενεργές κατηγορίες:
+  // window.CUSTOMER_CATEGORIES = {{ customer_categories | tojson | safe }};
+
+  (function(){
+    const tags = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES : [];
+    document.querySelectorAll('select[data-char-key]').forEach(sel => {
+      // καθάρισε
+      sel.innerHTML = '';
+      const opt0 = document.createElement('option');
+      opt0.value=''; opt0.textContent='— επίλεξε —';
+      sel.appendChild(opt0);
+      // γέμισε
+      tags.forEach(t => {
+        const o = document.createElement('option');
+        o.value=t; o.textContent=t;
+        sel.appendChild(o);
+      });
+      // αν υπάρχει data-selected, κάνε prefill
+      if (sel.dataset.selected) sel.value = sel.dataset.selected;
+    });
+  })();
+</script>
+<script>
+  window.CUSTOMER_CATEGORIES = {{ (customer_categories or []) | tojson | safe }};
+</script>
+
+
 
 {% endblock %}
