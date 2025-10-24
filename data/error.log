@@ -8666,3 +8666,502 @@ zipfile.BadZipFile: File is not a zip file
 2025-10-24 14:44:05+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
 2025-10-24 14:44:05+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
 2025-10-24 14:44:05+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 14:54:40+0300 INFO Starting app - MYDATA_ENV=production
+2025-10-24 14:55:08+0300 INFO Starting app - MYDATA_ENV=production
+2025-10-24 14:58:13+0300 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-24 15:00:04+0300 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-24 15:00:04+0300 INFO Starting app - MYDATA_ENV=production
+2025-10-24 15:00:14+0300 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp.github.dev/
+2025-10-24 15:00:14+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/
+2025-10-24 15:00:14+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/
+2025-10-24 15:00:16+0300 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/
+2025-10-24 15:00:16+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:00:16+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:17+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:18+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:18+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:19+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:20+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:20+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:00:22+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:22+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:22+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:00:22+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:22+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:35+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:36+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:37+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:37+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:00:45+0300 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:46+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004
+2025-10-24 15:00:48+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004&force_edit=1
+2025-10-24 15:00:50+0300 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004
+2025-10-24 15:00:50+0300 INFO save_summary: start request from 127.0.0.1
+2025-10-24 15:00:50+0300 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?mark=400011185825004
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:50+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:52+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:52+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:00:54+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:00:54+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:54+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:00:54+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:00:54+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:01:16+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:01:16+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:01:16+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:01:16+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:01:16+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:03:13+0300 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:14+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-24 15:03:14+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:15+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:18+0300 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:18+0300 INFO api_scrape_receipt: incoming url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DSZ2400579600036671D4B85D019A0F19853BA6509E41340225101020088.00
+2025-10-24 15:03:18+0300 INFO api_scrape_receipt: scraped url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DSZ2400579600036671D4B85D019A0F19853BA6509E41340225101020088.00 is_invoice=False mark=
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:19+0300 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:19+0300 INFO save_summary: start request from 127.0.0.1
+2025-10-24 15:03:19+0300 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:19+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:03:24+0300 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:01+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:02+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:04+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:06+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:06+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:07+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:07+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:06:08+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:08+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:06:08+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:06:08+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:06:08+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:06:17+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:06:17+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:06:17+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:06:17+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:06:17+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:07:36+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-10-24 15:07:36+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:36+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:37+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:37+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:37+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:37+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:37+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:38+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:39+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:39+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:39+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:07:44+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:44+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:07:44+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:07:44+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:07:44+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:07:54+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:54+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:55+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:57+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:58+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:58+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:07:58+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:01+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:08:02+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:08:02+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:02+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:08:02+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:08:28+0300 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search?use_receipts=1
+2025-10-24 15:08:29+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:29+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:33+0300 INFO Incoming request: method=POST path=/credentials/edit/ΒΑΨΙΜΟ remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:33+0300 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:34+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:34+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:35+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:36+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:36+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:36+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:36+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:41+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:41+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:41+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:41+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:50+0300 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:50+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:51+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:52+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:52+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:52+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:57+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:57+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:57+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:58+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:08:59+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:08:59+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:08:59+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:08:59+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:09:16+0300 INFO Incoming request: method=GET path=/profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:17+0300 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:09:17+0300 ERROR Unhandled exception: 'str' object has no attribute 'exists'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4103, in api_char_profiles_get
+    creds = _load_credentials()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 169, in _load_credentials
+    if not CREDENTIALS_PATH.exists():
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'exists'
+
+2025-10-24 15:09:17+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:09:17+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/profiles?vat=802576637
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-24 15:09:25+0300 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search

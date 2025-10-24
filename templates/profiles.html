@@ -2,30 +2,202 @@
 {% block title %}Προφίλ Χαρακτηρισμών{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto bg-white rounded shadow p-6">
-  <h2 class="text-xl font-semibold mb-4">Προφίλ Χαρακτηρισμών Τιμολογίων</h2>
-  <p class="text-sm text-gray-600 mb-4">Ορισμός σετ χαρακτηρισμών ανά κατηγορία ΦΠΑ (ποτέ «αποδειξάκια»).</p>
+<div class="bg-white rounded shadow p-6">
+  <h2 class="text-lg font-semibold mb-4">Προφίλ Χαρακτηρισμών (Τιμολόγια)</h2>
 
-  <div class="mb-4">
-    <label class="block text-sm font-medium mb-1">Όνομα προφίλ</label>
-    <input id="profName" type="text" class="w-full border rounded px-3 py-2" placeholder="π.χ. Βασικό ΦΠΑ Β" />
+  <div class="grid md:grid-cols-2 gap-6">
+    <div>
+      <h3 class="font-medium mb-2">Δημιουργία / Ενημέρωση</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Όνομα προφίλ</label>
+          <input id="profName" class="border rounded px-3 py-2 w-full" placeholder="π.χ. Υλικά κατασκευής">
+        </div>
+
+        <div class="grid grid-cols-1 gap-2">
+          <label class="text-sm font-medium">Αντιστοίχιση κατηγοριών</label>
+
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-sm font-medium">ΦΠΑ Α</div>
+            <select id="kat_fpa_a" class="border rounded px-2 py-1 flex-1" required></select>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-sm font-medium">ΦΠΑ Β</div>
+            <select id="kat_fpa_b" class="border rounded px-2 py-1 flex-1" required></select>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-sm font-medium">ΦΠΑ Γ</div>
+            <select id="kat_fpa_g" class="border rounded px-2 py-1 flex-1" required></select>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-sm font-medium">ΦΠΑ Δ</div>
+            <select id="kat_fpa_d" class="border rounded px-2 py-1 flex-1" required></select>
+          </div>
+        </div>
+
+        <div id="profMsg" class="text-sm"></div>
+
+        <div class="flex gap-2">
+          <button id="btnSaveProf" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
+          <a href="{{ url_for('search') }}" class="px-3 py-2 border rounded">Επιστροφή</a>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-medium mb-2">Αποθηκευμένα Προφίλ</h3>
+      <div id="profList" class="divide-y border rounded"></div>
+    </div>
   </div>
-
-  <div id="rows" class="space-y-3"></div>
-
-  <div class="mt-4 flex items-center gap-2">
-    <button id="addRow" class="px-3 py-2 border rounded">+ Κατηγορία ΦΠΑ</button>
-    <button id="saveProf" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
-    <button id="newProf" class="px-3 py-2 border rounded">Νέο</button>
-  </div>
-
-  <hr class="my-6"/>
-
-  <h3 class="font-semibold mb-2">Αποθηκευμένα προφίλ</h3>
-  <div id="list" class="divide-y"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='char_profiles.js') }}"></script>
+<script>
+(function(){
+  const VAT = "{{ vat }}";
+  const listEl = document.getElementById('profList');
+  const msgEl  = document.getElementById('profMsg');
+
+  function opt(x){ const o=document.createElement('option'); o.value=o.textContent=x; return o; }
+
+  async function loadData(){
+    const r = await fetch(`/api/char_profiles?vat=${encodeURIComponent(VAT)}`, {credentials:'same-origin'});
+    const j = await r.json();
+    // fill selects
+    ['a','b','g','d'].forEach(sfx=>{
+      const sel = document.getElementById(`kat_fpa_${sfx}`);
+      sel.innerHTML = '';
+      j.expense_tags.forEach(t=> sel.appendChild(opt(t)));
+    });
+    // render list
+    listEl.innerHTML='';
+    (j.profiles||[]).forEach(p=>{
+      const row = document.createElement('div');
+      row.className="p-3 flex items-center justify-between";
+      row.innerHTML = `
+        <div>
+          <div class="font-medium">${p.name}</div>
+          <div class="text-xs text-gray-600">
+            Α: ${p.mapping.kat_fpa_a || '-'} ·
+            Β: ${p.mapping.kat_fpa_b || '-'} ·
+            Γ: ${p.mapping.kat_fpa_g || '-'} ·
+            Δ: ${p.mapping.kat_fpa_d || '-'}
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-2 py-1 border rounded" data-act="use" data-name="${p.name}">Χρήση</button>
+          <button class="px-2 py-1 border rounded text-red-600" data-act="del" data-name="${p.name}">Διαγραφή</button>
+        </div>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  listEl.addEventListener('click', async (e)=>{
+    const b = e.target.closest('button[data-act]');
+    if(!b) return;
+    const act = b.dataset.act, name = b.dataset.name;
+    if(act==='del'){
+      if(!confirm(`Διαγραφή προφίλ "${name}" ;`)) return;
+      await fetch('/api/char_profiles/delete', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        credentials:'same-origin', body:JSON.stringify({vat:VAT, name})
+      });
+      loadData();
+      return;
+    }
+    if(act==='use'){
+      // φόρτωσε το προφίλ στα inputs
+      const r = await fetch(`/api/char_profiles?vat=${encodeURIComponent(VAT)}`, {credentials:'same-origin'});
+      const j = await r.json();
+      const p = (j.profiles||[]).find(x=>x.name===name);
+      if(!p) return;
+      (function fill(m){
+        document.getElementById('kat_fpa_a').value = m.kat_fpa_a || '';
+        document.getElementById('kat_fpa_b').value = m.kat_fpa_b || '';
+        document.getElementById('kat_fpa_g').value = m.kat_fpa_g || '';
+        document.getElementById('kat_fpa_d').value = m.kat_fpa_d || '';
+        document.getElementById('profName').value = name;
+      })(p.mapping||{});
+    }
+  });
+
+  document.getElementById('btnSaveProf').addEventListener('click', async ()=>{
+    const name = (document.getElementById('profName').value||'').trim();
+    const mapping = {
+      kat_fpa_a: document.getElementById('kat_fpa_a').value,
+      kat_fpa_b: document.getElementById('kat_fpa_b').value,
+      kat_fpa_g: document.getElementById('kat_fpa_g').value,
+      kat_fpa_d: document.getElementById('kat_fpa_d').value,
+    };
+    if(!name || !mapping.kat_fpa_a || !mapping.kat_fpa_b || !mapping.kat_fpa_g || !mapping.kat_fpa_d){
+      msgEl.className="text-sm text-red-600"; msgEl.textContent="Συμπλήρωσε όνομα και όλες τις τιμές ΦΠΑ."; return;
+    }
+    const r = await fetch('/api/char_profiles/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin', body:JSON.stringify({vat:VAT, name, mapping})
+    });
+    const j = await r.json();
+    if(j && j.ok){ msgEl.className="text-sm text-green-600"; msgEl.textContent="Αποθηκεύτηκε."; loadData(); }
+    else { msgEl.className="text-sm text-red-600"; msgEl.textContent=j.error||"Σφάλμα."; }
+  });
+
+  loadData();
+})();
+</script>
+<script>
+async function getExpenseTagsForVat(vat){
+  try{
+    const r = await fetch('/api/repeat_entry/get' + (vat?('?vat='+encodeURIComponent(vat)):''),
+                          {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length){
+      return j.expense_tags.filter(t => t !== 'αποδειξακια');
+    }
+  }catch(_){}
+  try{
+    const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(vat||''), {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length){
+      return j.expense_tags.filter(t => t !== 'αποδειξακια');
+    }
+  }catch(_){}
+  return [];
+}
+
+async function loadData(){
+  const VAT = "{{ vat }}";
+
+  // Γέμισμα dropdowns από credentials (παλιά συμπεριφορά)
+  const tags = await getExpenseTagsForVat(VAT);
+  const fill = (id)=>{ const sel=document.getElementById(id); sel.innerHTML=''; tags.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; sel.appendChild(o); }); };
+  ['kat_fpa_a','kat_fpa_b','kat_fpa_g','kat_fpa_d'].forEach(fill);
+
+  // Λίστα αποθηκευμένων προφίλ
+  const r = await fetch(`/api/char_profiles?vat=${encodeURIComponent(VAT)}`, {credentials:'same-origin'});
+  const j = await r.json();
+  const listEl = document.getElementById('profList');
+  listEl.innerHTML='';
+  (j.profiles||[]).forEach(p=>{
+    const row = document.createElement('div');
+    row.className="p-3 flex items-center justify-between";
+    row.innerHTML = `
+      <div>
+        <div class="font-medium">${p.name}</div>
+        <div class="text-xs text-gray-600">
+          Α: ${p.mapping.kat_fpa_a || '-'} ·
+          Β: ${p.mapping.kat_fpa_b || '-'} ·
+          Γ: ${p.mapping.kat_fpa_g || '-'} ·
+          Δ: ${p.mapping.kat_fpa_d || '-'}
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="px-2 py-1 border rounded" data-act="use" data-name="${p.name}">Χρήση</button>
+        <button class="px-2 py-1 border rounded text-red-600" data-act="del" data-name="${p.name}">Διαγραφή</button>
+      </div>`;
+    listEl.appendChild(row);
+  });
+}
+</script>
+
 {% endblock %}

@@ -165,6 +165,31 @@ FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DA
 REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
 CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 
+def _load_credentials():
+    if not CREDENTIALS_PATH.exists():
+        return []
+    with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return []
+
+def _save_credentials(items):
+    CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+
+def _find_client(creds, vat=None, name=None):
+    if vat:
+        for c in creds:
+            if str(c.get("vat","")).strip() == str(vat).strip():
+                return c
+    if name:
+        for c in creds:
+            if str(c.get("name","")).strip() == str(name).strip():
+                return c
+    return creds[0] if creds else None
+
 def _load_all_credentials():
     try:
         with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
@@ -4071,7 +4096,81 @@ def search():
         active_year=active_year_val
     )
 
+@app.get("/api/char_profiles")
+def api_char_profiles_get():
+    """Επιστρέφει profiles + expense_tags για τον ενεργό πελάτη"""
+    vat = request.args.get("vat","").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat) or {}
+    profiles = client.get("char_profiles", [])
+    expense_tags = client.get("expense_tags", [])
+    # Αποκλείουμε τα 'αποδειξακια' από τα τιμολόγια
+    expense_tags = [t for t in expense_tags if t != "αποδειξακια"]
+    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags)
 
+@app.post("/api/char_profiles/save")
+def api_char_profiles_save():
+    """
+    Body: { vat, name, mapping: {kat_fpa_a, kat_fpa_b, kat_fpa_g, kat_fpa_d} }
+    Αν υπάρχει προφίλ με το ίδιο όνομα -> update, αλλιώς append.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    vat = str(data.get("vat","")).strip()
+    name = (data.get("name") or "").strip()
+    mapping = data.get("mapping") or {}
+
+    if not (vat and name and all(mapping.get(k) for k in ("kat_fpa_a","kat_fpa_b","kat_fpa_g","kat_fpa_d"))):
+        return jsonify(ok=False, error="Παράμετροι λείπουν"), 400
+
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat)
+    if not client:
+        return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+
+    arr = list(client.get("char_profiles", []))
+    # upsert
+    hit = None
+    for p in arr:
+        if str(p.get("name","")).strip().lower() == name.lower():
+            hit = p
+            break
+    if hit:
+        hit["mapping"] = mapping
+    else:
+        arr.append({"name": name, "mapping": mapping})
+    client["char_profiles"] = arr
+    _save_credentials(creds)
+    return jsonify(ok=True, profile={"name": name, "mapping": mapping})
+
+@app.post("/api/char_profiles/delete")
+def api_char_profiles_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    vat = str(data.get("vat","")).strip()
+    name = (data.get("name") or "").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat)
+    if not client:
+        return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+    arr = list(client.get("char_profiles", []))
+    arr = [p for p in arr if str(p.get("name","")).strip().lower() != name.lower()]
+    client["char_profiles"] = arr
+    _save_credentials(creds)
+    return jsonify(ok=True)
+
+@app.get("/profiles", endpoint="char_profiles_ui")
+def char_profiles_ui():
+    """Σελίδα δημιουργίας/επεξεργασίας Προφίλ"""
+    vat = request.args.get("vat","").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat) or {}
+    expense_tags = [t for t in client.get("expense_tags", []) if t != "αποδειξακια"]
+    profiles = client.get("char_profiles", [])
+    return render_template(
+        "profiles.html",
+        vat=client.get("vat",""),
+        expense_tags=expense_tags,
+        profiles=profiles
+    )
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
     """

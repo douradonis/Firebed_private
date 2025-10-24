@@ -52,10 +52,11 @@
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
         "amount": "22,61",
         "vat": "5,43",
-        "category": "αγορες_εμπορευματων",
+        "category": "αγορες_α_υλων",
         "vat_category": "ΦΠΑ 24%"
       }
-    ]
+    ],
+    "_updated_at": "2025-10-24T12:00:50.247192+00:00"
   },
   {
     "mark": "400011219241352",
@@ -146,6 +147,35 @@
   },
   {
     "mark": "400011219241355",
+    "issueDate": "10/10/2025",
+    "series": "",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241356",
     "issueDate": "10/10/2025",
     "series": "",
     "aa": "36671",
