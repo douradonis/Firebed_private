@@ -183,6 +183,8 @@
 
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
+
+
 <script>
 function isReceiptsOn(){
   const r = document.getElementById('useReceiptsSwitch');
@@ -4327,5 +4329,6 @@ document.addEventListener('click', function(e){
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
 <script src="{{ url_for('static', filename='receipts_autosubmit_strict.js') }}"></script>
+
 
 <!-- ===== end SHIM ===== -->
