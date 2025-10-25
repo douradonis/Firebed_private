@@ -209,6 +209,7 @@ function setActiveProfileHint(name){
 
 </script>
 
+
 <script>
 (() => {
   const VAT = "{{ vat or '' }}";
@@ -3223,6 +3224,8 @@ document.addEventListener('submit', function(ev){
     console.warn('delete_invoices frontend patch failed', err);
   }
 }, true);
+
+
 (function receiptsRepeatModalGuard(){
   const once = { submitted:false };
 
@@ -3880,7 +3883,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% endblock %}
 
 <!-- === BEGIN: Injected fix (v2) for receipts auto-flow & afm_epsilon cleanup === -->
-<script><script>
+<script>
 /* RC-REPEAT-STATE bridge για Αποδείξεις & Τιμολόγια
    - Διαβάζει το state από backend (/api/repeat_state/get) στην εκκίνηση
    - Το περνάει και σε localStorage (REPEAT:enabled) & body dataset (data-repeat-enabled)
