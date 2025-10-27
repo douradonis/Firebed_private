@@ -80,6 +80,15 @@
 
     {% block content %}{% endblock %}
   </div>
+  <!-- WAIT OVERLAY (global) -->
+<div id="globalWait"
+     class="fixed inset-0 z-[100000] hidden items-center justify-center"
+     style="background:rgba(0,0,0,.4);display:none;">
+  <div class="bg-white rounded-lg shadow-lg px-6 py-5 text-center">
+    <div class="text-base font-medium mb-2">Παρακαλώ περιμένετε…</div>
+    <div class="text-gray-400 animate-pulse" aria-hidden="true">● ● ●</div>
+  </div>
+</div>
 
   {% block scripts %}{% endblock %}
 
@@ -147,5 +156,92 @@
       });
     })();
   </script>
+  <script>
+(function(){
+  // ====== WAIT OVERLAY ======
+  const waitEl = document.getElementById('globalWait');
+  let waitCount = 0;
+  let suspendWait = 0; // όταν >0, δεν θα εμφανίζεται το overlay
+
+  function showWait(){ if(!waitEl || suspendWait>0) return; waitCount++; waitEl.style.display='flex'; }
+  function hideWait(){ if(!waitEl) return; waitCount = Math.max(0, waitCount-1); if(!waitCount) waitEl.style.display='none'; }
+  function forceHide(){ if(!waitEl) return; waitCount = 0; waitEl.style.display='none'; }
+  function suspend(on){ suspendWait = Math.max(0, suspendWait + (on?1:-1)); if (suspendWait>0) forceHide(); }
+  window.WaitOverlay = { show: showWait, hide: hideWait, suspend };
+
+  // Patch fetch (AJAX)
+  const _fetch = window.fetch;
+  window.fetch = async function(...args){
+    showWait();
+    try { return await _fetch(...args); }
+    finally { hideWait(); }
+  };
+
+  // Patch XHR (πιάνει jQuery/DataTables)
+  const XHROpen = XMLHttpRequest.prototype.open;
+  const XHRSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function(...a){ this.__withWait = true; return XHROpen.apply(this,a); };
+  XMLHttpRequest.prototype.send = function(...a){
+    if (this.__withWait){ showWait(); this.addEventListener('loadend', hideWait, { once:true }); }
+    return XHRSend.apply(this,a);
+  };
+
+  // Form submits (πλοήγηση)
+  document.addEventListener('submit', function(){ showWait(); setTimeout(hideWait, 15000); }, true);
+
+  // ====== WARNING MODALS INTEGRATION ======
+  // IDs που χρησιμοποιείς για warning modals — πρόσθεσε κι άλλα αν έχεις:
+  const WARN_IDS = ['afmWarningModal','receiptWarn','receiptWarningModal','receiptWarning'];
+
+  function isVisible(el){
+    if(!el) return false;
+    const st = window.getComputedStyle(el);
+    return st.display!=='none' && st.visibility!=='hidden' && st.opacity!=='0';
+  }
+
+  function scanWarnsAndToggle(){
+    const anyOpen = WARN_IDS.some(id => isVisible(document.getElementById(id)));
+    suspend(anyOpen);  // όταν ανοίγει warning => παγώνουμε/κρύβουμε το overlay
+  }
+
+  // Παρακολούθηση DOM για άνοιγμα/κλείσιμο warning modals
+  const mo = new MutationObserver(scanWarnsAndToggle);
+  mo.observe(document.documentElement, { attributes:true, childList:true, subtree:true });
+
+  // Αρχικός έλεγχος
+  scanWarnsAndToggle();
+
+  // ====== RELOAD στο "Κατάλαβα" ======
+  function normTxt(s){
+    return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+  function isReloadOkButton(el){
+    if(!el) return false;
+    if (el.id === 'afmModalConfirm' || el.id === 'receiptWarnOk') return true; // γνωστά κουμπιά σου
+    if (el.dataset && el.dataset.reload === 'ok') return true;                 // option: data-reload="ok"
+    const t = normTxt(el.textContent);
+    return (t==='καταλαβα' || t==='ενταξει' || t==='ok');
+  }
+
+  document.addEventListener('click', function(ev){
+    const btn = ev.target && ev.target.closest && ev.target.closest('button, [role="button"], a');
+    if(!btn) return;
+    if (isReloadOkButton(btn)) {
+      // απενεργοποίηση wait ώστε να μη μπλοκάρει το click
+      suspend(true);
+      try {
+        const dlg = btn.closest('.modal,[role="dialog"],.fixed,.absolute');
+        if (dlg) dlg.style.display = 'none';
+      } catch(_) {}
+      // μικρή καθυστέρηση για να κλείσει οπτικά το modal, μετά σίγουρο reload
+      setTimeout(function(){
+        suspend(false);
+        forceHide();
+        location.reload();
+      }, 50);
+    }
+  }, true);
+})();
+</script>
 </body>
 </html>

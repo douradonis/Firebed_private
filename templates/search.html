@@ -4433,6 +4433,27 @@ document.addEventListener('click', function(e){
 });
 </script>
 
+<script>
+/* Reload όταν ο χρήστης πατάει "Κατάλαβα" στα warning modals */
+(function(){
+  // AFM warning (server-rendered modal with #afmModalConfirm)
+  const afmOk = document.getElementById('afmModalConfirm'); // υπάρχει ήδη στο search.html
+  if (afmOk) {
+    afmOk.addEventListener('click', function(){
+      try { document.getElementById('afmWarningModal').style.display = 'none'; } catch(_){}
+      location.reload();
+    });
+  }
+
+  // Receipt warning (dynamic modal που φτιάχνεται με openReceiptWarning, κουμπί #receiptWarnOk)
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'receiptWarnOk') {
+      try { document.getElementById('receiptWarn').style.display = 'none'; } catch(_){}
+      location.reload();
+    }
+  }, true);
+})();
+</script>
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
 <script src="{{ url_for('static', filename='receipts_autosubmit_strict.js') }}"></script>
