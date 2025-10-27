@@ -1507,3 +1507,11 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-10-28 00:34:25+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
 2025-10-28 00:34:25+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
 2025-10-28 00:34:25+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:37:32+0200 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:37:36+0200 INFO Incoming request: method=GET path=/client_db_info remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:40:13+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:40:13+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:40:13+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:40:28+0200 INFO Incoming request: method=POST path=/credentials/save_settings remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:40:42+0200 INFO Incoming request: method=POST path=/credentials/save_settings remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
+2025-10-28 00:41:01+0200 INFO Incoming request: method=POST path=/credentials/save_settings remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
