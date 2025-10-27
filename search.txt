@@ -208,7 +208,45 @@ function setActiveProfileHint(name){
 
 
 </script>
+<script>
+// Δέχεται είτε ποσοστά είτε kat_fpa_* και επιστρέφει ΠΑΝΤΑ ποσοστά σύμφωνα με: Α→0, Β→6, Γ→13, Δ→17, Ε→24
+// ΚΑΝΟΝΑΣ: Α→0%, Β→6%, Γ→13%, Δ→17%, Ε→24%
+function normalizeMapping(m){
+  const pct = {"0%":"", "6%":"", "13%":"", "17%":"", "24%":""};
+  if (!m) return pct;
+  if ('kat_fpa_a' in m || 'kat_fpa_b' in m || 'kat_fpa_g' in m || 'kat_fpa_d' in m || 'kat_fpa_e' in m){
+    pct["0%"]  = m.kat_fpa_a || "";
+    pct["6%"]  = m.kat_fpa_b || "";
+    pct["13%"] = m.kat_fpa_g || "";
+    pct["17%"] = m.kat_fpa_d || "";
+    pct["24%"] = m.kat_fpa_e || "";
+    return pct;
+  }
+  for (const k in pct){ if (Object.prototype.hasOwnProperty.call(m,k)) pct[k] = m[k] || ""; }
+  return pct;
+}
+function percentToKat(p){
+  p = p || {};
+  return {
+    kat_fpa_a: p["0%"]  || "",
+    kat_fpa_b: p["6%"]  || "",
+    kat_fpa_g: p["13%"] || "",
+    kat_fpa_d: p["17%"] || "",
+    kat_fpa_e: p["24%"] || "",
+  };
+}
+function katToPercent(k){
+  k = k || {};
+  return {
+    "0%":  k.kat_fpa_a || "",
+    "6%":  k.kat_fpa_b || "",
+    "13%": k.kat_fpa_g || "",
+    "17%": k.kat_fpa_d || "",
+    "24%": k.kat_fpa_e || "",
+  };
+}
 
+</script>
 
 <script>
 (() => {
@@ -223,22 +261,7 @@ function setActiveProfileHint(name){
     } catch(e){ return []; }
   })();
 
-  // --- helpers
-  function normalizeMapping(m){
-    // δέχεται mapping με ποσοστά ή legacy kat_fpa_* και επιστρέφει ΜΟΝΟ ποσοστά
-    const out = {"0%":"","6%":"","13%":"","17%":"","24%":""};
-    if(!m || typeof m!=='object') return out;
-    // αν είναι ήδη με ποσοστά
-    VAT_KEYS.forEach(k => { if (m[k]) out[k] = m[k]; });
-    // legacy → ποσοστά
-    if (m.kat_fpa_a) out["24%"] = m.kat_fpa_a;
-    if (m.kat_fpa_b) out["13%"] = m.kat_fpa_b;
-    if (m.kat_fpa_g) out["6%"]  = m.kat_fpa_g;
-    if (m.kat_fpa_d) out["0%"]  = m.kat_fpa_d;
-    if (m.kat_fpa_e) out["17%"] = m.kat_fpa_e;
-    return out;
-  }
-
+  
   async function fetchDefaultMapping() {
     try {
       const r = await fetch('/api/repeat_entry/get?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
@@ -431,7 +454,7 @@ function setActiveProfileHint(name){
         if (Array.isArray(j.expense_tags)) {
           window.CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
         }
-        return (j.profiles || []).map(p => ({...p, mapping: p.mapping || {}}));
+        return (j.profiles || []).map(p => ({...p, mapping: normalizeMapping(p.mapping || p.map || {})}));
       } catch { return []; }
     })(),
     (async () => {
@@ -454,14 +477,15 @@ function setActiveProfileHint(name){
     const o0 = document.createElement('option');
     o0.value = "";
     o0.textContent = "Γενικό";
-    o0.dataset.mapping = JSON.stringify(defaultMap || {});
+    o0.dataset.mapping = JSON.stringify(normalizeMapping(defaultMap || {}));
     sel.appendChild(o0);
 
     profiles.forEach(p=>{
       const o = document.createElement('option');
       o.value = p.name || p.id || "";
       o.textContent = p.name || "(χωρίς όνομα)";
-      o.dataset.mapping = JSON.stringify(p.mapping || {});
+      o.dataset.id = p.id || "";
+      o.dataset.mapping = JSON.stringify(normalizeMapping(p.mapping || p.map || {}));
       sel.appendChild(o);
     });
 
@@ -515,6 +539,88 @@ try {
 })();
 </script>
 
+<script>
+(function(){
+  const VAT = "{{ vat or '' }}";
+
+  // Διαβάζουμε το mapping που βλέπει ο χρήστης στο modal (0/6/13/17/24)
+  function readPercentMappingFromUI(){
+    // Αν υπάρχει ήδη helper στη σελίδα σου, χρησιμοποίησέ τον
+    if (typeof window.readMappingFromUI === 'function') {
+      try {
+        const r = window.readMappingFromUI(); // συνήθως { out: { "0%": "...", ... } }
+        return (r && (r.out || r.mapping)) || r || {};
+      } catch(e) {}
+    }
+    // Fallback: δοκίμασε data-vat ή γνωστά ids
+    const pick = (sel) => (document.querySelector(sel)?.value || "");
+    return {
+      "0%":  pick('[data-vat="0%"]')  || pick('#repeat_vat_0')  || pick('#vat_0'),
+      "6%":  pick('[data-vat="6%"]')  || pick('#repeat_vat_6')  || pick('#vat_6'),
+      "13%": pick('[data-vat="13%"]') || pick('#repeat_vat_13') || pick('#vat_13'),
+      "17%": pick('[data-vat="17%"]') || pick('#repeat_vat_17') || pick('#vat_17'),
+      "24%": pick('[data-vat="24%"]') || pick('#repeat_vat_24') || pick('#vat_24'),
+    };
+  }
+
+  // Μετατροπή από ποσοστά -> kat_fpa_* για /api/profiles/save
+  
+  // Δένουμε hook στο κουμπί "Αποθήκευση" του modal χωρίς να πειράξουμε την υπάρχουσα ροή σου
+  const saveBtn = document.getElementById('repeatModalSave');
+  if (saveBtn && !saveBtn.dataset._profileUpdateBound){
+    saveBtn.addEventListener('click', async function(){
+      try{
+        const sel = document.getElementById('charProfileSelect');
+        if (!sel) return;
+
+        const profileName = (sel.value || '').trim();
+        // Αν είναι "Γενικό" (κενό value), δεν ενημερώνουμε profile στο credentials
+        if (!profileName) return;
+
+        const opt = sel.selectedOptions && sel.selectedOptions[0];
+        const profileId = (opt && opt.dataset && opt.dataset.id) ? opt.dataset.id : "";
+
+        // Διάβασε το mapping που έβαλε ο χρήστης στα dropdowns του modal τώρα
+        const pctMap = readPercentMappingFromUI();      // 0/6/13/17/24
+        const katMap = percentToKat(pctMap);            // kat_fpa_*
+
+        if (profileId){
+          // ΚΥΡΙΑ ΟΔΟΣ: Update στο credentials ΜΕ id -> δεν δημιουργεί νέο στο rename
+          const r = await fetch('/api/profiles/save', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            credentials:'same-origin',
+            body: JSON.stringify({ id: profileId, name: profileName, map: katMap })
+          });
+          const j = await r.json().catch(()=>null);
+          if (!(j && j.ok)) {
+            console.warn('profiles/save failed:', j);
+            // Fallback (σπάνια χρειάζεται): legacy char_profiles με mapping σε ποσοστά
+            await fetch('/api/char_profiles/save', {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json' },
+              credentials:'same-origin',
+              body: JSON.stringify({ vat: VAT, name: profileName, mapping: pctMap })
+            });
+          }
+        } else {
+          // Δεν έχουμε id (παλιό/legacy profile) -> fallback σε char_profiles (ποσοστά)
+          await fetch('/api/char_profiles/save', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            credentials:'same-origin',
+            body: JSON.stringify({ vat: VAT, name: profileName, mapping: pctMap })
+          });
+        }
+        // Δεν κάνουμε preventDefault: η δική σου αποθήκευση repeat_entry συνεχίζει κανονικά
+      }catch(err){
+        console.warn('modal profile update failed', err);
+      }
+    }, true); // capture ώστε να τρέξει ανεξάρτητα απ’ τους άλλους listeners
+    saveBtn.dataset._profileUpdateBound = '1';
+  }
+})();
+</script>
 
 
 <script>
@@ -3224,8 +3330,6 @@ document.addEventListener('submit', function(ev){
     console.warn('delete_invoices frontend patch failed', err);
   }
 }, true);
-
-
 (function receiptsRepeatModalGuard(){
   const once = { submitted:false };
 
@@ -3883,7 +3987,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% endblock %}
 
 <!-- === BEGIN: Injected fix (v2) for receipts auto-flow & afm_epsilon cleanup === -->
-<script>
+<script><script>
 /* RC-REPEAT-STATE bridge για Αποδείξεις & Τιμολόγια
    - Διαβάζει το state από backend (/api/repeat_state/get) στην εκκίνηση
    - Το περνάει και σε localStorage (REPEAT:enabled) & body dataset (data-repeat-enabled)

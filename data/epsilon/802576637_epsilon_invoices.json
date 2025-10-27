@@ -27,5 +27,63 @@
       }
     ],
     "_updated_at": "2025-10-22T12:33:37.586652+00:00"
+  },
+  {
+    "mark": "400011185825004",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8961",
+    "AA": "8961",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "22,61",
+    "totalVatAmount": "5,43",
+    "totalValue": "28,04",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011185825004_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "22,61",
+        "vat": "5,43",
+        "category": "δαπανες_χωρις_φπα",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400011185872109",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8962",
+    "AA": "8962",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "8,75",
+    "totalVatAmount": "2,10",
+    "totalValue": "10,85",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011185872109_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "8,75",
+        "vat": "2,10",
+        "category": "γενικες_δαπανες",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]
