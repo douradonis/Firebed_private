@@ -139,10 +139,40 @@
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
         "amount": "8,75",
         "vat": "2,10",
-        "category": "αγορες_α_υλων",
+        "category": "αγορες_εμπορευματων",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-10-27T18:16:20.530900+00:00"
+    "_updated_at": "2025-10-27T18:37:29.192300+00:00"
+  },
+  {
+    "mark": "400011186892779",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8970",
+    "AA": "8970",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "48,39",
+    "totalVatAmount": "11,61",
+    "totalValue": "60,00",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011186892779_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "48,39",
+        "vat": "11,61",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-10-27T18:37:49.188340+00:00"
   }
 ]
