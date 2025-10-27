@@ -156,7 +156,17 @@
       });
     })();
   </script>
-  <script>
+  <!-- WAIT OVERLAY (global) -->
+<div id="globalWait"
+     class="fixed inset-0 z-[100000] hidden items-center justify-center"
+     style="background:rgba(0,0,0,.4);display:none;">
+  <div class="bg-white rounded-lg shadow-lg px-6 py-5 text-center">
+    <div class="text-base font-medium mb-2">Παρακαλώ περιμένετε…</div>
+    <div class="text-gray-400 animate-pulse" aria-hidden="true">● ● ●</div>
+  </div>
+</div>
+
+<script>
 (function(){
   // ====== WAIT OVERLAY ======
   const waitEl = document.getElementById('globalWait');
@@ -211,37 +221,48 @@
   // Αρχικός έλεγχος
   scanWarnsAndToggle();
 
-  // ====== RELOAD στο "Κατάλαβα" ======
+  // ====== RELOAD στο "Κατάλαβα" (ΜΟΝΟ για αποδείξεις) ======
+  // ids των receipt warning modals
+  const RECEIPT_WARN_IDS = ['receiptWarn', 'receiptWarningModal', 'receiptWarning'];
+
   function normTxt(s){
-    return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return String(s||'').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   }
   function isReloadOkButton(el){
     if(!el) return false;
-    if (el.id === 'afmModalConfirm' || el.id === 'receiptWarnOk') return true; // γνωστά κουμπιά σου
-    if (el.dataset && el.dataset.reload === 'ok') return true;                 // option: data-reload="ok"
+    if (el.id === 'receiptWarnOk') return true;          // δικό σου id για αποδείξεις
+    if (el.dataset && el.dataset.reload === 'ok') return true;
     const t = normTxt(el.textContent);
     return (t==='καταλαβα' || t==='ενταξει' || t==='ok');
+  }
+  function isInsideReceiptWarning(el){
+    if (!el) return false;
+    const host = el.closest('.modal,[role="dialog"],.fixed,.absolute,[id]');
+    const id = (host && host.id) || '';
+    return RECEIPT_WARN_IDS.includes(id);
   }
 
   document.addEventListener('click', function(ev){
     const btn = ev.target && ev.target.closest && ev.target.closest('button, [role="button"], a');
     if(!btn) return;
-    if (isReloadOkButton(btn)) {
-      // απενεργοποίηση wait ώστε να μη μπλοκάρει το click
-      suspend(true);
+
+    // ΜΟΝΟ αν είναι OK/Κατάλαβα ΚΑΙ βρίσκεται μέσα σε receipt warning modal
+    if (isReloadOkButton(btn) && isInsideReceiptWarning(btn)) {
+      // προληπτικά κλείσιμο modal & απενεργοποίηση wait overlay
       try {
         const dlg = btn.closest('.modal,[role="dialog"],.fixed,.absolute');
         if (dlg) dlg.style.display = 'none';
       } catch(_) {}
-      // μικρή καθυστέρηση για να κλείσει οπτικά το modal, μετά σίγουρο reload
-      setTimeout(function(){
-        suspend(false);
-        forceHide();
-        location.reload();
-      }, 50);
+      if (window.WaitOverlay && typeof window.WaitOverlay.suspend === 'function') {
+        window.WaitOverlay.suspend(true);
+        setTimeout(()=>window.WaitOverlay.suspend(false), 200);
+      }
+      setTimeout(()=>{ location.reload(); }, 50);
     }
   }, true);
 })();
 </script>
+
 </body>
 </html>
