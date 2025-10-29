@@ -66,6 +66,9 @@ from epsilon_bridge_multiclient_strict import (
 )
 # Θα “δανειστούμε” τον loader για client_db για να φτιαχτεί σωστά ο CUSTID:
 from epsilon_bridge_multiclient_strict import _load_client_map as bridge_load_client_map
+# κοντά στην κορυφή του app.py
+from epsilon_bridge_multiclient_strict import build_preview_strict_multiclient
+
 # --- end lock + current_app imports ---
 # --- Compatibility shim: unify invoice-scraper vs receipt-scraper usage ---
 # Αυτό το snippet προσπαθεί να χρησιμοποιήσει:
@@ -5748,7 +5751,7 @@ def list_invoices():
 # --- νέο route: προεπισκόπηση Epsilon (ίδιο tab) ---
 @app.route("/epsilon/preview")
 def epsilon_preview():
-    """Προεπισκόπηση κινήσεων/παραστατικών για FastImport (Epsilon) με σωστό CUSTID."""
+    """Προεπισκόπηση FastImport με STRICT λογική builder (CUSTID/validations)."""
     import re
 
     # VAT από query ή active
@@ -5760,33 +5763,52 @@ def epsilon_preview():
     except Exception:
         vat = vat or ""
 
+    # 1) Τρέξε τον STRICT preview builder (ΔΕΝ γράφει excel — μόνο έλεγχοι)
+    preview = build_preview_strict_multiclient(
+        vat=vat,
+        credentials_json="data/credentials.json",
+        cred_settings_json="data/credentials_settings.json",
+        invoices_json=None,            # auto: data/epsilon/{vat}_epsilon_invoices.json
+        client_db=None,                # auto: data/epsilon/client_db_{vat}.* -> ... -> client_db.xls
+        base_invoices_dir="data/epsilon",
+    )
+    bridge_ok = bool(preview.get("ok"))
+    bridge_issues = preview.get("issues", [])
+    bridge_rows = preview.get("rows", [])  # Γραμμές εξαγωγής (detail)
+
+    # 2) Φόρτωσε τα raw invoices για το UI (MARK, Ημ/νια, Εκδότης, κλπ.)
     invoices = _load_epsilon_invoices(vat)
+    # normalize σε λίστα
+    if isinstance(invoices, dict):
+        for k in ("invoices","records","rows","data","items"):
+            if isinstance(invoices.get(k), list):
+                invoices = invoices[k]; break
+        else:
+            invoices = [invoices]
 
-    # client_db resolver & map
-    client_db_path = _resolve_client_db_path(vat)
-    client_map = _load_client_map_smart(client_db_path) if client_db_path else {"by_afm": {}, "by_id": set(), "cols": []}
+    # 3) Χάρτης από INVOICE (AA/mark) -> CUSTID όπως θα πάει στο export
+    custid_by_invoice = {}
+    for r in bridge_rows:
+        inv_id = str(r.get("INVOICE") or "").strip()
+        if inv_id and r.get("CUSTID") is not None:
+            custid_by_invoice[inv_id] = r["CUSTID"]
 
+    # 4) Χτίζουμε τις σειρές του preview, αλλά γεμίζουμε CUSTID από τον builder
     rows = []
     for rec in invoices:
         mark = rec.get("MARK") or rec.get("mark") or ""
         aa   = rec.get("AA") or rec.get("aa") or ""
+        inv_id = str(aa or mark or "").strip()
+
         date = _ddmmyyyy(rec.get("issueDate") or rec.get("ΗΜΕΡΟΜΗΝΙΑ"))
-        afm_issuer  = rec.get("AFM_issuer") or rec.get("AFM") or ""
-        doc_type    = rec.get("type") or ""
+        afm  = rec.get("AFM_issuer") or rec.get("AFM") or ""
+        doc_type = rec.get("type") or ""
         name_issuer = (
-            rec.get("Name_issuer")
-            or rec.get("issuerName")
-            or rec.get("issuer_name")
-            or rec.get("Name")
-            or rec.get("name")
-            or ""
+            rec.get("Name_issuer") or rec.get("issuerName") or rec.get("issuer_name")
+            or rec.get("Name") or rec.get("name") or ""
         )
 
-        # === ΣΩΣΤΟ AFM ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥ ===
-        partner_afm = _guess_partner_afm(rec, vat)
-        custid = client_map["by_afm"].get(str(partner_afm)) if partner_afm else None
-
-        # --- Χαρακτηρισμοί / VAT summary ---
+        # --- Χαρακτηρισμοί/ΦΠΑ summary για τη στήλη (όπως πριν) ---
         lines = rec.get("lines") or rec.get("invoice_lines") or rec.get("details") or []
         line_cats, vat_rates = [], []
         if isinstance(lines, list):
@@ -5794,16 +5816,18 @@ def epsilon_preview():
                 c = (ln.get("category") or "").strip()
                 if c: line_cats.append(c)
                 vl = ln.get("vat_category") or ln.get("vatRate") or ""
-                m  = re.search(r"(\d+)", str(vl))
+                m = re.search(r"(\d+)", str(vl))
                 if m: vat_rates.append(f"{int(m.group(1))}%")
-
         if not line_cats and rec.get("category"):
             line_cats = [rec.get("category")]
 
         if line_cats:
             characts = ", ".join(sorted({c for c in line_cats if c}))
         else:
-            uniq_rates = sorted(set(vat_rates), key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 0)
+            uniq_rates = sorted(
+                set(vat_rates),
+                key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 0
+            )
             if len(uniq_rates) > 1:
                 characts = "Πολλαπλές κατηγορίες ΦΠΑ: " + ", ".join(uniq_rates)
             elif len(uniq_rates) == 1:
@@ -5814,23 +5838,32 @@ def epsilon_preview():
         # Σύνολα + detail (για expand)
         tot_net, tot_vat, tot_gross, detail = _sum_lines(rec)
 
+        # >>> CUSTID από τον STRICT builder (όπως θα εξαχθεί) <<<
+        custid = custid_by_invoice.get(inv_id)
+
         rows.append({
             "MARK": mark,
             "AA": str(aa),
             "DATE": date,
-            "AFM_ISSUER": str(afm_issuer),
+            "AFM_ISSUER": str(afm),
             "ISSUER_NAME": name_issuer,
-            "CUSTID": custid,                # <-- ΤΩΡΑ γεμίζει με βάση partner_afm
+            "CUSTID": custid,                 # ευθυγραμμισμένο με export
             "NET": round(tot_net, 2),
             "VAT": round(tot_vat, 2),
             "GROSS": round(tot_gross, 2),
             "DOCTYPE": doc_type,
             "CHARACTS": characts,
-            "LINES": detail,
-            "PARTNER_AFM": partner_afm,      # (προαιρετικό για debug/tooltip)
+            "LINES": detail
         })
 
-    return render_template("epsilon_preview.html", vat=vat, table_rows=rows)
+    # 5) Στείλε και την κατάσταση του builder στο template
+    return render_template(
+        "epsilon_preview.html",
+        vat=vat,
+        table_rows=rows,
+        bridge_ok=bridge_ok,
+        bridge_issues=bridge_issues
+    )
 
 
 @app.get("/export/fastimport/kinitseis")
