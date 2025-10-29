@@ -21,6 +21,10 @@ from shutil import move
 import importlib
 import io
 import csv
+from epsilon_bridge_multiclient_strict import (
+    run_and_report_dynamic,  # <-- απαιτείται
+    # προαιρετικά: export_multiclient_strict
+)
 from scraper_receipt import detect_and_scrape as scrape_receipt
 # local mydata helper
 from fetch import request_docs
@@ -60,14 +64,8 @@ except Exception:
             self.release()
 
 from flask import current_app
-from epsilon_bridge_multiclient_strict import (
-    run_and_report_dynamic,
-    resolve_paths_for_vat,
-)
-# Θα “δανειστούμε” τον loader για client_db για να φτιαχτεί σωστά ο CUSTID:
-from epsilon_bridge_multiclient_strict import _load_client_map as bridge_load_client_map
-# κοντά στην κορυφή του app.py
-from epsilon_bridge_multiclient_strict import build_preview_strict_multiclient
+from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui
+
 
 # --- end lock + current_app imports ---
 # --- Compatibility shim: unify invoice-scraper vs receipt-scraper usage ---
@@ -5834,151 +5832,74 @@ def list_invoices():
 # --- νέο route: προεπισκόπηση Epsilon (ίδιο tab) ---
 @app.route("/epsilon/preview")
 def epsilon_preview():
-    """Προεπισκόπηση FastImport με STRICT λογική builder (CUSTID/validations)."""
-    import re
-
-    # VAT από query ή active
-    vat = request.args.get("vat")
-    try:
-        active = get_active_credential_from_session()
-        if not vat:
-            vat = str(active.get("vat") or "")
-    except Exception:
-        vat = vat or ""
-
-    # 1) Τρέξε τον STRICT preview builder (ΔΕΝ γράφει excel — μόνο έλεγχοι)
-    preview = build_preview_strict_multiclient(
+    vat = (request.args.get("vat") or (get_active_credential_from_session() or {}).get("vat") or "").strip()
+    rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
         credentials_json="data/credentials.json",
         cred_settings_json="data/credentials_settings.json",
-        invoices_json=None,            # auto: data/epsilon/{vat}_epsilon_invoices.json
-        client_db=None,                # auto: data/epsilon/client_db_{vat}.* -> ... -> client_db.xls
+        invoices_json=None,         # θα λυθεί path αυτόματα: data/epsilon/{vat}_epsilon_invoices.json
+        client_db=None,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
         base_invoices_dir="data/epsilon",
     )
-    bridge_ok = bool(preview.get("ok"))
-    bridge_issues = preview.get("issues", [])
-    bridge_rows = preview.get("rows", [])  # Γραμμές εξαγωγής (detail)
-
-    # 2) Φόρτωσε τα raw invoices για το UI (MARK, Ημ/νια, Εκδότης, κλπ.)
-    invoices = _load_epsilon_invoices(vat)
-    # normalize σε λίστα
-    if isinstance(invoices, dict):
-        for k in ("invoices","records","rows","data","items"):
-            if isinstance(invoices.get(k), list):
-                invoices = invoices[k]; break
-        else:
-            invoices = [invoices]
-
-    # 3) Χάρτης από INVOICE (AA/mark) -> CUSTID όπως θα πάει στο export
-    custid_by_invoice = {}
-    for r in bridge_rows:
-        inv_id = str(r.get("INVOICE") or "").strip()
-        if inv_id and r.get("CUSTID") is not None:
-            custid_by_invoice[inv_id] = r["CUSTID"]
-
-    # 4) Χτίζουμε τις σειρές του preview, αλλά γεμίζουμε CUSTID από τον builder
-    rows = []
-    for rec in invoices:
-        mark = rec.get("MARK") or rec.get("mark") or ""
-        aa   = rec.get("AA") or rec.get("aa") or ""
-        inv_id = str(aa or mark or "").strip()
-
-        date = _ddmmyyyy(rec.get("issueDate") or rec.get("ΗΜΕΡΟΜΗΝΙΑ"))
-        afm  = rec.get("AFM_issuer") or rec.get("AFM") or ""
-        doc_type = rec.get("type") or ""
-        name_issuer = (
-            rec.get("Name_issuer") or rec.get("issuerName") or rec.get("issuer_name")
-            or rec.get("Name") or rec.get("name") or ""
-        )
-
-        # --- Χαρακτηρισμοί/ΦΠΑ summary για τη στήλη (όπως πριν) ---
-        lines = rec.get("lines") or rec.get("invoice_lines") or rec.get("details") or []
-        line_cats, vat_rates = [], []
-        if isinstance(lines, list):
-            for ln in lines:
-                c = (ln.get("category") or "").strip()
-                if c: line_cats.append(c)
-                vl = ln.get("vat_category") or ln.get("vatRate") or ""
-                m = re.search(r"(\d+)", str(vl))
-                if m: vat_rates.append(f"{int(m.group(1))}%")
-        if not line_cats and rec.get("category"):
-            line_cats = [rec.get("category")]
-
-        if line_cats:
-            characts = ", ".join(sorted({c for c in line_cats if c}))
-        else:
-            uniq_rates = sorted(
-                set(vat_rates),
-                key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 0
-            )
-            if len(uniq_rates) > 1:
-                characts = "Πολλαπλές κατηγορίες ΦΠΑ: " + ", ".join(uniq_rates)
-            elif len(uniq_rates) == 1:
-                characts = f"ΦΠΑ {uniq_rates[0]}"
-            else:
-                characts = ""
-
-        # Σύνολα + detail (για expand)
-        tot_net, tot_vat, tot_gross, detail = _sum_lines(rec)
-
-        # >>> CUSTID από τον STRICT builder (όπως θα εξαχθεί) <<<
-        custid = custid_by_invoice.get(inv_id)
-
-        rows.append({
-            "MARK": mark,
-            "AA": str(aa),
-            "DATE": date,
-            "AFM_ISSUER": str(afm),
-            "ISSUER_NAME": name_issuer,
-            "CUSTID": custid,                 # ευθυγραμμισμένο με export
-            "NET": round(tot_net, 2),
-            "VAT": round(tot_vat, 2),
-            "GROSS": round(tot_gross, 2),
-            "DOCTYPE": doc_type,
-            "CHARACTS": characts,
-            "LINES": detail
-        })
-
-    # 5) Στείλε και την κατάσταση του builder στο template
-    return render_template(
-        "epsilon_preview.html",
-        vat=vat,
-        table_rows=rows,
-        bridge_ok=bridge_ok,
-        bridge_issues=bridge_issues
-    )
+    # πέρασέ τα στο template
+    return render_template("epsilon_preview.html",
+                           vat=vat,
+                           table_rows=rows,
+                           bridge_ok=(not issues and len(rows)>0),
+                           bridge_issues=issues)
 
 
-@app.get("/export/fastimport/kinitseis")
+@app.route("/export/fastimport/kinitseis")
 def export_kinitseis():
-    # VAT από query ή active
-    vat = request.args.get("vat")
+    # 1) resolve VAT (query ➜ active credential ➜ fallback)
+    vat = (request.args.get("vat") or "").strip()
     try:
-        active = get_active_credential_from_session()
+        active = get_active_credential_from_session()  # δικός σου helper
         if not vat:
-            vat = str(active.get("vat") or "")
+            vat = str(active.get("vat") or "").strip()
     except Exception:
-        vat = vat or ""
+        pass
+    if not vat:
+        flash("Λείπει VAT για εξαγωγή γέφυρας.", "error")
+        return redirect(url_for("epsilon_preview"))
 
-    # Τρέξε τον STRICT exporter (ίδια paths auto-resolve όπως στον builder)
+    # 2) τρέξε strict export
     res = run_and_report_dynamic(
         vat=vat,
         credentials_json="data/credentials.json",
         cred_settings_json="data/credentials_settings.json",
-        invoices_json=None,             # -> data/epsilon/{vat}_epsilon_invoices.json
-        client_db=None,                 # -> data/epsilon/client_db_{vat}.xlsx/.xls -> ... -> client_db.xls
-        out_xlsx=None,                  # -> exports/{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx
+        invoices_json=None,      # αφήνουμε τον resolver να βρει το σωστό JSON
+        client_db=None,          # και το client_db από data/
+        out_xlsx=None,           # exports/{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx
         base_invoices_dir="data/epsilon",
         base_exports_dir="exports",
     )
 
-    if not res["ok"]:
-        # Δείξε λίστα με τα σφάλματα (modal ή σελίδα)
-        return render_template("export_errors.html", issues=res["issues"], vat=vat), 422
+    # 3) χειρισμός σφαλμάτων / προειδοποιήσεων
+    if not res.get("ok"):
+        issues = res.get("issues") or []
+        # δείξε μερικά, χωρίς να «πνίξεις» τη σελίδα
+        for i in issues[:8]:
+            msg = i.get("message") or str(i)
+            flash(msg, "error")
+        if len(issues) > 8:
+            flash(f"...(+{len(issues)-8} ακόμη θέματα)", "error")
+        return redirect(url_for("epsilon_preview", vat=vat))
 
-    return send_file(res["path"], as_attachment=True)
+    xlsx_path = res.get("path")
+    if not xlsx_path or not os.path.exists(xlsx_path):
+        flash("Η εξαγωγή ολοκληρώθηκε χωρίς να βρεθεί το αρχείο XLSX.", "error")
+        return redirect(url_for("epsilon_preview", vat=vat))
 
-
+    # 4) κατέβασμα XLSX (ίδιο tab)
+    download_name = f"{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx"
+    return send_file(
+        xlsx_path,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        max_age=0,
+    )
 
 
 # ---------------- Delete invoices ----------------

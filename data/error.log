@@ -1,51 +1,231 @@
-2025-10-29 23:22:09+0200 INFO Starting app - MYDATA_ENV=sandbox
-2025-10-29 23:22:10+0200 INFO Starting app - MYDATA_ENV=production
-2025-10-29 23:22:13+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:22:14+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:14+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:14+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:15+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:17+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:22:17+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:22:17+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:27:30+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:27:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:27:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:27:48+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:27:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:27:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:28:39+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:28:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:28:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:29:53+0200 INFO Incoming request: method=POST path=/credentials/save_settings remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:25+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:25+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:28+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:30:28+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:30:28+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:31:14+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
-2025-10-29 23:31:14+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:31:14+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/credentials
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
-2025-10-29 23:31:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-29 23:59:21+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-29 23:59:21+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-29 23:59:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:08:28+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:08:32+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:33+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:36+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:08:36+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:08:36+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:09:38+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:09:38+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:09:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:09:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:09:57+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:09:58+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:09:58+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:10:16+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:10:18+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:10:19+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:10:19+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:12:06+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:12:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:12:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:17:06+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:17:55+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:18:05+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:06+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:07+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:08+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:18:09+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:18:09+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:34:55+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-30 00:34:56+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:34:59+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=None
+2025-10-30 00:35:00+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:35:00+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:36:40+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:36:42+0200 INFO Incoming request: method=GET path=/list remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:36:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-30 00:36:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-30 00:36:44+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/list
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:45+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:46+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:48+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 00:36:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:36:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:38:02+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:38:58+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:42:41+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:42:44+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=None
+2025-10-30 00:42:45+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:42:45+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:42:51+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:42:51+0200 ERROR Unhandled exception: name 'run_and_report_dynamic' is not defined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 5860, in export_kinitseis
+    res = run_and_report_dynamic(
+          ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'run_and_report_dynamic' is not defined
+
+2025-10-30 00:42:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 00:42:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 00:43:52+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=None
+2025-10-30 00:43:52+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:46:35+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:46:36+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:47:30+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 00:47:36+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=None
+2025-10-30 00:47:36+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:36+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:39+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:39+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:40+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:40+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:48+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:49+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:49+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:50+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:50+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:50+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 00:47:50+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:11+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-30 01:08:12+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:08:15+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:16+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:16+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:19+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:20+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:20+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:08:20+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:06+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:19:10+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:10+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:10+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:13+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:14+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:14+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:14+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:30+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:30+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:48+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:51+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:51+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:52+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:19:52+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:21:02+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:21:02+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:21:02+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:21:03+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:29:16+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:31:10+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:31:49+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:31:52+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=None
+2025-10-30 01:31:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:31:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:31:57+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:31:57+0200 ERROR Unhandled exception: name '_safe_json_read' is not defined
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 5867, in export_kinitseis
+    res = run_and_report_dynamic(
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/epsilon_bridge_multiclient_strict.py", line 799, in run_and_report_dynamic
+    ok, path, issues = export_multiclient_strict(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/epsilon_bridge_multiclient_strict.py", line 754, in export_multiclient_strict
+    preview = build_preview_strict_multiclient(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/epsilon_bridge_multiclient_strict.py", line 621, in build_preview_strict_multiclient
+    credentials = _safe_json_read(credentials_json, default=[])
+                  ^^^^^^^^^^^^^^^
+NameError: name '_safe_json_read' is not defined
+
+2025-10-30 01:31:57+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:31:57+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:34:16+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:34:18+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:34:30+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:34:31+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:34:34+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:34:34+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:34+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:34+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:35+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:37+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:34:37+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:34:37+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:34:42+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:34:42+0200 ERROR Unhandled exception: No module named 'xlsxwriter'
+Traceback (most recent call last):
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 5867, in export_kinitseis
+    res = run_and_report_dynamic(
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/epsilon_bridge_multiclient_strict.py", line 825, in run_and_report_dynamic
+    ok, path, issues = export_multiclient_strict(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/epsilon_bridge_multiclient_strict.py", line 794, in export_multiclient_strict
+    with pd.ExcelWriter(paths["out"], engine="xlsxwriter", datetime_format="dd/mm/yyyy") as writer:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_xlsxwriter.py", line 197, in __init__
+    from xlsxwriter import Workbook
+ModuleNotFoundError: No module named 'xlsxwriter'
+
+2025-10-30 01:34:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:34:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:36:07+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-30 01:36:07+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:38:51+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-10-30 01:38:52+0200 INFO Starting app - MYDATA_ENV=production
+2025-10-30 01:38:55+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/export/fastimport/kinitseis?vat=802576637
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:58+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/search
+2025-10-30 01:38:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:38:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-10-30 01:39:01+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://curly-space-robot-97g469gx7rp6c9vpp-5000.app.github.dev/epsilon/preview?vat=802576637
