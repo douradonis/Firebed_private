@@ -1067,5 +1067,35 @@
     "progressive_aa": "165",
     "AFM": "094386010",
     "created_at": "2025-10-22T11:36:20"
+  },
+  {
+    "mark": "400009073184486",
+    "issueDate": "10/04/2025",
+    "series": "TΔA",
+    "aa": "56096",
+    "AA": "56096",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "129,99",
+    "totalVatAmount": "29,66",
+    "totalValue": "159,65",
+    "classification": "χαρακτηρισμενο",
+    "AFM_issuer": "800916954",
+    "Name_issuer": ""
+  },
+  {
+    "mark": "400009080003594",
+    "issueDate": "10/04/2025",
+    "series": "ΤΔ137",
+    "aa": "001650947",
+    "AA": "001650947",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "32,97",
+    "totalVatAmount": "7,91",
+    "totalValue": "40,88",
+    "classification": "χαρακτηρισμενο",
+    "AFM_issuer": "094222211",
+    "Name_issuer": "ΠΛΑΙΣΙΟ COMPUTERS Α.Ε.B.E"
   }
 ]

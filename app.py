@@ -60,6 +60,12 @@ except Exception:
             self.release()
 
 from flask import current_app
+from epsilon_bridge_multiclient_strict import (
+    run_and_report_dynamic,
+    resolve_paths_for_vat,
+)
+# Θα “δανειστούμε” τον loader για client_db για να φτιαχτεί σωστά ο CUSTID:
+from epsilon_bridge_multiclient_strict import _load_client_map as bridge_load_client_map
 # --- end lock + current_app imports ---
 # --- Compatibility shim: unify invoice-scraper vs receipt-scraper usage ---
 # Αυτό το snippet προσπαθεί να χρησιμοποιήσει:
@@ -68,6 +74,18 @@ from flask import current_app
 # και παρέχει την helper συνάρτηση call_scrape_receipt(mark)
 import importlib
 scrape_receipt_callable = None
+
+def _client_map_for_vat(vat: str):
+    """
+    Γυρνά dict σαν του builder:
+      {"by_afm": {...}, "by_id": set([...]), "cols": [...]}
+    """
+    try:
+        paths = resolve_paths_for_vat(str(vat), base_invoices_dir="data/epsilon")
+        return bridge_load_client_map(paths["client_db"])
+    except Exception as e:
+        current_app.logger.warning("client_db load failed for VAT %s: %s", vat, e)
+        return {"by_afm": {}, "by_id": set(), "cols": []}
 
 def strip_server_totals(html: str) -> str:
     """Αφαιρεί οτιδήποτε <tfoot> και όποια τυχόν 'ΣΥΝΟΛΑ' γραμμή έχει
@@ -332,7 +350,193 @@ DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
 CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
 
 VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+def _resolve_client_db_path(vat: str):
+    """Βρες το client_db για το συγκεκριμένο VAT με λογική fallback."""
+    vat = str(vat or "").strip()
+    cands = [
+        f"data/epsilon/client_db_{vat}.xlsx",
+        f"data/epsilon/client_db_{vat}.xls",
+        "data/epsilon/client_db.xlsx",
+        "data/epsilon/client_db.xls",
+        "client_db.xlsx",
+        "client_db.xls",
+    ]
+    for p in cands:
+        if os.path.exists(p):
+            return p
+    current_app.logger.warning("client_db not found for VAT %s; tried: %s", vat, cands)
+    return None
 
+def _normalize(s: str) -> str:
+    s = str(s or "").strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    return s.lower()
+
+def _load_client_map_smart(path: str):
+    """
+    Διαβάζει client_db (xls/xlsx) και επιστρέφει:
+      {"by_afm": { "123456789": 170, ... }, "by_id": set([...]), "cols": [..]}
+    Αναγνωρίζει στήλες τύπου 'ΑΦΜ', 'AFM', 'Κωδ. Συναλλασσόμενου', 'ID' κλπ.
+    """
+    if not path or not os.path.exists(path):
+        return {"by_afm": {}, "by_id": set(), "cols": []}
+
+    df = pd.read_excel(path)  # xlrd για .xls, openpyxl για .xlsx
+    cols = list(df.columns)
+
+    # Εντοπισμός AFM και CUSTID
+    afm_col = None
+    id_col  = None
+    for c in cols:
+        lc = _normalize(c)
+        if afm_col is None and (lc == "afm" or "αφμ" in lc or "vat" in lc):
+            afm_col = c
+        if id_col is None and ("συναλλασ" in lc and ("κωδ" in lc or "κωδικ" in lc)):
+            id_col = c
+    # fallback
+    if afm_col is None:
+        for c in cols:
+            if "afm" in _normalize(c) or "αφμ" in _normalize(c):
+                afm_col = c; break
+    if id_col is None:
+        for c in cols:
+            lc = _normalize(c)
+            if lc in ("id","κωδ","κωδικος","κωδικός"):
+                id_col = c; break
+
+    by_afm = {}
+    by_id  = set()
+    for _, r in df.iterrows():
+        afm = str(r.get(afm_col, "")).strip()
+        custid = r.get(id_col, None)
+        # Ασφαλής cast του custid σε int αν γίνεται (χωρίς να χάσουμε π.χ. '00123')
+        try:
+            custid_num = int(float(custid))
+            custid_val = custid_num
+        except Exception:
+            custid_val = str(custid).strip() if str(custid).strip() else None
+
+        if afm and custid_val is not None:
+            by_afm[afm] = custid_val
+            by_id.add(custid_val)
+
+    return {"by_afm": by_afm, "by_id": by_id, "cols": cols}
+
+def _guess_partner_afm(rec: dict, active_vat: str):
+    """
+    Βρες το AFM συναλλασσομένου (όχι πάντα του εκδότη).
+    - Αν ο εκδότης = εμείς (AFM_issuer == active_vat) => Πώληση => πελάτης
+    - Αλλιώς => Αγορά => προμηθευτής (AFM_issuer)
+    """
+    issuer = str(rec.get("AFM_issuer") or rec.get("AFM") or "").strip()
+    active_vat = str(active_vat or "").strip()
+
+    if issuer and issuer == active_vat:
+        # Πελάτης / counterparty
+        for k in [
+            "AFM_counterparty", "AFM_customer", "customerAFM", "buyerAFM",
+            "AFM_buyer", "counterparty_afm", "customer_afm", "AFM_other",
+        ]:
+            v = rec.get(k)
+            if v: return str(v).strip()
+        # Αν δεν υπάρχει πελάτης στο JSON, δεν μπορούμε να το μαντέψουμε
+        return ""
+    else:
+        # Προμηθευτής
+        return issuer
+def _find_client_db(vat: str):
+    vat = str(vat)
+    cands = [
+        f"data/epsilon/client_db_{vat}.xlsx",
+        f"data/epsilon/client_db_{vat}.xls",
+        "data/epsilon/client_db.xlsx",
+        "data/epsilon/client_db.xls",
+        "client_db.xlsx",
+        "client_db.xls",
+    ]
+    for p in cands:
+        if os.path.exists(p):
+            return p
+    return None
+
+def _load_client_map(path: str):
+    # require openpyxl for .xlsx, xlrd για .xls
+    df = pd.read_excel(path)
+    # heuristic στήλες
+    col_afm = col_id = None
+    for c in df.columns:
+        lc = str(c).lower()
+        if col_afm is None and ("αφμ" in lc or lc == "afm" or "vat" in lc): col_afm = c
+        if col_id is None and ("συναλλασ" in lc or "κωδ" in lc or lc == "id" or "custid" in lc): col_id = c
+    if col_afm is None:
+        for c in df.columns:
+            if "αφ" in str(c).lower(): col_afm = c; break
+    if col_id is None:
+        for c in df.columns:
+            if "id" in str(c).lower() or "κωδ" in str(c).lower(): col_id = c; break
+    by_afm = {}
+    for _, r in df.iterrows():
+        afm = str(r.get(col_afm, "")).strip()
+        try:
+            custid = int(float(r.get(col_id)))
+        except Exception:
+            custid = None
+        if afm and custid is not None:
+            by_afm[afm] = custid
+    return by_afm
+
+def _ddmmyyyy(s):
+    if not s: return ""
+    for fmt in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%Y/%m/%d","%d/%m/%y"):
+        try: return datetime.strptime(str(s)[:10], fmt).strftime("%d/%m/%Y")
+        except: pass
+    return str(s)
+
+def _load_epsilon_invoices(vat: str):
+    vat = str(vat)
+    cands = [
+        f"data/epsilon/{vat}_epsilon_invoices.json",
+        "data/epsilon/epsilon_invoices.json",
+        f"{vat}_epsilon_invoices.json",
+    ]
+    path = next((p for p in cands if os.path.exists(p)), None)
+    if not path:
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict):
+        for k in ("invoices","records","rows","data","items"):
+            if isinstance(data.get(k), list):
+                return data[k]
+        return [data]
+    return data
+
+def _sum_lines(rec):
+    lines = rec.get("lines") or rec.get("invoice_lines") or rec.get("details") or []
+    if not isinstance(lines, list) or not lines:
+        # fallback από totals
+        net = float(str(rec.get("totalNetValue","0")).replace(",", ".") or 0)
+        vat = float(str(rec.get("totalVatAmount","0")).replace(",", ".") or 0)
+        return net, vat, net+vat, []
+    detail = []
+    tot_net = 0.0; tot_vat = 0.0
+    for ln in lines:
+        net = float(str(ln.get("amount","0")).replace(",", ".") or 0)
+        vat = float(str(ln.get("vat","0")).replace(",", ".") or 0)
+        vat_label = ln.get("vat_category") or ln.get("vatRate")
+        m = re.search(r"(\d+)", str(vat_label) or "")
+        vat_rate = int(m.group(1)) if m else None
+        cat = (ln.get("category") or "").strip()
+        detail.append({
+            "category": cat,
+            "net": net,
+            "vat": vat,
+            "gross": net+vat,
+            "vat_rate": vat_rate
+        })
+        tot_net += net; tot_vat += vat
+    return tot_net, tot_vat, tot_net+tot_vat, detail
 def _ensure_paths():
     global CREDENTIALS_PATH
     if isinstance(CREDENTIALS_PATH, str):
@@ -5540,6 +5744,126 @@ def list_invoices():
         active_page="list_invoices",
         active_credential=active_name
     )
+
+# --- νέο route: προεπισκόπηση Epsilon (ίδιο tab) ---
+@app.route("/epsilon/preview")
+def epsilon_preview():
+    """Προεπισκόπηση κινήσεων/παραστατικών για FastImport (Epsilon) με σωστό CUSTID."""
+    import re
+
+    # VAT από query ή active
+    vat = request.args.get("vat")
+    try:
+        active = get_active_credential_from_session()
+        if not vat:
+            vat = str(active.get("vat") or "")
+    except Exception:
+        vat = vat or ""
+
+    invoices = _load_epsilon_invoices(vat)
+
+    # client_db resolver & map
+    client_db_path = _resolve_client_db_path(vat)
+    client_map = _load_client_map_smart(client_db_path) if client_db_path else {"by_afm": {}, "by_id": set(), "cols": []}
+
+    rows = []
+    for rec in invoices:
+        mark = rec.get("MARK") or rec.get("mark") or ""
+        aa   = rec.get("AA") or rec.get("aa") or ""
+        date = _ddmmyyyy(rec.get("issueDate") or rec.get("ΗΜΕΡΟΜΗΝΙΑ"))
+        afm_issuer  = rec.get("AFM_issuer") or rec.get("AFM") or ""
+        doc_type    = rec.get("type") or ""
+        name_issuer = (
+            rec.get("Name_issuer")
+            or rec.get("issuerName")
+            or rec.get("issuer_name")
+            or rec.get("Name")
+            or rec.get("name")
+            or ""
+        )
+
+        # === ΣΩΣΤΟ AFM ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥ ===
+        partner_afm = _guess_partner_afm(rec, vat)
+        custid = client_map["by_afm"].get(str(partner_afm)) if partner_afm else None
+
+        # --- Χαρακτηρισμοί / VAT summary ---
+        lines = rec.get("lines") or rec.get("invoice_lines") or rec.get("details") or []
+        line_cats, vat_rates = [], []
+        if isinstance(lines, list):
+            for ln in lines:
+                c = (ln.get("category") or "").strip()
+                if c: line_cats.append(c)
+                vl = ln.get("vat_category") or ln.get("vatRate") or ""
+                m  = re.search(r"(\d+)", str(vl))
+                if m: vat_rates.append(f"{int(m.group(1))}%")
+
+        if not line_cats and rec.get("category"):
+            line_cats = [rec.get("category")]
+
+        if line_cats:
+            characts = ", ".join(sorted({c for c in line_cats if c}))
+        else:
+            uniq_rates = sorted(set(vat_rates), key=lambda x: int(re.search(r"\d+", x).group()) if re.search(r"\d+", x) else 0)
+            if len(uniq_rates) > 1:
+                characts = "Πολλαπλές κατηγορίες ΦΠΑ: " + ", ".join(uniq_rates)
+            elif len(uniq_rates) == 1:
+                characts = f"ΦΠΑ {uniq_rates[0]}"
+            else:
+                characts = ""
+
+        # Σύνολα + detail (για expand)
+        tot_net, tot_vat, tot_gross, detail = _sum_lines(rec)
+
+        rows.append({
+            "MARK": mark,
+            "AA": str(aa),
+            "DATE": date,
+            "AFM_ISSUER": str(afm_issuer),
+            "ISSUER_NAME": name_issuer,
+            "CUSTID": custid,                # <-- ΤΩΡΑ γεμίζει με βάση partner_afm
+            "NET": round(tot_net, 2),
+            "VAT": round(tot_vat, 2),
+            "GROSS": round(tot_gross, 2),
+            "DOCTYPE": doc_type,
+            "CHARACTS": characts,
+            "LINES": detail,
+            "PARTNER_AFM": partner_afm,      # (προαιρετικό για debug/tooltip)
+        })
+
+    return render_template("epsilon_preview.html", vat=vat, table_rows=rows)
+
+
+@app.get("/export/fastimport/kinitseis")
+def export_kinitseis():
+    # VAT από query ή active
+    vat = request.args.get("vat")
+    try:
+        active = get_active_credential_from_session()
+        if not vat:
+            vat = str(active.get("vat") or "")
+    except Exception:
+        vat = vat or ""
+
+    # Τρέξε τον STRICT exporter (ίδια paths auto-resolve όπως στον builder)
+    res = run_and_report_dynamic(
+        vat=vat,
+        credentials_json="data/credentials.json",
+        cred_settings_json="data/credentials_settings.json",
+        invoices_json=None,             # -> data/epsilon/{vat}_epsilon_invoices.json
+        client_db=None,                 # -> data/epsilon/client_db_{vat}.xlsx/.xls -> ... -> client_db.xls
+        out_xlsx=None,                  # -> exports/{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx
+        base_invoices_dir="data/epsilon",
+        base_exports_dir="exports",
+    )
+
+    if not res["ok"]:
+        # Δείξε λίστα με τα σφάλματα (modal ή σελίδα)
+        return render_template("export_errors.html", issues=res["issues"], vat=vat), 422
+
+    return send_file(res["path"], as_attachment=True)
+
+
+
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])

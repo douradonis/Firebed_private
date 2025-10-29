@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Σφάλματα Εξαγωγής Γέφυρας{% endblock %}
+{% block content %}
+<div class="bg-white rounded shadow p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold">Γέφυρα (VAT: {{ vat }}) — Σφάλματα επικύρωσης</h2>
+    <a href="javascript:history.back()" class="px-3 py-2 border rounded hover:bg-gray-50">← Επιστροφή</a>
+  </div>
+
+  {% if not issues or not issues|length %}
+    <div class="p-3 rounded bg-green-50 text-green-700 border border-green-200">
+      Δεν υπάρχουν σφάλματα.
+    </div>
+  {% else %}
+    <table class="display stripe hover w-full" id="errtbl">
+      <thead>
+        <tr><th>Κωδικός</th><th>Μήνυμα</th></tr>
+      </thead>
+      <tbody>
+        {% for i in issues %}
+        <tr>
+          <td class="text-sm text-gray-500">{{ i.code }}</td>
+          <td>{{ i.message }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+<script>
+$(function(){ $('#errtbl').DataTable({pageLength:50, order:[[0,'asc']]}); });
+</script>
+{% endblock %}

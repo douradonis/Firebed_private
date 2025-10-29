@@ -13,7 +13,7 @@
         </button>
         <div id="downloadMenu" class="hidden absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden z-50">
           <a class="block px-4 py-2 hover:bg-gray-100 transition" href="{{ url_for('list_invoices', download=1) }}">Εξοδολόγιο (.xlsx)</a>
-          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel — Έρχεται</button>
+          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel</button>
         </div>
       </div>
       {% endif %}
@@ -485,8 +485,7 @@
           toggle.setAttribute('aria-expanded','false');
         }
       });
-      document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
-      qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
+      
     }
 
     const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
@@ -712,4 +711,10 @@
     }
   });
 })();
+</script>
+<script>
+document.getElementById('epsilonExport')?.addEventListener('click', function(){
+  const vat = this.dataset.vat || '{{ vat }}';
+  window.location.href = "{{ url_for('epsilon_preview') }}" + "?vat=" + encodeURIComponent(vat);
+});
 </script>
