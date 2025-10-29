@@ -353,10 +353,13 @@ DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
 CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
 
 VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
-def _resolve_client_db_path(vat: str):
-    """Βρες το client_db για το συγκεκριμένο VAT με λογική fallback."""
+def _resolve_client_db_path(vat: str) -> str | None:
+    """
+    Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
+    Αναζήτηση με προτεραιότητα per-VAT και μετά global.
+    """
     vat = str(vat or "").strip()
-    cands = [
+    candidates = [
         f"data/epsilon/client_db_{vat}.xlsx",
         f"data/epsilon/client_db_{vat}.xls",
         "data/epsilon/client_db.xlsx",
@@ -364,104 +367,184 @@ def _resolve_client_db_path(vat: str):
         "client_db.xlsx",
         "client_db.xls",
     ]
-    for p in cands:
+    for p in candidates:
         if os.path.exists(p):
             return p
-    current_app.logger.warning("client_db not found for VAT %s; tried: %s", vat, cands)
+    current_app.logger.warning(
+        "client_db not found for VAT %s; tried: %s", vat, candidates
+    )
     return None
 
 def _normalize(s: str) -> str:
+    """
+    Κανονικοποίηση string: lower, χωρίς τόνους/διακριτικά, trim.
+    """
     s = str(s or "").strip()
     s = unicodedata.normalize("NFD", s)
     s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
     return s.lower()
 
-def _load_client_map_smart(path: str):
+def _canon_afm(val) -> str:
     """
-    Διαβάζει client_db (xls/xlsx) και επιστρέφει:
-      {"by_afm": { "123456789": 170, ... }, "by_id": set([...]), "cols": [..]}
-    Αναγνωρίζει στήλες τύπου 'ΑΦΜ', 'AFM', 'Κωδ. Συναλλασσόμενου', 'ID' κλπ.
+    Επιστρέφει AFM μόνο με ψηφία (αφαιρεί διαχωριστικά, κενά, κλπ).
+    Αν δεν βρεθούν ψηφία, επιστρέφει trimmed string.
     """
-    if not path or not os.path.exists(path):
-        return {"by_afm": {}, "by_id": set(), "cols": []}
+    txt = str(val or "").strip()
+    digits = re.sub(r"\D+", "", txt)
+    return digits or txt
 
-    df = pd.read_excel(path)  # xlrd για .xls, openpyxl για .xlsx
-    cols = list(df.columns)
+# Υποψήφιοι τίτλοι στηλών για AFM & ID (σε normalized μορφή)
+_AFM_HEADER_CANDIDATES = {
+    "afm", "αφμ", "vat", "vat no", "vat number", "a.f.m", "a.f.m.", "tax id", "taxid"
+}
+_ID_HEADER_CANDIDATES = {
+    # Πολλές γραφές για 'Κωδ. Συναλλασσόμενου'
+    "κωδ. συναλλασσομενου", "κωδ συναλλασσομενου", "κωδικος συναλλασσομενου",
+    "κωδικος", "κωδ.", "κωδ", "id", "customer id", "account id",
+    "κωδ. πελατη", "κωδ πελατη", "κωδικος πελατη",
+    "κωδ. προμηθευτη", "κωδικος προμηθευτη",
+}
 
-    # Εντοπισμός AFM και CUSTID
-    afm_col = None
-    id_col  = None
-    for c in cols:
-        lc = _normalize(c)
-        if afm_col is None and (lc == "afm" or "αφμ" in lc or "vat" in lc):
-            afm_col = c
-        if id_col is None and ("συναλλασ" in lc and ("κωδ" in lc or "κωδικ" in lc)):
-            id_col = c
-    # fallback
-    if afm_col is None:
-        for c in cols:
-            if "afm" in _normalize(c) or "αφμ" in _normalize(c):
-                afm_col = c; break
-    if id_col is None:
-        for c in cols:
-            lc = _normalize(c)
-            if lc in ("id","κωδ","κωδικος","κωδικός"):
-                id_col = c; break
-
-    by_afm = {}
-    by_id  = set()
-    for _, r in df.iterrows():
-        afm = str(r.get(afm_col, "")).strip()
-        custid = r.get(id_col, None)
-        # Ασφαλής cast του custid σε int αν γίνεται (χωρίς να χάσουμε π.χ. '00123')
+def _read_first_sheet_anyname(path: str) -> pd.DataFrame:
+    """
+    Διαβάζει ΠΑΝΤΑ το 1ο sheet (index 0), ανεξαρτήτως ονόματος.
+    Υποστηρίζει .xls (xlrd==1.2.0) και .xlsx (openpyxl).
+    """
+    if not path:
+        return pd.DataFrame()
+    ext = os.path.splitext(path)[1].lower()
+    try:
+        engine = "xlrd" if ext == ".xls" else "openpyxl"
+        xls = pd.ExcelFile(path, engine=engine)
+        first_name = xls.sheet_names[0]
+        df = xls.parse(first_name)
+        current_app.logger.info(
+            "client_db: using first sheet name=%r rows=%d", first_name, len(df)
+        )
+        return df
+    except Exception as e:
+        current_app.logger.exception("Failed to read first sheet from '%s': %s", path, e)
+        # ύστατο fallback: read_excel (παίρνει 1ο sheet by default)
         try:
-            custid_num = int(float(custid))
-            custid_val = custid_num
-        except Exception:
-            custid_val = str(custid).strip() if str(custid).strip() else None
+            df = pd.read_excel(path)
+            current_app.logger.warning("client_db: fallback read_excel() rows=%d", len(df))
+            return df
+        except Exception as e2:
+            current_app.logger.exception("Fallback read_excel failed for '%s': %s", path, e2)
+            return pd.DataFrame()
 
-        if afm and custid_val is not None:
-            by_afm[afm] = custid_val
-            by_id.add(custid_val)
-
-    return {"by_afm": by_afm, "by_id": by_id, "cols": cols}
-
-def _guess_partner_afm(rec: dict, active_vat: str):
+def _detect_cols(df: pd.DataFrame) -> tuple[str | None, str | None]:
     """
-    Βρες το AFM συναλλασσομένου (όχι πάντα του εκδότη).
-    - Αν ο εκδότης = εμείς (AFM_issuer == active_vat) => Πώληση => πελάτης
-    - Αλλιώς => Αγορά => προμηθευτής (AFM_issuer)
+    Εντοπίζει ονόματα στηλών για AFM και CUSTID.
+    - Ανίχνευση με απόλυτη ταύτιση candidate sets
+    - ή με patterns ('συναλλασ' & 'κωδ' για ID, 'afm/αφμ/vat' για AFM)
+    """
+    afm_col, id_col = None, None
+    for c in list(df.columns):
+        lc = _normalize(c)
+        if afm_col is None and (
+            lc in _AFM_HEADER_CANDIDATES or "αφμ" in lc or "vat" in lc or "afm" in lc
+        ):
+            afm_col = c
+        if id_col is None and (
+            lc in _ID_HEADER_CANDIDATES or ("συναλλασ" in lc and ("κωδ" in lc or "κωδικ"))
+        ):
+            id_col = c
+    return afm_col, id_col
+
+def _coerce_id(val):
+    """
+    Μετατρέπει το ID σε integer όταν είναι "170", "170.0", κ.λπ.·
+    αλλιώς το επιστρέφει ως string (ώστε να διατηρούνται τυχόν leading zeros).
+    """
+    if pd.isna(val):
+        return None
+    s = str(val).strip()
+    if s == "":
+        return None
+    # αν είναι float-μορφής ακέραιος (π.χ. 170.0) → int
+    try:
+        f = float(s)
+        if f.is_integer():
+            return int(f)
+    except Exception:
+        pass
+    return s
+
+def _load_client_map_smart(path: str) -> dict:
+    """
+    Φορτώνει το client_db και επιστρέφει:
+      {
+        "by_afm": { "<AFM_DIGITS>": <CUSTID>, ... },
+        "by_id":  { <CUSTID>, ... },
+        "cols":   [list of original columns]
+      }
+    - Διαβάζει ΠΑΝΤΑ το 1ο sheet (ανεξαρτήτως ονόματος).
+    - Κανονικοποιεί AFM (μόνο ψηφία) και CUSTID (int όπου γίνεται, αλλιώς string).
+    - Σε διπλότυπα AFM, κρατάει την τελευταία μη-κενή τιμή CUSTID.
+    """
+    result = {"by_afm": {}, "by_id": set(), "cols": []}
+    if not path or not os.path.exists(path):
+        return result
+
+    df = _read_first_sheet_anyname(path)
+    if df.empty:
+        return result
+
+    afm_col, id_col = _detect_cols(df)
+    result["cols"] = list(df.columns)
+
+    if not afm_col or not id_col:
+        current_app.logger.warning(
+            "client_db: could not detect AFM/ID columns. cols=%r", result["cols"]
+        )
+        return result
+
+    by_afm: dict[str, int | str] = {}
+    by_id: set[int | str] = set()
+
+    for _, r in df.iterrows():
+        afm_raw = r.get(afm_col, None)
+        id_raw = r.get(id_col, None)
+        afm = _canon_afm(afm_raw)
+        custid = _coerce_id(id_raw)
+        if afm and custid is not None:
+            by_afm[afm] = custid
+            by_id.add(custid)
+
+    result["by_afm"] = by_afm
+    result["by_id"] = by_id
+
+    current_app.logger.info(
+        "client_db: mapped=%d (AFM col=%r, ID col=%r)", len(by_afm), afm_col, id_col
+    )
+    return result
+
+def _guess_partner_afm(rec: dict, active_vat: str) -> str:
+    """
+    Βρίσκει το AFM του συναλλασσόμενου για mapping σε CUSTID:
+      - Αν AFM_issuer == active_vat  ⇒ πώληση ⇒ πελάτης (counterparty AFM)
+      - Αλλιώς                        ⇒ αγορά   ⇒ προμηθευτής (AFM_issuer)
+    Επιστρέφει AFM κανονικοποιημένο (μόνο ψηφία όπου γίνεται).
     """
     issuer = str(rec.get("AFM_issuer") or rec.get("AFM") or "").strip()
-    active_vat = str(active_vat or "").strip()
+    issuer = _canon_afm(issuer)
+    active_vat = _canon_afm(active_vat)
 
     if issuer and issuer == active_vat:
-        # Πελάτης / counterparty
-        for k in [
+        # Πελάτης (counterparty)
+        for k in (
             "AFM_counterparty", "AFM_customer", "customerAFM", "buyerAFM",
-            "AFM_buyer", "counterparty_afm", "customer_afm", "AFM_other",
-        ]:
+            "AFM_buyer", "counterparty_afm", "customer_afm", "AFM_other"
+        ):
             v = rec.get(k)
-            if v: return str(v).strip()
-        # Αν δεν υπάρχει πελάτης στο JSON, δεν μπορούμε να το μαντέψουμε
-        return ""
+            if v:
+                return _canon_afm(v)
+        return ""  # λείπει στο JSON => δεν μπορούμε να χαρτογραφήσουμε
     else:
-        # Προμηθευτής
+        # Προμηθευτής (issuer)
         return issuer
-def _find_client_db(vat: str):
-    vat = str(vat)
-    cands = [
-        f"data/epsilon/client_db_{vat}.xlsx",
-        f"data/epsilon/client_db_{vat}.xls",
-        "data/epsilon/client_db.xlsx",
-        "data/epsilon/client_db.xls",
-        "client_db.xlsx",
-        "client_db.xls",
-    ]
-    for p in cands:
-        if os.path.exists(p):
-            return p
-    return None
+
 
 def _load_client_map(path: str):
     # require openpyxl for .xlsx, xlrd για .xls
