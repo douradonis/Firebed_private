@@ -863,7 +863,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       const select = document.createElement('select');
       select.className = 'expense-category p-1 border rounded w-full';
       select.dataset.lineId = ln.id || ('l' + idx);
-      select.name = `category[${select.dataset.lineId}]`;
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
       (categories || []).forEach(c => {
@@ -1369,18 +1368,16 @@ function prefillSummaryModal(){
 
       // For every element that has data-line-id inside the modal container, read category
       const container = document.getElementById('summaryLinesContainer') || document;
-      const __seen = new Set();
       container.querySelectorAll('[data-line-id]').forEach(el => {
         const lid = String(el.dataset.lineId || '').trim();
-        if(!lid || __seen.has(lid)) return;
-        __seen.add(lid);
-        // prefer select.expense-category for this lineId (search in container)
+        if(!lid) return;
+        // prefer select.expense-category if present
         let chosen = '';
-        const sel = container.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+        const sel = el.querySelector('select.expense-category[data-line-id="'+lid+'"]');
         if(sel && sel.value) chosen = sel.value;
         else {
-          // else look for active category button for that lineId
-          const btn = container.querySelector('.category-btn.bg-sky-600[data-line-id="'+lid+'"]');
+          // else look for active category button in same element
+          const btn = el.querySelector('.category-btn.bg-sky-600');
           if(btn) chosen = btn.dataset.cat || '';
         }
         // find or create line entry

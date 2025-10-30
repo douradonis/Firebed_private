@@ -1,5 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Epsilon — Προεπισκόπηση Κινήσεων{% endblock %}
+{% block title %}Epsilon — Προεπισκόπηση Κινήσεων
+<!-- Strict Issues Modal -->
+<div id="issuesModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl max-w-3xl w-[92vw] p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-lg font-semibold">Απαιτούνται διορθώσεις</h3>
+      <button id="issuesCloseBtn" class="px-2 py-1 border rounded">Κλείσιμο</button>
+    </div>
+    <div id="issuesList" class="max-h-[60vh] overflow-auto space-y-2 text-sm"></div>
+    <div class="mt-3 text-sm text-gray-600">Διόρθωσε τα παραπάνω και ξαναδοκίμασε την εξαγωγή.</div>
+  </div>
+</div>
+
+
+{% endblock %}
 
 {% block content %}
 <style>
@@ -80,6 +94,7 @@ function money(n){
   return v.toLocaleString('el-GR',{minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
+
 function childRowsHtml(lines){
   if(!lines || !lines.length) return '<div class="text-sm text-gray-500 p-2">—</div>';
   let rows = lines.map((ln,i)=>`
@@ -89,16 +104,25 @@ function childRowsHtml(lines){
       <td class="text-right">${money(ln.net)}</td>
       <td class="text-right">${money(ln.vat)}</td>
       <td class="text-right">${money(ln.gross)}</td>
-      <td class="text-center">${ln.vat_rate ?? ''}%</td>
+      <td class="text-center">${ln.vat_rate_in ?? ln.vat_rate ?? ''}%</td>
     </tr>`).join('');
   return `
-    <table class="child-table w-full">
+    <table class="child-table w-full" style="table-layout:fixed;">
+      <colgroup>
+        <col style="width:8%"><!-- # -->
+        <col style="width:42%"><!-- Χαρακτηρισμός -->
+        <col style="width:15%"><!-- Καθ. -->
+        <col style="width:15%"><!-- ΦΠΑ -->
+        <col style="width:15%"><!-- Μικτό -->
+        <col style="width:5%"><!-- ΦΠΑ% -->
+      </colgroup>
       <thead><tr>
-        <th>#</th><th>Χαρακτηρισμός (γραμμή)</th><th>Καθαρή</th><th>ΦΠΑ</th><th>Μικτό</th><th>ΦΠΑ %</th>
+        <th>#</th><th>Χαρακτηρισμός (γραμμή)</th><th class="text-right">Καθαρή</th><th class="text-right">ΦΠΑ</th><th class="text-right">Μικτό</th><th>ΦΠΑ %</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
+
 
 function custidCell(custid){
   if(custid === null || custid === undefined || custid === ''){
@@ -226,5 +250,19 @@ $(function(){
 const BRIDGE_OK = {{ 1 if bridge_ok else 0 }};
 const BRIDGE_ISSUES = {{ (bridge_issues or [])|tojson|safe }};
 </script>
+
+
+<!-- Strict Issues Modal -->
+<div id="issuesModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl max-w-3xl w-[92vw] p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-lg font-semibold">Απαιτούνται διορθώσεις</h3>
+      <button id="issuesCloseBtn" class="px-2 py-1 border rounded">Κλείσιμο</button>
+    </div>
+    <div id="issuesList" class="max-h-[60vh] overflow-auto space-y-2 text-sm"></div>
+    <div class="mt-3 text-sm text-gray-600">Διόρθωσε τα παραπάνω και ξαναδοκίμασε την εξαγωγή.</div>
+  </div>
+</div>
+
 
 {% endblock %}

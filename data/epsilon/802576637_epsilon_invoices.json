@@ -176,43 +176,6 @@
     "_updated_at": "2025-10-27T18:37:49.188340+00:00"
   },
   {
-    "mark": "400009073184486",
-    "issueDate": "10/04/2025",
-    "series": "TΔA",
-    "aa": "56096",
-    "AA": "56096",
-    "type": "Τιμολόγιο Πώλησης",
-    "vatCategory": "",
-    "totalNetValue": "129,99",
-    "totalVatAmount": "29,66",
-    "totalValue": "159,65",
-    "classification": "",
-    "category": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "800916954",
-    "Name_issuer": "",
-    "AFM": "800916954",
-    "lines": [
-      {
-        "id": "400009073184486_inst0",
-        "description": "Instance #1",
-        "amount": "121,47",
-        "vat": "29,15",
-        "category": "αγορες_εμπορευματων",
-        "vat_category": "ΦΠΑ 24%"
-      },
-      {
-        "id": "400009073184486_inst1",
-        "description": "Instance #2",
-        "amount": "8,52",
-        "vat": "0,51",
-        "category": "γενικες_δαπανες",
-        "vat_category": "ΦΠΑ 6%"
-      }
-    ]
-  },
-  {
     "mark": "400011184830173",
     "issueDate": "04/10/2025",
     "series": "TΔA",
@@ -238,6 +201,72 @@
         "vat": "-4,39",
         "category": "αγορες_εμπορευματων",
         "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400009073184486",
+    "issueDate": "10/04/2025",
+    "series": "TΔA",
+    "aa": "56096",
+    "AA": "56096",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "129,99",
+    "totalVatAmount": "29,66",
+    "totalValue": "159,65",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "800916954",
+    "Name_issuer": "",
+    "AFM": "800916954",
+    "lines": [
+      {
+        "id": "400009073184486_inst0",
+        "description": "Instance #1",
+        "amount": "121,47",
+        "vat": "29,15",
+        "category": "αγορες_α_υλων",
+        "vat_category": "ΦΠΑ 24%"
+      },
+      {
+        "id": "400009073184486_inst1",
+        "description": "Instance #2",
+        "amount": "8,52",
+        "vat": "0,51",
+        "category": "γενικες_δαπανες",
+        "vat_category": "ΦΠΑ 6%"
+      }
+    ]
+  },
+  {
+    "mark": "400011219241355",
+    "issueDate": "25/09/2025",
+    "series": "",
+    "aa": "165",
+    "AA": "165",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "totalValue": "9,4",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094386010",
+    "Name_issuer": "",
+    "AFM": "094386010",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
       }
     ]
   }

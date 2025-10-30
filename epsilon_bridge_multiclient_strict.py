@@ -673,10 +673,14 @@ def build_preview_rows_for_ui(
                 issues.append({"code": "custid_missing", "modal": True, "message": f"Δεν βρέθηκε CUSTID για ΑΦΜ {afm_norm}"})
 
         lcode_p = _account_header_P(settings, is_receipt)
+        if not lcode_p:
+            issues.append({"code":"missing_header_account","modal":True,
+                           "message": f"AA={aa} — Δεν έχει οριστεί λογαριασμός προμηθευτή (account_supplier_%s)." % ("retail" if is_receipt else "wholesale")})
 
         lines_out: List[Dict[str, Any]] = []
         lcodes_summary: List[str] = []
 
+        
         for ln in pairs:
             vr = ln.get("vat_rate")
             src = ln.get("vat_src")
@@ -685,7 +689,20 @@ def build_preview_rows_for_ui(
                 acc, dbg = _account_detail_receipt(settings, vr)
             else:
                 acc, dbg = _account_detail_invoice(settings, cat, vr)
-            lcodes_summary.append(acc)
+
+            # strict modal issues
+            if (not cat) and (not is_receipt):
+                issues.append({"code":"missing_category_line","modal":True,
+                               "message": f"AA={aa} — Γραμμή χωρίς κατηγορία. Συμπλήρωσε χαρακτηρισμό."})
+            if vr is None:
+                issues.append({"code":"missing_vat_rate_line","modal":True,
+                               "message": f"AA={aa} — Δεν προέκυψε ποσοστό ΦΠΑ για γραμμή."})
+            if not acc:
+                exp = f"account_{dbg.get('category')}_<rate>%"
+                issues.append({"code":"unresolved_account_line","modal":True,
+                               "message": f"AA={aa} — Δεν βρέθηκε λογαριασμός για '{dbg.get('category')}', ΦΠΑ {vr}%. Ρύθμισε {exp} στα settings."})
+
+            lcodes_summary.append(acc or "")
             net_val = abs(float(ln.get("net", 0.0)))
             vat_val = abs(float(ln.get("vat", 0.0)))
             lines_out.append({
@@ -699,6 +716,7 @@ def build_preview_rows_for_ui(
                 "vat": _round2(vat_val),
                 "gross": _round2(net_val + vat_val),
             })
+
 
         characts = characts_from_lines(rec)
         if (len({(l.get("vat_rate_in") or 0) for l in lines_out}) > 1) and not characts:
@@ -792,7 +810,6 @@ def build_preview_strict_multiclient(
 
     rows: List[Dict[str,Any]] = []
     artid = 1
-    DEFAULT_LCODE_DETAIL = (_settings_lc(settings).get("default_lcode_detail") or "62-00.00")
 
     for rec in invoices:
         is_receipt = _is_receipt(rec)
@@ -826,41 +843,159 @@ def build_preview_strict_multiclient(
 
         lcode_P_cfg = _account_header_P(settings, is_receipt)
 
+        
         for p in pairs:
+
+        
             net = abs(float(p["net"]))
+
+        
             vat = abs(float(p["vat"]))
+
+        
             vr  = p.get("vat_rate")
+
+        
             cat = p.get("category") or rec.get("category") or ""
 
+        
+        
+
+        
             if is_receipt:
+
+        
                 accJ, dbg = _account_detail_receipt(settings, vr)
+
+        
             else:
+
+        
                 accJ, dbg = _account_detail_invoice(settings, cat, vr)
 
-            final_reason = reason or "—"
-            final_lcodeJ = (accJ or DEFAULT_LCODE_DETAIL)
-            final_lcodeP = (str(lcode_P_cfg).strip() or final_lcodeJ)
+        
+        
 
+        
+            if (not cat) and (not is_receipt):
+
+        
+                issues.append({"code":"missing_category_line","modal":True,
+
+        
+                               "message": f"AA={aa} — Γραμμή χωρίς κατηγορία. Συμπλήρωσε χαρακτηρισμό."})
+
+        
+            if vr is None:
+
+        
+                issues.append({"code":"missing_vat_rate_line","modal":True,
+
+        
+                               "message": f"AA={aa} — Δεν προέκυψε ποσοστό ΦΠΑ για γραμμή."})
+
+        
+            if not accJ:
+
+        
+                exp = f"account_{dbg.get('category')}_<rate>%"
+
+        
+                issues.append({"code":"unresolved_account_line","modal":True,
+
+        
+                               "message": f"AA={aa} — Δεν βρέθηκε λογαριασμός για '{dbg.get('category')}', ΦΠΑ {vr}%. Ρύθμισε {exp} στα settings."})
+
+        
+            if not lcode_P_cfg:
+
+        
+                issues.append({"code":"missing_header_account","modal":True,
+
+        
+                               "message": f"AA={aa} — Δεν έχει οριστεί λογαριασμός προμηθευτή (account_supplier_{'retail' if is_receipt else 'wholesale'})."})
+
+        
+        
+
+        
+        
+
+        
+            final_reason = reason or "—"
+
+        
+            final_lcodeJ = accJ or ""
+
+        
+            final_lcodeP = str(lcode_P_cfg).strip() or ""
+
+        
+        
+
+        
             rows.append({
+
+        
                 "ARTID": int(artid),
+
+        
                 "MTYPE": int(1 if (is_receipt or "αγορ" in (cat or "") or "δαπ" in (cat or "")) else 0),
+
+        
                 "ISKEPYO": 1,
+
+        
                 "ISAGRYP": 0,
+
+        
                 "CUSTID": (int(custid_val) if custid_val is not None else None),
+
+        
                 "MDATE": mdate_dt,
+
+        
                 "REASON": final_reason,
+
+        
                 "INVOICE": aa,
+
+        
                 "SUMKEPYOYP": float(abs(sum_net)),
+
+        
                 "LCODE_DETAIL": final_lcodeJ,
+
+        
                 "ISAGRYP_DETAIL": 0,
+
+        
                 "KEPYOPARTY_DETAIL": float(abs(net)),
+
+        
                 "NETAMT_DETAIL": float(abs(net)),
+
+        
                 "VATAMT_DETAIL": float(abs(vat)),
+
+        
                 "MSIGN": int(msign),
+
+        
                 "LCODE": final_lcodeP,
+
+        
                 "DEBUG": dbg,
+
+        
             })
+
+        
         artid += 1
+
+        
+        
+
 
     # strict validation
     issues_out = list(issues)
