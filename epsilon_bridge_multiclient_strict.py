@@ -118,6 +118,34 @@ def _account_header_P(settings: Dict[str, Any], is_receipt: bool) -> str:
         return base
     return ""
 
+
+def _merge_custom_accounts(settings: Dict[str, Any], credential: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged = dict(settings or {})
+    if not isinstance(credential, dict):
+        return merged
+    custom_cats = credential.get("custom_categories")
+    if not isinstance(custom_cats, list):
+        return merged
+    for item in custom_cats:
+        if not isinstance(item, dict):
+            continue
+        if not item.get("enabled"):
+            continue
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        accounts = item.get("accounts") or {}
+        for rate_key, code in accounts.items():
+            code_str = str(code).strip()
+            if not code_str:
+                continue
+            rate_norm = re.sub(r"[^0-9]", "", str(rate_key))
+            if not rate_norm:
+                continue
+            key = f"account_{slug}_fpa_kat_{rate_norm}%"
+            merged[key] = code_str
+    return merged
+
 # ----------------------- category + VAT inference -----------------------
 def _canon_category(raw: str) -> str:
     s = (raw or "").strip().lower().replace(" ", "_")
@@ -468,6 +496,7 @@ def build_preview_rows_for_ui(
 
     cred_list = credentials if isinstance(credentials, list) else [credentials]
     active = next((c for c in cred_list if str(c.get("vat")) == str(vat)), (cred_list[0] if cred_list else {}))
+    settings_all = _merge_custom_accounts(settings_all, active)
     apod_type = (active or {}).get("apodeixakia_type", "")
     apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier",""))
 

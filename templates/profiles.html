@@ -110,6 +110,54 @@
   let currentSelected = null;
   let currentSelectedId = null;
 
+  const CATEGORY_LABELS = (function(){
+    try {
+      return {{ (category_labels or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+
+  let VAT_CONSTRAINTS = (function(){
+    try {
+      return {{ (vat_constraints or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+
+  const VAT_KEY_BY_SFX = { a: '0%', b: '6%', g: '13%', d: '17%', e: '24%' };
+
+  function labelForCategory(value){
+    if(!value) return '';
+    const key = String(value);
+    if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
+      return CATEGORY_LABELS[key];
+    }
+    return key;
+  }
+
+  function allowedForVat(cat, vatKey){
+    if(!cat) return true;
+    const key = String(cat);
+    const arr = VAT_CONSTRAINTS && VAT_CONSTRAINTS[key];
+    if(!arr || !arr.length) return true;
+    return arr.includes(vatKey);
+  }
+
+  function categoriesForVat(vatKey, allTags){
+    return (allTags || []).filter(cat => allowedForVat(cat, vatKey));
+  }
+
+  function ensureOption(select, value, vatKey){
+    if(!select || !value) return;
+    const exists = Array.from(select.options || []).some(opt => opt.value === value);
+    if(exists) return;
+    const extra = opt(value);
+    if(vatKey){
+      extra.textContent += ` (μη διαθέσιμο για ${vatKey})`;
+    }
+    extra.dataset.unavailable = '1';
+    select.appendChild(extra);
+    select.value = value;
+  }
+
   function escapeHtml(unsafe){ return String(unsafe).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
   function showBanner(message, kind='success', ttl=6000) {
     const container=document.getElementById('flashBanners'); if(!container) return;
@@ -119,7 +167,17 @@
     el.appendChild(btn); container.insertBefore(el, container.firstChild);
     if(ttl>0) setTimeout(()=>{try{el.remove();}catch(e){}},ttl);
   }
-  function opt(x){ const o=document.createElement('option'); o.value=o.textContent=x; return o; }
+  function opt(x){
+    const o=document.createElement('option');
+    o.value = x;
+    o.textContent = labelForCategory(x);
+    return o;
+  }
+
+  function showMappingLabel(val){
+    const lbl = labelForCategory(val);
+    return lbl ? lbl : '-';
+  }
 
   function updateSaveButton(){
     const btn = document.getElementById('btnSaveProf');
@@ -192,13 +250,27 @@
   async function loadData(){
     const [j, profs] = await Promise.all([ fetchCharProfiles(), fetchCanonicalProfiles() ]);
 
+    if(j && j.vat_constraints){
+      VAT_CONSTRAINTS = j.vat_constraints || {};
+    }
+
     ['a','b','g','e','d'].forEach(sfx=>{
       const sel = document.getElementById(`kat_fpa_${sfx}`);
       if(!sel) return;
+      const previous = sel.value;
       sel.innerHTML = '';
       sel.appendChild(new Option('-επιλέξτε-',''));
       const tags = (j && (j.options || j.expense_tags)) || [];
-      (tags||[]).forEach(t=> sel.appendChild(opt(t)));
+      const vatKey = VAT_KEY_BY_SFX[sfx] || '';
+      const allowed = categoriesForVat(vatKey, tags);
+      allowed.forEach(t=> sel.appendChild(opt(t)));
+      if(previous){
+        if(allowed.includes(previous)){
+          sel.value = previous;
+        }else{
+          ensureOption(sel, previous, vatKey || 'το συγκεκριμένο ΦΠΑ');
+        }
+      }
     });
 
     listEl.innerHTML='';
@@ -213,11 +285,11 @@
         <div class="min-w-0">
           <div class="font-medium truncate">${p.name}</div>
           <div class="text-xs text-gray-600 truncate">
-            Α: ${mapping.kat_fpa_a || '-'} ·
-            Β: ${mapping.kat_fpa_b || '-'} ·
-            Γ: ${mapping.kat_fpa_g || '-'} ·
-            Ε: ${mapping.kat_fpa_e || '-'} ·
-            Δ: ${mapping.kat_fpa_d || '-'}
+            Α: ${showMappingLabel(mapping.kat_fpa_a)} ·
+            Β: ${showMappingLabel(mapping.kat_fpa_b)} ·
+            Γ: ${showMappingLabel(mapping.kat_fpa_g)} ·
+            Ε: ${showMappingLabel(mapping.kat_fpa_e)} ·
+            Δ: ${showMappingLabel(mapping.kat_fpa_d)}
           </div>
         </div>
         <button class="deleteProfileBtn opacity-0 group-hover:opacity-100 absolute right-2 top-2
@@ -258,11 +330,16 @@
     const m = JSON.parse(row.dataset.mapping || "{}");
     document.getElementById('profName').value = name;
     try{ document.getElementById('profName').dispatchEvent(new Event('input', {bubbles:true})); }catch(_){ }
-    document.getElementById('kat_fpa_a').value = m.kat_fpa_a || '';
-    document.getElementById('kat_fpa_b').value = m.kat_fpa_b || '';
-    document.getElementById('kat_fpa_g').value = m.kat_fpa_g || '';
-    document.getElementById('kat_fpa_e').value = m.kat_fpa_e || '';
-    document.getElementById('kat_fpa_d').value = m.kat_fpa_d || '';
+    const selectA = document.getElementById('kat_fpa_a');
+    const selectB = document.getElementById('kat_fpa_b');
+    const selectG = document.getElementById('kat_fpa_g');
+    const selectE = document.getElementById('kat_fpa_e');
+    const selectD = document.getElementById('kat_fpa_d');
+    if(selectA){ selectA.value = m.kat_fpa_a || ''; ensureOption(selectA, m.kat_fpa_a || '', '0%'); }
+    if(selectB){ selectB.value = m.kat_fpa_b || ''; ensureOption(selectB, m.kat_fpa_b || '', '6%'); }
+    if(selectG){ selectG.value = m.kat_fpa_g || ''; ensureOption(selectG, m.kat_fpa_g || '', '13%'); }
+    if(selectE){ selectE.value = m.kat_fpa_e || ''; ensureOption(selectE, m.kat_fpa_e || '', '24%'); }
+    if(selectD){ selectD.value = m.kat_fpa_d || ''; ensureOption(selectD, m.kat_fpa_d || '', '17%'); }
   });
 
   if(listEl){
@@ -314,6 +391,24 @@
     };
     if(!name || !mapping.kat_fpa_a || !mapping.kat_fpa_b || !mapping.kat_fpa_g || !mapping.kat_fpa_e || !mapping.kat_fpa_d){
       msgEl.className="text-sm text-red-600"; msgEl.textContent="Συμπλήρωσε όνομα και όλες τις τιμές ΦΠΑ."; return;
+    }
+    const mapByVat = {
+      '0%': mapping.kat_fpa_a,
+      '6%': mapping.kat_fpa_b,
+      '13%': mapping.kat_fpa_g,
+      '24%': mapping.kat_fpa_e,
+      '17%': mapping.kat_fpa_d,
+    };
+    const invalid = [];
+    Object.entries(mapByVat).forEach(([vatKey, cat]) => {
+      if(cat && !allowedForVat(cat, vatKey)){
+        invalid.push(`${labelForCategory(cat)} → ${vatKey}`);
+      }
+    });
+    if(invalid.length){
+      msgEl.className="text-sm text-red-600";
+      msgEl.textContent = `Μη έγκυρες αντιστοιχίσεις: ${invalid.join(', ')}.`;
+      return;
     }
     try{
       const payload = currentSelectedId ? { id: currentSelectedId, name, map: mapping }
