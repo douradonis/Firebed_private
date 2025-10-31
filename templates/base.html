@@ -18,6 +18,10 @@
     .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
     .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+
+    /* optional, αν θέλεις και warning/info:
+    .flash-warning { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .flash-info    { background:#e0f2fe; color:#075985; border:1px solid #bae6fd; } */
   </style>
 
   {% block head_extra %}{% endblock %}
@@ -70,9 +74,9 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="space-y-2 mb-4">
+        <div class="space-y-2 mb-4" id="flashContainer">
           {% for cat, msg in messages %}
-            <div class="flash-banner {% if cat == 'error' %}flash-error{% else %}flash-success{% endif %}">{{ msg }}</div>
+            <div class="flash-banner {% if cat == 'error' %}flash-error{% else %}flash-success{% endif %}" role="alert" data-flash data-ttl="6000">{{ msg|safe }}</div>
           {% endfor %}
         </div>
       {% endif %}
@@ -81,15 +85,73 @@
     {% block content %}{% endblock %}
   </div>
 
+  <!-- WAIT OVERLAY (global) -->
+  <div id="globalWait"
+       class="fixed inset-0 z-[100000] hidden items-center justify-center"
+       style="background:rgba(0,0,0,.4);display:none;">
+    <div class="bg-white rounded-lg shadow-lg px-6 py-5 text-center">
+      <div class="text-base font-medium mb-2">Παρακαλώ περιμένετε…</div>
+      <div class="text-gray-400 animate-pulse" aria-hidden="true">● ● ●</div>
+    </div>
+  </div>
+
   {% block scripts %}{% endblock %}
 
   <script>
-    // Κλείσιμο flash μηνυμάτων
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => document.querySelectorAll('.flash-banner').forEach(el => el.remove()), 6000);
-    });
+    // Dismissable + auto-close (5-6s) ONLY for .flash-banner
+    document.addEventListener('DOMContentLoaded', function(){
+      const AUTO_TTL = 6000; // ms
 
-    // ---- Fiscal year logic (καθαρό) ----
+      function makeDismissable(el){
+        if (!el || el.dataset.dismissable === '1') return;
+        el.dataset.dismissable = '1';
+
+        // add small × button
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label','Close');
+        btn.textContent = '×';
+        btn.style.cssText = 'position:absolute;top:.4rem;right:.5rem;line-height:1;font-size:20px;opacity:.75;cursor:pointer;background:transparent;border:0;padding:0;z-index:1';
+
+        const cs = getComputedStyle(el);
+        if (cs.position === 'static') el.style.position = 'relative';
+        if (!el.style.paddingRight) {
+          const pr = parseFloat(cs.paddingRight || '0');
+          if (pr < 22) el.style.paddingRight = '28px';
+        }
+
+        btn.addEventListener('click', ()=> { try{ el.remove(); }catch(_){ } });
+        el.appendChild(btn);
+
+        const ttlAttr = parseInt(el.getAttribute('data-ttl') || AUTO_TTL, 10);
+        if (ttlAttr > 0) setTimeout(()=>{ try{ el.remove(); }catch(_){ } }, ttlAttr);
+      }
+
+      document.querySelectorAll('.flash-banner').forEach(makeDismissable);
+
+      // Also observe for dynamically added flashes
+      const mo = new MutationObserver(muts=>{
+        muts.forEach(m=> m.addedNodes && m.addedNodes.forEach(n=>{
+          if (n.nodeType===1) {
+            if (n.matches && n.matches('.flash-banner')) makeDismissable(n);
+            n.querySelectorAll && n.querySelectorAll('.flash-banner').forEach(makeDismissable);
+          }
+        }));
+      });
+      mo.observe(document.body, { childList:true, subtree:true });
+
+      // Support existing close buttons if present
+      document.addEventListener('click', function(e){
+        const b = e.target.closest && e.target.closest('[data-dismiss="flash"], .btn-close, .close');
+        if (!b) return;
+        const host = b.closest('.flash-banner') || b.parentElement;
+        if (host) { e.preventDefault(); try{ host.remove(); }catch(_){ } }
+      }, true);
+    });
+  </script>
+
+  <!-- ✅ Fiscal Year logic (ενσωμάτωση από την εκδοχή που «δούλευε τέλεια») -->
+  <script>
     (function(){
       const thisYear = new Date().getFullYear();
 
@@ -111,11 +173,12 @@
           const r = await fetch('/get_fiscal_year', { credentials:'same-origin' });
           const j = await r.json();
           populateFiscalSelect(j.fiscal_year || thisYear);
-          document.getElementById('fiscalYearMsg').textContent =
-            j.fiscal_year ? `Τρέχουσα χρήση: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = j.fiscal_year ? `Τρέχουσα χρήση: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
         } catch {
           populateFiscalSelect(thisYear);
-          document.getElementById('fiscalYearMsg').textContent = 'Σφάλμα ανάγνωσης χρήσης';
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = 'Σφάλμα ανάγνωσης χρήσης';
         }
       }
 
@@ -131,21 +194,177 @@
           });
           const j = await r.json();
           if (j.success){
-            // Force reload ώστε να ξαναφορτωθούν τα δεδομένα με τη νέα χρήση
-            location.reload();
+            location.reload(); // ξαναφορτώνουμε με τη νέα χρήση
           } else {
-            document.getElementById('fiscalYearMsg').textContent = j.message || 'Αποτυχία αποθήκευσης χρήσης';
+            const msg = document.getElementById('fiscalYearMsg');
+            if (msg) msg.textContent = j.message || 'Αποτυχία αποθήκευσης χρήσης';
           }
         } catch {
-          document.getElementById('fiscalYearMsg').textContent = 'Σφάλμα δικτύου';
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = 'Σφάλμα δικτύου';
         }
       }
 
       document.addEventListener('DOMContentLoaded', () => {
         loadFiscalYearIntoUi();
-        document.getElementById('fiscalYearSaveBtn').addEventListener('click', saveFiscalYear);
+        const btn = document.getElementById('fiscalYearSaveBtn');
+        if (btn) btn.addEventListener('click', saveFiscalYear);
       });
     })();
   </script>
+
+  <script>
+    (function(){
+      // ====== WAIT OVERLAY ======
+      const waitEl = document.getElementById('globalWait');
+      let waitCount = 0;
+      let suspendWait = 0; // όταν >0, δεν θα εμφανίζεται το overlay
+
+      function showWait(){ if(!waitEl || suspendWait>0) return; waitCount++; waitEl.style.display='flex'; }
+      function hideWait(){ if(!waitEl) return; waitCount = Math.max(0, waitCount-1); if(!waitCount) waitEl.style.display='none'; }
+      function forceHide(){ if(!waitEl) return; waitCount = 0; waitEl.style.display='none'; }
+      function suspend(on){ suspendWait = Math.max(0, suspendWait + (on?1:-1)); if (suspendWait>0) forceHide(); }
+      window.WaitOverlay = { show: showWait, hide: hideWait, suspend };
+
+      // Patch fetch (AJAX)
+      const _fetch = window.fetch;
+      window.fetch = async function(...args){
+        showWait();
+        try { return await _fetch(...args); }
+        finally { hideWait(); }
+      };
+
+      // Patch XHR (πιάνει jQuery/DataTables)
+      const XHROpen = XMLHttpRequest.prototype.open;
+      const XHRSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(...a){ this.__withWait = true; return XHROpen.apply(this,a); };
+      XMLHttpRequest.prototype.send = function(...a){
+        if (this.__withWait){ showWait(); this.addEventListener('loadend', hideWait, { once:true }); }
+        return XHRSend.apply(this,a);
+      };
+
+      // Form submits (πλοήγηση)
+      document.addEventListener('submit', function(){ showWait(); setTimeout(hideWait, 15000); }, true);
+
+      // ====== WARNING MODALS INTEGRATION ======
+      // IDs που χρησιμοποιείς για warning modals — πρόσθεσε κι άλλα αν έχεις:
+      const WARN_IDS = ['afmWarningModal','receiptWarn','receiptWarningModal','receiptWarning'];
+
+      function isVisible(el){
+        if(!el) return false;
+        const st = window.getComputedStyle(el);
+        return st.display!=='none' && st.visibility!=='hidden' && st.opacity!=='0';
+      }
+
+      function scanWarnsAndToggle(){
+        const anyOpen = WARN_IDS.some(id => isVisible(document.getElementById(id)));
+        suspend(anyOpen);  // όταν ανοίγει warning => παγώνουμε/κρύβουμε το overlay
+      }
+
+      // Παρακολούθηση DOM για άνοιγμα/κλείσιμο warning modals
+      const mo = new MutationObserver(scanWarnsAndToggle);
+      mo.observe(document.documentElement, { attributes:true, childList:true, subtree:true });
+
+      // Αρχικός έλεγχος
+      scanWarnsAndToggle();
+
+      // ====== RELOAD στο "Κατάλαβα" ΜΟΝΟ για αποδείξεις ======
+      const RECEIPT_WARN_IDS = ['receiptWarn', 'receiptWarningModal', 'receiptWarning'];
+
+      function normTxt(s){
+        return String(s||'').trim().toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      }
+      function isReloadOkButton(el){
+        if(!el) return false;
+        if (el.id === 'receiptWarnOk') return true;          // δικό σου id για αποδείξεις
+        if (el.dataset && el.dataset.reload === 'ok') return true;
+        const t = normTxt(el.textContent);
+        return (t==='καταλαβα' || t==='ενταξει' || t==='ok');
+      }
+      function isInsideReceiptWarning(el){
+        if (!el) return false;
+        const host = el.closest('.modal,[role="dialog"],.fixed,.absolute,[id]');
+        const id = (host && host.id) || '';
+        return RECEIPT_WARN_IDS.includes(id);
+      }
+
+      document.addEventListener('click', function(ev){
+        const btn = ev.target && ev.target.closest && ev.target.closest('button, [role="button"], a');
+        if(!btn) return;
+
+        // ΜΟΝΟ αν είναι OK/Κατάλαβα ΚΑΙ βρίσκεται μέσα σε receipt warning modal
+        if (isReloadOkButton(btn) && isInsideReceiptWarning(btn)) {
+          // προληπτικά κλείσιμο modal & απενεργοποίηση wait overlay
+          try {
+            const dlg = btn.closest('.modal,[role="dialog"],.fixed,.absolute');
+            if (dlg) dlg.style.display = 'none';
+          } catch(_) {}
+          if (window.WaitOverlay && typeof window.WaitOverlay.suspend === 'function') {
+            window.WaitOverlay.suspend(true);
+            setTimeout(()=>window.WaitOverlay.suspend(false), 200);
+          }
+          setTimeout(()=>{ location.reload(); }, 50);
+        }
+      }, true);
+    })();
+  </script>
+
+  <!-- Dismissable μόνο για flash/alerts (hook για δυναμικά) -->
+  <script>
+    (function(){
+      const SELECTORS = ['[data-flash]', '.flash', '.alert', '[role="alert"]'];
+      const AUTO_HIDE_MS = 0; // βάλε 6000 αν θέλεις αυτομάτως να κλείνουν
+
+      function makeDismissable(el){
+        if (!el || el.dataset.dismissable === '1') return;
+        el.dataset.dismissable = '1';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label','Close');
+        btn.textContent = '×';
+        btn.style.cssText =
+          'position:absolute;top:.4rem;right:.5rem;line-height:1;font-size:20px;' +
+          'opacity:.75;cursor:pointer;background:transparent;border:0;padding:0;z-index:1';
+
+        const cs = getComputedStyle(el);
+        if (cs.position === 'static') el.style.position = 'relative';
+        if (!el.style.paddingRight) {
+          const pr = parseFloat(cs.paddingRight || '0');
+          if (pr < 22) el.style.paddingRight = '28px';
+        }
+        btn.addEventListener('click', ()=> { try{ el.remove(); }catch(_){ } });
+        el.appendChild(btn);
+
+        if (AUTO_HIDE_MS > 0) setTimeout(()=>{ try{ el.remove(); }catch(_){ } }, AUTO_HIDE_MS);
+      }
+
+      function scan(root=document){
+        root.querySelectorAll(SELECTORS.join(',')).forEach(makeDismissable);
+      }
+
+      if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', ()=>scan(), { once:true });
+      } else {
+        scan();
+      }
+
+      const mo = new MutationObserver(muts=>{
+        for (const m of muts) m.addedNodes && m.addedNodes.forEach(n=>{
+          if (n.nodeType===1) scan(n);
+        });
+      });
+      mo.observe(document.body, { childList:true, subtree:true });
+
+      document.addEventListener('click', (e)=>{
+        const b = e.target.closest && e.target.closest('[data-dismiss="flash"], .btn-close, .close');
+        if (!b) return;
+        const host = b.closest(SELECTORS.join(',')) || b.parentElement;
+        if (host) { e.preventDefault(); try{ host.remove(); }catch(_){ } }
+      }, true);
+    })();
+  </script>
+
 </body>
 </html>

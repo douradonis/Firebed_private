@@ -13,7 +13,7 @@
         </button>
         <div id="downloadMenu" class="hidden absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg overflow-hidden z-50">
           <a class="block px-4 py-2 hover:bg-gray-100 transition" href="{{ url_for('list_invoices', download=1) }}">Εξοδολόγιο (.xlsx)</a>
-          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel — Έρχεται</button>
+          <button id="epsilonExport" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition">Epsilon Excel</button>
         </div>
       </div>
       {% endif %}
@@ -23,7 +23,7 @@
 
   <div class="flex items-center gap-3 mb-4">
     <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
-    <button id="deleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
+    <button id="deleteBtn" type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
     <div id="deleteSpinner" class="ml-2 hidden text-gray-700">Αποστολή…</div>
   </div>
 
@@ -485,8 +485,7 @@
           toggle.setAttribute('aria-expanded','false');
         }
       });
-      document.addEventListener('keydown', e=>{if(e.key==='Escape'){menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false');}});
-      qs('#epsilonExport')?.addEventListener('click', e=>{ e.preventDefault(); menu.classList.add('hidden'); alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); });
+      
     }
 
     const deleteBtn=qs('#deleteBtn'); if(deleteBtn){
@@ -502,6 +501,7 @@
         modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
         modal.classList.remove('hidden');
       });
+      
       cancelBtn?.addEventListener('click', ()=>modal.classList.add('hidden'));
       confirmBtn?.addEventListener('click', ()=>{
         confirmBtn.disabled=true; spinner?.classList.remove('hidden');
@@ -514,4 +514,207 @@
     }
   });
 })();
+</script>
+
+<script>
+// --- DELETE HANDLER: δουλεύει ΚΑΙ με DataTables ΚΑΙ χωρίς ---
+(function(){
+  const $ = window.jQuery;
+  function pickTable(){
+    let $t = $('.summary-table:visible').first();
+    if(!$t.length) $t = $('table.dataTable:visible').first();
+    if(!$t.length) $t = $('table:visible').first();
+    return $t;
+  }
+  function collectCheckedMarks($t){
+    try{
+      if ($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable($t[0])) {
+        const dt = $t.DataTable();
+        const $checked = dt.$('input[name="delete_mark"]:checked', { page: 'all' });
+        return $checked.map(function(){ return this.value; }).get().filter(v => v && v.trim() !== '');
+      }
+    }catch(_){}
+    // Fallback: απλός DOM selector (χωρίς DataTables)
+    return Array.from(document.querySelectorAll('input[name="delete_mark"]:checked'))
+                .map(cb => cb.value)
+                .filter(v => v && v.trim() !== '');
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const deleteBtn   = document.getElementById('deleteBtn');
+    const modal       = document.getElementById('deleteModal');
+    const modalMsg    = document.getElementById('deleteModalMessage');
+    const cancelBtn   = document.getElementById('deleteCancel');
+    const confirmBtn  = document.getElementById('deleteConfirm');
+    const spinner     = document.getElementById('deleteSpinner');
+
+    if(!deleteBtn || !modal || !confirmBtn) return;
+
+    deleteBtn.addEventListener('click', ()=>{
+      const $t = pickTable();
+      const toDelete = collectCheckedMarks($t);
+      if (!toDelete.length){  return; }
+      if (modalMsg) modalMsg.textContent = `Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
+      modal.classList.remove('hidden');
+
+      // override τυχόν προηγούμενα handlers για να μη διπλοστέλνει
+      confirmBtn.onclick = ()=>{
+        confirmBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = (window.DELETE_ENDPOINT || "{{ url_for('delete_invoices') }}");
+
+        // CSRF αν υπάρχει
+        const existingCsrf = document.querySelector('input[name="csrf_token"]'); 
+        if(existingCsrf){
+          const t = document.createElement('input');
+          t.type  = 'hidden';
+          t.name  = 'csrf_token';
+          t.value = existingCsrf.value;
+          form.appendChild(t);
+        }
+
+        // Προσθέτουμε ΟΛΑ τα IDs με τρεις safe τρόπους
+        toDelete.forEach(v=>{
+          const a = document.createElement('input'); a.type='hidden'; a.name='delete_mark';   a.value=v; form.appendChild(a);
+          const b = document.createElement('input'); b.type='hidden'; b.name='delete_mark[]'; b.value=v; form.appendChild(b);
+        });
+        const blob = document.createElement('input');
+        blob.type  = 'hidden';
+        blob.name  = 'delete_marks_json';
+        blob.value = JSON.stringify(toDelete);
+        form.appendChild(blob);
+
+        document.body.appendChild(form);
+        form.submit();
+      };
+    });
+
+    if (cancelBtn){
+      cancelBtn.addEventListener('click', ()=> modal.classList.add('hidden'));
+    }
+  });
+})();
+</script>
+
+
+<script>
+// ======= Μόνιμη αποθήκευση page length + Δυναμικά σύνολα =======
+(function(){
+  const $ = window.jQuery;
+  function pickTable(){
+    let $t = $('.summary-table:visible').first();
+    if(!$t.length) $t = $('table.dataTable:visible').first();
+    if(!$t.length) $t = $('table:visible').first();
+    return $t;
+  }
+
+  function parseNum(v){
+    if (v == null) return 0;
+    if (typeof v === 'number') return v;
+    v = String(v)
+        .replace(/\s+/g,'')
+        .replace(/[€%]/g,'')
+        .replace(/\./g,'')   // χιλιάδες
+        .replace(/,/g,'.');  // δεκαδικά
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function ensureFooter($t){
+    if ($t.find('tfoot').length) return;
+    const colCount = $t.find('thead th').length || 0;
+    if (!colCount) return;
+    const $tfoot = $('<tfoot><tr></tr></tfoot>');
+    for(let i=0;i<colCount;i++){
+      $tfoot.find('tr').append('<th></th>');
+    }
+    $t.append($tfoot);
+    $t.addClass('has-tfoot');
+  }
+
+  function updateTotals($t){
+    try{
+      if (!$.fn || !$.fn.dataTable) return;
+      const dt = $t.DataTable();
+      const $ths = $t.find('thead th');
+      const sums = [];
+      $ths.each(function(i){
+        const $th = $(this);
+        const shouldSum = $th.is('[data-sum="1"]') || $th.hasClass('sum-col') || $th.data('sum') === 1;
+        if(!shouldSum){ sums[i]=null; return; }
+        const data = dt.column(i, {search:'applied'}).data();
+        let total = 0;
+        for (let j=0;j<data.length;j++){ total += parseNum(data[j]); }
+        sums[i]= total;
+      });
+
+      const $footCells = $t.find('tfoot th');
+      if ($footCells.length) {
+        $footCells.each(function(i){
+          const val = sums[i];
+          if (i===0) {
+            $(this).text('Σύνολα (φίλτρο)');
+          } else if (val == null) {
+            // άσε ανέπαφο αν υπήρχε ήδη περιεχόμενο
+            if (!$(this).text()) $(this).text('');
+          } else {
+            $(this).text(val.toLocaleString('el-GR', {minimumFractionDigits:2, maximumFractionDigits:2}));
+          }
+        });
+      }
+    }catch(_){}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const $t = pickTable();
+    if(!$t.length) return;
+    if (!window.jQuery || !$.fn || !$.fn.dataTable) return;
+
+    const LEN_KEY = 'fbp.list.pageLen';
+
+    function applySavedLen(){
+      try{
+        const saved = parseInt(localStorage.getItem(LEN_KEY) || '', 10);
+        if (Number.isFinite(saved) && saved > 0) {
+          const dt = $t.DataTable();
+          // Μόνο αν η τρέχουσα δεν είναι ίδια (για να μη γίνει διπλό draw)
+          if (dt.page.len() !== saved) {
+            dt.page.len(saved).draw(false);
+          }
+        }
+      }catch(_){}
+    }
+
+    // Αν είναι ήδη έτοιμο το DataTables
+    if ($.fn.dataTable.isDataTable($t[0])) {
+      ensureFooter($t);
+      applySavedLen();
+      updateTotals($t);
+      $t.off('draw.dt._totals').on('draw.dt._totals', function(){ updateTotals($t); });
+      $t.off('length.dt._persist').on('length.dt._persist', function(e, settings, len){
+        try{ localStorage.setItem(LEN_KEY, String(len)); }catch(_){}
+      });
+    } else {
+      // Αλλιώς περίμενε το init
+      $t.off('init.dt._boot').on('init.dt._boot', function(){
+        ensureFooter($t);
+        applySavedLen();
+        updateTotals($t);
+      });
+      $t.off('draw.dt._totals').on('draw.dt._totals', function(){ updateTotals($t); });
+      $t.off('length.dt._persist').on('length.dt._persist', function(e, settings, len){
+        try{ localStorage.setItem(LEN_KEY, String(len)); }catch(_){}
+      });
+    }
+  });
+})();
+</script>
+<script>
+document.getElementById('epsilonExport')?.addEventListener('click', function(){
+  const vat = this.dataset.vat || '{{ vat }}';
+  window.location.href = "{{ url_for('epsilon_preview') }}" + "?vat=" + encodeURIComponent(vat);
+});
 </script>

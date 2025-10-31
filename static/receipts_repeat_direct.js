@@ -1,4 +1,3 @@
-
 /* receipts_repeat_direct.js — Bypass summary modal for receipts when repeat is ON */
 (function(){
   if (window.__rc_direct_bypass__) return;
@@ -61,9 +60,8 @@
     }catch(e){ return Promise.reject(e); }
   }
   function afterSubmit(mark){
-    // keep receipts sticky and arm next cycle
     lsSet('UI:useReceipts','1');
-    ssDel(onceKey(mark)); // allow next receipt to submit
+    ssDel(onceKey(mark));
     try{
       var url=location.pathname+'?use_receipts=1';
       location.replace(url);
@@ -80,7 +78,7 @@
     var mark=String(s.mark||s.MARK||'').trim();
     if(!mark) return;
     var k=onceKey(mark);
-    if(ssGet(k)) return; // already submitted this cycle
+    if(ssGet(k)) return;
     ssSet(k,'1');
     trying=true;
 
@@ -88,8 +86,7 @@
     if(submitViaForm(s)){
       setTimeout(function(){ afterSubmit(mark); }, 50);
     }else{
-      submitViaFetch(s)
-        .then(function(){ afterSubmit(mark); })
+      submitViaFetch(s).then(function(){ afterSubmit(mark); })
         .catch(function(){ trying=false; ssDel(k); });
     }
   }
@@ -99,14 +96,13 @@
     window.openModal = function(id){
       if(id==='summaryModal' && isReceipts() && isRepeat()){
         tryDirect();
-        return; // swallow modal
+        return;
       }
       if(typeof old==='function') return old.apply(this, arguments);
     };
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // reflect UI receipts state from storage
     try{
       if(lsGet('UI:useReceipts','0')==='1'){
         var sw=$id('useReceiptsSwitch');
@@ -114,13 +110,11 @@
       }
     }catch(_){}
 
-    // prime attempts at multiple phases
     tryDirect();
     setTimeout(tryDirect, 0);
     setTimeout(tryDirect, 250);
     setTimeout(tryDirect, 750);
 
-    // watch hidden input changes
     var el=$id('summaryJsonInput');
     if(el){
       var prev=el.value;
@@ -129,12 +123,10 @@
       }, 200);
     }
 
-    // watch toggles
     var r1=$id('useReceiptsSwitch'), r2=$id('repeatEntrySwitch');
     if(r1) r1.addEventListener('change', function(){ if(this.checked) setTimeout(tryDirect,10); });
     if(r2) r2.addEventListener('change', function(){ if(this.checked) setTimeout(tryDirect,10); });
 
-    // swallow modal for receipts+repeat
     patchOpenModal();
   });
 })();

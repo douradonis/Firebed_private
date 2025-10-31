@@ -21,6 +21,10 @@ from shutil import move
 import importlib
 import io
 import csv
+from epsilon_bridge_multiclient_strict import (
+    run_and_report_dynamic,  # <-- απαιτείται
+    # προαιρετικά: export_multiclient_strict
+)
 from scraper_receipt import detect_and_scrape as scrape_receipt
 # local mydata helper
 from fetch import request_docs
@@ -60,6 +64,9 @@ except Exception:
             self.release()
 
 from flask import current_app
+from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui
+
+
 # --- end lock + current_app imports ---
 # --- Compatibility shim: unify invoice-scraper vs receipt-scraper usage ---
 # Αυτό το snippet προσπαθεί να χρησιμοποιήσει:
@@ -68,6 +75,18 @@ from flask import current_app
 # και παρέχει την helper συνάρτηση call_scrape_receipt(mark)
 import importlib
 scrape_receipt_callable = None
+
+def _client_map_for_vat(vat: str):
+    """
+    Γυρνά dict σαν του builder:
+      {"by_afm": {...}, "by_id": set([...]), "cols": [...]}
+    """
+    try:
+        paths = resolve_paths_for_vat(str(vat), base_invoices_dir="data/epsilon")
+        return bridge_load_client_map(paths["client_db"])
+    except Exception as e:
+        current_app.logger.warning("client_db load failed for VAT %s: %s", vat, e)
+        return {"by_afm": {}, "by_id": set(), "cols": []}
 
 def strip_server_totals(html: str) -> str:
     """Αφαιρεί οτιδήποτε <tfoot> και όποια τυχόν 'ΣΥΝΟΛΑ' γραμμή έχει
@@ -163,8 +182,83 @@ app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
 REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
+CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 
+def _load_credentials():
+    p = Path(CREDENTIALS_PATH)
+    if not p.exists():
+        return []
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        # Δέξου είτε λίστα είτε μοναδικό αντικείμενο
+        if isinstance(data, dict):
+            data = [data]
+        return data
+    except Exception as e:
+        app.logger.warning("Failed to load credentials.json: %s", e)
+        return []
 
+def _save_credentials(items):
+    CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+
+def _find_client(creds, vat=None, name=None):
+    if vat:
+        for c in creds:
+            if str(c.get("vat","")).strip() == str(vat).strip():
+                return c
+    if name:
+        for c in creds:
+            if str(c.get("name","")).strip() == str(name).strip():
+                return c
+    return creds[0] if creds else None
+
+def _load_all_credentials():
+    try:
+        with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f) or []
+    except FileNotFoundError:
+        return []
+    except Exception:
+        return []
+
+def _save_all_credentials(creds):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+        json.dump(creds, f, ensure_ascii=False, indent=2)
+
+def _active_cred_index(creds):
+    active = get_active_credential_from_session() or {}
+    vat = (active.get("vat") or "").strip()
+    name = (active.get("name") or "").strip()
+    for i,c in enumerate(creds):
+        if vat and str(c.get("vat") or "").strip() == vat:
+            return i
+    for i,c in enumerate(creds):
+        if name and str(c.get("name") or "").strip() == name:
+            return i
+    return 0 if creds else -1
+
+def _profiles_get_for_active():
+    creds = _load_all_credentials()
+    idx = _active_cred_index(creds)
+    if idx < 0:
+        return [], []
+    c = creds[idx]
+    c.setdefault("char_profiles", [])  # [{id,name,map}]
+    tags = [t for t in (c.get("expense_tags") or []) if str(t).strip().lower() != "αποδειξακια"]
+    return c["char_profiles"], tags
+
+def _profiles_set_for_active(profiles):
+    creds = _load_all_credentials()
+    idx = _active_cred_index(creds)
+    if idx < 0:
+        return False
+    creds[idx]["char_profiles"] = profiles
+    _save_all_credentials(creds)
+    return True
 
 
 @app.before_request
@@ -248,6 +342,389 @@ VAT_MAP = {
     "8": "Εξαιρούμενο άρθρο 47β",
     "9": "Άνευ ΦΠΑ",
 }
+# ==== app.py (HEAD) ====
+from pathlib import Path
+import os, json, uuid, datetime
+
+ROOT_DIR = Path(__file__).resolve().parent
+DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
+CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
+
+VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+def _resolve_client_db_path(vat: str) -> str | None:
+    """
+    Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
+    Αναζήτηση με προτεραιότητα per-VAT και μετά global.
+    """
+    vat = str(vat or "").strip()
+    candidates = [
+        f"data/epsilon/client_db_{vat}.xlsx",
+        f"data/epsilon/client_db_{vat}.xls",
+        "data/epsilon/client_db.xlsx",
+        "data/epsilon/client_db.xls",
+        "client_db.xlsx",
+        "client_db.xls",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    current_app.logger.warning(
+        "client_db not found for VAT %s; tried: %s", vat, candidates
+    )
+    return None
+
+def _normalize(s: str) -> str:
+    """
+    Κανονικοποίηση string: lower, χωρίς τόνους/διακριτικά, trim.
+    """
+    s = str(s or "").strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    return s.lower()
+
+def _canon_afm(val) -> str:
+    """
+    Επιστρέφει AFM μόνο με ψηφία (αφαιρεί διαχωριστικά, κενά, κλπ).
+    Αν δεν βρεθούν ψηφία, επιστρέφει trimmed string.
+    """
+    txt = str(val or "").strip()
+    digits = re.sub(r"\D+", "", txt)
+    return digits or txt
+
+# Υποψήφιοι τίτλοι στηλών για AFM & ID (σε normalized μορφή)
+_AFM_HEADER_CANDIDATES = {
+    "afm", "αφμ", "vat", "vat no", "vat number", "a.f.m", "a.f.m.", "tax id", "taxid"
+}
+_ID_HEADER_CANDIDATES = {
+    # Πολλές γραφές για 'Κωδ. Συναλλασσόμενου'
+    "κωδ. συναλλασσομενου", "κωδ συναλλασσομενου", "κωδικος συναλλασσομενου",
+    "κωδικος", "κωδ.", "κωδ", "id", "customer id", "account id",
+    "κωδ. πελατη", "κωδ πελατη", "κωδικος πελατη",
+    "κωδ. προμηθευτη", "κωδικος προμηθευτη",
+}
+
+def _read_first_sheet_anyname(path: str) -> pd.DataFrame:
+    """
+    Διαβάζει ΠΑΝΤΑ το 1ο sheet (index 0), ανεξαρτήτως ονόματος.
+    Υποστηρίζει .xls (xlrd==1.2.0) και .xlsx (openpyxl).
+    """
+    if not path:
+        return pd.DataFrame()
+    ext = os.path.splitext(path)[1].lower()
+    try:
+        engine = "xlrd" if ext == ".xls" else "openpyxl"
+        xls = pd.ExcelFile(path, engine=engine)
+        first_name = xls.sheet_names[0]
+        df = xls.parse(first_name)
+        current_app.logger.info(
+            "client_db: using first sheet name=%r rows=%d", first_name, len(df)
+        )
+        return df
+    except Exception as e:
+        current_app.logger.exception("Failed to read first sheet from '%s': %s", path, e)
+        # ύστατο fallback: read_excel (παίρνει 1ο sheet by default)
+        try:
+            df = pd.read_excel(path)
+            current_app.logger.warning("client_db: fallback read_excel() rows=%d", len(df))
+            return df
+        except Exception as e2:
+            current_app.logger.exception("Fallback read_excel failed for '%s': %s", path, e2)
+            return pd.DataFrame()
+
+def _detect_cols(df: pd.DataFrame) -> tuple[str | None, str | None]:
+    """
+    Εντοπίζει ονόματα στηλών για AFM και CUSTID.
+    - Ανίχνευση με απόλυτη ταύτιση candidate sets
+    - ή με patterns ('συναλλασ' & 'κωδ' για ID, 'afm/αφμ/vat' για AFM)
+    """
+    afm_col, id_col = None, None
+    for c in list(df.columns):
+        lc = _normalize(c)
+        if afm_col is None and (
+            lc in _AFM_HEADER_CANDIDATES or "αφμ" in lc or "vat" in lc or "afm" in lc
+        ):
+            afm_col = c
+        if id_col is None and (
+            lc in _ID_HEADER_CANDIDATES or ("συναλλασ" in lc and ("κωδ" in lc or "κωδικ"))
+        ):
+            id_col = c
+    return afm_col, id_col
+
+def _coerce_id(val):
+    """
+    Μετατρέπει το ID σε integer όταν είναι "170", "170.0", κ.λπ.·
+    αλλιώς το επιστρέφει ως string (ώστε να διατηρούνται τυχόν leading zeros).
+    """
+    if pd.isna(val):
+        return None
+    s = str(val).strip()
+    if s == "":
+        return None
+    # αν είναι float-μορφής ακέραιος (π.χ. 170.0) → int
+    try:
+        f = float(s)
+        if f.is_integer():
+            return int(f)
+    except Exception:
+        pass
+    return s
+
+def _load_client_map_smart(path: str) -> dict:
+    """
+    Φορτώνει το client_db και επιστρέφει:
+      {
+        "by_afm": { "<AFM_DIGITS>": <CUSTID>, ... },
+        "by_id":  { <CUSTID>, ... },
+        "cols":   [list of original columns]
+      }
+    - Διαβάζει ΠΑΝΤΑ το 1ο sheet (ανεξαρτήτως ονόματος).
+    - Κανονικοποιεί AFM (μόνο ψηφία) και CUSTID (int όπου γίνεται, αλλιώς string).
+    - Σε διπλότυπα AFM, κρατάει την τελευταία μη-κενή τιμή CUSTID.
+    """
+    result = {"by_afm": {}, "by_id": set(), "cols": []}
+    if not path or not os.path.exists(path):
+        return result
+
+    df = _read_first_sheet_anyname(path)
+    if df.empty:
+        return result
+
+    afm_col, id_col = _detect_cols(df)
+    result["cols"] = list(df.columns)
+
+    if not afm_col or not id_col:
+        current_app.logger.warning(
+            "client_db: could not detect AFM/ID columns. cols=%r", result["cols"]
+        )
+        return result
+
+    by_afm: dict[str, int | str] = {}
+    by_id: set[int | str] = set()
+
+    for _, r in df.iterrows():
+        afm_raw = r.get(afm_col, None)
+        id_raw = r.get(id_col, None)
+        afm = _canon_afm(afm_raw)
+        custid = _coerce_id(id_raw)
+        if afm and custid is not None:
+            by_afm[afm] = custid
+            by_id.add(custid)
+
+    result["by_afm"] = by_afm
+    result["by_id"] = by_id
+
+    current_app.logger.info(
+        "client_db: mapped=%d (AFM col=%r, ID col=%r)", len(by_afm), afm_col, id_col
+    )
+    return result
+
+def _guess_partner_afm(rec: dict, active_vat: str) -> str:
+    """
+    Βρίσκει το AFM του συναλλασσόμενου για mapping σε CUSTID:
+      - Αν AFM_issuer == active_vat  ⇒ πώληση ⇒ πελάτης (counterparty AFM)
+      - Αλλιώς                        ⇒ αγορά   ⇒ προμηθευτής (AFM_issuer)
+    Επιστρέφει AFM κανονικοποιημένο (μόνο ψηφία όπου γίνεται).
+    """
+    issuer = str(rec.get("AFM_issuer") or rec.get("AFM") or "").strip()
+    issuer = _canon_afm(issuer)
+    active_vat = _canon_afm(active_vat)
+
+    if issuer and issuer == active_vat:
+        # Πελάτης (counterparty)
+        for k in (
+            "AFM_counterparty", "AFM_customer", "customerAFM", "buyerAFM",
+            "AFM_buyer", "counterparty_afm", "customer_afm", "AFM_other"
+        ):
+            v = rec.get(k)
+            if v:
+                return _canon_afm(v)
+        return ""  # λείπει στο JSON => δεν μπορούμε να χαρτογραφήσουμε
+    else:
+        # Προμηθευτής (issuer)
+        return issuer
+
+
+def _load_client_map(path: str):
+    # require openpyxl for .xlsx, xlrd για .xls
+    df = pd.read_excel(path)
+    # heuristic στήλες
+    col_afm = col_id = None
+    for c in df.columns:
+        lc = str(c).lower()
+        if col_afm is None and ("αφμ" in lc or lc == "afm" or "vat" in lc): col_afm = c
+        if col_id is None and ("συναλλασ" in lc or "κωδ" in lc or lc == "id" or "custid" in lc): col_id = c
+    if col_afm is None:
+        for c in df.columns:
+            if "αφ" in str(c).lower(): col_afm = c; break
+    if col_id is None:
+        for c in df.columns:
+            if "id" in str(c).lower() or "κωδ" in str(c).lower(): col_id = c; break
+    by_afm = {}
+    for _, r in df.iterrows():
+        afm = str(r.get(col_afm, "")).strip()
+        try:
+            custid = int(float(r.get(col_id)))
+        except Exception:
+            custid = None
+        if afm and custid is not None:
+            by_afm[afm] = custid
+    return by_afm
+
+def _ddmmyyyy(s):
+    if not s: return ""
+    for fmt in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%Y/%m/%d","%d/%m/%y"):
+        try: return datetime.strptime(str(s)[:10], fmt).strftime("%d/%m/%Y")
+        except: pass
+    return str(s)
+
+def _load_epsilon_invoices(vat: str):
+    vat = str(vat)
+    cands = [
+        f"data/epsilon/{vat}_epsilon_invoices.json",
+        "data/epsilon/epsilon_invoices.json",
+        f"{vat}_epsilon_invoices.json",
+    ]
+    path = next((p for p in cands if os.path.exists(p)), None)
+    if not path:
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict):
+        for k in ("invoices","records","rows","data","items"):
+            if isinstance(data.get(k), list):
+                return data[k]
+        return [data]
+    return data
+
+def _sum_lines(rec):
+    lines = rec.get("lines") or rec.get("invoice_lines") or rec.get("details") or []
+    if not isinstance(lines, list) or not lines:
+        # fallback από totals
+        net = float(str(rec.get("totalNetValue","0")).replace(",", ".") or 0)
+        vat = float(str(rec.get("totalVatAmount","0")).replace(",", ".") or 0)
+        return net, vat, net+vat, []
+    detail = []
+    tot_net = 0.0; tot_vat = 0.0
+    for ln in lines:
+        net = float(str(ln.get("amount","0")).replace(",", ".") or 0)
+        vat = float(str(ln.get("vat","0")).replace(",", ".") or 0)
+        vat_label = ln.get("vat_category") or ln.get("vatRate")
+        m = re.search(r"(\d+)", str(vat_label) or "")
+        vat_rate = int(m.group(1)) if m else None
+        cat = (ln.get("category") or "").strip()
+        detail.append({
+            "category": cat,
+            "net": net,
+            "vat": vat,
+            "gross": net+vat,
+            "vat_rate": vat_rate
+        })
+        tot_net += net; tot_vat += vat
+    return tot_net, tot_vat, tot_net+tot_vat, detail
+def _ensure_paths():
+    global CREDENTIALS_PATH
+    if isinstance(CREDENTIALS_PATH, str):
+        CREDENTIALS_PATH = Path(CREDENTIALS_PATH)
+    CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+def _load_json_file(path: Path, default):
+    try:
+        if not path.exists():
+            return default
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+            return default if data is None else data
+    except Exception:
+        return default
+
+def _save_json_file(path: Path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def _load_credentials():
+    _ensure_paths()
+    return _load_json_file(CREDENTIALS_PATH, [])
+
+def _save_credentials(creds):
+    _ensure_paths()
+    _save_json_file(CREDENTIALS_PATH, creds)
+
+# ---- credentials helpers (δουλεύουν και με list και με dict-style) ----
+def _get_customer(creds, vat: str, create=False):
+    vat = (vat or "").strip()
+    if isinstance(creds, list):
+        for i, c in enumerate(creds):
+            if str(c.get("vat", "")).strip() == vat:
+                return c, ("list", i)
+        if create and vat:
+            newc = {"vat": vat, "expense_tags": []}
+            creds.append(newc)
+            return newc, ("list", len(creds)-1)
+        return None, ("list", None)
+    elif isinstance(creds, dict):
+        customers = creds.setdefault("customers", {})
+        if vat in customers:
+            return customers[vat], ("dict", vat)
+        if create and vat:
+            customers[vat] = {"vat": vat, "expense_tags": []}
+            return customers[vat], ("dict", vat)
+        return None, ("dict", None)
+    return None, ("unknown", None)
+
+def _get_expense_tags(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    tags = []
+    if isinstance(cust, dict):
+        tags = list(cust.get("expense_tags") or [])
+    # φιλτράρουμε το 'αποδειξακια'
+    tags = [t for t in tags if (t or "").strip() and t.strip().lower() != "αποδειξακια"]
+    return tags
+
+def _get_char_profiles(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    if isinstance(cust, dict):
+        lst = cust.get("char_profiles") or []
+        # sanitize
+        out = []
+        for p in lst:
+            mp = p.get("mapping") or {}
+            # κρατάμε μόνο τα ποσοστά
+            mapping = {k: v for k, v in mp.items() if k in VAT_KEYS and (v or "").strip()}
+            out.append({"id": p.get("id") or p.get("name") or str(uuid.uuid4()),
+                        "name": p.get("name") or "",
+                        "mapping": mapping,
+                        "updated_at": p.get("updated_at")})
+        return out
+    return []
+
+def _set_char_profiles(creds, vat: str, profiles: list):
+    cust, where = _get_customer(creds, vat, create=True)
+    if not isinstance(cust, dict):
+        return creds
+    cust["char_profiles"] = profiles
+    # για list δεν χρειάζεται ειδικό χειρισμό, το dict είναι reference
+    return creds
+
+def _get_repeat_entry(creds, vat: str):
+    cust, _ = _get_customer(creds, vat, create=False)
+    if not isinstance(cust, dict):
+        return {"enabled": False, "mapping": {}}
+    rep = cust.get("repeat_entry") or {}
+    mp = rep.get("mapping") or {}
+    # κρατάμε μόνο ποσοστά
+    mapping = {k: v for k, v in mp.items() if k in VAT_KEYS and (v or "").strip()}
+    return {"enabled": bool(rep.get("enabled")), "mapping": mapping}
+
+def _save_repeat_entry(creds, vat: str, enabled: bool, mapping: dict):
+    cust, _ = _get_customer(creds, vat, create=True)
+    mapping = {k: (mapping.get(k) or "").strip() for k in VAT_KEYS}
+    cust["repeat_entry"] = {
+        "enabled": bool(enabled),
+        "mapping": mapping,
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+    return creds
 
 # --- helper: parse year from a variety of date strings ---
 APP_DIR = Path(__file__).resolve().parent
@@ -2124,6 +2601,97 @@ def validate_date_field_against_active_fiscal(date_str, field_name='date'):
         # produce message with allowed year info
         return False, f"Η επιλεγμένη χρήση είναι {fiscal_year}. Η ημερομηνία στο πεδίο {field_name} ({date_str}) δεν ανήκει στη χρήση αυτή."
     return True, "OK"
+# --- NEW: safer GET that also returns profile_name ---
+@app.route('/api/repeat_entry/get_v2', methods=['GET'])
+def api_repeat_entry_get_v2():
+    """
+    Επιστρέφει repeat_entry {enabled, mapping, profile_name} + expense_tags (χωρίς 'αποδειξάκια').
+    Δεν πειράζει τίποτα από το υπάρχον /api/repeat_entry/get.
+    Query param: ?vat=...
+    """
+    try:
+        creds = read_credentials_list()  # δική σου helper
+    except Exception:
+        creds = None
+
+    vat = (request.args.get('vat') or "").strip() or None
+    session_cred = (get_active_credential_from_session() if 'get_active_credential_from_session' in globals() else {}) or {}
+
+    if not vat and isinstance(session_cred, dict):
+        vat = (session_cred.get('vat') or session_cred.get('afm') or "").strip() or None
+
+    base_resp = {"ok": True,
+                 "repeat_entry": {"enabled": False, "mapping": {}, "profile_name": ""},
+                 "expense_tags": []}
+
+    # αν δεν υπάρχουν credentials, επέστρεψε ό,τι μπορείς από το session
+    if not creds:
+        guess = ""
+        try:
+            if isinstance(session_cred, dict):
+                guess = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
+                guess = str(guess).strip()
+        except Exception:
+            pass
+        if guess:
+            base_resp["afm"] = guess
+            base_resp["vat"] = guess
+        return jsonify(base_resp)
+
+    # βρες ενεργό πελάτη
+    idx = find_active_client_index(creds, vat=vat) if 'find_active_client_index' in globals() else None
+    client_rec = None
+    if idx is not None and 0 <= idx < len(creds) and isinstance(creds[idx], dict):
+        client_rec = creds[idx]
+    else:
+        # fallback: απλή αναζήτηση
+        if vat:
+            for rec in creds:
+                if isinstance(rec, dict):
+                    v = str(rec.get('vat') or rec.get('afm') or "").strip()
+                    if v and v == str(vat).strip():
+                        client_rec = rec
+                        break
+        if client_rec is None:
+            # έσχατο fallback: τίποτα
+            return jsonify(base_resp)
+
+    # repeat_entry (με profile_name)
+    repeat_raw = (client_rec.get('repeat_entry') or {}) if isinstance(client_rec, dict) else {}
+    repeat = {
+        "enabled": bool(repeat_raw.get("enabled")),
+        "mapping": repeat_raw.get("mapping") or {},
+        "profile_name": (repeat_raw.get("profile_name") or "").strip(),
+    }
+
+    # expense_tags (χωρίς 'αποδειξάκια')
+    raw_tags = client_rec.get('expense_tags') or []
+    if isinstance(raw_tags, str):
+        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
+    elif isinstance(raw_tags, list):
+        tags = [str(t) for t in raw_tags]
+    else:
+        tags = []
+    tags = [t for t in tags if t.strip().lower() not in ("αποδειξακια", "αποδειξάκια")]
+
+    # afm/vat για πληρότητα
+    afm_guess = ""
+    for k in ("afm", "AFM", "vat", "VAT", "vat_number", "vatNumber"):
+        val = client_rec.get(k)
+        if val:
+            afm_guess = str(val).strip()
+            break
+
+    resp = {
+        "ok": True,
+        "repeat_entry": repeat,
+        "expense_tags": tags,
+    }
+    if afm_guess:
+        resp["afm"] = afm_guess
+        resp["vat"] = afm_guess
+    return jsonify(resp)
+
 
 @app.route('/api/repeat_entry/get', methods=['GET'])
 def api_repeat_entry_get():
@@ -2287,142 +2855,57 @@ def api_repeat_entry_get():
 
     return jsonify(resp)
 
-
-
-@app.route("/api/repeat_entry/save", methods=["POST"])
+@app.post("/api/repeat_entry/save")
 def api_repeat_entry_save():
-    """
-    Αποθήκευση ρυθμίσεων 'Επαναληψιμης' για τον ενεργό πελάτη ή για συγκεκριμένο vat.
-    - Δεν βασίζεται σε helpers ορισμένους μέσα στο search().
-    - Κάνει sanitize σε mapping, βάζει no-store headers και επιστρέφει καθαρά errors.
-    """
-    import os, json
-    from datetime import datetime, timezone
+    data = request.get_json(force=True) or {}
 
-    # ---- μικρο-helpers τοπικά για να μην εξαρτόμαστε από search() ----
-    def _credentials_path():
-        try:
-            base = DATA_DIR  # αν το έχεις global
-        except Exception:
-            base = os.path.join(os.getcwd(), "data")
-        os.makedirs(base, exist_ok=True)
-        return os.path.join(base, "credentials.json")
+    vat = str(data.get("vat") or "").strip()
+    enabled = bool(data.get("enabled"))
+    mapping_in = data.get("mapping") or {}
+    # "" => Γενικό
+    profile_name = (data.get("profile_name") or "").strip()
 
-    def _load_creds():
-        p = _credentials_path()
-        if not os.path.exists(p):
-            return []
-        try:
-            with open(p, "r", encoding="utf-8") as f:
-                return json.load(f) or []
-        except Exception:
-            return []
+    # Επιτρέπουμε ΜΟΝΟ ποσοστά ΦΠΑ
+    VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+    mapping = {k: (mapping_in.get(k) or "") for k in VAT_KEYS}
 
-    def _save_creds(creds):
-        p = _credentials_path()
-        tmp = p + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(creds, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, p)
-        return True
+    # Έλεγχος για κενές επιλογές
+    missing = [k for k in VAT_KEYS if not mapping[k]]
+    if missing:
+        return jsonify(ok=False, error="Συμπλήρωσε κατηγορία για " + ", ".join(missing) + "."), 400
 
-    def _find_idx(creds, vat=None):
-        """Βρες index του ενεργού πελάτη. Αν δοθεί vat, προτιμάται αυτό."""
-        if not creds:
-            return None
-        if vat:
-            s_vat = str(vat).strip()
-            for i, c in enumerate(creds):
-                try:
-                    if str(c.get("vat") or c.get("AFM") or "").strip() == s_vat:
-                        return i
-                except Exception:
-                    pass
-        for i, c in enumerate(creds):
-            try:
-                if c.get("active"):
-                    return i
-            except Exception:
-                pass
-        return 0  # fallback
+    creds = read_credentials_list() or []
+    idx = find_active_client_index(creds, vat=vat)
+    if idx is None:
+        return jsonify(ok=False, error="Πελάτης δεν βρέθηκε."), 404
 
-    try:
-        payload = request.get_json(silent=True) or {}
-        enabled = bool(payload.get("enabled", False))
-        mapping = payload.get("mapping") or {}
-        vat_in = (payload.get("vat") or "").strip()
+    client = creds[idx] if isinstance(creds[idx], dict) else {}
 
-        # sanitize mapping: κράτα μόνο "μη-κενά" κλειδιά/τιμές
-        if isinstance(mapping, dict):
-            sanitized = {}
-            for k, v in mapping.items():
-                ks = str(k).strip()
-                vs = ("" if v is None else str(v)).strip()
-                if ks and vs:
-                    sanitized[ks] = vs
-            mapping = sanitized
-        else:
-            mapping = {}
+    repeat = (client.get("repeat_entry") if isinstance(client, dict) else {}) or {}
+    repeat.update({
+        "enabled": enabled,
+        "mapping": mapping,
+        # Χρησιμοποιούμε το module datetime:
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        # ΠΑΝΤΑ γράφουμε το profile_name — κενό σημαίνει «Γενικό»
+        "profile_name": profile_name,
+    })
+    client["repeat_entry"] = repeat
+    creds[idx] = client
 
-        # Βρες VAT: προτιμά payload.vat, αλλιώς active session
-        active = None
-        try:
-            active = get_active_credential_from_session()
-        except Exception:
-            active = None
-        vat = vat_in or (active.get("vat") if active else "")
-        if not vat:
-            resp = jsonify({"ok": False, "error": "No active VAT"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 400
+    write_credentials_list(creds)
 
-        # φόρτωσε/γράψε credentials.json
-        creds = _load_creds()
-        idx = _find_idx(creds, vat)
-        if idx is None or idx >= len(creds):
-            resp = jsonify({"ok": False, "error": "Credentials not found"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 404
+    # Κανονικοποίηση expense_tags για ασφαλή επιστροφή (λίστα strings)
+    raw_tags = client.get("expense_tags") or []
+    if isinstance(raw_tags, str):
+        expense_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
+    elif isinstance(raw_tags, list):
+        expense_tags = [str(t) for t in raw_tags]
+    else:
+        expense_tags = []
 
-        entry = {
-            "enabled": enabled,
-            "mapping": mapping,
-            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
-        }
-        # Μην αφήνεις παλιά "σκουπίδια"
-        try:
-            if not isinstance(creds[idx], dict):
-                creds[idx] = {}
-        except Exception:
-            creds[idx] = {}
-        creds[idx]["repeat_entry"] = entry
+    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags)
 
-        _save_ok = _save_creds(creds)
-        if not _save_ok:
-            resp = jsonify({"ok": False, "error": "Failed to write credentials"})
-            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            resp.headers["Pragma"] = "no-cache"
-            resp.headers["Expires"] = "0"
-            return resp, 500
-
-        resp = jsonify({"ok": True})
-        # no-store για να μη γίνει replay μετά από refresh
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp, 200
-
-    except Exception as e:
-        log.exception("api_repeat_entry_save: unexpected error")
-        resp = jsonify({"ok": False, "error": "Server error"})
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp, 500
 
 
 
@@ -2667,6 +3150,57 @@ def upload_client_db():
 
 
 
+
+@app.route("/api/profiles", methods=["GET"])
+def api_profiles_list():
+    profs, options = _profiles_get_for_active()
+    return jsonify({"ok": True, "profiles": profs, "options": options})
+
+
+@app.route("/api/profiles/save", methods=["POST"])
+def api_profiles_save():
+    payload = request.get_json(force=True, silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "missing name"}), 400
+    mapping = payload.get("map") or {}
+
+    # sanitize for invoices: never allow 'αποδειξακια'
+    sanitized = {}
+    for k,v in (mapping or {}).items():
+        if str(v).strip().lower() == "αποδειξακια":
+            continue
+        sanitized[k] = v
+
+    profs, _ = _profiles_get_for_active()
+    pid = (payload.get("id") or "").strip()
+    if pid:
+        found = False
+        for p in profs:
+            if str(p.get("id") or "") == pid:
+                p["name"] = name
+                p["map"]  = sanitized
+                found = True
+                break
+        if not found:
+            profs.append({"id": pid, "name": name, "map": sanitized})
+    else:
+        import uuid
+        profs.append({"id": str(uuid.uuid4()), "name": name, "map": sanitized})
+
+    _profiles_set_for_active(profs)
+    return jsonify({"ok": True})
+
+@app.route("/api/profiles/delete", methods=["POST"])
+def api_profiles_delete():
+    payload = request.get_json(force=True, silent=True) or {}
+    pid = (payload.get("id") or "").strip()
+    if not pid:
+        return jsonify({"ok": False, "error": "missing id"}), 400
+    profs, _ = _profiles_get_for_active()
+    profs = [p for p in profs if str(p.get("id") or "") != pid]
+    _profiles_set_for_active(profs)
+    return jsonify({"ok": True})
 
 # --- client_db_info route ---
 @app.route('/client_db_info', methods=['GET'])
@@ -3974,8 +4508,92 @@ def search():
         repeat_entry_conf=repeat_entry_conf,
         active_year=active_year_val
     )
+@app.get("/profiles")
+def profiles_page():
+    vat = (request.args.get("vat") or "").strip()
+    creds = _load_credentials()
+    categories = _get_expense_tags(creds, vat)
+    # δίνουμε πάντα λίστα (όχι Undefined)
+    return render_template("profiles.html", vat=vat, customer_categories=categories)
+
+@app.get("/api/char_profiles")
+def api_char_profiles_get():
+    """Επιστρέφει profiles + expense_tags για τον ενεργό πελάτη"""
+    vat = request.args.get("vat","").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat) or {}
+    profiles = client.get("char_profiles", [])
+    expense_tags = client.get("expense_tags", [])
+    # Αποκλείουμε τα 'αποδειξακια' από τα τιμολόγια
+    expense_tags = [t for t in expense_tags if t != "αποδειξακια"]
+    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags)
+
+@app.post("/api/char_profiles/save")
+def api_char_profiles_save():
+    """
+    Body: { vat, name, mapping: {kat_fpa_a, kat_fpa_b, kat_fpa_g, kat_fpa_d} }
+    Αν υπάρχει προφίλ με το ίδιο όνομα -> update, αλλιώς append.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    vat = str(data.get("vat","")).strip()
+    name = (data.get("name") or "").strip()
+    mapping = data.get("mapping") or {}
+
+    if not (vat and name and all(mapping.get(k) for k in ("kat_fpa_a","kat_fpa_b","kat_fpa_g","kat_fpa_d"))):
+        return jsonify(ok=False, error="Παράμετροι λείπουν"), 400
+
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat)
+    if not client:
+        return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+
+    arr = list(client.get("char_profiles", []))
+    # upsert
+    hit = None
+    for p in arr:
+        if str(p.get("name","")).strip().lower() == name.lower():
+            hit = p
+            break
+    if hit:
+        hit["mapping"] = mapping
+    else:
+        arr.append({"name": name, "mapping": mapping})
+    client["char_profiles"] = arr
+    _save_credentials(creds)
+    return jsonify(ok=True, profile={"name": name, "mapping": mapping})
+# ------- repeat entry mapping (πάντα ποσοστά) -------
 
 
+
+@app.post("/api/char_profiles/delete")
+def api_char_profiles_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    vat = str(data.get("vat","")).strip()
+    name = (data.get("name") or "").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat)
+    if not client:
+        return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+    arr = list(client.get("char_profiles", []))
+    arr = [p for p in arr if str(p.get("name","")).strip().lower() != name.lower()]
+    client["char_profiles"] = arr
+    _save_credentials(creds)
+    return jsonify(ok=True)
+
+@app.get("/profiles", endpoint="char_profiles_ui")
+def char_profiles_ui():
+    """Σελίδα δημιουργίας/επεξεργασίας Προφίλ"""
+    vat = request.args.get("vat","").strip()
+    creds = _load_credentials()
+    client = _find_client(creds, vat=vat) or {}
+    expense_tags = [t for t in client.get("expense_tags", []) if t != "αποδειξακια"]
+    profiles = client.get("char_profiles", [])
+    return render_template(
+        "profiles.html",
+        vat=client.get("vat",""),
+        expense_tags=expense_tags,
+        profiles=profiles
+    )
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
     """
@@ -5210,6 +5828,79 @@ def list_invoices():
         active_page="list_invoices",
         active_credential=active_name
     )
+
+# --- νέο route: προεπισκόπηση Epsilon (ίδιο tab) ---
+@app.route("/epsilon/preview")
+def epsilon_preview():
+    vat = (request.args.get("vat") or (get_active_credential_from_session() or {}).get("vat") or "").strip()
+    rows, issues, _ok = build_preview_rows_for_ui(
+        vat=vat,
+        credentials_json="data/credentials.json",
+        cred_settings_json="data/credentials_settings.json",
+        invoices_json=None,         # θα λυθεί path αυτόματα: data/epsilon/{vat}_epsilon_invoices.json
+        client_db=None,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
+        base_invoices_dir="data/epsilon",
+    )
+    # πέρασέ τα στο template
+    return render_template("epsilon_preview.html",
+                           vat=vat,
+                           table_rows=rows,
+                           bridge_ok=(not issues and len(rows)>0),
+                           bridge_issues=issues)
+
+
+@app.route("/export/fastimport/kinitseis")
+def export_kinitseis():
+    # 1) resolve VAT (query ➜ active credential ➜ fallback)
+    vat = (request.args.get("vat") or "").strip()
+    try:
+        active = get_active_credential_from_session()  # δικός σου helper
+        if not vat:
+            vat = str(active.get("vat") or "").strip()
+    except Exception:
+        pass
+    if not vat:
+        flash("Λείπει VAT για εξαγωγή γέφυρας.", "error")
+        return redirect(url_for("epsilon_preview"))
+
+    # 2) τρέξε strict export
+    res = run_and_report_dynamic(
+        vat=vat,
+        credentials_json="data/credentials.json",
+        cred_settings_json="data/credentials_settings.json",
+        invoices_json=None,      # αφήνουμε τον resolver να βρει το σωστό JSON
+        client_db=None,          # και το client_db από data/
+        out_xlsx=None,           # exports/{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx
+        base_invoices_dir="data/epsilon",
+        base_exports_dir="exports",
+    )
+
+    # 3) χειρισμός σφαλμάτων / προειδοποιήσεων
+    if not res.get("ok"):
+        issues = res.get("issues") or []
+        # δείξε μερικά, χωρίς να «πνίξεις» τη σελίδα
+        for i in issues[:8]:
+            msg = i.get("message") or str(i)
+            flash(msg, "error")
+        if len(issues) > 8:
+            flash(f"...(+{len(issues)-8} ακόμη θέματα)", "error")
+        return redirect(url_for("epsilon_preview", vat=vat))
+
+    xlsx_path = res.get("path")
+    if not xlsx_path or not os.path.exists(xlsx_path):
+        flash("Η εξαγωγή ολοκληρώθηκε χωρίς να βρεθεί το αρχείο XLSX.", "error")
+        return redirect(url_for("epsilon_preview", vat=vat))
+
+    # 4) κατέβασμα XLSX (ίδιο tab)
+    download_name = f"{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx"
+    return send_file(
+        xlsx_path,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        max_age=0,
+    )
+
 
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])

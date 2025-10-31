@@ -31,6 +31,8 @@
 
         <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
         <div class="flex items-center gap-2 ml-4">
+            <div id="activeRepeatProfileHint" class="text-xs text-gray-500 mb-1" style="display:none"></div>
+
             <label for="repeatEntrySwitch" class="text-sm">Επαναληψιμη εισαγωγή</label>
             <input type="checkbox" id="repeatEntrySwitch" class="toggle-switch">
             <button type="button" id="editRepeatMappingBtn" class="ml-2 px-2 py-1 border rounded text-sm hidden">Επεξεργασία</button>
@@ -117,25 +119,41 @@
 
 
 {# --- Repeat mapping modal (dynamic, populated by JS) --- #}
+<!-- REPEAT MAPPING MODAL (CLEAN) -->
 <div id="repeatMappingModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
-            <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
-        </div>
-
-        <div id="repeatModalBody" class="space-y-3">
-            <div class="text-sm text-gray-600">Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.</div>
-            <!-- JS θα γεμίσει εδώ -->
-            <div id="repeatMappingList" class="space-y-2"></div>
-        </div>
-
-        <div class="mt-4 flex justify-end gap-2">
-            <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
-            <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
-        </div>
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Επαναληπτική αντιστοίχιση κατηγοριών</h3>
+      <button id="repeatModalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
     </div>
+
+    <div class="space-y-3">
+      <div class="text-sm text-gray-600">
+        Επίλεξε για κάθε ΦΠΑ-κατηγορία ποια κατηγορία εξόδου θέλεις να χρησιμοποιείται επαναληπτικά. Μπορείς επίσης να ορίσεις <em>προεπιλογή</em>.
+      </div>
+
+      <!-- Επιλογή Προφίλ -->
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium">Προφίλ</label>
+        <select id="charProfileSelect" class="border rounded px-2 py-1"></select>
+        <!-- redirect, όχι νέο tab -->
+        <a href="{{ url_for('profiles_page', vat=vat) }}" class="px-2 py-1 border rounded">+</a>
+      </div>
+
+      <!-- Hint λαθών -->
+      <div id="charMissingHint" class="text-sm text-red-600" style="display:none"></div>
+
+      <!-- Εδώ αποδίδονται ΜΟΝΟ τα 5 dropdowns με JS -->
+      <div id="repeatMappingList" class="space-y-2"></div>
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button id="repeatModalCancel" class="px-3 py-2 border rounded">Άκυρο</button>
+      <button id="repeatModalSave" class="bg-sky-600 text-white px-3 py-2 rounded">Αποθήκευση</button>
+    </div>
+  </div>
 </div>
+
 
 {% if modal_warning %}
 <div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
@@ -165,6 +183,445 @@
 
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
+
+
+<script>
+function isReceiptsOn(){
+  const r = document.getElementById('useReceiptsSwitch');
+  return !!(r && r.checked);
+}
+
+function setActiveProfileHint(name){
+  const el = document.getElementById('activeRepeatProfileHint');
+  const sw = document.getElementById('repeatEntrySwitch');
+  if(!el || !sw) return;
+
+  // Δείξε μόνο όταν: επαναληψιμη ON ΚΑΙ ΔΕΝ είμαστε σε Αποδείξεις
+  if (sw.checked && !isReceiptsOn()) {
+    el.style.display = '';
+    el.textContent = "Ενεργό προφίλ επαναληψιμης: " + (name || "Γενικό");
+  } else {
+    el.style.display = 'none';
+    el.textContent = "";
+  }
+}
+
+
+</script>
+<script>
+// Δέχεται είτε ποσοστά είτε kat_fpa_* και επιστρέφει ΠΑΝΤΑ ποσοστά σύμφωνα με: Α→0, Β→6, Γ→13, Δ→17, Ε→24
+// ΚΑΝΟΝΑΣ: Α→0%, Β→6%, Γ→13%, Δ→17%, Ε→24%
+function normalizeMapping(m){
+  const pct = {"0%":"", "6%":"", "13%":"", "17%":"", "24%":""};
+  if (!m) return pct;
+  if ('kat_fpa_a' in m || 'kat_fpa_b' in m || 'kat_fpa_g' in m || 'kat_fpa_d' in m || 'kat_fpa_e' in m){
+    pct["0%"]  = m.kat_fpa_a || "";
+    pct["6%"]  = m.kat_fpa_b || "";
+    pct["13%"] = m.kat_fpa_g || "";
+    pct["17%"] = m.kat_fpa_d || "";
+    pct["24%"] = m.kat_fpa_e || "";
+    return pct;
+  }
+  for (const k in pct){ if (Object.prototype.hasOwnProperty.call(m,k)) pct[k] = m[k] || ""; }
+  return pct;
+}
+function percentToKat(p){
+  p = p || {};
+  return {
+    kat_fpa_a: p["0%"]  || "",
+    kat_fpa_b: p["6%"]  || "",
+    kat_fpa_g: p["13%"] || "",
+    kat_fpa_d: p["17%"] || "",
+    kat_fpa_e: p["24%"] || "",
+  };
+}
+function katToPercent(k){
+  k = k || {};
+  return {
+    "0%":  k.kat_fpa_a || "",
+    "6%":  k.kat_fpa_b || "",
+    "13%": k.kat_fpa_g || "",
+    "17%": k.kat_fpa_d || "",
+    "24%": k.kat_fpa_e || "",
+  };
+}
+
+</script>
+
+<script>
+(() => {
+  const VAT = "{{ vat or '' }}";
+  const VAT_KEYS = ["0%","6%","13%","17%","24%"];
+
+  // ενεργές κατηγορίες πελάτη (χωρίς «αποδειξακια»)
+  let CUSTOMER_CATEGORIES = (function(){
+    try {
+      const arr = {{ (customer_categories or []) | tojson | safe }};
+      return Array.isArray(arr) ? arr.filter(x => x !== 'αποδειξακια') : [];
+    } catch(e){ return []; }
+  })();
+
+  
+  async function fetchDefaultMapping() {
+    try {
+      const r = await fetch('/api/repeat_entry/get?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
+      if (!r.ok) return {};
+      const j = await r.json();
+      return normalizeMapping((j && j.repeat_entry && j.repeat_entry.mapping) || {});
+    } catch { return {}; }
+  }
+
+  async function fetchProfilesAndTags() {
+    try {
+      const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
+      const j = await r.json();
+      if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
+        CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+      }
+      // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
+      const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
+        ...p, mapping: normalizeMapping(p.mapping || {})
+      })) : [];
+      return profiles;
+    } catch { return []; }
+  }
+
+  // ---- DOM refs
+  const modal      = document.getElementById('repeatMappingModal');
+  const listBox    = document.getElementById('repeatMappingList');
+  const selProfile = document.getElementById('charProfileSelect');
+  const hint       = document.getElementById('charMissingHint');
+  const btnSave    = document.getElementById('repeatModalSave');
+  const btnCancel  = document.getElementById('repeatModalCancel');
+  const btnX       = document.getElementById('repeatModalCloseX');
+  const btnEdit    = document.getElementById('editRepeatMappingBtn');
+
+  const show = () => modal.style.display = 'flex';
+  const hide = () => modal.style.display = 'none';
+  const setHint = (t) => { hint.textContent = t || ''; hint.style.display = t ? '' : 'none'; };
+
+  // φτιάχνει μία γραμμή (label + select)
+  function makeRow(pct, selected) {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-3';
+    const label = document.createElement('div');
+    label.className = 'w-20 text-sm font-medium';
+    label.textContent = pct;
+
+    const sel = document.createElement('select');
+    sel.className = 'p-1 border rounded flex-1';
+    sel.dataset.vat = pct;
+
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— επίλεξε —'; sel.appendChild(o0);
+    CUSTOMER_CATEGORIES.forEach(t => {
+      const o = document.createElement('option'); o.value = t; o.textContent = t;
+      if (t === selected) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(sel);
+    return wrap;
+  }
+
+  function renderMapping(mapping = {}) {
+    const m = normalizeMapping(mapping);
+    listBox.innerHTML = '';                            // ← καθαρίζει ΠΑΝΤΑ (no duplicates)
+    VAT_KEYS.forEach(k => listBox.appendChild(makeRow(k, m[k] || '')));
+  }
+
+  function readMappingFromUI() {
+    const out = {};
+    const missing = [];
+    listBox.querySelectorAll('select[data-vat]').forEach(sel => {
+      const k = sel.dataset.vat;
+      const v = (sel.value || '').trim();
+      if (!v) missing.push(k);
+      out[k] = v;
+    });
+    return { out, missing };
+  }
+
+  // Global override ώστε άλλο code-path να ανοίγει το modal με έτοιμο mapping
+  window._repeatMappingOverride = null;
+
+  async function fillProfileSelect(profiles, defaultMapping) {
+    selProfile.innerHTML = '';
+    const o0 = document.createElement('option');
+    o0.value = '';
+    o0.textContent = 'Γενικό';
+    o0.dataset.mapping = JSON.stringify(normalizeMapping(defaultMapping || {}));
+    selProfile.appendChild(o0);
+
+    profiles.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id || p.name || '';
+      o.textContent = p.name || '(χωρίς όνομα)';
+      o.dataset.mapping = JSON.stringify(normalizeMapping(p.mapping || {}));
+      selProfile.appendChild(o);
+    });
+  }
+
+  selProfile.addEventListener('change', () => {
+    const opt = selProfile.selectedOptions[0];
+    const mapping = (opt && opt.dataset.mapping) ? JSON.parse(opt.dataset.mapping) : {};
+    renderMapping(mapping);     // ← προ-συμπλήρωση ανά προφίλ ή «καμία»
+    setHint('');
+  });
+
+  btnSave.addEventListener('click', async () => {
+  const { out, missing } = readMappingFromUI();
+  if (missing.length) { setHint('Συμπλήρωσε κατηγορία για: ' + missing.join(', ')); return; }
+  setHint('');
+
+  const profileName = selProfile?.value || "";   // "" = Γενικό
+
+  try {
+    const r = await fetch('/api/repeat_entry/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        vat: "{{ vat or '' }}",
+        enabled: true,
+        mapping: out,                  // 0/6/13/17/24
+        profile_name: profileName      // <-- ΣΗΜΑΝΤΙΚΟ
+      })
+    });
+    const j = await r.json();
+    if (!j.ok) { setHint(j.error || 'Αποτυχία αποθήκευσης'); return; }
+
+    // Κλείσε modal
+    document.getElementById('repeatMappingModal').style.display = 'none';
+
+    // Flash επιτυχίας
+    showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success', 3000);
+
+    // Ενημέρωσε την ένδειξη πάνω από το toggle
+    setActiveProfileHint(profileName);
+
+    // Βάλε checked το switch & δείξε το κουμπί "Επεξεργασία"
+    document.getElementById('repeatEntrySwitch')?.setAttribute('checked', 'checked');
+    document.getElementById('editRepeatMappingBtn')?.classList.remove('hidden');
+  } catch {
+    setHint('Δικτυακό σφάλμα.');
+  }
+});
+
+
+  [btnCancel, btnX].forEach(b => b && b.addEventListener('click', hide));
+  async function fetchRepeatState(vat){
+  // δεν πειράζουμε το δικό σου /api/repeat_entry/get
+  // αν υπάρχει το νέο status endpoint, το προτιμάμε για να πάρουμε και profile_name
+  try{
+    const r = await fetch('/api/repeat_entry/status2' + (vat?('?vat='+encodeURIComponent(vat)):''),
+                          {credentials:'same-origin'});
+    if(r.ok){
+      const j = await r.json();
+      const repeat = j.repeat_entry || {};
+      return {
+        defaultMap: (repeat.mapping || {}),
+        savedName: (repeat.profile_name || "")
+      };
+    }
+  }catch(_){}
+  // fallback: παλιό endpoint που ίσως δεν επιστρέφει profile_name
+  try{
+    const r = await fetch('/api/repeat_entry/get' + (vat?('?vat='+encodeURIComponent(vat)):''),
+                          {credentials:'same-origin'});
+    const j = await r.json();
+    const repeat = j.repeat_entry || {};
+    return {
+      defaultMap: (repeat.mapping || {}),
+      savedName: (repeat.profile_name || "")
+    };
+  }catch(_){}
+  return { defaultMap:{}, savedName:"" };
+}
+  // Άνοιγμα modal: ΠΑΝΤΑ καθαρό render, χωρίς διπλο-append
+  async function openModal(){
+  const VAT = "{{ vat or '' }}";
+  const hint = document.getElementById('charMissingHint');
+  if(hint){ hint.style.display='none'; hint.textContent=''; }
+
+  // 1) φέρνουμε προφίλ + tags + repeat state (mapping + ενεργό όνομα προφίλ)
+  const [profiles, defaultFromGet, state] = await Promise.all([
+    (async () => {
+      try {
+        const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
+        const j = await r.json();
+        // αν επέστρεψε expense_tags, ανανέωσε τα διαθέσιμα (χωρίς "αποδειξακια")
+        if (Array.isArray(j.expense_tags)) {
+          window.CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+        }
+        return (j.profiles || []).map(p => ({...p, mapping: normalizeMapping(p.mapping || p.map || {})}));
+      } catch { return []; }
+    })(),
+    (async () => {
+      try {
+        const r = await fetch('/api/repeat_entry/get?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
+        const j = await r.json();
+        return (j && j.repeat_entry && j.repeat_entry.mapping) || {};
+      } catch { return {}; }
+    })(),
+    fetchRepeatState(VAT) // <-- φέρνει defaultMap + savedName
+  ]);
+
+  const defaultMap = Object.keys(state.defaultMap || {}).length ? state.defaultMap : defaultFromGet;
+  const savedName  = state.savedName || "";
+
+  // 2) γέμισε το dropdown των προφίλ (πρώτο = "Γενικό")
+  const sel = document.getElementById('charProfileSelect');
+  if(sel){
+    sel.innerHTML = "";
+    const o0 = document.createElement('option');
+    o0.value = "";
+    o0.textContent = "Γενικό";
+    o0.dataset.mapping = JSON.stringify(normalizeMapping(defaultMap || {}));
+    sel.appendChild(o0);
+
+    profiles.forEach(p=>{
+      const o = document.createElement('option');
+      o.value = p.name || p.id || "";
+      o.textContent = p.name || "(χωρίς όνομα)";
+      o.dataset.id = p.id || "";
+      o.dataset.mapping = JSON.stringify(normalizeMapping(p.mapping || p.map || {}));
+      sel.appendChild(o);
+    });
+
+    // 3) αν έχει αποθηκευτεί ενεργό προφίλ, επίλεξέ το και προ-συμπλήρωσε
+    if (savedName && Array.from(sel.options).some(o => o.value === savedName)){
+      sel.value = savedName;
+      try{
+        const m = JSON.parse(sel.selectedOptions[0].dataset.mapping || "{}");
+        renderMapping(m);
+        setActiveProfileHint(savedName);
+
+      }catch{
+        renderMapping(defaultMap);
+      }
+    } else {
+      sel.value = "";
+      renderMapping(defaultMap); // "Γενικό"
+      setActiveProfileHint("");
+
+    }
+
+    sel.onchange = () => {
+      const opt = sel.selectedOptions[0];
+      const m = (opt && opt.dataset.mapping) ? JSON.parse(opt.dataset.mapping) : defaultMap;
+      renderMapping(m);
+      setActiveProfileHint(sel.value || "");
+
+      hint && (hint.style.display='none', hint.textContent='');
+    };
+  } else {
+    // αν για κάποιο λόγο δεν υπάρχει το select, τουλάχιστον δείξε τα dropdowns
+    renderMapping(defaultMap);
+  }
+
+  document.getElementById('repeatMappingModal').style.display = 'flex';
+}
+  
+  document.getElementById('editRepeatMappingBtn')?.addEventListener('click', openModal);
+  
+
+  // Εξαγωγή για χρήση από αλλού
+  window.openRepeatModal = openModal;
+  // auto-open του modal όταν έρχομαι από profiles με ?open_repeat=1
+try {
+  const p = new URLSearchParams(location.search);
+  if (p.get('open_repeat') === '1') {
+    setTimeout(() => { window.openRepeatModal && window.openRepeatModal(); }, 0);
+  }
+} catch {}
+
+})();
+</script>
+
+<script>
+(function(){
+  const VAT = "{{ vat or '' }}";
+
+  // Διαβάζουμε το mapping που βλέπει ο χρήστης στο modal (0/6/13/17/24)
+  function readPercentMappingFromUI(){
+    // Αν υπάρχει ήδη helper στη σελίδα σου, χρησιμοποίησέ τον
+    if (typeof window.readMappingFromUI === 'function') {
+      try {
+        const r = window.readMappingFromUI(); // συνήθως { out: { "0%": "...", ... } }
+        return (r && (r.out || r.mapping)) || r || {};
+      } catch(e) {}
+    }
+    // Fallback: δοκίμασε data-vat ή γνωστά ids
+    const pick = (sel) => (document.querySelector(sel)?.value || "");
+    return {
+      "0%":  pick('[data-vat="0%"]')  || pick('#repeat_vat_0')  || pick('#vat_0'),
+      "6%":  pick('[data-vat="6%"]')  || pick('#repeat_vat_6')  || pick('#vat_6'),
+      "13%": pick('[data-vat="13%"]') || pick('#repeat_vat_13') || pick('#vat_13'),
+      "17%": pick('[data-vat="17%"]') || pick('#repeat_vat_17') || pick('#vat_17'),
+      "24%": pick('[data-vat="24%"]') || pick('#repeat_vat_24') || pick('#vat_24'),
+    };
+  }
+
+  // Μετατροπή από ποσοστά -> kat_fpa_* για /api/profiles/save
+  
+  // Δένουμε hook στο κουμπί "Αποθήκευση" του modal χωρίς να πειράξουμε την υπάρχουσα ροή σου
+  const saveBtn = document.getElementById('repeatModalSave');
+  if (saveBtn && !saveBtn.dataset._profileUpdateBound){
+    saveBtn.addEventListener('click', async function(){
+      try{
+        const sel = document.getElementById('charProfileSelect');
+        if (!sel) return;
+
+        const profileName = (sel.value || '').trim();
+        // Αν είναι "Γενικό" (κενό value), δεν ενημερώνουμε profile στο credentials
+        if (!profileName) return;
+
+        const opt = sel.selectedOptions && sel.selectedOptions[0];
+        const profileId = (opt && opt.dataset && opt.dataset.id) ? opt.dataset.id : "";
+
+        // Διάβασε το mapping που έβαλε ο χρήστης στα dropdowns του modal τώρα
+        const pctMap = readPercentMappingFromUI();      // 0/6/13/17/24
+        const katMap = percentToKat(pctMap);            // kat_fpa_*
+
+        if (profileId){
+          // ΚΥΡΙΑ ΟΔΟΣ: Update στο credentials ΜΕ id -> δεν δημιουργεί νέο στο rename
+          const r = await fetch('/api/profiles/save', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            credentials:'same-origin',
+            body: JSON.stringify({ id: profileId, name: profileName, map: katMap })
+          });
+          const j = await r.json().catch(()=>null);
+          if (!(j && j.ok)) {
+            console.warn('profiles/save failed:', j);
+            // Fallback (σπάνια χρειάζεται): legacy char_profiles με mapping σε ποσοστά
+            await fetch('/api/char_profiles/save', {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json' },
+              credentials:'same-origin',
+              body: JSON.stringify({ vat: VAT, name: profileName, mapping: pctMap })
+            });
+          }
+        } else {
+          // Δεν έχουμε id (παλιό/legacy profile) -> fallback σε char_profiles (ποσοστά)
+          await fetch('/api/char_profiles/save', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            credentials:'same-origin',
+            body: JSON.stringify({ vat: VAT, name: profileName, mapping: pctMap })
+          });
+        }
+        // Δεν κάνουμε preventDefault: η δική σου αποθήκευση repeat_entry συνεχίζει κανονικά
+      }catch(err){
+        console.warn('modal profile update failed', err);
+      }
+    }, true); // capture ώστε να τρέξει ανεξάρτητα απ’ τους άλλους listeners
+    saveBtn.dataset._profileUpdateBound = '1';
+  }
+})();
+</script>
+
 
 <script>
 
@@ -406,6 +863,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       const select = document.createElement('select');
       select.className = 'expense-category p-1 border rounded w-full';
       select.dataset.lineId = ln.id || ('l' + idx);
+      select.name = `category[${select.dataset.lineId}]`;
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
       (categories || []).forEach(c => {
@@ -911,16 +1369,18 @@ function prefillSummaryModal(){
 
       // For every element that has data-line-id inside the modal container, read category
       const container = document.getElementById('summaryLinesContainer') || document;
+      const __seen = new Set();
       container.querySelectorAll('[data-line-id]').forEach(el => {
         const lid = String(el.dataset.lineId || '').trim();
-        if(!lid) return;
-        // prefer select.expense-category if present
+        if(!lid || __seen.has(lid)) return;
+        __seen.add(lid);
+        // prefer select.expense-category for this lineId (search in container)
         let chosen = '';
-        const sel = el.querySelector('select.expense-category[data-line-id="'+lid+'"]');
+        const sel = container.querySelector('select.expense-category[data-line-id="'+lid+'"]');
         if(sel && sel.value) chosen = sel.value;
         else {
-          // else look for active category button in same element
-          const btn = el.querySelector('.category-btn.bg-sky-600');
+          // else look for active category button for that lineId
+          const btn = container.querySelector('.category-btn.bg-sky-600[data-line-id="'+lid+'"]');
           if(btn) chosen = btn.dataset.cat || '';
         }
         // find or create line entry
@@ -1025,6 +1485,13 @@ function prefillSummaryModal(){
 })();
 
   const useReceiptsSwitch = document.getElementById('useReceiptsSwitch');
+  useReceiptsSwitch?.addEventListener('change', () => {
+  // ποιο όνομα να δείξω στο hint; πάρε την τρέχουσα επιλογή από το select του modal,
+  // αλλιώς άφησε κενό => θα εμφανιστεί "Γενικό"
+  const name = (document.getElementById('charProfileSelect')?.value || "");
+  setActiveProfileHint(name);
+});
+
   // find or create an URL input (if not present in template we create one dynamically)
   let urlInput = document.getElementById('scrapeUrlInput');
   if(!urlInput){
@@ -1084,110 +1551,135 @@ function prefillSummaryModal(){
 
   // detect vat keys in summary
   function detectVatKeysFromSummary(){
-    if(summaryInput && summaryInput.value){
-      try {
-        const obj = JSON.parse(summaryInput.value || '{}');
-        const lines = Array.isArray(obj.lines) ? obj.lines : [];
-        const set = new Set();
-        lines.forEach(l => {
-          const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-          if(key) set.add(key);
-        });
-        if(set.size) return Array.from(set);
-      } catch(e){ /* ignore */ }
-    }
-    return ['0%','6%','13%','24%'];
-  }
-
-  // Build repeat modal UI given an existing mapping (object)
-  function buildRepeatModalUI(existingMapping){
-    repeatModalList.innerHTML = '';
-    const vatKeys = detectVatKeysFromSummary();
-    const mapping = existingMapping || {};
-    // default row
-    const defaultRow = document.createElement('div');
-    defaultRow.className = 'flex items-center gap-3';
-    defaultRow.innerHTML = `<div class="w-36 text-sm font-medium">Προεπιλογή</div>`;
-    const defaultSelect = document.createElement('select');
-    defaultSelect.className = 'p-1 border rounded flex-1';
-    const opt0 = document.createElement('option'); opt0.value=''; opt0.innerText='-- (κανένα) --'; defaultSelect.appendChild(opt0);
-    CUSTOMER_CATEGORIES.forEach(c=>{
-      const o = document.createElement('option'); o.value = c; o.innerText = c;
-      if(mapping['__default'] === c) o.selected = true;
-      defaultSelect.appendChild(o);
-    });
-    defaultRow.appendChild(defaultSelect);
-    repeatModalList.appendChild(defaultRow);
-
-    vatKeys.forEach(vk=>{
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-3';
-      const label = document.createElement('div');
-      label.className = 'w-36 text-sm font-medium';
-      label.innerText = vk || '(άγνωστο)';
-      const sel = document.createElement('select');
-      sel.className = 'p-1 border rounded flex-1';
-      const oEmpty = document.createElement('option'); oEmpty.value=''; oEmpty.innerText='-- (προεπιλογή) --'; sel.appendChild(oEmpty);
-      CUSTOMER_CATEGORIES.forEach(c=>{
-        const o=document.createElement('option'); o.value=c; o.innerText=c;
-        if(mapping[vk] === c) o.selected = true;
-        sel.appendChild(o);
+  if(summaryInput && summaryInput.value){
+    try {
+      const obj = JSON.parse(summaryInput.value || '{}');
+      const lines = Array.isArray(obj.lines) ? obj.lines : [];
+      const found = new Set();
+      lines.forEach(l => {
+        const key = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
+        if(key) found.add(key);
       });
-      row.appendChild(label);
-      row.appendChild(sel);
-      repeatModalList.appendChild(row);
-    });
+      if(found.size) return Array.from(found);
+    } catch(e){}
   }
+  return ['0%','6%','13%','17%','24%'];
+}
 
-  function openRepeatModalWithMapping(mapping){
-    // If receipts mode is on, block editing mapping because receipts get fixed category
-    if(useReceiptsSwitch && useReceiptsSwitch.checked){
-      alert('Όταν είναι επιλεγμένες οι Αποδείξεις, δεν επιτρέπεται η επεξεργασία χαρακτηρισμών — οι αποδείξεις παίρνουν μόνο την κατηγορία "αποδειξακια".');
-      return;
+      async function getExpenseTagsForVat(vat){
+  // 1. Πρώτα από /api/repeat_entry/get (ήταν η παλιά πηγή)
+  try{
+    const r = await fetch('/api/repeat_entry/get' + (vat?('?vat='+encodeURIComponent(vat)):''),
+                          {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length) {
+      return j.expense_tags.filter(t => t !== 'αποδειξακια'); // όχι στα τιμολόγια
     }
-    buildRepeatModalUI(mapping || {});
-    repeatModal.style.display = 'flex';
+  }catch(_){}
+
+  // 2. Fallback από /api/char_profiles
+  try{
+    const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(vat||''), {credentials:'same-origin'});
+    const j = await r.json();
+    if (j && Array.isArray(j.expense_tags) && j.expense_tags.length) {
+      return j.expense_tags.filter(t => t !== 'αποδειξακια');
+    }
+  }catch(_){}
+
+  // 3. Τελευταίο fallback: SERVER variable / global
+  try{
+    if (Array.isArray({{ customer_categories|tojson|safe }}) && {{ customer_categories|tojson|safe }}.length){
+      return {{ customer_categories|tojson|safe }}.filter(t => t !== 'αποδειξακια');
+    }
+  }catch(_){}
+  if (Array.isArray(window.CUSTOMER_CATEGORIES) && window.CUSTOMER_CATEGORIES.length){
+    return window.CUSTOMER_CATEGORIES.filter(t => t !== 'αποδειξακια');
   }
+  return [];
+}
+  // Build repeat modal UI given an existing mapping (object)
+  
+
+// αντικατάσταση της παλιάς openRepeatModalWithMapping
+function openRepeatModalWithMapping(mapping){
+  // πέρασε το mapping ως override στο νέο renderer
+  window._repeatMappingOverride = mapping ? mapping : null;
+  // άνοιξε το modal από τον ενιαίο renderer
+  if (typeof window.openRepeatModal === 'function') {
+    window.openRepeatModal();
+  }
+}
   function closeRepeatModal(){ repeatModal.style.display = 'none'; }
 
-  // collect mapping from modal selects
-  function collectMappingFromModal(){
-    const mapping = {};
-    const selects = repeatModalList.querySelectorAll('select');
-    if(selects.length){
-      const first = selects[0];
-      if(first && first.value) mapping['__default'] = first.value;
-      const vatKeys = detectVatKeysFromSummary();
-      for(let i=1;i<selects.length;i++){
-        const sel = selects[i];
-        const vatKey = vatKeys[i-1];
-        if(sel && sel.value) mapping[vatKey] = sel.value;
-      }
-    }
-    return mapping;
-  }
+  
+// --- normalize VAT γραμμής σε ένα από τα κλειδιά 0/6/13/17/24 ---
+function normalizeVatKey(s){
+  const t = (s || '').toString().toLowerCase().trim().replace(',', '.');
 
-  // apply given mapping to summary JSON and submit saveSummaryForm
-  function applyMappingToSummaryAndSubmitUsingMapping(mapping){
-    if(!summaryInput || !saveSummaryForm) return false;
-    try {
-      const data = JSON.parse(summaryInput.value || '{}');
-      if(!Array.isArray(data.lines)) data.lines = [];
-      data.lines = data.lines.map(l => {
-        const vatKey = (l.vatCategory || l.vat_category || l.vat || '').toString().trim();
-        if(mapping && mapping[vatKey]) l.category = mapping[vatKey];
-        else if(mapping && mapping.__default) l.category = mapping.__default;
-        return l;
-      });
-      summaryInput.value = JSON.stringify(data);
-      saveSummaryForm.submit();
-      return true;
-    } catch(e){
-      console.warn('applyMappingToSummaryAndSubmitUsingMapping error', e);
-      return false;
-    }
-  }
+  // τυπικά patterns που επιστρέφει myDATA / scrapers
+  if (/\b17\b|17%|17\.0/.test(t)) return '17%';
+  if (/\b24\b|24%|24\.0|κανονικ/.test(t)) return '24%';
+  if (/\b13\b|13%|13\.0/.test(t)) return '13%';
+  if (/\b6\b|6%|6\.0|μειωμ|reduced/.test(t)) return '6%';
+  // 0: μηδενικό, απαλλασσόμενο, χωρίς ΦΠΑ
+  if (/\b0\b|0%|0\.0|μηδεν|απαλλ|χωρις|χωρίς|exempt|no\s*vat/.test(t)) return '0%';
 
+  return ''; // άγνωστο -> θα αφήσει το modal ανοιχτό
+}
+
+// --- εφαρμογή του ενεργού mapping στις γραμμές + auto submit ---
+function applyMappingToSummaryAndSubmitUsingMapping(mapping){
+  const input = document.getElementById('summaryJsonInput');
+  const form  = document.getElementById('saveSummaryForm');
+  if (!input || !form) return false;
+
+  let obj;
+  try { obj = JSON.parse(input.value || '{}'); } catch(e){ obj = {}; }
+  const lines = Array.isArray(obj.lines) ? obj.lines : [];
+  if (!lines.length) return false;
+
+  // Βεβαιώσου ότι έχουμε όλα τα κλειδιά ποσοστών
+  const M = Object.assign(
+    {"0%":"","6%":"","13%":"","17%":"","24%":""},
+    mapping || {}
+  );
+
+  let missing = false;
+  lines.forEach((ln, idx) => {
+    // αν λείπει id, φτιάξτο για συνέπεια
+    if (!ln.id && ln.line_id !== undefined) ln.id = String(ln.line_id);
+    if (!ln.id) ln.id = 'l' + idx;
+
+    const rawVat = (ln.vatCategory || ln.vat_category || ln.vat || '').toString();
+    const key    = normalizeVatKey(rawVat);
+    const cat    = key ? (M[key] || '') : '';
+
+    ln.category = cat;
+    if (!cat) missing = true;
+  });
+
+  // γράψε πίσω στο hidden input
+  input.value = JSON.stringify(obj);
+
+  // Αν λείπουν κατηγορίες -> άστο να φανεί το modal για χειροκίνητα
+  if (missing) return false;
+
+  // Προστασία: μην ξανα-γίνει submit δεύτερη φορά
+  if (window.__repeat_auto_submitting) return true;
+  window.__repeat_auto_submitting = true;
+
+  // Καθάρισε τυχόν πεδία receipts (για να μην μπερδέψουν το submit)
+  const u = document.getElementById('scrapeUrlField');
+  const c = document.getElementById('scrapeCategoryField');
+  const f = document.getElementById('scrapeForceField');
+  if (u) u.value = '';
+  if (c) c.value = '';
+  if (f) f.value = 'false';
+
+  // Κάνε submit στο υπάρχον flow σου
+  try { form.submit(); } catch(_) { window.__repeat_auto_submitting = false; return false; }
+  return true;
+}
   // ---------- Initialization: load server repeat_entry config ----------
   (async function initRepeatEntry(){
     try {
@@ -1202,6 +1694,8 @@ function prefillSummaryModal(){
 
         if(repeatSwitch){
           repeatSwitch.checked = enabled;
+          setActiveProfileHint(enabled ? ((repeat && repeat.profile_name) || "") : "");
+
           // show edit button if mapping exists and receipts not selected
           if(mapping && Object.keys(mapping).length && !(useReceiptsSwitch && useReceiptsSwitch.checked)) editRepeatBtn.classList.remove('hidden');
           repeatSwitch.addEventListener('change', async function(){
@@ -1305,30 +1799,7 @@ function prefillSummaryModal(){
   repeatModalCloseX?.addEventListener('click', closeRepeatModal);
   repeatModalCancel?.addEventListener('click', closeRepeatModal);
 
-  repeatModalSave?.addEventListener('click', async function(){
-    // collect mapping
-    const mapping = collectMappingFromModal();
-    // persist to backend and enable repeat
-    const resp = await apiSaveRepeatEntry(true, mapping, VAT);
-    if (resp && resp.ok) {
-      if (resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length) {
-        CUSTOMER_CATEGORIES = resp.expense_tags.slice();
-      }
-      if (repeatSwitch) repeatSwitch.checked = true;
-      // if receipts mode is on, edited mapping should not be used—hide edit button
-      if (useReceiptsSwitch && useReceiptsSwitch.checked) editRepeatBtn.classList.add('hidden');
-      else editRepeatBtn.classList.remove('hidden');
-
-      showFlash('Αποθηκεύτηκαν οι ρυθμίσεις επαναληπτικής εισαγωγής. Η σελίδα θα επαναφορτωθεί...', 'success', 800);
-      closeRepeatModal();
-      setTimeout(function(){ try { window.location.reload(); } catch(e){ console.warn('reload failed', e); } }, 600);
-      return;
-    } else {
-      console.warn('Failed saving repeat mapping', resp);
-      showFlash('Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.', 'error');
-    }
-  });
-
+  
   // ---------- existing original JS (dismiss banner, force edit, summary modal wiring, etc) ----------
   const forceBtn = document.getElementById('forceEditBtn');
   const markInput = document.getElementById('markInput');
@@ -2023,6 +2494,119 @@ document.addEventListener("DOMContentLoaded", function(){
 
 });
 
+// διαβάζει το mapping από τα 5 select του modal
+function readMappingFromUI(){
+  const out = {};
+  document.querySelectorAll('#repeatMappingList select[data-vat]').forEach(sel=>{
+    out[sel.dataset.vat] = sel.value || '';
+  });
+  return out;
+}
+
+async function saveRepeatModal(){
+  const mapping = readMappingFromUI();
+  const NEED = ["0%","6%","13%","17%","24%"];
+  const missing = NEED.filter(k => !mapping[k]);
+  const hint = document.getElementById('charMissingHint');
+  if (missing.length){
+    if(hint){ hint.style.display=''; hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', '); }
+    return;
+  }
+
+  const sel = document.getElementById('charProfileSelect');
+  const profileName = sel && sel.value ? sel.value : "";
+
+  const res = await fetch('/api/repeat_entry/save', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body: JSON.stringify({
+      vat: VAT,
+      enabled: true,
+      mapping,
+      profile_name: profileName
+    })
+  });
+
+  const j = await res.json().catch(()=>null);
+  if(!j || !j.ok){
+    if(hint){ hint.style.display=''; hint.textContent = (j && j.error) ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.'; }
+    return;
+  }
+
+  // Μήνυμα επιτυχίας
+  alert('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.');
+
+  // Κλείσε modal
+  document.getElementById('repeatMappingModal').style.display = 'none';
+
+  // Αναγραφή ενεργού προφίλ επάνω από το toggle
+  const activeName = j.repeat_entry?.profile_name || profileName || "";
+  setActiveProfileHint(activeName);
+  const sw = document.getElementById('repeatEntrySwitch');
+  if (sw) sw.checked = true;
+}
+
+document.getElementById('repeatModalSave')?.addEventListener('click', async ()=>{
+  const listBox = document.getElementById('repeatMappingList');
+  const hint = document.getElementById('charMissingHint');
+  const sel  = document.getElementById('charProfileSelect');
+  const VAT  = "{{ vat or '' }}";
+
+  // διάβασμα mapping από UI
+  const out = {};
+  const missing = [];
+  listBox.querySelectorAll('select[data-vat]').forEach(sel=>{
+    const k = sel.dataset.vat;
+    const v = (sel.value || '').trim();
+    if(!v) missing.push(k);
+    out[k] = v;
+  });
+  if(missing.length){
+    hint.style.display = '';
+    hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', ');
+    return;
+  }
+  hint.style.display = 'none'; hint.textContent = '';
+
+  const chosenName = (sel && sel.value) ? sel.value : "";
+
+  // αποθήκευση
+  try{
+    const res = await fetch('/api/repeat_entry/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        vat: VAT,
+        enabled: true,
+        mapping: out,              // πάντα 0/6/13/17/24
+        profile_name: chosenName   // ζητάμε να το σώσει
+      })
+    });
+    const j = await res.json();
+    if(!res.ok || !j.ok){
+      const msg = j && j.error ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.';
+      hint.style.display = ''; hint.textContent = msg;
+      return;
+    }
+
+    // κλείσιμο modal
+    document.getElementById('repeatMappingModal').style.display = 'none';
+
+    // ενημέρωση hint επάνω από το toggle
+    const activeName = (j.repeat_entry && j.repeat_entry.profile_name) || chosenName || "";
+    setActiveProfileHint(activeName);
+
+    // μικρό success toast
+    if (typeof showFlash === 'function') showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
+
+    // fallback επιμονής επιλογής (αν για οποιονδήποτε λόγο δεν σωθεί server-side)
+    try { localStorage.setItem('repeatProfile:'+VAT, activeName); } catch(_){}
+  }catch(e){
+    hint.style.display=''; hint.textContent='Δικτυακό σφάλμα.';
+  }
+});
 // === DEBUG SNIPPET: paste near end of your existing scripts ===
 (function(){
   function safeLog(...a){ try{ console.log('[RC-DEBUG]', ...a); }catch(e){} }
@@ -3843,4 +4427,39 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_){}
   })();
 })();</script>
+<script>
+document.addEventListener('click', function(e){
+  const a = e.target.closest('#charProfilesLink');
+  if(!a) return;
+  e.preventDefault();
+  window.location.href = a.getAttribute('href');
+});
+</script>
+
+<script>
+/* Reload όταν ο χρήστης πατάει "Κατάλαβα" στα warning modals */
+(function(){
+  // AFM warning (server-rendered modal with #afmModalConfirm)
+  const afmOk = document.getElementById('afmModalConfirm'); // υπάρχει ήδη στο search.html
+  if (afmOk) {
+    afmOk.addEventListener('click', function(){
+      try { document.getElementById('afmWarningModal').style.display = 'none'; } catch(_){}
+      location.reload();
+    });
+  }
+
+  // Receipt warning (dynamic modal που φτιάχνεται με openReceiptWarning, κουμπί #receiptWarnOk)
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'receiptWarnOk') {
+      try { document.getElementById('receiptWarn').style.display = 'none'; } catch(_){}
+      location.reload();
+    }
+  }, true);
+})();
+</script>
+
+<script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
+<script src="{{ url_for('static', filename='receipts_autosubmit_strict.js') }}"></script>
+
+
 <!-- ===== end SHIM ===== -->
