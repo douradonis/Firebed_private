@@ -260,9 +260,15 @@ function katToPercent(k){
       return Array.isArray(arr) ? arr.filter(x => x !== 'αποδειξακια') : [];
     } catch(e){ return []; }
   })();
+  window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
   const CATEGORY_LABELS = (function(){
     try {
       return {{ (customer_category_labels or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+  let CATEGORY_VAT_CONSTRAINTS = (function(){
+    try {
+      return {{ (category_vat_constraints or {}) | tojson | safe }} || {};
     } catch(e){ return {}; }
   })();
   const labelForCategory = (val) => {
@@ -275,6 +281,48 @@ function katToPercent(k){
   };
   window.CATEGORY_LABELS = CATEGORY_LABELS;
   window.labelForCategory = labelForCategory;
+  window.CATEGORY_VAT_CONSTRAINTS = CATEGORY_VAT_CONSTRAINTS;
+
+  const deriveVatKey = (raw) => {
+    if(raw === undefined || raw === null) return '';
+    const str = String(raw).trim();
+    const match = str.match(/(\d+)\s*%/);
+    if(match){
+      const num = match[1];
+      if(VAT_KEYS.includes(`${num}%`)){
+        return `${num}%`;
+      }
+    }
+    const lower = str.toLowerCase();
+    if(/κατ[\s_]*α/.test(lower) || /fpa[\s_]*a/.test(lower)) return '24%';
+    if(/κατ[\s_]*b/.test(lower) || /fpa[\s_]*b/.test(lower)) return '6%';
+    if(/κατ[\s_]*γ/.test(lower) || /kat[\s_]*g/.test(lower)) return '13%';
+    if(/κατ[\s_]*δ/.test(lower) || /kat[\s_]*d/.test(lower)) return '17%';
+    if(/κατ[\s_]*ε/.test(lower) || /kat[\s_]*e/.test(lower)) return '24%';
+    if(lower.includes('24')) return '24%';
+    if(lower.includes('17')) return '17%';
+    if(lower.includes('13')) return '13%';
+    if(lower.includes('6')) return '6%';
+    if(lower.includes('0') || lower.includes('ανευ') || lower.includes('χωρίς') || lower.includes('μηδ')) return '0%';
+    return '';
+  };
+
+  const allowedCategoryForVat = (cat, vatKey) => {
+    if(!cat) return true;
+    const arr = CATEGORY_VAT_CONSTRAINTS && CATEGORY_VAT_CONSTRAINTS[String(cat)];
+    if(!arr || !arr.length) return true;
+    return arr.includes(vatKey);
+  };
+
+  const categoriesForVat = (vatKey, baseList) => {
+    const list = Array.isArray(baseList) ? baseList : CUSTOMER_CATEGORIES;
+    if(!vatKey) return list.slice();
+    return (list || []).filter(cat => allowedCategoryForVat(cat, vatKey));
+  };
+
+  window.deriveVatKeyForUI = deriveVatKey;
+  window.allowedCategoryForVat = allowedCategoryForVat;
+  window.categoriesForVatForUI = (vatKey) => categoriesForVat(vatKey, CUSTOMER_CATEGORIES);
 
   
   async function fetchDefaultMapping() {
@@ -292,6 +340,17 @@ function katToPercent(k){
       const j = await r.json();
       if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
         CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+        window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
+      }
+      if (j && j.category_labels) {
+        Object.assign(CATEGORY_LABELS, j.category_labels);
+        if (window.CATEGORY_LABELS) {
+          Object.assign(window.CATEGORY_LABELS, j.category_labels);
+        }
+      }
+      if (j && j.vat_constraints) {
+        CATEGORY_VAT_CONSTRAINTS = j.vat_constraints || {};
+        window.CATEGORY_VAT_CONSTRAINTS = CATEGORY_VAT_CONSTRAINTS;
       }
       if (j && j.category_labels) {
         Object.assign(CATEGORY_LABELS, j.category_labels);
@@ -873,6 +932,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
 
     const tbody = document.createElement('tbody');
     tbody.id = 'renderedLinesTableBody';
+    let invalidFound = false;
     lines.forEach((ln, idx) => {
       const tr = document.createElement('tr');
       tr.dataset.lineId = ln.id || ('l' + idx);
@@ -891,17 +951,34 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       select.name = `category[${select.dataset.lineId}]`;
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
-      (categories || []).forEach(c => {
+      const vatKey = deriveVatKey(ln.vatCategory || ln.vat || ln.vat_category || '');
+      const allowed = categoriesForVat(vatKey, categories);
+      const previousCat = ln.category || '';
+      allowed.forEach(c => {
         const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-        if(c === ln.category) o.selected = true;
+        if(c === previousCat) o.selected = true;
         select.appendChild(o);
       });
 
       tr.querySelector('td:last-child').appendChild(select);
+      if(previousCat && !allowed.includes(previousCat)){
+        invalidFound = true;
+        select.value = '';
+        const warn = document.createElement('div');
+        warn.className = 'text-xs text-red-600 mt-1';
+        const label = labelForCategory(previousCat);
+        warn.textContent = vatKey
+          ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
+          : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
+        tr.querySelector('td:last-child').appendChild(warn);
+      }
       tbody.appendChild(tr);
     });
 
     table.appendChild(tbody);
+    if(invalidFound){
+      try { setTimeout(() => { if(typeof updateSummaryFromDom === 'function'){ updateSummaryFromDom(); } }, 0); } catch(e){}
+    }
     return table;
   }
 
@@ -927,7 +1004,10 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     const btnwrap = document.createElement('div');
     btnwrap.id = 'renderedCategoryButtons';
     btnwrap.className = 'mt-2 flex flex-wrap gap-2';
-    (categories || []).forEach(c => {
+    const vatKey = deriveVatKey(line.vatCategory || line.vat || line.vat_category || '');
+    const allowed = categoriesForVat(vatKey, categories);
+    const previousCat = line.category || '';
+    allowed.forEach(c => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
@@ -940,6 +1020,16 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       }
       btnwrap.appendChild(btn);
     });
+
+    if(previousCat && !allowed.includes(previousCat)){
+      const warn = document.createElement('div');
+      warn.className = 'text-xs text-red-600 mt-2';
+      const label = labelForCategory(previousCat);
+      warn.textContent = vatKey
+        ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
+        : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
+      controls.appendChild(warn);
+    }
 
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
@@ -963,12 +1053,19 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   }
 
   // read categories from server-provided global or from a safe default
-  function getCategories(){
+  function getCategories(vatKey){
+    let base = [];
     try {
       const js = (function(){ try { return {{ customer_categories | tojson | safe }}; } catch(e){ return null; } })();
-      if(Array.isArray(js) && js.length) return js;
+      if(Array.isArray(js) && js.length){
+        base = js.slice();
+      }
     } catch(e){}
-    return window.CUSTOMER_CATEGORIES || [];
+    if(!base.length){
+      base = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES.slice() : [];
+    }
+    if(!vatKey) return base;
+    return categoriesForVat(vatKey, base);
   }
 
   // render everything into the container
@@ -1117,6 +1214,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       </tr>
     </thead>`;
     const tbody = document.createElement('tbody');
+    let invalidFound = false;
     lines.forEach((ln, idx) => {
       const lid = (ln.id !== undefined) ? String(ln.id) : ('l' + idx);
       const vat_cat = ln.vatCategory || ln.vat_category || ln.vat || '';
@@ -1138,9 +1236,12 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       sel.className = 'expense-category p-1 border rounded w-full';
       sel.dataset.lineId = lid;
       const opt0 = document.createElement('option'); opt0.value = ''; opt0.innerText = '-- επίλεξε --'; sel.appendChild(opt0);
-      (window.CUSTOMER_CATEGORIES || []).forEach(c => {
+      const vatKey = deriveVatKey(vat_cat);
+      const allowed = categoriesForVat(vatKey, window.CUSTOMER_CATEGORIES);
+      const previousCat = (ln.category || '');
+      (allowed || []).forEach(c => {
         const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-        if ((ln.category || '') === c) o.selected = true;
+        if (previousCat === c) o.selected = true;
         sel.appendChild(o);
       });
       sel.addEventListener('change', function(){
@@ -1151,6 +1252,18 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
         persist();
       });
       td.appendChild(sel);
+      if(previousCat && !allowed.includes(previousCat)){
+        invalidFound = true;
+        const found = (obj.lines || []).find(x => String(x.id || x.line_id || '') === lid);
+        if(found) found.category = '';
+        const warn = document.createElement('div');
+        warn.className = 'text-xs text-red-600 mt-1';
+        const label = labelForCategory(previousCat);
+        warn.textContent = vatKey
+          ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
+          : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
+        td.appendChild(warn);
+      }
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);
@@ -1159,6 +1272,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     wrapper.className = 'overflow-auto max-h-96 border rounded';
     wrapper.appendChild(tbl);
     container.appendChild(wrapper);
+    if(invalidFound){ persist(); }
     persist();
     return;
   }
@@ -1193,15 +1307,17 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   btnRow.id = 'categoryButtons';
   btnRow.className = 'mt-2 flex flex-wrap gap-2';
 
-    (window.CUSTOMER_CATEGORIES || []).forEach(c => {
+    const vatKeySingle = deriveVatKey(vat_cat);
+    const allowedSingle = categoriesForVat(vatKeySingle, window.CUSTOMER_CATEGORIES);
+    (allowedSingle || []).forEach(c => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
       b.dataset.cat = c;
       b.dataset.lineId = lid;
-    b.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-    if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
-    b.addEventListener('click', function(){
+      b.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
+      if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
+      b.addEventListener('click', function(){
       const cat = this.dataset.cat;
       // toggle selection
       const currently = (obj.lines[0].category || '');
@@ -1215,6 +1331,17 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     });
     btnRow.appendChild(b);
   });
+
+  if(selected_cat && !allowedSingle.includes(selected_cat)){
+    obj.lines[0].category = '';
+    const warn = document.createElement('div');
+    warn.className = 'text-xs text-red-600 mt-2';
+    const label = labelForCategory(selected_cat);
+    warn.textContent = vatKeySingle
+      ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKeySingle}. Επέλεξε άλλη.`
+      : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
+    chooseWrap.appendChild(warn);
+  }
 
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
@@ -1413,6 +1540,11 @@ function prefillSummaryModal(){
         if(!found){
           found = { id: lid, category: '' };
           data.lines.push(found);
+        }
+        const rawVat = el.dataset ? (el.dataset.vat || el.dataset.vatcat || '') : '';
+        const vatKey = deriveVatKey(rawVat);
+        if(chosen && vatKey && !allowedCategoryForVat(chosen, vatKey)){
+          chosen = '';
         }
         found.category = chosen || '';
       });

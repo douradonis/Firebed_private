@@ -441,6 +441,32 @@ def _normalize_custom_accounts(accounts: Optional[Dict[str, Any]]) -> Dict[str, 
     return out
 
 
+def _allowed_vat_keys_for_category(item: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(item, dict):
+        return []
+    accounts = _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {})
+    allowed: List[str] = []
+    for rate in VAT_RATE_NUMERIC:
+        code = accounts.get(rate, "")
+        if code:
+            allowed.append(f"{rate}%")
+    return allowed
+
+
+def _category_vat_constraints(client: Optional[Dict[str, Any]]) -> Dict[str, List[str]]:
+    constraints: Dict[str, List[str]] = {}
+    if not isinstance(client, dict):
+        return constraints
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        allowed = _allowed_vat_keys_for_category(item)
+        if allowed:
+            constraints[slug] = allowed
+    return constraints
+
+
 def _merge_settings_with_custom(settings: Dict[str, Any], client: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     merged = dict(settings or {})
     if not isinstance(client, dict):
@@ -466,11 +492,13 @@ def _custom_categories_payload(client: Optional[Dict[str, Any]]) -> List[Dict[st
         slug = str(item.get("id") or item.get("slug") or "").strip()
         if not slug:
             continue
+        accounts = _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {})
         payload.append({
             "id": slug,
             "label": str(item.get("label") or slug),
             "enabled": bool(item.get("enabled")),
-            "accounts": _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {}),
+            "accounts": accounts,
+            "allowed_vat_keys": _allowed_vat_keys_for_category(item),
         })
     return payload
 def _resolve_client_db_path(vat: str) -> str | None:
@@ -3984,6 +4012,7 @@ def search():
             "αμοιβες_τριτων",
             "δαπανες_χωρις_φπα"
         ]
+    customer_vat_constraints = _category_vat_constraints(active_cred)
 
     # --- Handle JSON AJAX request to save repeat mapping ---
     if request.method == "POST" and request.is_json:
@@ -4597,13 +4626,14 @@ def search():
         allow_edit_existing=allow_edit_existing,
         vat=vat,
         active_page="search",
-        table_html = strip_server_totals(table_html),
+        table_html=strip_server_totals(table_html),
         file_exists=file_exists,
         css_numcols=css_numcols,
         modal_warning=modal_warning,
         fiscal_mismatch_block=fiscal_mismatch_block,
         repeat_entry_conf=repeat_entry_conf,
-        active_year=active_year_val
+        active_year=active_year_val,
+        category_vat_constraints=customer_vat_constraints,
     )
 @app.get("/profiles")
 def profiles_page():
@@ -4612,8 +4642,15 @@ def profiles_page():
     categories = _get_expense_tags(creds, vat)
     client = _find_client(creds, vat=vat) or {}
     labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
     # δίνουμε πάντα λίστα (όχι Undefined)
-    return render_template("profiles.html", vat=vat, customer_categories=categories, category_labels=labels)
+    return render_template(
+        "profiles.html",
+        vat=vat,
+        customer_categories=categories,
+        category_labels=labels,
+        vat_constraints=constraints,
+    )
 
 
 @app.route("/custom_categories", methods=["GET"])
@@ -4634,6 +4671,17 @@ def custom_categories_page():
 
     categories = _custom_categories_payload(client)
     labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
+    client_name = str((client or {}).get("name") or "").strip()
+    return_name = (request.args.get("return_name") or client_name).strip()
+    return_args: Dict[str, str] = {}
+    if vat:
+        return_args["vat"] = vat
+    if return_name:
+        return_args["return_name"] = return_name
+    if return_args:
+        return_args["open_custom"] = "1"
+    return_url = url_for("credentials", **return_args)
     return render_template(
         "custom_categories.html",
         vat=vat,
@@ -4641,6 +4689,9 @@ def custom_categories_page():
         category_labels=labels,
         default_labels=DEFAULT_INVOICE_CATEGORY_LABELS,
         vat_rates=VAT_RATE_NUMERIC,
+        vat_constraints=constraints,
+        credential_name=client_name,
+        return_url=return_url,
         active_page="custom_categories",
     )
 
@@ -4662,6 +4713,7 @@ def custom_categories_save():
         flash("Ο πελάτης δεν βρέθηκε.", "error")
         return redirect(url_for("custom_categories_page", vat=vat))
 
+    client_name = str(client.get("name") or "").strip()
     existing_slugs = {str(cat.get("id") or cat.get("slug") or "").strip() for cat in _ensure_custom_categories_list(client)}
     if slug:
         target = None
@@ -4676,7 +4728,7 @@ def custom_categories_save():
     else:
         if not label:
             flash("Συμπλήρωσε τίτλο κατηγορίας.", "error")
-            return redirect(url_for("custom_categories_page", vat=vat))
+            return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
         slug = _slugify_custom_category(label, existing_slugs)
         target = {"id": slug}
         _ensure_custom_categories_list(client).append(target)
@@ -4691,7 +4743,7 @@ def custom_categories_save():
 
     save_credentials(creds)
     flash("Η κατηγορία αποθηκεύτηκε.", "success")
-    return redirect(url_for("custom_categories_page", vat=vat))
+    return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
 
 
 @app.post("/custom_categories/delete")
@@ -4708,6 +4760,7 @@ def custom_categories_delete():
         flash("Ο πελάτης δεν βρέθηκε.", "error")
         return redirect(url_for("custom_categories_page", vat=vat))
 
+    client_name = str(client.get("name") or "").strip()
     arr = _ensure_custom_categories_list(client)
     new_arr = [cat for cat in arr if str(cat.get("id") or cat.get("slug") or "").strip() != slug]
     client["custom_categories"] = new_arr
@@ -4736,7 +4789,7 @@ def custom_categories_delete():
 
     save_credentials(creds)
     flash("Η κατηγορία διαγράφηκε.", "success")
-    return redirect(url_for("custom_categories_page", vat=vat))
+    return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
 
 @app.get("/api/char_profiles")
 def api_char_profiles_get():
@@ -4747,7 +4800,14 @@ def api_char_profiles_get():
     profiles = client.get("char_profiles", [])
     expense_tags = _list_invoice_categories(client)
     labels = _category_labels_for_client(client)
-    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags, category_labels=labels)
+    constraints = _category_vat_constraints(client)
+    return jsonify(
+        ok=True,
+        profiles=profiles,
+        expense_tags=expense_tags,
+        category_labels=labels,
+        vat_constraints=constraints,
+    )
 
 @app.post("/api/char_profiles/save")
 def api_char_profiles_save():
@@ -4760,13 +4820,38 @@ def api_char_profiles_save():
     name = (data.get("name") or "").strip()
     mapping = data.get("mapping") or {}
 
-    if not (vat and name and all(mapping.get(k) for k in ("kat_fpa_a","kat_fpa_b","kat_fpa_g","kat_fpa_d"))):
+    if not (
+        vat
+        and name
+        and all(mapping.get(k) for k in ("kat_fpa_a", "kat_fpa_b", "kat_fpa_g", "kat_fpa_d", "kat_fpa_e"))
+    ):
         return jsonify(ok=False, error="Παράμετροι λείπουν"), 400
 
     creds = _load_credentials()
     client = _find_client(creds, vat=vat)
     if not client:
         return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+
+    constraints = _category_vat_constraints(client)
+    labels = _category_labels_for_client(client)
+    vat_by_key = {
+        "kat_fpa_a": "0%",
+        "kat_fpa_b": "6%",
+        "kat_fpa_g": "13%",
+        "kat_fpa_d": "17%",
+        "kat_fpa_e": "24%",
+    }
+    for key, vat_label in vat_by_key.items():
+        val = str(mapping.get(key) or "").strip()
+        if not val:
+            continue
+        allowed = constraints.get(val)
+        if allowed is not None and vat_label not in allowed:
+            display = labels.get(val, val)
+            return jsonify(
+                ok=False,
+                error=f"Η κατηγορία '{display}' δεν υποστηρίζει ΦΠΑ {vat_label}.",
+            ), 400
 
     arr = list(client.get("char_profiles", []))
     # upsert
@@ -4809,13 +4894,15 @@ def char_profiles_ui():
     client = _find_client(creds, vat=vat) or {}
     expense_tags = _list_invoice_categories(client)
     labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
     profiles = client.get("char_profiles", [])
     return render_template(
         "profiles.html",
         vat=client.get("vat",""),
         expense_tags=expense_tags,
         profiles=profiles,
-        category_labels=labels
+        category_labels=labels,
+        vat_constraints=constraints,
     )
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
