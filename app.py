@@ -21,6 +21,7 @@ from shutil import move
 import importlib
 import io
 import csv
+import unicodedata
 from epsilon_bridge_multiclient_strict import (
     run_and_report_dynamic,  # <-- απαιτείται
     # προαιρετικά: export_multiclient_strict
@@ -248,7 +249,7 @@ def _profiles_get_for_active():
         return [], []
     c = creds[idx]
     c.setdefault("char_profiles", [])  # [{id,name,map}]
-    tags = [t for t in (c.get("expense_tags") or []) if str(t).strip().lower() != "αποδειξακια"]
+    tags = _list_invoice_categories(c)
     return c["char_profiles"], tags
 
 def _profiles_set_for_active(profiles):
@@ -351,6 +352,127 @@ DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
 CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
 
 VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+VAT_RATE_NUMERIC = ["0", "6", "13", "17", "24"]
+
+DEFAULT_INVOICE_CATEGORY_LABELS: Dict[str, str] = {
+    "αγορες_εμπορευματων": "Αγορές εμπορευμάτων",
+    "αγορες_α_υλων": "Αγορές α' υλών",
+    "γενικες_δαπανες": "Γενικές δαπάνες",
+    "γενικες_δαπανες_με_φπα": "Γενικές δαπάνες με ΦΠΑ",
+    "αμοιβες_τριτων": "Αμοιβές και έξοδα τρίτων",
+    "δαπανες_χωρις_φπα": "Δαπάνες χωρίς δικαίωμα έκπτωσης ΦΠΑ",
+    "εγγυοδοσια": "Εγγυοδοσία",
+    "αποδειξακια": "Αποδειξάκια",
+}
+
+
+def _ensure_custom_categories_list(client: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(client, dict):
+        return []
+    arr = client.get("custom_categories")
+    if isinstance(arr, list):
+        return arr
+    client["custom_categories"] = []
+    return client["custom_categories"]
+
+
+def _category_labels_for_client(client: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
+    if not isinstance(client, dict):
+        return labels
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        label = str(item.get("label") or slug).strip()
+        if label:
+            labels[slug] = label
+    return labels
+
+
+def _list_invoice_categories(client: Optional[Dict[str, Any]], include_receipts: bool = False) -> List[str]:
+    if not isinstance(client, dict):
+        return []
+    out: List[str] = []
+    for tag in client.get("expense_tags") or []:
+        if not tag:
+            continue
+        tag_str = str(tag).strip()
+        if not tag_str:
+            continue
+        if not include_receipts and tag_str.lower() == "αποδειξακια":
+            continue
+        if tag_str not in out:
+            out.append(tag_str)
+    for item in _ensure_custom_categories_list(client):
+        if not item or not item.get("enabled"):
+            continue
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if slug and slug not in out:
+            out.append(slug)
+    return out
+
+
+def _slugify_custom_category(label: str, existing: Optional[set[str]] = None) -> str:
+    existing = existing or set()
+    base = _normalize(label or "")
+    base = base.replace(" ", "_")
+    base = re.sub(r"[^a-z0-9_]+", "", base)
+    base = re.sub(r"_+", "_", base).strip("_")
+    if not base:
+        base = "custom"
+    if not base.startswith("custom_"):
+        base = f"custom_{base}"
+    candidate = base
+    counter = 2
+    while candidate in existing:
+        candidate = f"{base}_{counter}"
+        counter += 1
+    return candidate
+
+
+def _normalize_custom_accounts(accounts: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    accounts = accounts or {}
+    for rate in VAT_RATE_NUMERIC:
+        raw = accounts.get(rate)
+        val = str(raw).strip() if isinstance(raw, (str, int, float)) else ""
+        out[rate] = val
+    return out
+
+
+def _merge_settings_with_custom(settings: Dict[str, Any], client: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged = dict(settings or {})
+    if not isinstance(client, dict):
+        return merged
+    for cat in _ensure_custom_categories_list(client):
+        slug = str(cat.get("id") or cat.get("slug") or "").strip()
+        if not slug:
+            continue
+        accounts = _normalize_custom_accounts(cat.get("accounts") if isinstance(cat, dict) else {})
+        for rate, code in accounts.items():
+            if not code:
+                continue
+            key = f"account_{slug}_fpa_kat_{rate}%"
+            merged[key] = code
+    return merged
+
+
+def _custom_categories_payload(client: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(client, dict):
+        return []
+    payload: List[Dict[str, Any]] = []
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        payload.append({
+            "id": slug,
+            "label": str(item.get("label") or slug),
+            "enabled": bool(item.get("enabled")),
+            "accounts": _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {}),
+        })
+    return payload
 def _resolve_client_db_path(vat: str) -> str | None:
     """
     Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
@@ -658,7 +780,7 @@ def _get_customer(creds, vat: str, create=False):
             if str(c.get("vat", "")).strip() == vat:
                 return c, ("list", i)
         if create and vat:
-            newc = {"vat": vat, "expense_tags": []}
+            newc = {"vat": vat, "expense_tags": [], "custom_categories": []}
             creds.append(newc)
             return newc, ("list", len(creds)-1)
         return None, ("list", None)
@@ -667,19 +789,14 @@ def _get_customer(creds, vat: str, create=False):
         if vat in customers:
             return customers[vat], ("dict", vat)
         if create and vat:
-            customers[vat] = {"vat": vat, "expense_tags": []}
+            customers[vat] = {"vat": vat, "expense_tags": [], "custom_categories": []}
             return customers[vat], ("dict", vat)
         return None, ("dict", None)
     return None, ("unknown", None)
 
 def _get_expense_tags(creds, vat: str):
     cust, _ = _get_customer(creds, vat, create=False)
-    tags = []
-    if isinstance(cust, dict):
-        tags = list(cust.get("expense_tags") or [])
-    # φιλτράρουμε το 'αποδειξακια'
-    tags = [t for t in tags if (t or "").strip() and t.strip().lower() != "αποδειξακια"]
-    return tags
+    return _list_invoice_categories(cust)
 
 def _get_char_profiles(creds, vat: str):
     cust, _ = _get_customer(creds, vat, create=False)
@@ -2664,15 +2781,8 @@ def api_repeat_entry_get_v2():
         "profile_name": (repeat_raw.get("profile_name") or "").strip(),
     }
 
-    # expense_tags (χωρίς 'αποδειξάκια')
-    raw_tags = client_rec.get('expense_tags') or []
-    if isinstance(raw_tags, str):
-        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-    elif isinstance(raw_tags, list):
-        tags = [str(t) for t in raw_tags]
-    else:
-        tags = []
-    tags = [t for t in tags if t.strip().lower() not in ("αποδειξακια", "αποδειξάκια")]
+    tags = _list_invoice_categories(client_rec)
+    labels = _category_labels_for_client(client_rec)
 
     # afm/vat για πληρότητα
     afm_guess = ""
@@ -2686,6 +2796,7 @@ def api_repeat_entry_get_v2():
         "ok": True,
         "repeat_entry": repeat,
         "expense_tags": tags,
+        "category_labels": labels,
     }
     if afm_guess:
         resp["afm"] = afm_guess
@@ -2745,15 +2856,10 @@ def api_repeat_entry_get():
         resp = dict(base_resp)
         # if we can extract expense_tags from session_cred, include them
         try:
-            raw_tags = (session_cred.get('expense_tags') if isinstance(session_cred, dict) else None) or []
-            if isinstance(raw_tags, str):
-                expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-            elif isinstance(raw_tags, list):
-                expense_tags = [str(t) for t in raw_tags]
-            else:
-                expense_tags = []
+            expense_tags = _list_invoice_categories(session_cred)
             if expense_tags:
                 resp['expense_tags'] = expense_tags
+                resp['category_labels'] = _category_labels_for_client(session_cred)
         except Exception:
             pass
 
@@ -2767,13 +2873,8 @@ def api_repeat_entry_get():
     repeat = (client_rec.get('repeat_entry') if isinstance(client_rec, dict) else {}) or {"enabled": False, "mapping": {}}
 
     # normalize expense_tags
-    raw_tags = (client_rec.get('expense_tags') if isinstance(client_rec, dict) else None) or []
-    if isinstance(raw_tags, str):
-        expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-    elif isinstance(raw_tags, list):
-        expense_tags = [str(t) for t in raw_tags]
-    else:
-        expense_tags = []
+    expense_tags = _list_invoice_categories(client_rec)
+    category_labels = _category_labels_for_client(client_rec)
 
     # try to extract afm/vat from client_rec (many possible key names)
     afm_found = ""
@@ -2821,7 +2922,8 @@ def api_repeat_entry_get():
     resp = {
         "ok": True,
         "repeat_entry": repeat,
-        "expense_tags": expense_tags
+        "expense_tags": expense_tags,
+        "category_labels": category_labels,
     }
     # include descriptive client object (don't leak secrets) - include some fields if present
     try:
@@ -2895,16 +2997,10 @@ def api_repeat_entry_save():
 
     write_credentials_list(creds)
 
-    # Κανονικοποίηση expense_tags για ασφαλή επιστροφή (λίστα strings)
-    raw_tags = client.get("expense_tags") or []
-    if isinstance(raw_tags, str):
-        expense_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
-    elif isinstance(raw_tags, list):
-        expense_tags = [str(t) for t in raw_tags]
-    else:
-        expense_tags = []
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
 
-    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags)
+    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags, category_labels=labels)
 
 
 
@@ -2933,6 +3029,7 @@ def credentials_add():
         'expense_tags': expense_tags,
         'apodeixakia_type': apodeixakia_type,
         'apodeixakia_supplier': apodeixakia_supplier,
+        'custom_categories': [],
         'active': False
     }
     credentials.append(new_cred)
@@ -3359,7 +3456,8 @@ def credentials_edit(name):
             "expense_tags": expense_tags,
             # Αποθηκεύουμε και τα apodeixakia πεδία
             "apodeixakia_type": apodeixakia_type,
-            "apodeixakia_supplier": apodeixakia_supplier
+            "apodeixakia_supplier": apodeixakia_supplier,
+            "custom_categories": credential.get("custom_categories", [])
         }
 
         updated = False
@@ -3866,12 +3964,9 @@ def search():
     vat = active_cred.get("vat") if active_cred else None
 
     # load customer_categories default from active_cred (used for invoices)
+    customer_category_labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
     try:
-        raw_tags = active_cred.get("expense_tags") if active_cred else None
-        if isinstance(raw_tags, str):
-            customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
-        elif isinstance(raw_tags, list):
-            customer_categories = raw_tags
+        customer_categories = _list_invoice_categories(active_cred)
         if not customer_categories:
             customer_categories = [
                 "αγορες_εμπορευματων",
@@ -3880,6 +3975,7 @@ def search():
                 "αμοιβες_τριτων",
                 "δαπανες_χωρις_φπα"
             ]
+        customer_category_labels.update(_category_labels_for_client(active_cred))
     except Exception:
         customer_categories = [
             "αγορες_εμπορευματων",
@@ -4497,6 +4593,7 @@ def search():
         modal_summary=modal_summary,
         invoice_lines=invoice_lines,
         customer_categories=customer_categories,
+        customer_category_labels=customer_category_labels,
         allow_edit_existing=allow_edit_existing,
         vat=vat,
         active_page="search",
@@ -4513,8 +4610,133 @@ def profiles_page():
     vat = (request.args.get("vat") or "").strip()
     creds = _load_credentials()
     categories = _get_expense_tags(creds, vat)
+    client = _find_client(creds, vat=vat) or {}
+    labels = _category_labels_for_client(client)
     # δίνουμε πάντα λίστα (όχι Undefined)
-    return render_template("profiles.html", vat=vat, customer_categories=categories)
+    return render_template("profiles.html", vat=vat, customer_categories=categories, category_labels=labels)
+
+
+@app.route("/custom_categories", methods=["GET"])
+def custom_categories_page():
+    vat = (request.args.get("vat") or "").strip()
+    active = get_active_credential_from_session() or {}
+    if not vat:
+        vat = str(active.get("vat") or "").strip()
+
+    creds = load_credentials()
+    client = None
+    for c in creds:
+        if str(c.get("vat") or "").strip() == vat:
+            client = c
+            break
+    if client is None and active and str(active.get("vat") or "").strip() == vat:
+        client = active
+
+    categories = _custom_categories_payload(client)
+    labels = _category_labels_for_client(client)
+    return render_template(
+        "custom_categories.html",
+        vat=vat,
+        categories=categories,
+        category_labels=labels,
+        default_labels=DEFAULT_INVOICE_CATEGORY_LABELS,
+        vat_rates=VAT_RATE_NUMERIC,
+        active_page="custom_categories",
+    )
+
+
+@app.post("/custom_categories/save")
+def custom_categories_save():
+    vat = str(request.form.get("vat") or "").strip()
+    label = str(request.form.get("label") or "").strip()
+    slug = str(request.form.get("id") or "").strip()
+    enabled = request.form.get("enabled") in ("on", "true", "1")
+
+    if not vat:
+        flash("Επιλογή πελάτη (VAT) απαιτείται.", "error")
+        return redirect(url_for("custom_categories_page"))
+
+    creds = load_credentials()
+    client = next((c for c in creds if str(c.get("vat") or "").strip() == vat), None)
+    if not client:
+        flash("Ο πελάτης δεν βρέθηκε.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    existing_slugs = {str(cat.get("id") or cat.get("slug") or "").strip() for cat in _ensure_custom_categories_list(client)}
+    if slug:
+        target = None
+        for cat in _ensure_custom_categories_list(client):
+            if str(cat.get("id") or cat.get("slug") or "").strip() == slug:
+                target = cat
+                break
+        if target is None:
+            existing_slugs.discard(slug)
+            target = {"id": slug}
+            _ensure_custom_categories_list(client).append(target)
+    else:
+        if not label:
+            flash("Συμπλήρωσε τίτλο κατηγορίας.", "error")
+            return redirect(url_for("custom_categories_page", vat=vat))
+        slug = _slugify_custom_category(label, existing_slugs)
+        target = {"id": slug}
+        _ensure_custom_categories_list(client).append(target)
+
+    if label:
+        target["label"] = label
+    target["enabled"] = bool(enabled)
+    accounts = {}
+    for rate in VAT_RATE_NUMERIC:
+        accounts[rate] = str(request.form.get(f"account_{rate}") or "").strip()
+    target["accounts"] = accounts
+
+    save_credentials(creds)
+    flash("Η κατηγορία αποθηκεύτηκε.", "success")
+    return redirect(url_for("custom_categories_page", vat=vat))
+
+
+@app.post("/custom_categories/delete")
+def custom_categories_delete():
+    vat = str(request.form.get("vat") or "").strip()
+    slug = str(request.form.get("id") or "").strip()
+    if not (vat and slug):
+        flash("Ανεπαρκή στοιχεία διαγραφής.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    creds = load_credentials()
+    client = next((c for c in creds if str(c.get("vat") or "").strip() == vat), None)
+    if not client:
+        flash("Ο πελάτης δεν βρέθηκε.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    arr = _ensure_custom_categories_list(client)
+    new_arr = [cat for cat in arr if str(cat.get("id") or cat.get("slug") or "").strip() != slug]
+    client["custom_categories"] = new_arr
+
+    # καθάρισε repeat mapping που δείχνουν σε αυτή την κατηγορία
+    repeat = client.get("repeat_entry")
+    if isinstance(repeat, dict):
+        mapping = repeat.get("mapping") or {}
+        for key, val in list(mapping.items()):
+            if str(val).strip() == slug:
+                mapping[key] = ""
+        repeat["mapping"] = mapping
+        client["repeat_entry"] = repeat
+
+    # καθάρισε char_profiles
+    profiles = client.get("char_profiles")
+    if isinstance(profiles, list):
+        for prof in profiles:
+            if not isinstance(prof, dict):
+                continue
+            mp = prof.get("mapping")
+            if isinstance(mp, dict):
+                for key, val in list(mp.items()):
+                    if str(val).strip() == slug:
+                        mp[key] = ""
+
+    save_credentials(creds)
+    flash("Η κατηγορία διαγράφηκε.", "success")
+    return redirect(url_for("custom_categories_page", vat=vat))
 
 @app.get("/api/char_profiles")
 def api_char_profiles_get():
@@ -4523,10 +4745,9 @@ def api_char_profiles_get():
     creds = _load_credentials()
     client = _find_client(creds, vat=vat) or {}
     profiles = client.get("char_profiles", [])
-    expense_tags = client.get("expense_tags", [])
-    # Αποκλείουμε τα 'αποδειξακια' από τα τιμολόγια
-    expense_tags = [t for t in expense_tags if t != "αποδειξακια"]
-    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags)
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
+    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags, category_labels=labels)
 
 @app.post("/api/char_profiles/save")
 def api_char_profiles_save():
@@ -4586,13 +4807,15 @@ def char_profiles_ui():
     vat = request.args.get("vat","").strip()
     creds = _load_credentials()
     client = _find_client(creds, vat=vat) or {}
-    expense_tags = [t for t in client.get("expense_tags", []) if t != "αποδειξακια"]
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
     profiles = client.get("char_profiles", [])
     return render_template(
         "profiles.html",
         vat=client.get("vat",""),
         expense_tags=expense_tags,
-        profiles=profiles
+        profiles=profiles,
+        category_labels=labels
     )
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
