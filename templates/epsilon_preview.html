@@ -111,6 +111,19 @@ function custidCell(custid){
   return String(custid);
 }
 
+function hasMissingCategory(lines){
+  return (lines||[]).some(ln => !String((ln && ln.category) || '').trim());
+}
+function hasMissingVat(lines){
+  return (lines||[]).some(ln => {
+    const v = (ln && (ln.vat_rate_in ?? ln.vat_rate));
+    return v === null || v === undefined || String(v).trim() === '';
+  });
+}
+function hasMissingAccounts(lines){
+  return (lines||[]).some(ln => !String((ln && ln.lcode_detail) || '').trim());
+}
+
 function childRowsHtml(lines){
   if(!lines || !lines.length) return '<div class="text-sm text-gray-500 p-2">—</div>';
   let rows = lines.map((ln,i)=>`
@@ -139,14 +152,19 @@ function childRowsHtml(lines){
     </table>`;
 }
 
+function isReceipt(doctxt){
+  const t = (doctxt||'').toString().toLowerCase();
+  return t.includes('αποδειξ') || t.includes('receipt') || t.includes('λιαν');
+}
+
 function allRowsValid(api){
   const data = api.rows({search:'applied'}).data();
   let ok = data.length > 0;
   for(let i=0;i<data.length;i++){
     const r = data[i];
     const hasCust = !(r.CUSTID === null || r.CUSTID === undefined || r.CUSTID === '');
-    const hasChar = !!String(r.CHARACTS||'').trim();
-    const hasLcodes = !!String(r.LCODES||'').trim();
+    const hasChar = !r._missChar && !!String(r.CHARACTS||'').trim();
+    const hasLcodes = !r._missLcodes && !!String(r.LCODES||'').trim();
     if(!hasCust || !hasChar || !hasLcodes){ ok = false; break; }
   }
   return ok;
@@ -177,22 +195,33 @@ $(function(){
   }
 
   const dt = $('#epsilonTable').DataTable({
-    data: (TABLE_DATA||[]).map(r => ({
-      _expand: r.LINES && r.LINES.length>1 ? '+' : '',
-      MARK: r.MARK || '',
-      DATE: r.DATE || '',
-      AFM: r.AFM_ISSUER || '',
-      NAME: r.ISSUER_NAME || '',
-      CUSTID: r.CUSTID,
-      AA: r.AA || '',
-      NET: Number(r.NET)||0,
-      VAT: Number(r.VAT)||0,
-      GROSS: Number(r.GROSS)||0,
-      DOCTYPE: r.DOCTYPE || '',
-      CHARACTS: r.CHARACTS || '',
-      LCODES: r.LCODE_DETAIL_SUMMARY || '',
-      _lines: r.LINES || []
-    })),
+    data: (TABLE_DATA||[]).map(r => {
+      const lines = r.LINES || [];
+      const missChar = hasMissingCategory(lines);
+      const missVat  = hasMissingVat(lines);
+      const missAcc  = hasMissingAccounts(lines) || !String(r.LCODE_DETAIL_SUMMARY||'').trim();
+      const isRec    = isReceipt(r.DOCTYPE);
+      return {
+        _expand: lines.length>1 ? '+' : '',
+        MARK: r.MARK || '',
+        DATE: r.DATE || '',
+        AFM: r.AFM_ISSUER || '',
+        NAME: r.ISSUER_NAME || '',
+        CUSTID: r.CUSTID,
+        AA: r.AA || '',
+        NET: Number(r.NET)||0,
+        VAT: Number(r.VAT)||0,
+        GROSS: Number(r.GROSS)||0,
+        DOCTYPE: r.DOCTYPE || '',
+        CHARACTS: r.CHARACTS || '',
+        LCODES: r.LCODE_DETAIL_SUMMARY || '',
+        _lines: lines,
+        _missChar: missChar,
+        _missVat: missVat,
+        _missLcodes: missAcc,
+        _isReceipt: isRec
+      };
+    }),
     columns: [
       { data: '_expand', className:'toggle-cell', orderable:false, searchable:false,
         render: (d,t,row)=> row._lines && row._lines.length>1 ? '<span class="text-sky-700 font-bold">+</span>' : ''
@@ -200,15 +229,41 @@ $(function(){
       { data: 'MARK', visible:false },     // hide MARK
       { data: 'DATE' },
       { data: 'AFM' },
-      { data: 'NAME', render:(d)=> warnIfEmpty(d,'Λείπει όνομα εκδότη') },
+      { data: 'NAME', render:(d,t,row)=> row._isReceipt ? (d||'') : warnIfEmpty(d,'Λείπει όνομα εκδότη') },
       { data: 'CUSTID', render:(d)=> custidCell(d) },
       { data: 'AA', render:(d)=> warnIfEmpty(d,'Λείπει Α/Α') },
       { data: 'NET', className:'text-right', render:(d)=> money(d) },
       { data: 'VAT', className:'text-right', render:(d)=> money(d) },
       { data: 'GROSS', className:'text-right', render:(d)=> money(d) },
-      { data: 'DOCTYPE', render:(d)=> warnIfEmpty(d,'Λείπει είδος') },
-      { data: 'CHARACTS', render:(d)=> warnIfEmpty(d,'Λείπουν χαρακτηρισμοί') },
-      { data: 'LCODES', render:(d)=> warnIfEmpty(d,'Λείπουν λογαριασμοί') },
+      { data: 'DOCTYPE', render:(d,t,row)=> {
+          if(row._isReceipt){
+            return d||''; // για αποδείξεις: χωρίς badges
+          }
+          const base = warnIfEmpty(d,'Λείπει είδος');
+          return row._missVat ? (base + ' ' + warnBadge('Λείπει ΦΠΑ σε γραμμές')) : base;
+        } 
+      },
+      { data: 'CHARACTS', render:(d,t,row)=> {
+          const baseTxt = String(d||'').trim();
+          if(row._isReceipt){
+            return baseTxt; // για αποδείξεις: χωρίς badges στους χαρακτηρισμούς
+          }
+          if(row._missChar){
+            const b = warnBadge('Λείπουν χαρακτηρισμοί σε γραμμές');
+            return baseTxt ? (baseTxt + ' ' + b) : b;
+          }
+          return warnIfEmpty(baseTxt,'Λείπουν χαρακτηρισμοί');
+        } 
+      },
+      { data: 'LCODES', render:(d,t,row)=> {
+          const baseTxt = String(d||'').trim();
+          if(row._missLcodes){
+            const b = warnBadge('Λείπουν λογαριασμοί σε γραμμές');
+            return baseTxt ? (baseTxt + ' ' + b) : b;
+          }
+          return warnIfEmpty(baseTxt,'Λείπουν λογαριασμοί');
+        } 
+      },
     ],
     order: [[2,'desc']],
     pageLength: 25,
