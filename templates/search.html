@@ -260,6 +260,21 @@ function katToPercent(k){
       return Array.isArray(arr) ? arr.filter(x => x !== 'αποδειξακια') : [];
     } catch(e){ return []; }
   })();
+  const CATEGORY_LABELS = (function(){
+    try {
+      return {{ (customer_category_labels or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+  const labelForCategory = (val) => {
+    if(!val) return '';
+    const key = String(val);
+    if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
+      return CATEGORY_LABELS[key];
+    }
+    return key;
+  };
+  window.CATEGORY_LABELS = CATEGORY_LABELS;
+  window.labelForCategory = labelForCategory;
 
   
   async function fetchDefaultMapping() {
@@ -277,6 +292,12 @@ function katToPercent(k){
       const j = await r.json();
       if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
         CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+      }
+      if (j && j.category_labels) {
+        Object.assign(CATEGORY_LABELS, j.category_labels);
+        if (window.CATEGORY_LABELS) {
+          Object.assign(window.CATEGORY_LABELS, j.category_labels);
+        }
       }
       // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
       const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
@@ -314,7 +335,7 @@ function katToPercent(k){
 
     const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— επίλεξε —'; sel.appendChild(o0);
     CUSTOMER_CATEGORIES.forEach(t => {
-      const o = document.createElement('option'); o.value = t; o.textContent = t;
+      const o = document.createElement('option'); o.value = t; o.textContent = labelForCategory(t);
       if (t === selected) o.selected = true;
       sel.appendChild(o);
     });
@@ -453,6 +474,10 @@ function katToPercent(k){
         // αν επέστρεψε expense_tags, ανανέωσε τα διαθέσιμα (χωρίς "αποδειξακια")
         if (Array.isArray(j.expense_tags)) {
           window.CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+        }
+        if (j && j.category_labels) {
+          window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+          Object.assign(window.CATEGORY_LABELS, j.category_labels);
         }
         return (j.profiles || []).map(p => ({...p, mapping: normalizeMapping(p.mapping || p.map || {})}));
       } catch { return []; }
@@ -867,7 +892,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
       (categories || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
+        const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
         if(c === ln.category) o.selected = true;
         select.appendChild(o);
       });
@@ -908,7 +933,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
       btn.dataset.cat = c;
       btn.dataset.lineId = line.id || 'l0';
-      btn.innerText = c;
+      btn.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
       if(c === line.category){
         btn.classList.add('bg-sky-600');
         btn.classList.add('text-white');
@@ -1114,7 +1139,7 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       sel.dataset.lineId = lid;
       const opt0 = document.createElement('option'); opt0.value = ''; opt0.innerText = '-- επίλεξε --'; sel.appendChild(opt0);
       (window.CUSTOMER_CATEGORIES || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
+        const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
         if ((ln.category || '') === c) o.selected = true;
         sel.appendChild(o);
       });
@@ -1168,13 +1193,13 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   btnRow.id = 'categoryButtons';
   btnRow.className = 'mt-2 flex flex-wrap gap-2';
 
-  (window.CUSTOMER_CATEGORIES || []).forEach(c => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
-    b.dataset.cat = c;
-    b.dataset.lineId = lid;
-    b.innerText = c;
+    (window.CUSTOMER_CATEGORIES || []).forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
+      b.dataset.cat = c;
+      b.dataset.lineId = lid;
+    b.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
     if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
     b.addEventListener('click', function(){
       const cat = this.dataset.cat;
@@ -1689,6 +1714,10 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
           CUSTOMER_CATEGORIES = resp.expense_tags.slice();
         }
+        if(resp.category_labels){
+          window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+          Object.assign(window.CATEGORY_LABELS, resp.category_labels);
+        }
         const enabled = !!repeat.enabled;
         const mapping = repeat.mapping || {};
 
@@ -1727,6 +1756,10 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
               showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
               if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
                 CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
+              }
+              if(saveResp.category_labels){
+                window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+                Object.assign(window.CATEGORY_LABELS, saveResp.category_labels);
               }
             } else {
               showFlash('Αποτυχία αποθήκευσης ρύθμισης.', 'error');
