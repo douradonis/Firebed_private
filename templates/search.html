@@ -352,6 +352,12 @@ function katToPercent(k){
         CATEGORY_VAT_CONSTRAINTS = j.vat_constraints || {};
         window.CATEGORY_VAT_CONSTRAINTS = CATEGORY_VAT_CONSTRAINTS;
       }
+      if (j && j.category_labels) {
+        Object.assign(CATEGORY_LABELS, j.category_labels);
+        if (window.CATEGORY_LABELS) {
+          Object.assign(window.CATEGORY_LABELS, j.category_labels);
+        }
+      }
       // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
       const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
         ...p, mapping: normalizeMapping(p.mapping || {})
