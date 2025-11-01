@@ -156,15 +156,16 @@
 
 
 {% if modal_warning %}
-<div id="afmWarningModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-50 overflow-auto p-4" data-role="modal-warning">
-    <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="afmWarningTitle">
-        <button type="button" class="modal-warning-close" data-close-modal="afmWarningModal">×</button>
-        <div class="modal-warning-title" id="afmWarningTitle">Προειδοποίηση</div>
-        <div id="afmWarningBody" class="modal-warning-body">
+<div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
+        </div>
+        <div id="afmWarningBody" class="mb-4 text-gray-700">
             {{ modal_warning }}
         </div>
-        <div class="modal-warning-actions">
-            <button id="afmModalConfirm" class="modal-warning-btn modal-warning-btn--confirm">Κατάλαβα</button>
+        <div class="flex justify-end gap-2">
+            <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
         </div>
     </div>
 </div>
@@ -190,38 +191,6 @@ function isReceiptsOn(){
   return !!(r && r.checked);
 }
 
-function redirectToReceiptsFlow(){
-  try { localStorage.setItem('UI:useReceipts', '1'); } catch(_){ }
-  try { localStorage.setItem('useReceiptsSwitch', '1'); } catch(_){ }
-  const sw = document.getElementById('useReceiptsSwitch');
-  if (sw) {
-    sw.checked = true;
-  }
-  try {
-    const current = new URL(window.location.href);
-    if (current.searchParams.get('use_receipts') !== '1') {
-      current.searchParams.set('use_receipts', '1');
-      window.location.replace(current.toString());
-    } else {
-      window.location.reload();
-    }
-  } catch(err) {
-    try {
-      const params = new URLSearchParams(window.location.search || '');
-      params.set('use_receipts', '1');
-      const next = window.location.pathname + '?' + params.toString();
-      if ((window.location.pathname + window.location.search) === next) {
-        window.location.reload();
-      } else {
-        window.location.assign(next);
-      }
-    } catch(_) {
-      window.location.reload();
-    }
-  }
-}
-window.redirectToReceiptsFlow = redirectToReceiptsFlow;
-
 function setActiveProfileHint(name){
   const el = document.getElementById('activeRepeatProfileHint');
   const sw = document.getElementById('repeatEntrySwitch');
@@ -240,6 +209,55 @@ function setActiveProfileHint(name){
 
 </script>
 <script>
+function relabelSummaryModal(){
+  const modal = document.getElementById('summaryModal');
+  if(!modal) return;
+
+  // Κελιά που δείχνουν την κατηγορία ως κείμενο
+  modal.querySelectorAll('[data-cat-key], .category-cell, .summary-category')
+    .forEach(el=>{
+      const raw = el.getAttribute('data-cat-key') || el.textContent.trim();
+      el.textContent = labelForCategory(raw);
+    });
+
+  // Επιλογές dropdown (αν έχει select για κατηγορία)
+  modal.querySelectorAll('select[name$="[category]"] option')
+    .forEach(o=>{ o.textContent = labelForCategory(o.value); });
+}
+
+// Αν έχεις ήδη openModal(id), απλά κάλεσέ το εκεί:
+const oldOpenModal = window.openModal || function(id){
+  document.getElementById(id)?.classList.remove('hidden');
+};
+// helper: βεβαιώσου ότι τα labels έχουν φορτωθεί
+async function ensureCategoryLabelsLoaded(){
+  if (window.__labelsPrimed) return;
+  try {
+    const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), { credentials: 'same-origin' });
+    const j = await r.json();
+    if (j && j.category_labels) {
+      // Το CATEGORY_LABELS υπάρχει ήδη στο αρχείο (ίδιο scope με labelForCategory)
+      Object.assign(CATEGORY_LABELS, j.category_labels);
+      if (window.CATEGORY_LABELS) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+    }
+  } catch(e) {}
+  window.__labelsPrimed = true;
+}
+
+// ΠΑΛΙΟ
+// window.openModal = function(id){
+//   oldOpenModal(id);
+//   if(id === 'summaryModal') relabelSummaryModal();
+// };
+
+// ΝΕΟ
+window.openModal = function(id){
+  oldOpenModal(id);
+  if (id === 'summaryModal') {
+    ensureCategoryLabelsLoaded().then(() => { try { relabelSummaryModal(); } catch(_){} });
+  }
+};
+
 // Δέχεται είτε ποσοστά είτε kat_fpa_* και επιστρέφει ΠΑΝΤΑ ποσοστά σύμφωνα με: Α→0, Β→6, Γ→13, Δ→17, Ε→24
 // ΚΑΝΟΝΑΣ: Α→0%, Β→6%, Γ→13%, Δ→17%, Ε→24%
 function normalizeMapping(m){
@@ -291,69 +309,6 @@ function katToPercent(k){
       return Array.isArray(arr) ? arr.filter(x => x !== 'αποδειξακια') : [];
     } catch(e){ return []; }
   })();
-  window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
-  const CATEGORY_LABELS = (function(){
-    try {
-      return {{ (customer_category_labels or {}) | tojson | safe }} || {};
-    } catch(e){ return {}; }
-  })();
-  let CATEGORY_VAT_CONSTRAINTS = (function(){
-    try {
-      return {{ (category_vat_constraints or {}) | tojson | safe }} || {};
-    } catch(e){ return {}; }
-  })();
-  const labelForCategory = (val) => {
-    if(!val) return '';
-    const key = String(val);
-    if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
-      return CATEGORY_LABELS[key];
-    }
-    return key;
-  };
-  window.CATEGORY_LABELS = CATEGORY_LABELS;
-  window.labelForCategory = labelForCategory;
-  window.CATEGORY_VAT_CONSTRAINTS = CATEGORY_VAT_CONSTRAINTS;
-
-  const deriveVatKey = (raw) => {
-    if(raw === undefined || raw === null) return '';
-    const str = String(raw).trim();
-    const match = str.match(/(\d+)\s*%/);
-    if(match){
-      const num = match[1];
-      if(VAT_KEYS.includes(`${num}%`)){
-        return `${num}%`;
-      }
-    }
-    const lower = str.toLowerCase();
-    if(/κατ[\s_]*α/.test(lower) || /fpa[\s_]*a/.test(lower)) return '24%';
-    if(/κατ[\s_]*b/.test(lower) || /fpa[\s_]*b/.test(lower)) return '6%';
-    if(/κατ[\s_]*γ/.test(lower) || /kat[\s_]*g/.test(lower)) return '13%';
-    if(/κατ[\s_]*δ/.test(lower) || /kat[\s_]*d/.test(lower)) return '17%';
-    if(/κατ[\s_]*ε/.test(lower) || /kat[\s_]*e/.test(lower)) return '24%';
-    if(lower.includes('24')) return '24%';
-    if(lower.includes('17')) return '17%';
-    if(lower.includes('13')) return '13%';
-    if(lower.includes('6')) return '6%';
-    if(lower.includes('0') || lower.includes('ανευ') || lower.includes('χωρίς') || lower.includes('μηδ')) return '0%';
-    return '';
-  };
-
-  const allowedCategoryForVat = (cat, vatKey) => {
-    if(!cat) return true;
-    const arr = CATEGORY_VAT_CONSTRAINTS && CATEGORY_VAT_CONSTRAINTS[String(cat)];
-    if(!arr || !arr.length) return true;
-    return arr.includes(vatKey);
-  };
-
-  const categoriesForVat = (vatKey, baseList) => {
-    const list = Array.isArray(baseList) ? baseList : CUSTOMER_CATEGORIES;
-    if(!vatKey) return list.slice();
-    return (list || []).filter(cat => allowedCategoryForVat(cat, vatKey));
-  };
-
-  window.deriveVatKeyForUI = deriveVatKey;
-  window.allowedCategoryForVat = allowedCategoryForVat;
-  window.categoriesForVatForUI = (vatKey) => categoriesForVat(vatKey, CUSTOMER_CATEGORIES);
 
   
   async function fetchDefaultMapping() {
@@ -371,23 +326,10 @@ function katToPercent(k){
       const j = await r.json();
       if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
         CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
-        window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
       }
       if (j && j.category_labels) {
         Object.assign(CATEGORY_LABELS, j.category_labels);
-        if (window.CATEGORY_LABELS) {
-          Object.assign(window.CATEGORY_LABELS, j.category_labels);
-        }
-      }
-      if (j && j.vat_constraints) {
-        CATEGORY_VAT_CONSTRAINTS = j.vat_constraints || {};
-        window.CATEGORY_VAT_CONSTRAINTS = CATEGORY_VAT_CONSTRAINTS;
-      }
-      if (j && j.category_labels) {
-        Object.assign(CATEGORY_LABELS, j.category_labels);
-        if (window.CATEGORY_LABELS) {
-          Object.assign(window.CATEGORY_LABELS, j.category_labels);
-        }
+      if (window.CATEGORY_LABELS) Object.assign(window.CATEGORY_LABELS, j.category_labels);
       }
       // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
       const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
@@ -426,6 +368,7 @@ function katToPercent(k){
     const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— επίλεξε —'; sel.appendChild(o0);
     CUSTOMER_CATEGORIES.forEach(t => {
       const o = document.createElement('option'); o.value = t; o.textContent = labelForCategory(t);
+
       if (t === selected) o.selected = true;
       sel.appendChild(o);
     });
@@ -564,10 +507,6 @@ function katToPercent(k){
         // αν επέστρεψε expense_tags, ανανέωσε τα διαθέσιμα (χωρίς "αποδειξακια")
         if (Array.isArray(j.expense_tags)) {
           window.CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
-        }
-        if (j && j.category_labels) {
-          window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
-          Object.assign(window.CATEGORY_LABELS, j.category_labels);
         }
         return (j.profiles || []).map(p => ({...p, mapping: normalizeMapping(p.mapping || p.map || {})}));
       } catch { return []; }
@@ -802,6 +741,18 @@ try {
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
 const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
 const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
+const CATEGORY_LABELS = (function(){
+  try { return {{ (customer_category_labels or {}) | tojson | safe }} || {}; }
+  catch(e){ return {}; }
+})();
+const labelForCategory = (val) => {
+  if(!val) return '';
+  const key = String(val);
+  if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
+    return CATEGORY_LABELS[key];
+  }
+  return key;
+};
 
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
@@ -829,30 +780,21 @@ async function getActiveFiscalYear() {
     if(!m){
       var el=document.createElement('div');
       el.id=id;
-      el.className='fixed inset-0 hidden items-center justify-center bg-black/40 z-[9999] p-4';
-      el.setAttribute('data-role','modal-warning');
+      el.style.cssText='position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999';
       el.innerHTML =
-        '<div class="modal-warning-panel" role="dialog" aria-modal="true">'
-        + '<button type="button" class="modal-warning-close" data-close-modal="receiptWarn">×</button>'
-        + '<div class="modal-warning-title">Προειδοποίηση</div>'
-        + '<div id="receiptWarnBody" class="modal-warning-body"></div>'
-        + '<div class="modal-warning-actions"><button id="receiptWarnOk" type="button" class="modal-warning-btn modal-warning-btn--confirm">Κατάλαβα</button></div>'
+        '<div style="background:#fff;border-radius:10px;max-width:480px;width:calc(100% - 32px);padding:20px;">'
+        + '<h3 style="margin:0 0 10px;color:#b91c1c;font-weight:600;font-size:18px">Προειδοποίηση</h3>'
+        + '<div id="receiptWarnBody" style="margin-bottom:14px;color:#374151;font-size:14px"></div>'
+        + '<div style="text-align:right"><button id="receiptWarnOk" type="button"'
+        + ' style="background:#b91c1c;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer">Κατάλαβα</button></div>'
         + '</div>';
       document.body.appendChild(el);
-      var hide = function(){ el.style.display='none'; el.classList.add('hidden'); };
-      el.addEventListener('click', function(e){ if(e.target===el) hide(); });
-      var closeBtn = el.querySelector('[data-close-modal="receiptWarn"]');
-      if(closeBtn){ closeBtn.addEventListener('click', hide); }
-      var okBtn = el.querySelector('#receiptWarnOk');
-      if(okBtn){
-        okBtn.addEventListener('click', hide);
-        okBtn.dataset.receiptsRedirect = '1';
-      }
+      el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
+      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
       m = el;
     }
     var body = m.querySelector('#receiptWarnBody');
     if(body) body.textContent = message || 'Προειδοποίηση.';
-    m.classList.remove('hidden');
     m.style.display='flex';
   };
 })();
@@ -972,7 +914,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
 
     const tbody = document.createElement('tbody');
     tbody.id = 'renderedLinesTableBody';
-    let invalidFound = false;
     lines.forEach((ln, idx) => {
       const tr = document.createElement('tr');
       tr.dataset.lineId = ln.id || ('l' + idx);
@@ -991,34 +932,18 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       select.name = `category[${select.dataset.lineId}]`;
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
-      const vatKey = deriveVatKey(ln.vatCategory || ln.vat || ln.vat_category || '');
-      const allowed = categoriesForVat(vatKey, categories);
-      const previousCat = ln.category || '';
-      allowed.forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-        if(c === previousCat) o.selected = true;
+      (categories || []).forEach(c => {
+        const o = document.createElement('option'); o.value = c; o.textContent = labelForCategory(c);
+
+        if(c === ln.category) o.selected = true;
         select.appendChild(o);
       });
 
       tr.querySelector('td:last-child').appendChild(select);
-      if(previousCat && !allowed.includes(previousCat)){
-        invalidFound = true;
-        select.value = '';
-        const warn = document.createElement('div');
-        warn.className = 'text-xs text-red-600 mt-1';
-        const label = labelForCategory(previousCat);
-        warn.textContent = vatKey
-          ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
-          : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
-        tr.querySelector('td:last-child').appendChild(warn);
-      }
       tbody.appendChild(tr);
     });
 
     table.appendChild(tbody);
-    if(invalidFound){
-      try { setTimeout(() => { if(typeof updateSummaryFromDom === 'function'){ updateSummaryFromDom(); } }, 0); } catch(e){}
-    }
     return table;
   }
 
@@ -1044,32 +969,20 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     const btnwrap = document.createElement('div');
     btnwrap.id = 'renderedCategoryButtons';
     btnwrap.className = 'mt-2 flex flex-wrap gap-2';
-    const vatKey = deriveVatKey(line.vatCategory || line.vat || line.vat_category || '');
-    const allowed = categoriesForVat(vatKey, categories);
-    const previousCat = line.category || '';
-    allowed.forEach(c => {
+    (categories || []).forEach(c => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
       btn.dataset.cat = c;
       btn.dataset.lineId = line.id || 'l0';
       btn.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
+
       if(c === line.category){
         btn.classList.add('bg-sky-600');
         btn.classList.add('text-white');
       }
       btnwrap.appendChild(btn);
     });
-
-    if(previousCat && !allowed.includes(previousCat)){
-      const warn = document.createElement('div');
-      warn.className = 'text-xs text-red-600 mt-2';
-      const label = labelForCategory(previousCat);
-      warn.textContent = vatKey
-        ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
-        : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
-      controls.appendChild(warn);
-    }
 
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
@@ -1093,19 +1006,12 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   }
 
   // read categories from server-provided global or from a safe default
-  function getCategories(vatKey){
-    let base = [];
+  function getCategories(){
     try {
       const js = (function(){ try { return {{ customer_categories | tojson | safe }}; } catch(e){ return null; } })();
-      if(Array.isArray(js) && js.length){
-        base = js.slice();
-      }
+      if(Array.isArray(js) && js.length) return js;
     } catch(e){}
-    if(!base.length){
-      base = Array.isArray(window.CUSTOMER_CATEGORIES) ? window.CUSTOMER_CATEGORIES.slice() : [];
-    }
-    if(!vatKey) return base;
-    return categoriesForVat(vatKey, base);
+    return window.CUSTOMER_CATEGORIES || [];
   }
 
   // render everything into the container
@@ -1220,6 +1126,8 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
           if(disp !== 'none'){
             // modal visible -> render (ensure DOM inside ready)
             setTimeout(renderSummaryLines, 10);
+            setTimeout(relabelSummaryModal, 20);
+
           }
         }
       });
@@ -1254,7 +1162,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       </tr>
     </thead>`;
     const tbody = document.createElement('tbody');
-    let invalidFound = false;
     lines.forEach((ln, idx) => {
       const lid = (ln.id !== undefined) ? String(ln.id) : ('l' + idx);
       const vat_cat = ln.vatCategory || ln.vat_category || ln.vat || '';
@@ -1276,14 +1183,14 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       sel.className = 'expense-category p-1 border rounded w-full';
       sel.dataset.lineId = lid;
       const opt0 = document.createElement('option'); opt0.value = ''; opt0.innerText = '-- επίλεξε --'; sel.appendChild(opt0);
-      const vatKey = deriveVatKey(vat_cat);
-      const allowed = categoriesForVat(vatKey, window.CUSTOMER_CATEGORIES);
-      const previousCat = (ln.category || '');
-      (allowed || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-        if (previousCat === c) o.selected = true;
-        sel.appendChild(o);
+      // ΝΕΟ
+      (window.CUSTOMER_CATEGORIES || []).forEach(c => {
+      const o = document.createElement('option'); o.value = c;
+      o.textContent = (typeof labelForCategory === 'function' ? labelForCategory(c) : c);
+      if ((ln.category || '') === c) o.selected = true;
+      sel.appendChild(o);
       });
+
       sel.addEventListener('change', function(){
         const val = this.value;
         // find line in obj and update
@@ -1292,18 +1199,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
         persist();
       });
       td.appendChild(sel);
-      if(previousCat && !allowed.includes(previousCat)){
-        invalidFound = true;
-        const found = (obj.lines || []).find(x => String(x.id || x.line_id || '') === lid);
-        if(found) found.category = '';
-        const warn = document.createElement('div');
-        warn.className = 'text-xs text-red-600 mt-1';
-        const label = labelForCategory(previousCat);
-        warn.textContent = vatKey
-          ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKey}. Επέλεξε άλλη.`
-          : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
-        td.appendChild(warn);
-      }
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody);
@@ -1312,7 +1207,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     wrapper.className = 'overflow-auto max-h-96 border rounded';
     wrapper.appendChild(tbl);
     container.appendChild(wrapper);
-    if(invalidFound){ persist(); }
     persist();
     return;
   }
@@ -1347,17 +1241,16 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
   btnRow.id = 'categoryButtons';
   btnRow.className = 'mt-2 flex flex-wrap gap-2';
 
-    const vatKeySingle = deriveVatKey(vat_cat);
-    const allowedSingle = categoriesForVat(vatKeySingle, window.CUSTOMER_CATEGORIES);
-    (allowedSingle || []).forEach(c => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
-      b.dataset.cat = c;
-      b.dataset.lineId = lid;
-      b.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
-      if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
-      b.addEventListener('click', function(){
+  (window.CUSTOMER_CATEGORIES || []).forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
+    b.dataset.cat = c;
+    b.dataset.lineId = lid;
+    b.innerText = (typeof labelForCategory === 'function' ? labelForCategory(c) : c);
+
+    if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
+    b.addEventListener('click', function(){
       const cat = this.dataset.cat;
       // toggle selection
       const currently = (obj.lines[0].category || '');
@@ -1371,17 +1264,6 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     });
     btnRow.appendChild(b);
   });
-
-  if(selected_cat && !allowedSingle.includes(selected_cat)){
-    obj.lines[0].category = '';
-    const warn = document.createElement('div');
-    warn.className = 'text-xs text-red-600 mt-2';
-    const label = labelForCategory(selected_cat);
-    warn.textContent = vatKeySingle
-      ? `Η κατηγορία ${label} δεν είναι διαθέσιμη για ΦΠΑ ${vatKeySingle}. Επέλεξε άλλη.`
-      : `Η κατηγορία ${label} δεν είναι διαθέσιμη για αυτή τη γραμμή.`;
-    chooseWrap.appendChild(warn);
-  }
 
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
@@ -1580,11 +1462,6 @@ function prefillSummaryModal(){
         if(!found){
           found = { id: lid, category: '' };
           data.lines.push(found);
-        }
-        const rawVat = el.dataset ? (el.dataset.vat || el.dataset.vatcat || '') : '';
-        const vatKey = deriveVatKey(rawVat);
-        if(chosen && vatKey && !allowedCategoryForVat(chosen, vatKey)){
-          chosen = '';
         }
         found.category = chosen || '';
       });
@@ -1886,10 +1763,6 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         if(resp.expense_tags && Array.isArray(resp.expense_tags) && resp.expense_tags.length){
           CUSTOMER_CATEGORIES = resp.expense_tags.slice();
         }
-        if(resp.category_labels){
-          window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
-          Object.assign(window.CATEGORY_LABELS, resp.category_labels);
-        }
         const enabled = !!repeat.enabled;
         const mapping = repeat.mapping || {};
 
@@ -1928,10 +1801,6 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
               showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
               if(saveResp.expense_tags && Array.isArray(saveResp.expense_tags) && saveResp.expense_tags.length){
                 CUSTOMER_CATEGORIES = saveResp.expense_tags.slice();
-              }
-              if(saveResp.category_labels){
-                window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
-                Object.assign(window.CATEGORY_LABELS, saveResp.category_labels);
               }
             } else {
               showFlash('Αποτυχία αποθήκευσης ρύθμισης.', 'error');
@@ -2103,29 +1972,9 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   {% if modal_warning %}
   const afmModal = document.getElementById('afmWarningModal');
   const afmModalBtn = document.getElementById('afmModalConfirm');
-  if (afmModal){
-    const hideAfmModal = () => {
-      afmModal.style.display = 'none';
-      afmModal.classList.add('hidden');
-    };
-    setTimeout(()=>{
-      afmModal.classList.remove('hidden');
-      afmModal.style.display = 'flex';
-    }, 50);
-    const closeBtn = afmModal.querySelector('[data-close-modal="afmWarningModal"]');
-    if (closeBtn){
-      closeBtn.addEventListener('click', hideAfmModal);
-    }
-    afmModal.addEventListener('click', function(ev){ if (ev.target === afmModal) hideAfmModal(); });
-    if (afmModalBtn){
-      afmModalBtn.addEventListener('click', function(){
-        hideAfmModal();
-        if (typeof redirectToReceiptsFlow === 'function') {
-          redirectToReceiptsFlow();
-        }
-      });
-      afmModalBtn.dataset.receiptsRedirect = '1';
-    }
+  if (afmModal && afmModalBtn){
+    setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
+    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
   }
   {% endif %}
 
@@ -2214,20 +2063,11 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         if (typeof dt.colResize === 'function') {
           try { dt.colResize({ resizeMode: 'flex' }); } catch(e){ console.warn('colResize failed', e); }
         }
-        dt.on('draw.dt rc-adjust.dt column-visibility.dt column-reorder.dt', function(){
-          requestAnimationFrame(()=>{
-            try { dt.columns.adjust(); } catch(adjustErr){ console.warn('DataTables adjust failed', adjustErr); }
-          });
-        });
         const globalSearch = document.getElementById('globalSearch');
         if (globalSearch){
           globalSearch.addEventListener('input', function(){ dt.search(this.value).draw(); });
         }
-        setTimeout(()=>{
-          try {
-            dt.columns.adjust().draw(false);
-          } catch(e){ console.warn('Initial DataTables adjust failed', e); }
-        }, 120);
+        setTimeout(()=>{ try{ dt.columns.adjust().draw(); }catch(e){} }, 120);
       } catch(e){
         console.warn('DataTables init failed — falling back', e);
       }
@@ -4221,6 +4061,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
+
+<!-- === HOTFIX: Custom category labels in Summary modal === -->
+<script>
+(function(){
+  // 1) Ensure global mapping + helper
+  window.CATEGORY_LABELS = window.CATEGORY_LABELS || (function(){
+    try { return {{ (customer_category_labels or {}) | tojson | safe }} || {}; } catch(e){ return {}; }
+  })();
+  window.labelForCategory = window.labelForCategory || function(val){
+    if (val == null) return '';
+    const key = String(val);
+    const MAP = window.CATEGORY_LABELS || {};
+    if (Object.prototype.hasOwnProperty.call(MAP, key)) return MAP[key];
+    // graceful fallback for custom_* keys
+    if (key.startsWith('custom_')) return key.replace(/^custom_/, '').replace(/_/g,' ');
+    return key;
+  };
+
+  // 2) Prime labels from backend if available
+  async function primeCategoryLabels(){
+    if (window.__labelsPrimed) return;
+    try {
+      const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent("{{ vat or '' }}"), { credentials:'same-origin' });
+      const j = await r.json();
+      if (j && j.category_labels) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+    } catch(e) {}
+    window.__labelsPrimed = true;
+  }
+
+  // 3) Relabel all options & buttons inside the Summary modal
+  function relabelAllCategories(root){
+    const scope = root || document;
+    // select options
+    scope.querySelectorAll('#summaryModal select[name$="[category]"] option').forEach(o => {
+      if (!o) return;
+      const v = (o.value || '').trim();
+      if (!v) return;
+      o.textContent = window.labelForCategory(v);
+    });
+    // category buttons (single-line UI)
+    scope.querySelectorAll('#summaryModal .category-btn').forEach(b => {
+      if (!b) return;
+      const v = (b.dataset && b.dataset.cat) ? b.dataset.cat : (b.textContent || '').trim();
+      b.textContent = window.labelForCategory(v);
+    });
+  }
+
+  // 4) Observe Summary modal visibility & relabel after render
+  document.addEventListener('DOMContentLoaded', async function(){
+    const modal = document.getElementById('summaryModal');
+    if (!modal) return;
+
+    // Initial prime (labels ready even before open)
+    await primeCategoryLabels();
+
+    // If modal becomes visible later, relabel twice (render → relabel)
+    const obs = new MutationObserver(async () => {
+      const visible = window.getComputedStyle(modal).display !== 'none';
+      if (visible) {
+        await primeCategoryLabels();
+        setTimeout(() => relabelAllCategories(modal), 0);
+        setTimeout(() => relabelAllCategories(modal), 80);
+      }
+    });
+    try { obs.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(e){}
+
+    // If it happens to be already visible now
+    if (window.getComputedStyle(modal).display !== 'none') {
+      setTimeout(() => relabelAllCategories(modal), 0);
+      setTimeout(() => relabelAllCategories(modal), 80);
+    }
+  });
+})();
+</script>
+<!-- === /HOTFIX === -->
 {% endblock %}
 
 <!-- === BEGIN: Injected fix (v2) for receipts auto-flow & afm_epsilon cleanup === -->
@@ -4675,32 +4590,18 @@ document.addEventListener('click', function(e){
 (function(){
   // AFM warning (server-rendered modal with #afmModalConfirm)
   const afmOk = document.getElementById('afmModalConfirm'); // υπάρχει ήδη στο search.html
-  if (afmOk && afmOk.dataset.receiptsRedirect !== '1') {
+  if (afmOk) {
     afmOk.addEventListener('click', function(){
-      try {
-        const modal = document.getElementById('afmWarningModal');
-        if (modal){ modal.style.display = 'none'; modal.classList.add('hidden'); }
-      } catch(_){}
-      if (typeof redirectToReceiptsFlow === 'function') {
-        redirectToReceiptsFlow();
-      } else {
-        location.reload();
-      }
+      try { document.getElementById('afmWarningModal').style.display = 'none'; } catch(_){}
+      location.reload();
     });
   }
 
   // Receipt warning (dynamic modal που φτιάχνεται με openReceiptWarning, κουμπί #receiptWarnOk)
   document.addEventListener('click', function(e){
     if (e.target && e.target.id === 'receiptWarnOk') {
-      try {
-        const modal = document.getElementById('receiptWarn');
-        if (modal){ modal.style.display = 'none'; modal.classList.add('hidden'); }
-      } catch(_){}
-      if (typeof redirectToReceiptsFlow === 'function') {
-        redirectToReceiptsFlow();
-      } else {
-        location.reload();
-      }
+      try { document.getElementById('receiptWarn').style.display = 'none'; } catch(_){}
+      location.reload();
     }
   }, true);
 })();
