@@ -156,16 +156,15 @@
 
 
 {% if modal_warning %}
-<div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
-        </div>
-        <div id="afmWarningBody" class="mb-4 text-gray-700">
+<div id="afmWarningModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-50 overflow-auto p-4" data-role="modal-warning">
+    <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="afmWarningTitle">
+        <button type="button" class="modal-warning-close" data-close-modal="afmWarningModal">×</button>
+        <div class="modal-warning-title" id="afmWarningTitle">Προειδοποίηση</div>
+        <div id="afmWarningBody" class="modal-warning-body">
             {{ modal_warning }}
         </div>
-        <div class="flex justify-end gap-2">
-            <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
+        <div class="modal-warning-actions">
+            <button id="afmModalConfirm" class="modal-warning-btn modal-warning-btn--confirm">Κατάλαβα</button>
         </div>
     </div>
 </div>
@@ -190,6 +189,38 @@ function isReceiptsOn(){
   const r = document.getElementById('useReceiptsSwitch');
   return !!(r && r.checked);
 }
+
+function redirectToReceiptsFlow(){
+  try { localStorage.setItem('UI:useReceipts', '1'); } catch(_){ }
+  try { localStorage.setItem('useReceiptsSwitch', '1'); } catch(_){ }
+  const sw = document.getElementById('useReceiptsSwitch');
+  if (sw) {
+    sw.checked = true;
+  }
+  try {
+    const current = new URL(window.location.href);
+    if (current.searchParams.get('use_receipts') !== '1') {
+      current.searchParams.set('use_receipts', '1');
+      window.location.replace(current.toString());
+    } else {
+      window.location.reload();
+    }
+  } catch(err) {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      params.set('use_receipts', '1');
+      const next = window.location.pathname + '?' + params.toString();
+      if ((window.location.pathname + window.location.search) === next) {
+        window.location.reload();
+      } else {
+        window.location.assign(next);
+      }
+    } catch(_) {
+      window.location.reload();
+    }
+  }
+}
+window.redirectToReceiptsFlow = redirectToReceiptsFlow;
 
 function setActiveProfileHint(name){
   const el = document.getElementById('activeRepeatProfileHint');
@@ -798,21 +829,30 @@ async function getActiveFiscalYear() {
     if(!m){
       var el=document.createElement('div');
       el.id=id;
-      el.style.cssText='position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);z-index:9999';
+      el.className='fixed inset-0 hidden items-center justify-center bg-black/40 z-[9999] p-4';
+      el.setAttribute('data-role','modal-warning');
       el.innerHTML =
-        '<div style="background:#fff;border-radius:10px;max-width:480px;width:calc(100% - 32px);padding:20px;">'
-        + '<h3 style="margin:0 0 10px;color:#b91c1c;font-weight:600;font-size:18px">Προειδοποίηση</h3>'
-        + '<div id="receiptWarnBody" style="margin-bottom:14px;color:#374151;font-size:14px"></div>'
-        + '<div style="text-align:right"><button id="receiptWarnOk" type="button"'
-        + ' style="background:#b91c1c;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer">Κατάλαβα</button></div>'
+        '<div class="modal-warning-panel" role="dialog" aria-modal="true">'
+        + '<button type="button" class="modal-warning-close" data-close-modal="receiptWarn">×</button>'
+        + '<div class="modal-warning-title">Προειδοποίηση</div>'
+        + '<div id="receiptWarnBody" class="modal-warning-body"></div>'
+        + '<div class="modal-warning-actions"><button id="receiptWarnOk" type="button" class="modal-warning-btn modal-warning-btn--confirm">Κατάλαβα</button></div>'
         + '</div>';
       document.body.appendChild(el);
-      el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
-      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
+      var hide = function(){ el.style.display='none'; el.classList.add('hidden'); };
+      el.addEventListener('click', function(e){ if(e.target===el) hide(); });
+      var closeBtn = el.querySelector('[data-close-modal="receiptWarn"]');
+      if(closeBtn){ closeBtn.addEventListener('click', hide); }
+      var okBtn = el.querySelector('#receiptWarnOk');
+      if(okBtn){
+        okBtn.addEventListener('click', hide);
+        okBtn.dataset.receiptsRedirect = '1';
+      }
       m = el;
     }
     var body = m.querySelector('#receiptWarnBody');
     if(body) body.textContent = message || 'Προειδοποίηση.';
+    m.classList.remove('hidden');
     m.style.display='flex';
   };
 })();
@@ -2063,9 +2103,29 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   {% if modal_warning %}
   const afmModal = document.getElementById('afmWarningModal');
   const afmModalBtn = document.getElementById('afmModalConfirm');
-  if (afmModal && afmModalBtn){
-    setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
+  if (afmModal){
+    const hideAfmModal = () => {
+      afmModal.style.display = 'none';
+      afmModal.classList.add('hidden');
+    };
+    setTimeout(()=>{
+      afmModal.classList.remove('hidden');
+      afmModal.style.display = 'flex';
+    }, 50);
+    const closeBtn = afmModal.querySelector('[data-close-modal="afmWarningModal"]');
+    if (closeBtn){
+      closeBtn.addEventListener('click', hideAfmModal);
+    }
+    afmModal.addEventListener('click', function(ev){ if (ev.target === afmModal) hideAfmModal(); });
+    if (afmModalBtn){
+      afmModalBtn.addEventListener('click', function(){
+        hideAfmModal();
+        if (typeof redirectToReceiptsFlow === 'function') {
+          redirectToReceiptsFlow();
+        }
+      });
+      afmModalBtn.dataset.receiptsRedirect = '1';
+    }
   }
   {% endif %}
 
@@ -4615,18 +4675,32 @@ document.addEventListener('click', function(e){
 (function(){
   // AFM warning (server-rendered modal with #afmModalConfirm)
   const afmOk = document.getElementById('afmModalConfirm'); // υπάρχει ήδη στο search.html
-  if (afmOk) {
+  if (afmOk && afmOk.dataset.receiptsRedirect !== '1') {
     afmOk.addEventListener('click', function(){
-      try { document.getElementById('afmWarningModal').style.display = 'none'; } catch(_){}
-      location.reload();
+      try {
+        const modal = document.getElementById('afmWarningModal');
+        if (modal){ modal.style.display = 'none'; modal.classList.add('hidden'); }
+      } catch(_){}
+      if (typeof redirectToReceiptsFlow === 'function') {
+        redirectToReceiptsFlow();
+      } else {
+        location.reload();
+      }
     });
   }
 
   // Receipt warning (dynamic modal που φτιάχνεται με openReceiptWarning, κουμπί #receiptWarnOk)
   document.addEventListener('click', function(e){
     if (e.target && e.target.id === 'receiptWarnOk') {
-      try { document.getElementById('receiptWarn').style.display = 'none'; } catch(_){}
-      location.reload();
+      try {
+        const modal = document.getElementById('receiptWarn');
+        if (modal){ modal.style.display = 'none'; modal.classList.add('hidden'); }
+      } catch(_){}
+      if (typeof redirectToReceiptsFlow === 'function') {
+        redirectToReceiptsFlow();
+      } else {
+        location.reload();
+      }
     }
   }, true);
 })();

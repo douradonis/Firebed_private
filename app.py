@@ -3047,6 +3047,8 @@ def credentials_add():
     expense_tags = request.form.getlist('expense_tags')
     apodeixakia_type = request.form.get('apodeixakia_type', '').strip()
     apodeixakia_supplier = request.form.get('apodeixakia_supplier', '').strip()
+    apodeixakia_other_expenses = request.form.get('apodeixakia_other_expenses')
+    apodeixakia_other_expenses = True if apodeixakia_other_expenses in ('on', 'true', '1', 'yes') else False
     new_cred = {
         'name': name,
         'vat': vat,
@@ -3057,6 +3059,7 @@ def credentials_add():
         'expense_tags': expense_tags,
         'apodeixakia_type': apodeixakia_type,
         'apodeixakia_supplier': apodeixakia_supplier,
+        'apodeixakia_other_expenses': apodeixakia_other_expenses,
         'custom_categories': [],
         'active': False
     }
@@ -3402,6 +3405,8 @@ def credentials():
         expense_tags = request.form.getlist("expense_tags") or []
         apodeixakia_type = request.form.get("apodeixakia_type", "").strip()   # "afm" or "supplier"
         apodeixakia_supplier = request.form.get("apodeixakia_supplier", "").strip()
+        apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
+        apodeixakia_other_expenses = True if apodeixakia_other_raw in ("on", "true", "1", "yes") else False
 
         if not name:
             flash("Name required", "error")
@@ -3417,7 +3422,8 @@ def credentials():
                 "fpa_applicable": fpa_applicable,
                 "expense_tags": expense_tags,
                 "apodeixakia_type": apodeixakia_type,
-                "apodeixakia_supplier": apodeixakia_supplier
+                "apodeixakia_supplier": apodeixakia_supplier,
+                "apodeixakia_other_expenses": apodeixakia_other_expenses
             }
             ok, err = add_credential(entry)
             if ok:
@@ -3464,6 +3470,12 @@ def credentials_edit(name):
         else:
             apodeixakia_supplier = apodeixakia_supplier.strip()
 
+        apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
+        if apodeixakia_other_raw is None:
+            apodeixakia_other_expenses = credential.get("apodeixakia_other_expenses", False)
+        else:
+            apodeixakia_other_expenses = apodeixakia_other_raw in ("on", "true", "1", "yes")
+
         if not new_name:
             flash("Name required", "error")
             return redirect(url_for("credentials_edit", name=name))
@@ -3485,6 +3497,7 @@ def credentials_edit(name):
             # Αποθηκεύουμε και τα apodeixakia πεδία
             "apodeixakia_type": apodeixakia_type,
             "apodeixakia_supplier": apodeixakia_supplier,
+            "apodeixakia_other_expenses": bool(apodeixakia_other_expenses),
             "custom_categories": credential.get("custom_categories", [])
         }
 

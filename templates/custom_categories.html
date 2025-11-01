@@ -136,13 +136,16 @@
       </div>
     </div>
 
-    <div id="deleteCategoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40" data-role="modal-warning">
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <h3 class="text-lg font-semibold text-red-600 mb-2">Διαγραφή κατηγορίας;</h3>
-        <p class="text-sm text-gray-700 mb-4">Θέλεις σίγουρα να διαγράψεις την κατηγορία <span id="categoryDeleteName" class="font-semibold"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.</p>
-        <div class="flex justify-end gap-2">
-          <button type="button" id="categoryDeleteCancel" class="px-3 py-2 border border-gray-300 rounded hover:bg-gray-50">Άκυρο</button>
-          <button type="button" id="categoryDeleteConfirm" class="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">Διαγραφή</button>
+    <div id="deleteCategoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" data-role="modal-warning">
+      <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="deleteCategoryTitle">
+        <button type="button" class="modal-warning-close" data-close-modal="deleteCategoryModal">×</button>
+        <div class="modal-warning-title" id="deleteCategoryTitle">Διαγραφή κατηγορίας;</div>
+        <div class="modal-warning-body">
+          Θέλεις σίγουρα να διαγράψεις την κατηγορία <span id="categoryDeleteName" class="font-semibold"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.
+        </div>
+        <div class="modal-warning-actions">
+          <button type="button" id="categoryDeleteCancel" class="modal-warning-btn modal-warning-btn--muted">Άκυρο</button>
+          <button type="button" id="categoryDeleteConfirm" class="modal-warning-btn modal-warning-btn--danger">Διαγραφή</button>
         </div>
       </div>
     </div>
@@ -176,6 +179,7 @@
   const deleteModalName = document.getElementById('categoryDeleteName');
   const deleteModalCancel = document.getElementById('categoryDeleteCancel');
   const deleteModalConfirm = document.getElementById('categoryDeleteConfirm');
+  const deleteModalCloseBtn = deleteModal?.querySelector('[data-close-modal="deleteCategoryModal"]');
   const accountInputs = {};
   form.querySelectorAll('[data-account-rate]').forEach(input => {
     accountInputs[input.dataset.accountRate] = input;
@@ -201,6 +205,7 @@
   }
 
   deleteModalCancel?.addEventListener('click', function(ev){ ev.preventDefault(); closeDeleteModal(); });
+  deleteModalCloseBtn?.addEventListener('click', function(ev){ ev.preventDefault(); closeDeleteModal(); });
   deleteModal?.addEventListener('click', function(ev){ if(ev.target === deleteModal) closeDeleteModal(); });
   document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && deleteModal && !deleteModal.classList.contains('hidden')) closeDeleteModal(); });
 

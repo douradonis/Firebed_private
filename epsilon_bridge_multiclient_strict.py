@@ -499,6 +499,7 @@ def build_preview_rows_for_ui(
     settings_all = _merge_custom_accounts(settings_all, active)
     apod_type = (active or {}).get("apodeixakia_type", "")
     apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier",""))
+    other_expenses_flag = 1 if bool((active or {}).get("apodeixakia_other_expenses")) else 0
 
     # client map
     client_map = {"by_afm": {}, "by_id": set(), "names": {}, "cols": []}
@@ -524,6 +525,7 @@ def build_preview_rows_for_ui(
         afm_norm = _norm_afm(afm_raw)
         is_receipt = _is_receipt(rec)
         doc_type = rec.get("type") or ""
+        receipt_other_flag = 1 if (is_receipt and other_expenses_flag) else 0
 
         issuer_name = (
             rec.get("Name_issuer")
@@ -608,6 +610,7 @@ def build_preview_rows_for_ui(
             "LINES": lines_out,
             "LCODE_DETAIL_SUMMARY": ", ".join(sorted({(c if isinstance(c, str) else str(c)) for c in lcodes_summary if c})),
             "LCODE": (lcode_p or ""),
+            "OTHEREXPEND": receipt_other_flag,
         })
 
     ok = (len(rows) > 0)
@@ -692,12 +695,13 @@ def export_multiclient_strict(
                 "VATAMT_DETAIL": float(abs(ln.get("vat", 0.0))),
                 "MSIGN": msign,
                 "LCODE": rec.get("LCODE") or "",
+                "OTHEREXPEND": int(rec.get("OTHEREXPEND", 0) or 0),
             })
         artid += 1
 
     df = pd.DataFrame(flat, columns=[
         "ARTID","MTYPE","ISKEPYO","ISAGRYP","CUSTID","MDATE","REASON","INVOICE","SUMKEPYOYP",
-        "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE"
+        "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE","OTHEREXPEND"
     ])
 
     with pd.ExcelWriter(paths["out"], engine="xlsxwriter", datetime_format="dd/mm/yyyy") as writer:
@@ -707,7 +711,7 @@ def export_multiclient_strict(
         fmt_int  = wb.add_format({"num_format":"0"})
         fmt_date = wb.add_format({"num_format":"dd/mm/yyyy"})
         idx = {n:i for i,n in enumerate(df.columns)}
-        for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID"]:
+        for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID","OTHEREXPEND"]:
             if n in idx: ws.set_column(idx[n], idx[n], 10, fmt_int)
         for n in ["SUMKEPYOYP","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL"]:
             if n in idx: ws.set_column(idx[n], idx[n], 14, fmt_num)
