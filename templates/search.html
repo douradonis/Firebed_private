@@ -2154,11 +2154,20 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         if (typeof dt.colResize === 'function') {
           try { dt.colResize({ resizeMode: 'flex' }); } catch(e){ console.warn('colResize failed', e); }
         }
+        dt.on('draw.dt rc-adjust.dt column-visibility.dt column-reorder.dt', function(){
+          requestAnimationFrame(()=>{
+            try { dt.columns.adjust(); } catch(adjustErr){ console.warn('DataTables adjust failed', adjustErr); }
+          });
+        });
         const globalSearch = document.getElementById('globalSearch');
         if (globalSearch){
           globalSearch.addEventListener('input', function(){ dt.search(this.value).draw(); });
         }
-        setTimeout(()=>{ try{ dt.columns.adjust().draw(); }catch(e){} }, 120);
+        setTimeout(()=>{
+          try {
+            dt.columns.adjust().draw(false);
+          } catch(e){ console.warn('Initial DataTables adjust failed', e); }
+        }, 120);
       } catch(e){
         console.warn('DataTables init failed — falling back', e);
       }
