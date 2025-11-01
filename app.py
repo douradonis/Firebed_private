@@ -3408,6 +3408,12 @@ def credentials():
         apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
         apodeixakia_other_expenses = True if apodeixakia_other_raw in ("on", "true", "1", "yes") else False
 
+        # Normalize apodeixakia fields: if category not selected, force-reset them
+        if "αποδειξακια" not in expense_tags:
+            apodeixakia_type = ""
+            apodeixakia_supplier = ""
+            apodeixakia_other_expenses = False
+
         if not name:
             flash("Name required", "error")
         else:
@@ -3457,24 +3463,19 @@ def credentials_edit(name):
         fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
         expense_tags = request.form.getlist("expense_tags") or []
 
-        # Νέα πεδία (apodeixakia) - fallback στις υπάρχουσες τιμές αν δεν παρέχονται
-        apodeixakia_type = request.form.get("apodeixakia_type")
-        if apodeixakia_type is None:
-            apodeixakia_type = credential.get("apodeixakia_type", "")
-        else:
-            apodeixakia_type = apodeixakia_type.strip()
+        # ----- Apodeixakia fields (robust handling) -----
+        apodeixakia_enabled = "αποδειξακια" in expense_tags
 
-        apodeixakia_supplier = request.form.get("apodeixakia_supplier")
-        if apodeixakia_supplier is None:
-            apodeixakia_supplier = credential.get("apodeixakia_supplier", "")
+        if apodeixakia_enabled:
+            apodeixakia_type = (request.form.get("apodeixakia_type") or "").strip()
+            apodeixakia_supplier = (request.form.get("apodeixakia_supplier") or "").strip()
+            apodeixakia_other_expenses = (request.form.get("apodeixakia_other_expenses") in ("on", "true", "1", "yes"))
         else:
-            apodeixakia_supplier = apodeixakia_supplier.strip()
+            # If category is not selected, force-reset related fields so stale values don't stick
+            apodeixakia_type = ""
+            apodeixakia_supplier = ""
+            apodeixakia_other_expenses = False
 
-        apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
-        if apodeixakia_other_raw is None:
-            apodeixakia_other_expenses = credential.get("apodeixakia_other_expenses", False)
-        else:
-            apodeixakia_other_expenses = apodeixakia_other_raw in ("on", "true", "1", "yes")
 
         if not new_name:
             flash("Name required", "error")
