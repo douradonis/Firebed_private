@@ -61,8 +61,8 @@
     </div>
 
     <!-- Δεξιά στήλη: Λίστα Προφίλ -->
-    <div>
-      <div class="flex items-center justify-between mb-2">
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
         <h3 class="font-medium">Αποθηκευμένα Προφίλ</h3>
 
         <!-- ΕΠΙΣΤΡΟΦΗ: πάνω-δεξιά, ανοίγει το modal στο /search -->
@@ -77,22 +77,22 @@
         </a>
       </div>
 
-      <div class="border rounded">
-        <div id="profList" class="divide-y max-h-80 overflow-y-auto pr-2"></div>
+      <div class="border border-gray-200 rounded-lg bg-white shadow-sm p-4">
+        <div id="profList" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Modal επιβεβαίωσης διαγραφής -->
-<div id="confirmDeleteModal" class="fixed inset-0 z-50 hidden items-center justify-center">
-  <div class="absolute inset-0 bg-black/40"></div>
-  <div class="relative bg-white rounded-lg shadow p-6 w-full max-w-md">
-    <h4 class="text-lg font-semibold mb-2">Διαγραφή προφίλ;</h4>
-    <p class="text-sm text-gray-700 mb-4">Θέλεις σίγουρα να διαγράψεις το προφίλ <span id="delProfileName" class="font-medium"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.</p>
-    <div class="flex justify-end gap-2">
-      <button id="delCancel" class="px-3 py-2 border rounded">Άκυρο</button>
-      <button id="delConfirm" class="px-3 py-2 rounded bg-red-600 text-white">Διαγραφή</button>
+<div id="confirmDeleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" data-role="modal-warning">
+  <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="deleteProfileTitle">
+    <button type="button" class="modal-warning-close" data-close-modal="confirmDeleteModal">×</button>
+    <div class="modal-warning-title" id="deleteProfileTitle">Διαγραφή προφίλ;</div>
+    <div class="modal-warning-body">Θέλεις σίγουρα να διαγράψεις το προφίλ <span id="delProfileName" class="font-medium"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.</div>
+    <div class="modal-warning-actions">
+      <button id="delCancel" class="modal-warning-btn modal-warning-btn--muted">Άκυρο</button>
+      <button id="delConfirm" class="modal-warning-btn modal-warning-btn--danger">Διαγραφή</button>
     </div>
   </div>
 </div>
@@ -199,10 +199,9 @@
         const isSel = (row.dataset && row.dataset.name === currentSelected);
         row.setAttribute('aria-selected', isSel ? 'true' : 'false');
         if (isSel){
-          row.classList.add('bg-sky-600','text-white');
-          row.classList.remove('bg-sky-100');
+          row.classList.add('border-sky-400','ring-2','ring-sky-100','bg-sky-50');
         } else {
-          row.classList.remove('bg-sky-600','text-white','bg-sky-100');
+          row.classList.remove('border-sky-400','ring-2','ring-sky-100','bg-sky-50');
         }
       });
       updateSaveButton();
@@ -217,7 +216,7 @@
       ['a','b','g','e','d'].forEach(sfx=>{ const sel=document.getElementById(`kat_fpa_${sfx}`); if(sel){ try{sel.value='';}catch(_){ sel.selectedIndex=0; } }});
       if(listEl){
         listEl.querySelectorAll('.profile-row').forEach(el=>{
-          el.classList.remove('bg-sky-600','text-white','bg-sky-100','selected','active');
+          el.classList.remove('border-sky-400','ring-2','ring-sky-100','bg-sky-50','selected','active');
           el.setAttribute('aria-selected','false'); el.removeAttribute('data-selected');
         });
       }
@@ -276,32 +275,28 @@
     listEl.innerHTML='';
     (profs||[]).forEach(p=>{
       const row = document.createElement('div');
-      row.className = "group profile-row p-3 flex items-center justify-between cursor-pointer";
+      row.className = "group profile-row relative border border-gray-200 rounded-md bg-white p-4 pr-12 hover:border-sky-400 hover:shadow-sm transition cursor-pointer focus-within:ring-2 focus-within:ring-sky-200";
       row.dataset.name = p.name;
       row.dataset.id   = p.id || '';
+      row.tabIndex = 0;
       const mapping = p.map || {};
       row.dataset.mapping = JSON.stringify(mapping || {});
       row.innerHTML = `
-        <div class="min-w-0">
-          <div class="font-medium truncate">${p.name}</div>
-          <div class="text-xs text-gray-600 truncate">
-            Α: ${showMappingLabel(mapping.kat_fpa_a)} ·
-            Β: ${showMappingLabel(mapping.kat_fpa_b)} ·
-            Γ: ${showMappingLabel(mapping.kat_fpa_g)} ·
-            Ε: ${showMappingLabel(mapping.kat_fpa_e)} ·
-            Δ: ${showMappingLabel(mapping.kat_fpa_d)}
+        <div class="flex flex-col gap-2">
+          <div class="font-semibold text-gray-800 truncate">${p.name}</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+            <div><span class="font-semibold text-gray-700">0%</span>: ${showMappingLabel(mapping.kat_fpa_a)}</div>
+            <div><span class="font-semibold text-gray-700">6%</span>: ${showMappingLabel(mapping.kat_fpa_b)}</div>
+            <div><span class="font-semibold text-gray-700">13%</span>: ${showMappingLabel(mapping.kat_fpa_g)}</div>
+            <div><span class="font-semibold text-gray-700">17%</span>: ${showMappingLabel(mapping.kat_fpa_d)}</div>
+            <div class="sm:col-span-2"><span class="font-semibold text-gray-700">24%</span>: ${showMappingLabel(mapping.kat_fpa_e)}</div>
           </div>
         </div>
-        <button class="deleteProfileBtn opacity-0 group-hover:opacity-100 absolute right-2 top-2
-                       bg-red-50 text-red-700 border border-red-300 rounded-md px-2 py-1 shadow-sm
-                       hover:bg-red-600 hover:text-white hover:border-red-600
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400
-                       transition"
+        <button class="deleteProfileBtn absolute top-3 right-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto inline-flex items-center gap-1 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-semibold text-red-700 transition hover:bg-red-600 hover:text-white hover:border-red-600"
                 data-act="del" data-name="${p.name}" title="Διαγραφή">
-          Διαγραφή
+          ✖
         </button>
       `;
-      row.style.position = 'relative';
       listEl.appendChild(row);
     });
 
@@ -344,6 +339,7 @@
 
   if(listEl){
     listEl.addEventListener('dblclick', function(ev){
+      if(ev.target && ev.target.closest && ev.target.closest('button[data-act="del"]')) return;
       const item = ev.target && ev.target.closest ? ev.target.closest('.profile-row') : null;
       if(item){ clearSelection(); }
     });
@@ -353,8 +349,12 @@
   const delNameEl  = document.getElementById('delProfileName');
   const delCancel  = document.getElementById('delCancel');
   const delConfirm = document.getElementById('delConfirm');
+  const delCloseBtn = delModal?.querySelector('[data-close-modal="confirmDeleteModal"]');
   let pendingDeleteName = null;
   let pendingDeleteId   = null;
+
+  delModal?.addEventListener('click', function(ev){ if(ev.target === delModal) closeDelModal(); });
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && delModal && !delModal.classList.contains('hidden')) closeDelModal(); });
 
   function openDelModal(name){
     pendingDeleteName = name;
@@ -365,6 +365,7 @@
   }
   function closeDelModal(){ pendingDeleteName=null; pendingDeleteId=null; delModal.classList.add('hidden'); delModal.classList.remove('flex'); }
   delCancel.addEventListener('click', closeDelModal);
+  delCloseBtn?.addEventListener('click', closeDelModal);
   delConfirm.addEventListener('click', async ()=>{
     if(!pendingDeleteName) return;
     try{

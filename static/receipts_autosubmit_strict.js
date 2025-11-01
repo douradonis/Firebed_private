@@ -85,7 +85,14 @@
   }
 
   function wireWarningsReload(){
-    function reloadSoon(){ try{ location.reload(); }catch(_){ location.href = location.href; } }
+    function reloadSoon(){
+      if (typeof window.redirectToReceiptsFlow === 'function') {
+        window.redirectToReceiptsFlow();
+        return;
+      }
+      try{ location.reload(); }
+      catch(_){ location.href = location.href; }
+    }
     const afmBtn = $id('afmModalConfirm');
     if (afmBtn) afmBtn.addEventListener('click', reloadSoon);
     ['receiptWarningModal','afmWarningModal','yearWarningModal'].forEach(function(mid){

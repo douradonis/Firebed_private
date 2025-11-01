@@ -84,9 +84,9 @@
 
           <div id="savedCategories" class="space-y-3 overflow-y-auto">
             {% for cat in categories %}
-              <button type="button"
-                      class="w-full text-left border border-gray-200 rounded-md p-4 hover:border-sky-400 hover:shadow-sm transition saved-category"
-                      data-cat='{{ cat | tojson | safe }}'>
+              <div class="saved-category group relative w-full border border-gray-200 rounded-md p-4 pr-12 bg-white hover:border-sky-400 hover:shadow-sm transition focus-within:ring-2 focus-within:ring-sky-200 cursor-pointer"
+                   tabindex="0" role="button"
+                   data-cat='{{ cat | tojson | safe }}'>
                 <div class="flex items-center justify-between gap-3">
                   <div class="flex-1 min-w-0">
                     <div class="font-semibold text-gray-800 truncate">{{ cat.label }}</div>
@@ -118,11 +118,34 @@
                     {% endfor %}
                   </div>
                 </div>
-              </button>
+
+                <button type="button"
+                        class="saved-delete-btn absolute top-3 right-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto inline-flex items-center gap-1 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-semibold text-red-700 transition hover:bg-red-600 hover:text-white hover:border-red-600"
+                        title="Διαγραφή"
+                        data-action="delete"
+                        data-id="{{ cat.id }}"
+                        data-label="{{ cat.label }}">
+                  ✖
+                </button>
+              </div>
             {% else %}
               <div class="text-sm text-gray-600">Δεν υπάρχουν custom κατηγορίες ακόμη.</div>
             {% endfor %}
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteCategoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" data-role="modal-warning">
+      <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="deleteCategoryTitle">
+        <button type="button" class="modal-warning-close" data-close-modal="deleteCategoryModal">×</button>
+        <div class="modal-warning-title" id="deleteCategoryTitle">Διαγραφή κατηγορίας;</div>
+        <div class="modal-warning-body">
+          Θέλεις σίγουρα να διαγράψεις την κατηγορία <span id="categoryDeleteName" class="font-semibold"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.
+        </div>
+        <div class="modal-warning-actions">
+          <button type="button" id="categoryDeleteCancel" class="modal-warning-btn modal-warning-btn--muted">Άκυρο</button>
+          <button type="button" id="categoryDeleteConfirm" class="modal-warning-btn modal-warning-btn--danger">Διαγραφή</button>
         </div>
       </div>
     </div>
@@ -152,9 +175,46 @@
   const titleEl = document.getElementById('formTitle');
   const deleteForm = document.getElementById('deleteForm');
   const deleteIdInput = document.getElementById('deleteCatId');
+  const deleteModal = document.getElementById('deleteCategoryModal');
+  const deleteModalName = document.getElementById('categoryDeleteName');
+  const deleteModalCancel = document.getElementById('categoryDeleteCancel');
+  const deleteModalConfirm = document.getElementById('categoryDeleteConfirm');
+  const deleteModalCloseBtn = deleteModal?.querySelector('[data-close-modal="deleteCategoryModal"]');
   const accountInputs = {};
   form.querySelectorAll('[data-account-rate]').forEach(input => {
     accountInputs[input.dataset.accountRate] = input;
+  });
+
+  let pendingDeleteId = null;
+
+  function openDeleteModal(cat){
+    if(!deleteModal || !deleteModalName) return;
+    const label = (cat && (cat.label || cat.id)) || '';
+    pendingDeleteId = (cat && cat.id) || '';
+    deleteModalName.textContent = label;
+    deleteModal.classList.remove('hidden');
+    deleteModal.classList.add('flex');
+  }
+
+  function closeDeleteModal(){
+    pendingDeleteId = null;
+    if(deleteModal){
+      deleteModal.classList.add('hidden');
+      deleteModal.classList.remove('flex');
+    }
+  }
+
+  deleteModalCancel?.addEventListener('click', function(ev){ ev.preventDefault(); closeDeleteModal(); });
+  deleteModalCloseBtn?.addEventListener('click', function(ev){ ev.preventDefault(); closeDeleteModal(); });
+  deleteModal?.addEventListener('click', function(ev){ if(ev.target === deleteModal) closeDeleteModal(); });
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && deleteModal && !deleteModal.classList.contains('hidden')) closeDeleteModal(); });
+
+  deleteModalConfirm?.addEventListener('click', function(ev){
+    ev.preventDefault();
+    if(!pendingDeleteId || !deleteForm || !deleteIdInput) return;
+    deleteIdInput.value = pendingDeleteId;
+    closeDeleteModal();
+    deleteForm.submit();
   });
 
   function highlightCard(id){
@@ -181,6 +241,7 @@
     modeBadge.classList.add('bg-sky-100','text-sky-700');
     titleEl.textContent = 'Νέα κατηγορία';
     highlightCard(null);
+    form.dataset.currentCat = '{}';
   }
 
   function setModeEdit(cat){
@@ -198,10 +259,24 @@
     modeBadge.classList.add('bg-amber-100','text-amber-700');
     titleEl.textContent = 'Επεξεργασία κατηγορίας';
     highlightCard(cat.id || null);
+    form.dataset.currentCat = JSON.stringify(cat || {});
   }
 
   if(savedList){
     savedList.addEventListener('click', function(ev){
+      const del = ev.target.closest('[data-action="delete"]');
+      if(del){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const card = del.closest('.saved-category');
+        if(!card) return;
+        try{
+          const data = JSON.parse(card.dataset.cat || '{}');
+          if(data && data.id){ openDeleteModal(data); }
+        }catch(err){ console.warn('Αποτυχία προετοιμασίας διαγραφής', err); }
+        return;
+      }
+
       const btn = ev.target.closest('.saved-category');
       if(!btn) return;
       try{
@@ -210,6 +285,14 @@
           setModeEdit(data);
         }
       }catch(err){ console.warn('Δεν ήταν δυνατή η ανάγνωση της κατηγορίας', err); }
+    });
+
+    savedList.addEventListener('dblclick', function(ev){
+      if(ev.target.closest('[data-action="delete"]')) return;
+      if(ev.target.closest('.saved-category')){
+        ev.preventDefault();
+        setModeNew();
+      }
     });
   }
 
@@ -225,9 +308,10 @@
       ev.preventDefault();
       const currentId = (idInput.value || '').trim();
       if(!currentId) return;
-      if(!confirm('Να διαγραφεί η κατηγορία;')) return;
-      deleteIdInput.value = currentId;
-      deleteForm.submit();
+      let currentCat = {};
+      try{ currentCat = JSON.parse(form.dataset.currentCat || '{}'); }catch(_){ currentCat = {}; }
+      if(!currentCat.id){ currentCat.id = currentId; }
+      openDeleteModal(currentCat);
     });
   }
 
