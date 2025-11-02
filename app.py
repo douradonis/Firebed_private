@@ -4,6 +4,8 @@ import sys
 import json
 import traceback
 import logging
+import base64
+import re
 from logging.handlers import RotatingFileHandler
 import datetime
 from typing import Any, List, Dict, Optional
@@ -14,7 +16,6 @@ from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
 from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
-import re
 import requests
 import pandas as pd
 from shutil import move
@@ -66,6 +67,7 @@ except Exception:
 
 from flask import current_app
 from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui
+from utils import decode_qr_from_file, decode_qr_payloads, extract_mark
 
 
 # --- end lock + current_app imports ---
@@ -2194,6 +2196,24 @@ def get_cred_by_name(name: str) -> Optional[Dict]:
     creds = load_credentials()
     return next((c for c in creds if c.get("name") == name), None)
 
+
+def get_cred_by_vat(vat: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not vat:
+        return None
+    try:
+        target = str(vat).strip()
+        if not target:
+            return None
+        for cred in load_credentials():
+            try:
+                if str(cred.get("vat", "")).strip() == target:
+                    return cred
+            except Exception:
+                continue
+    except Exception:
+        current_app.logger.exception("get_cred_by_vat failed for VAT %s", vat)
+    return None
+
 # --- Excel path helper: πάντα με VAT + fiscal_year ---
 def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -> str:
     """
@@ -3029,6 +3049,51 @@ def api_repeat_entry_save():
     labels = _category_labels_for_client(client)
 
     return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags, category_labels=labels)
+
+
+def _decode_data_url(raw: str) -> Optional[bytes]:
+    if not raw:
+        return None
+    try:
+        if raw.startswith("data:"):
+            match = re.match(r"^data:(.*?);base64,(.*)$", raw, re.IGNORECASE)
+            if not match:
+                return None
+            payload = match.group(2)
+        else:
+            payload = raw
+        return base64.b64decode(payload)
+    except Exception:
+        current_app.logger.exception("Failed to decode QR data url")
+        return None
+
+
+@app.post("/api/qr/decode")
+def api_qr_decode():
+    """Αποκωδικοποιεί εικόνα QR και επιστρέφει raw string & MARK."""
+    payload_bytes: Optional[bytes] = None
+    filename = "capture.png"
+
+    if "file" in request.files:
+        f = request.files["file"]
+        payload_bytes = f.read()
+        filename = f.filename or filename
+    else:
+        data = request.get_json(silent=True) or {}
+        raw = data.get("image") or data.get("dataUrl") or data.get("data")
+        payload_bytes = _decode_data_url(raw)
+        filename = data.get("filename") or filename
+
+    if not payload_bytes:
+        return jsonify({"ok": False, "error": "Δεν ελήφθη εικόνα"}), 400
+
+    payloads = decode_qr_payloads(payload_bytes, filename) or []
+    if not payloads:
+        return jsonify({"ok": False, "error": "Δεν εντοπίστηκε QR κώδικας"}), 404
+
+    first = payloads[0]
+    mark = extract_mark(first)
+    return jsonify({"ok": True, "raw": first, "mark": mark, "payloads": payloads})
 
 
 
@@ -6157,6 +6222,13 @@ def list_invoices():
 @app.route("/epsilon/preview")
 def epsilon_preview():
     vat = (request.args.get("vat") or (get_active_credential_from_session() or {}).get("vat") or "").strip()
+    cred_for_labels = get_cred_by_vat(vat) or get_active_credential_from_session()
+    category_labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
+    if cred_for_labels:
+        try:
+            category_labels.update(_category_labels_for_client(cred_for_labels))
+        except Exception:
+            current_app.logger.exception("Failed to build category labels for epsilon preview")
     rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
         credentials_json="data/credentials.json",
@@ -6170,7 +6242,8 @@ def epsilon_preview():
                            vat=vat,
                            table_rows=rows,
                            bridge_ok=(not issues and len(rows)>0),
-                           bridge_issues=issues)
+                           bridge_issues=issues,
+                           category_labels=category_labels)
 
 
 @app.route("/export/fastimport/kinitseis")

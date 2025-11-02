@@ -86,35 +86,48 @@ def extract_mark(text: str):
         pass
     return None
 
+def _qr_payloads_from_bytes(file_bytes: bytes, filename: str) -> list[str]:
+    payloads: list[str] = []
+    try:
+        sources = []
+        if filename.lower().endswith(".pdf"):
+            sources = convert_from_bytes(file_bytes)
+        else:
+            sources = [Image.open(io.BytesIO(file_bytes))]
+
+        for img in sources:
+            try:
+                codes = qr_decode(img)
+            except Exception:
+                codes = []
+            for code in codes or []:
+                raw = code.data
+                try:
+                    text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+                except Exception:
+                    text = str(raw)
+                if text:
+                    payloads.append(text)
+    except Exception as e:
+        print("_qr_payloads_from_bytes error:", e)
+    return payloads
+
+
 def decode_qr_from_file(file_bytes: bytes, filename: str):
     """Διαβάζει QR από PDF/εικόνα και επιστρέφει πρώτο έγκυρο MARK (ή None)."""
     try:
-        if filename.lower().endswith(".pdf"):
-            images = convert_from_bytes(file_bytes)
-            for img in images:
-                codes = qr_decode(img)
-                for c in codes:
-                    try:
-                        val = c.data.decode("utf-8")
-                    except Exception:
-                        val = str(c.data)
-                    m = extract_mark(val)
-                    if m:
-                        return m
-        else:
-            img = Image.open(io.BytesIO(file_bytes))
-            codes = qr_decode(img)
-            for c in codes:
-                try:
-                    val = c.data.decode("utf-8")
-                except Exception:
-                    val = str(c.data)
-                m = extract_mark(val)
-                if m:
-                    return m
+        for payload in _qr_payloads_from_bytes(file_bytes, filename):
+            mark = extract_mark(payload)
+            if mark:
+                return mark
     except Exception as e:
         print("decode_qr_from_file error:", e)
     return None
+
+
+def decode_qr_payloads(file_bytes: bytes, filename: str) -> list[str]:
+    """Επιστρέφει όλα τα raw payloads που βρέθηκαν μέσα στο QR."""
+    return _qr_payloads_from_bytes(file_bytes, filename)
 
 # ----------------------
 # VAT extraction utilities (from parsed XML dict)
