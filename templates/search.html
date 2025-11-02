@@ -20,13 +20,24 @@
             </div>
         </div>
 
-        <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
+        <div class="relative w-2/4 min-w-[220px]">
+            <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK ή URL" class="p-2 border rounded w-full pr-12" value="{{ mark }}" autocomplete="off">
+            <button type="button" id="openQrScanner" class="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-sky-600 hover:text-sky-700" title="Σάρωση QR με κάμερα" aria-label="Άνοιγμα κάμερας για σάρωση QR">
+                📷
+            </button>
+        </div>
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
-        <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">
-                Τιμολόγια<label>
-                    <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-                    <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις</label>
+        <div class="flex items-center gap-2 ml-4" aria-labelledby="receiptsSwitchOff receiptsSwitchOn">
+            <span id="receiptsSwitchOff" class="text-sm">Τιμολόγια</span>
+            <label for="useReceiptsSwitch" class="inline-flex items-center">
+                <input type="checkbox"
+                       id="useReceiptsSwitch"
+                       role="switch"
+                       aria-checked="false"
+                       aria-labelledby="receiptsSwitchOff receiptsSwitchOn"
+                       class="toggle-switch">
+            </label>
+            <span id="receiptsSwitchOn" class="text-sm">Αποδείξεις</span>
         </div>
 
         <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
@@ -170,6 +181,29 @@
     </div>
 </div>
 {% endif %}
+
+<!-- QR Camera Modal -->
+<div id="qrCameraModal" class="fixed inset-0 bg-black/50 z-[70] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800">Σάρωση QR</h3>
+            <button type="button" id="qrModalClose" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+        </div>
+        <div class="text-sm text-gray-600">Στόχευσε τον κωδικό QR του παραστατικού. Αν ανιχνευτεί URL ή MARK θα συμπληρωθεί αυτόματα στο πεδίο αναζήτησης.</div>
+        <div class="rounded-lg overflow-hidden bg-black/80 flex items-center justify-center min-h-[240px]">
+            <video id="qrVideo" class="w-full" autoplay playsinline muted></video>
+        </div>
+        <canvas id="qrCanvas" class="hidden"></canvas>
+        <div id="qrStatus" class="text-sm text-gray-500">Ενεργοποίηση κάμερας…</div>
+        <div class="flex items-center justify-between">
+            <button type="button" id="qrModalRescan" class="px-3 py-2 border rounded text-sm">Ξανά σάρωση</button>
+            <div class="flex gap-2">
+                <button type="button" id="qrModalUseValue" class="px-3 py-2 bg-sky-600 text-white rounded hidden">Χρήση τιμής</button>
+                <button type="button" id="qrModalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {# Flash container (JS will inject messages here) #}
 <div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
@@ -586,7 +620,14 @@ function katToPercent(k){
 try {
   const p = new URLSearchParams(location.search);
   if (p.get('open_repeat') === '1') {
-    setTimeout(() => { window.openRepeatModal && window.openRepeatModal(); }, 0);
+    setTimeout(() => {
+      if (window.openRepeatModal) window.openRepeatModal();
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('open_repeat');
+        history.replaceState({}, '', url.toString());
+      } catch(_){}
+    }, 0);
   }
 } catch {}
 
@@ -1289,20 +1330,215 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
    Examples of call sites are below (where modal.style.display='flex' is set). */
 
 
+function ensureFlashContainer(){
+  let container = document.getElementById('flashContainer');
+  if (container) return container;
+  const root = document.querySelector('.container') || document.body;
+  container = document.createElement('div');
+  container.id = 'flashContainer';
+  container.className = 'space-y-2 mb-4';
+  const header = root.querySelector('header');
+  if (header && header.nextSibling) {
+    root.insertBefore(container, header.nextSibling);
+  } else {
+    root.prepend(container);
+  }
+  return container;
+}
+
 function showFlash(message, type='info', timeout=3000){
   try {
-    const container = document.getElementById('clientFlashContainer');
+    const container = ensureFlashContainer() || document.getElementById('clientFlashContainer');
     if(!container) return;
+    const selector = `[data-flash-dynamic="1"][data-message="${message}"][data-type="${type}"]`;
+    const dup = container.querySelector(selector);
+    if (dup) dup.remove();
     const el = document.createElement('div');
-    el.className = 'mb-2 p-3 rounded shadow text-sm';
-    if(type === 'success') el.classList.add('bg-green-50', 'text-green-800');
-    else if(type === 'error') el.classList.add('bg-red-50', 'text-red-800');
-    else el.classList.add('bg-gray-50', 'text-gray-800');
-    el.innerText = message;
+    el.className = 'flash-banner text-sm';
+    if(type === 'success') el.classList.add('flash-success');
+    else if(type === 'error') el.classList.add('flash-error');
+    else {
+      el.classList.add('flash-info');
+      el.style.background = '#eff6ff';
+      el.style.color = '#1e3a8a';
+      el.style.border = '1px solid #bfdbfe';
+    }
+    el.dataset.flashDynamic = '1';
+    el.dataset.message = message;
+    el.dataset.type = type;
+    if (timeout) el.setAttribute('data-ttl', String(timeout));
+    el.textContent = message;
     container.appendChild(el);
-    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }catch(e){} }, timeout);
   } catch(e){ console.warn('showFlash failed', e); }
 }
+
+(function(){
+  const openBtn = document.getElementById('openQrScanner');
+  const modal = document.getElementById('qrCameraModal');
+  if(!openBtn || !modal) return;
+
+  const supportsMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if(!supportsMedia){
+    openBtn.title = 'Η συσκευή δεν υποστηρίζει πρόσβαση σε κάμερα';
+    openBtn.classList.add('text-gray-400', 'cursor-not-allowed');
+    openBtn.disabled = true;
+    return;
+  }
+
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  const statusEl = document.getElementById('qrStatus');
+  const closeEls = [document.getElementById('qrModalClose'), document.getElementById('qrModalCloseBtn')];
+  const rescanBtn = document.getElementById('qrModalRescan');
+  const useBtn = document.getElementById('qrModalUseValue');
+  const markInput = document.getElementById('markInput');
+
+  let stream = null;
+  let scanning = false;
+  let timer = null;
+  let lastPayload = '';
+
+  function setStatus(text, tone){
+    if(!statusEl) return;
+    statusEl.textContent = text;
+    const base = 'text-sm ';
+    if(tone === 'error') statusEl.className = base + 'text-red-600';
+    else if(tone === 'success') statusEl.className = base + 'text-green-600';
+    else statusEl.className = base + 'text-gray-500';
+  }
+
+  function stopStream(){
+    if(stream){
+      try { stream.getTracks().forEach(tr => tr.stop()); } catch(_){}
+      stream = null;
+    }
+  }
+
+  function clearTimer(){ if(timer){ clearTimeout(timer); timer = null; } }
+
+  function closeModal(){
+    scanning = false;
+    modal.classList.add('hidden');
+    clearTimer();
+    stopStream();
+    setStatus('Ενεργοποίηση κάμερας…', 'info');
+    if(useBtn){ useBtn.classList.add('hidden'); delete useBtn.dataset.value; }
+    lastPayload = '';
+  }
+
+  function scheduleScan(delay){
+    clearTimer();
+    timer = setTimeout(runScan, delay);
+  }
+
+  async function startCamera(){
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      if(video){
+        video.srcObject = stream;
+        video.onloadedmetadata = function(){
+          try { video.play(); } catch(_){}
+          scanning = true;
+          setStatus('Σάρωση…', 'info');
+          scheduleScan(400);
+        };
+      }
+    } catch(err){
+      console.error('Camera access denied', err);
+      setStatus('Αποτυχία πρόσβασης στην κάμερα. Έλεγξε τα δικαιώματα.', 'error');
+      showFlash('Δεν δόθηκε πρόσβαση στην κάμερα.', 'error', 6000);
+    }
+  }
+
+  async function runScan(){
+    if(!scanning || !video) return;
+    if(video.readyState < 2){
+      scheduleScan(250);
+      return;
+    }
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    try {
+      setStatus('Ανάγνωση QR…', 'info');
+      const res = await fetch('/api/qr/decode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ image: dataUrl, filename: 'capture.png' })
+      });
+      const j = await res.json();
+      if(res.ok && j && j.ok){
+        const val = (j.raw || j.mark || '').trim();
+        lastPayload = val;
+        if(val && markInput){
+          markInput.value = val;
+          try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+        }
+        scanning = false;
+        setStatus('Βρέθηκε QR κώδικας.', 'success');
+        if(useBtn){
+          useBtn.classList.toggle('hidden', !val);
+          if(val) useBtn.dataset.value = val;
+        }
+        showFlash('Εντοπίστηκε QR: η τιμή προστέθηκε στο πεδίο αναζήτησης.', 'success', 5000);
+        clearTimer();
+        return;
+      }
+      const msg = (j && j.error) ? j.error : 'Δεν αναγνωρίστηκε QR. Προσπάθησε ξανά.';
+      setStatus(msg, 'info');
+      scheduleScan(900);
+    } catch(err){
+      console.warn('QR scan failed', err);
+      setStatus('Σφάλμα ανάγνωσης QR. Προσπάθησε ξανά.', 'error');
+      scheduleScan(1500);
+    }
+  }
+
+  function openModal(){
+    modal.classList.remove('hidden');
+    setStatus('Ενεργοποίηση κάμερας…', 'info');
+    clearTimer();
+    stopStream();
+    startCamera();
+  }
+
+  openBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    openModal();
+  });
+
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+
+  closeEls.forEach(btn => btn && btn.addEventListener('click', closeModal));
+
+  rescanBtn?.addEventListener('click', function(){
+    if(useBtn) useBtn.classList.add('hidden');
+    if(!stream){
+      startCamera();
+    } else {
+      scanning = true;
+      setStatus('Σάρωση…', 'info');
+      scheduleScan(300);
+    }
+  });
+
+  useBtn?.addEventListener('click', function(){
+    const val = this.dataset.value || lastPayload;
+    if(val && markInput){
+      markInput.focus();
+      markInput.setSelectionRange(val.length, val.length);
+    }
+    closeModal();
+  });
+})();
 
 // Helper API calls
 async function apiGetRepeatEntry(vat){
@@ -1839,6 +2075,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   if(useReceiptsSwitch){
     useReceiptsSwitch.addEventListener('change', function(){
       const on = !!this.checked;
+      this.setAttribute('aria-checked', on ? 'true' : 'false');
       // UI: swap inputs
       if(on){
         document.getElementById('markInput')?.classList.add('hidden');
@@ -1867,6 +2104,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         })();
       }
     });
+    useReceiptsSwitch.setAttribute('aria-checked', useReceiptsSwitch.checked ? 'true' : 'false');
   }
 
   // repeat modal handlers
@@ -2576,111 +2814,6 @@ function readMappingFromUI(){
   });
   return out;
 }
-
-async function saveRepeatModal(){
-  const mapping = readMappingFromUI();
-  const NEED = ["0%","6%","13%","17%","24%"];
-  const missing = NEED.filter(k => !mapping[k]);
-  const hint = document.getElementById('charMissingHint');
-  if (missing.length){
-    if(hint){ hint.style.display=''; hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', '); }
-    return;
-  }
-
-  const sel = document.getElementById('charProfileSelect');
-  const profileName = sel && sel.value ? sel.value : "";
-
-  const res = await fetch('/api/repeat_entry/save', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body: JSON.stringify({
-      vat: VAT,
-      enabled: true,
-      mapping,
-      profile_name: profileName
-    })
-  });
-
-  const j = await res.json().catch(()=>null);
-  if(!j || !j.ok){
-    if(hint){ hint.style.display=''; hint.textContent = (j && j.error) ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.'; }
-    return;
-  }
-
-  // Μήνυμα επιτυχίας
-  alert('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.');
-
-  // Κλείσε modal
-  document.getElementById('repeatMappingModal').style.display = 'none';
-
-  // Αναγραφή ενεργού προφίλ επάνω από το toggle
-  const activeName = j.repeat_entry?.profile_name || profileName || "";
-  setActiveProfileHint(activeName);
-  const sw = document.getElementById('repeatEntrySwitch');
-  if (sw) sw.checked = true;
-}
-
-document.getElementById('repeatModalSave')?.addEventListener('click', async ()=>{
-  const listBox = document.getElementById('repeatMappingList');
-  const hint = document.getElementById('charMissingHint');
-  const sel  = document.getElementById('charProfileSelect');
-  const VAT  = "{{ vat or '' }}";
-
-  // διάβασμα mapping από UI
-  const out = {};
-  const missing = [];
-  listBox.querySelectorAll('select[data-vat]').forEach(sel=>{
-    const k = sel.dataset.vat;
-    const v = (sel.value || '').trim();
-    if(!v) missing.push(k);
-    out[k] = v;
-  });
-  if(missing.length){
-    hint.style.display = '';
-    hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', ');
-    return;
-  }
-  hint.style.display = 'none'; hint.textContent = '';
-
-  const chosenName = (sel && sel.value) ? sel.value : "";
-
-  // αποθήκευση
-  try{
-    const res = await fetch('/api/repeat_entry/save', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        vat: VAT,
-        enabled: true,
-        mapping: out,              // πάντα 0/6/13/17/24
-        profile_name: chosenName   // ζητάμε να το σώσει
-      })
-    });
-    const j = await res.json();
-    if(!res.ok || !j.ok){
-      const msg = j && j.error ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.';
-      hint.style.display = ''; hint.textContent = msg;
-      return;
-    }
-
-    // κλείσιμο modal
-    document.getElementById('repeatMappingModal').style.display = 'none';
-
-    // ενημέρωση hint επάνω από το toggle
-    const activeName = (j.repeat_entry && j.repeat_entry.profile_name) || chosenName || "";
-    setActiveProfileHint(activeName);
-
-    // μικρό success toast
-    if (typeof showFlash === 'function') showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
-
-    // fallback επιμονής επιλογής (αν για οποιονδήποτε λόγο δεν σωθεί server-side)
-    try { localStorage.setItem('repeatProfile:'+VAT, activeName); } catch(_){}
-  }catch(e){
-    hint.style.display=''; hint.textContent='Δικτυακό σφάλμα.';
-  }
-});
 // === DEBUG SNIPPET: paste near end of your existing scripts ===
 (function(){
   function safeLog(...a){ try{ console.log('[RC-DEBUG]', ...a); }catch(e){} }

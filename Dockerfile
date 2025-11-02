@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libzbar-dev \
     libjpeg-dev \
     zlib1g-dev \
+    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy app

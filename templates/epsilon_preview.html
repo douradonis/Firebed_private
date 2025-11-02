@@ -59,6 +59,10 @@
     Δεν βρέθηκαν εγγραφές στο afm_epsilon_invoices.
   </div>
 
+  <div class="flex justify-end mb-3">
+    <input id="epsilonSearch" type="search" placeholder="🔎 Αναζήτηση κινήσεων" class="px-3 py-2 border rounded-md w-full md:w-72 focus:outline-none focus:ring-2 focus:ring-sky-500">
+  </div>
+
   <table id="epsilonTable" class="display stripe hover w-full">
     <thead>
       <tr>
@@ -85,10 +89,23 @@
 const TABLE_DATA = {{ table_rows|tojson|safe }};
 const ACTIVE_VAT = "{{ vat or '' }}";
 const BRIDGE_ISSUES = {{ (bridge_issues or [])|tojson|safe }};
+const CATEGORY_LABELS = {{ (category_labels or {})|tojson|safe }};
 
 function money(n){
   const v = Number(n)||0;
   return v.toLocaleString('el-GR',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function labelCategory(cat){
+  const key = (cat ?? '').toString().trim();
+  if(!key) return '';
+  const map = (CATEGORY_LABELS && typeof CATEGORY_LABELS === 'object') ? CATEGORY_LABELS : {};
+  return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : key;
+}
+
+function labelCharList(text){
+  if(!text) return '';
+  return text.split(',').map(part => labelCategory(part)).filter(Boolean).join(', ');
 }
 
 function warnBadge(title){
@@ -129,7 +146,7 @@ function childRowsHtml(lines){
   let rows = lines.map((ln,i)=>`
     <tr>
       <td class="text-gray-500">${i+1}</td>
-      <td>${warnIfEmpty(ln.category, 'Λείπει χαρακτηρισμός')}</td>
+      <td>${warnIfEmpty(labelCategory(ln.category || ln._label || ''), 'Λείπει χαρακτηρισμός')}</td>
       <td class="text-right">${money(ln.net)}</td>
       <td class="text-right">${money(ln.vat)}</td>
       <td class="text-right">${money(ln.gross)}</td>
@@ -201,6 +218,8 @@ $(function(){
       const missVat  = hasMissingVat(lines);
       const missAcc  = hasMissingAccounts(lines) || !String(r.LCODE_DETAIL_SUMMARY||'').trim();
       const isRec    = isReceipt(r.DOCTYPE);
+      const labeledLines = (lines||[]).map(ln => ({ ...ln, _label: labelCategory(ln.category) }));
+      const charLabel = labelCharList(r.CHARACTS || '');
       return {
         _expand: lines.length>1 ? '+' : '',
         MARK: r.MARK || '',
@@ -213,9 +232,10 @@ $(function(){
         VAT: Number(r.VAT)||0,
         GROSS: Number(r.GROSS)||0,
         DOCTYPE: r.DOCTYPE || '',
-        CHARACTS: r.CHARACTS || '',
+        CHARACTS: charLabel,
+        CHARACTS_ORIG: r.CHARACTS || '',
         LCODES: r.LCODE_DETAIL_SUMMARY || '',
-        _lines: lines,
+        _lines: labeledLines,
         _missChar: missChar,
         _missVat: missVat,
         _missLcodes: missAcc,
@@ -268,6 +288,7 @@ $(function(){
     order: [[2,'desc']],
     pageLength: 25,
     deferRender: true,
+    dom: 'lrtip',
     drawCallback: function(){ updateTotalsAndExportState(this.api()); }
   });
 
@@ -288,6 +309,11 @@ $(function(){
 
   // initial compute
   updateTotalsAndExportState(dt);
+
+  const searchInput = document.getElementById('epsilonSearch');
+  if(searchInput){
+    searchInput.addEventListener('input', function(){ dt.search(this.value).draw(); });
+  }
 
   // Export
   document.getElementById('exportBridgeBtn')?.addEventListener('click', function(){
