@@ -1808,7 +1808,7 @@ function prefillSummaryModal(){
     urlInput = document.createElement('input');
     urlInput.id = 'scrapeUrlInput';
     urlInput.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-    urlInput.className = 'p-2 border rounded w-2/4 hidden';
+    urlInput.className = 'p-2 border rounded w-full pr-12 hidden';
     urlInput.type = 'text';
     // insert after markInput
     const mi = document.getElementById('markInput');
@@ -3944,7 +3944,7 @@ document.addEventListener('submit', function(ev){
       el = document.createElement('input');
       el.id = 'scrapeUrlInput';
       el.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-      el.className = 'p-2 border rounded w-2/4 hidden';
+      el.className = 'p-2 border rounded w-full pr-12 hidden';
       el.type = 'text';
       if (markInput && markInput.parentElement) {
         markInput.parentElement.insertBefore(el, markInput.nextSibling);
