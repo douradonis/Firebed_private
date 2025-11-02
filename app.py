@@ -8,7 +8,7 @@ import base64
 import re
 from logging.handlers import RotatingFileHandler
 import datetime
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Tuple
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 from datetime import timezone
@@ -355,6 +355,25 @@ CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
 
 VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
 VAT_RATE_NUMERIC = ["0", "6", "13", "17", "24"]
+
+SERIES_SETTING_KEYS = [
+    "invoice_general",
+    "invoice_services",
+    "invoice_credit",
+    "receipt_retail",
+    "receipt_services",
+    "receipt_credit",
+]
+
+SERIES_INVOICE_DEFAULT = "invoice_general"
+SERIES_RECEIPT_DEFAULT = "receipt_retail"
+
+SERIES_FALLBACK_MAP = {
+    "invoice_services": SERIES_INVOICE_DEFAULT,
+    "invoice_credit": SERIES_INVOICE_DEFAULT,
+    "receipt_services": SERIES_RECEIPT_DEFAULT,
+    "receipt_credit": SERIES_RECEIPT_DEFAULT,
+}
 
 DEFAULT_INVOICE_CATEGORY_LABELS: Dict[str, str] = {
     "αγορες_εμπορευματων": "Αγορές εμπορευμάτων",
@@ -1555,6 +1574,18 @@ def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None,
     import pandas as pd, os
     path = excel_path_for(cred_name=cred_name, vat=vat)
 
+    if isinstance(summary, dict):
+        summary = dict(summary)
+    else:
+        try:
+            summary = dict(summary or {})
+        except Exception:
+            summary = {}
+
+    cred_for_series = _resolve_series_credential(summary, vat=vat, cred_name=cred_name)
+    resolved_series = _resolved_series_for_summary(summary, vat=vat, cred=cred_for_series, cred_name=cred_name)
+    summary["series"] = resolved_series
+
     # Φτιάξε αρχείο αν λείπει (κράτα τη δομή που ήδη χρησιμοποιείς)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -1580,7 +1611,7 @@ def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None,
     mark_val = str(summary.get("MARK") or summary.get("mark") or "").strip()
     afm_val  = str(summary.get("AFM") or summary.get("AFM_issuer") or "").strip()
     name_val = str(summary.get("Name") or summary.get("Name_issuer") or "").strip()
-    series   = str(summary.get("series") or "").strip()
+    series   = str(resolved_series or "").strip()
     number   = str(summary.get("number") or summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
     date_val = str(summary.get("issueDate") or "").strip()
     tipo     = str(summary.get("type") or "").strip()
@@ -2213,6 +2244,116 @@ def get_cred_by_vat(vat: Optional[str]) -> Optional[Dict[str, Any]]:
     except Exception:
         current_app.logger.exception("get_cred_by_vat failed for VAT %s", vat)
     return None
+
+
+def _series_settings_from_form(form) -> Dict[str, Any]:
+    try:
+        mode_raw = str(form.get("series_mode") or "document").strip().lower()
+    except Exception:
+        mode_raw = "document"
+    mode = "custom" if mode_raw == "custom" else "document"
+    custom: Dict[str, str] = {}
+    for key in SERIES_SETTING_KEYS:
+        field = f"series_custom_{key}"
+        try:
+            raw_val = form.get(field)
+        except Exception:
+            raw_val = None
+        if raw_val is None:
+            continue
+        val = str(raw_val).strip()
+        if val:
+            custom[key] = val
+    if mode != "custom":
+        return {"mode": "document", "custom": {}}
+    return {"mode": "custom", "custom": custom}
+
+
+def _series_preference_keys(summary: Optional[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
+    data = summary if isinstance(summary, dict) else {}
+    doc_type = str(data.get("type") or data.get("type_code") or "").strip()
+    if doc_type.startswith("2."):
+        return "invoice_services", SERIES_FALLBACK_MAP.get("invoice_services")
+    if doc_type.startswith("5."):
+        return "invoice_credit", SERIES_FALLBACK_MAP.get("invoice_credit")
+    if doc_type.startswith("12."):
+        return "receipt_services", SERIES_FALLBACK_MAP.get("receipt_services")
+    if doc_type.startswith("13."):
+        return "receipt_credit", SERIES_FALLBACK_MAP.get("receipt_credit")
+    if doc_type.startswith("11."):
+        return "receipt_retail", None
+    if doc_type.startswith("1."):
+        return "invoice_general", None
+    category = str(
+        data.get("category")
+        or data.get("χαρακτηρισμός")
+        or data.get("characteristic")
+        or ""
+    ).strip()
+    if category == "αποδειξακια":
+        return "receipt_retail", None
+    return "invoice_general", None
+
+
+def _resolve_series_credential(
+    summary: Optional[Dict[str, Any]],
+    vat: Optional[str] = None,
+    cred_name: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    cred = None
+    if cred_name:
+        cred = get_cred_by_name(cred_name)
+    if not cred and vat:
+        cred = get_cred_by_vat(vat)
+    if not cred and isinstance(summary, dict):
+        for key in ("AFM", "AFM_issuer", "vat"):
+            candidate = summary.get(key)
+            if not candidate:
+                continue
+            cred = get_cred_by_vat(candidate)
+            if cred:
+                break
+    if not cred:
+        try:
+            cred = get_active_credential_from_session()
+        except Exception:
+            cred = None
+    return cred
+
+
+def _resolved_series_for_summary(
+    summary: Optional[Dict[str, Any]],
+    vat: Optional[str] = None,
+    cred: Optional[Dict[str, Any]] = None,
+    cred_name: Optional[str] = None,
+) -> str:
+    base_series = ""
+    data = summary if isinstance(summary, dict) else {}
+    if isinstance(summary, dict):
+        base_series = str(summary.get("series") or "").strip()
+    else:
+        try:
+            base_series = str(getattr(summary, "series", "") or "").strip()
+        except Exception:
+            base_series = ""
+    cred_obj = cred if isinstance(cred, dict) else None
+    if cred_obj is None:
+        cred_obj = _resolve_series_credential(data, vat=vat, cred_name=cred_name)
+    settings = cred_obj.get("series_settings") if isinstance(cred_obj, dict) else None
+    if not isinstance(settings, dict):
+        return base_series
+    mode = str(settings.get("mode") or "document").strip().lower()
+    if mode != "custom":
+        return base_series
+    custom = settings.get("custom") if isinstance(settings, dict) else {}
+    if not isinstance(custom, dict):
+        custom = {}
+    primary, fallback_key = _series_preference_keys(data)
+    for key in filter(None, [primary, fallback_key]):
+        val = custom.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return base_series
 
 # --- Excel path helper: πάντα με VAT + fiscal_year ---
 def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -> str:
@@ -3472,6 +3613,7 @@ def credentials():
         apodeixakia_supplier = request.form.get("apodeixakia_supplier", "").strip()
         apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
         apodeixakia_other_expenses = True if apodeixakia_other_raw in ("on", "true", "1", "yes") else False
+        series_settings = _series_settings_from_form(request.form)
 
         # Normalize apodeixakia fields: if category not selected, force-reset them
         if "αποδειξακια" not in expense_tags:
@@ -3494,7 +3636,8 @@ def credentials():
                 "expense_tags": expense_tags,
                 "apodeixakia_type": apodeixakia_type,
                 "apodeixakia_supplier": apodeixakia_supplier,
-                "apodeixakia_other_expenses": apodeixakia_other_expenses
+                "apodeixakia_other_expenses": apodeixakia_other_expenses,
+                "series_settings": series_settings
             }
             ok, err = add_credential(entry)
             if ok:
@@ -3541,6 +3684,8 @@ def credentials_edit(name):
             apodeixakia_supplier = ""
             apodeixakia_other_expenses = False
 
+        series_settings = _series_settings_from_form(request.form)
+
 
         if not new_name:
             flash("Name required", "error")
@@ -3564,7 +3709,8 @@ def credentials_edit(name):
             "apodeixakia_type": apodeixakia_type,
             "apodeixakia_supplier": apodeixakia_supplier,
             "apodeixakia_other_expenses": bool(apodeixakia_other_expenses),
-            "custom_categories": credential.get("custom_categories", [])
+            "custom_categories": credential.get("custom_categories", []),
+            "series_settings": series_settings or credential.get("series_settings", {})
         }
 
         updated = False
@@ -4681,8 +4827,9 @@ def search():
             import pandas as pd
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
-            if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
-                df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            drop_cols = [col for col in ["ΦΠΑ_ΑΝΑΛΥΣΗ", "Α/Α", "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ"] if col in df.columns]
+            if drop_cols:
+                df = df.drop(columns=drop_cols)
             checkbox_html = '<input type="checkbox" name="delete_mark" />'
             df.insert(0, "✓", [checkbox_html] * len(df))
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
@@ -5517,6 +5664,9 @@ def save_summary():
     summary = _hydrate_summary_for_excel(summary, vat=str(vat or ""))
     is_receipt = _is_receipt(summary)
 
+    series_cred = _resolve_series_credential(summary, vat=vat)
+    summary["series"] = _resolved_series_for_summary(summary, vat=vat, cred=series_cred)
+
     conf = _load_repeat_entry_for_vat(vat)
     # ΤΙΜΟΛΟΓΙΑ: mapping ανά VAT%
     if not is_receipt:
@@ -5872,7 +6022,6 @@ def save_receipt():
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    flash("Η απόδειξη αποθηκεύτηκε επιτυχώς!", "success")
     return redirect(url_for("search"))
 
 @app.route("/api/repeat_state/get", methods=["GET"])
@@ -6158,8 +6307,9 @@ def list_invoices():
             df = df.astype(str)
 
             # Κόψε εσωτερική ανάλυση ΦΠΑ
-            if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
-                df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            drop_cols = [col for col in ["ΦΠΑ_ΑΝΑΛΥΣΗ", "Α/Α", "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ"] if col in df.columns]
+            if drop_cols:
+                df = df.drop(columns=drop_cols)
 
             # Πρώτη στήλη με checkbox
             if "MARK" in df.columns:
