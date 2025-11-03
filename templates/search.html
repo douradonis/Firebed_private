@@ -2778,7 +2778,9 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     const j = await res.json().catch(()=>null);
     if(!res.ok || !j || !j.ok){
       console.warn('confirm_receipt failed', res.status, j);
-      showFlash('Σφάλμα αποθήκευσης: ' + ((j && j.error) ? j.error : ('Server ' + (res.status || ''))) , 'error', 7000);
+      const errMsg = 'Σφάλμα αποθήκευσης: ' + ((j && j.error) ? j.error : ('Server ' + (res.status || '')));
+      showFlash(errMsg, 'error', 7000);
+      persistReceiptFlash(errMsg, 'error');
       return;
     }
     const successMsg = 'Αποθηκεύτηκε η απόδειξη (excel + json).';
@@ -2790,7 +2792,9 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     document.getElementById('scrapeForceField').value = 'false';
   } catch(err){
     console.error('confirm_receipt fetch error', err);
-    showFlash('Σφάλμα δικτύου κατά την αποθήκευση.', 'error');
+    const errMsg = 'Σφάλμα δικτύου κατά την αποθήκευση.';
+    showFlash(errMsg, 'error');
+    persistReceiptFlash(errMsg, 'error');
   }
 });
 
@@ -4171,13 +4175,15 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
       if (r.reason === 'missing_afm') {
         window.openReceiptWarning && openReceiptWarning('Λείπει AFM ενεργού πελάτη.');
       } else {
-        showFlash('Σφάλμα αποθήκευσης: ' + (r.reason || 'άγνωστο'), 'error', 6000);
+        const errMsg = 'Σφάλμα αποθήκευσης: ' + (r.reason || 'άγνωστο');
+        showFlash(errMsg, 'error', 6000);
+        persistReceiptFlash(errMsg, 'error');
       }
       return false;
     }
     window.__RC_FLAGS = window.__RC_FLAGS || {}; window.__RC_FLAGS.autoHandled = true;
     const successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
-    showFlash(successMsg, 'success', 900);
+    showFlash(successMsg, 'success', 4200);
     persistReceiptFlash(successMsg, 'success');
     try { hideSummaryModal(); } catch(_){}
     try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
@@ -4186,6 +4192,9 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     return true;
   } catch (e) {
     console.warn('handleReceiptAfterScrape failed', e);
+    const errMsg = 'Σφάλμα αποθήκευσης: ' + (e && e.message ? e.message : 'άγνωστο σφάλμα');
+    showFlash(errMsg, 'error', 6000);
+    persistReceiptFlash(errMsg, 'error');
     return false;
   }
 };
