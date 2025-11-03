@@ -301,6 +301,49 @@ class GreeceTZFormatter(logging.Formatter):
         return dt.isoformat(timespec="seconds")
 
 log = logging.getLogger("mydata_app")
+
+
+def delete_customer_data_files(vat: str) -> Dict[str, Any]:
+    """Remove JSON/Excel artifacts for a specific VAT from DATA_DIR.
+
+    Returns a dict with keys:
+      - count: number of files removed
+      - files: absolute paths removed
+      - failed: list of {'path', 'error'} for files that could not be removed
+    """
+
+    vat = str(vat or "").strip()
+    result: Dict[str, Any] = {"count": 0, "files": [], "failed": []}
+    if not vat:
+        return result
+
+    tokens = {vat}
+    digits_only = re.sub(r"\D", "", vat)
+    if digits_only:
+        tokens.add(digits_only)
+
+    allowed_ext = {".json", ".xlsx", ".xls", ".csv"}
+    base_dir = os.path.abspath(DATA_DIR)
+
+    for root, _, files in os.walk(base_dir):
+        for fname in files:
+            _, ext = os.path.splitext(fname)
+            if ext.lower() not in allowed_ext:
+                continue
+            if not any(token and token in fname for token in tokens):
+                continue
+            path = os.path.join(root, fname)
+            try:
+                os.remove(path)
+                result["count"] += 1
+                result["files"].append(path)
+            except FileNotFoundError:
+                continue
+            except Exception as exc:  # pragma: no cover - safeguard logging
+                log.warning("Failed to remove data file %s for VAT %s: %s", path, vat, exc)
+                result["failed"].append({"path": path, "error": str(exc)})
+
+    return result
 log.setLevel(logging.INFO)
 
 if not log.handlers:
@@ -3280,13 +3323,41 @@ def credentials_add():
 
 
 
+def _delete_credential_and_related_data(name: str):
+    creds = load_credentials()
+    credential = next((c for c in creds if c.get("name") == name), None)
+    if not credential:
+        return None, False, {"count": 0, "files": [], "failed": []}
+
+    remaining = [c for c in creds if c.get("name") != name]
+    save_credentials(remaining)
+
+    was_active = False
+    if session.get("active_credential") == name:
+        session.pop("active_credential", None)
+        was_active = True
+
+    cleanup = delete_customer_data_files(credential.get("vat"))
+    return credential, was_active, cleanup
+
+
 @app.route('/credentials/delete/<name>', methods=['POST'])
 def credentials_delete_post(name):
-    credentials = load_credentials()
-    credentials = [c for c in credentials if c['name'] != name]
-    save_credentials(credentials)
-    # <-- added flash to ensure message appears if this route is used
-    flash(f"Credential {name} διαγράφηκε.", "success")
+    credential, was_active, cleanup = _delete_credential_and_related_data(name)
+    if not credential:
+        flash(f"Credential '{name}' not found", "error")
+        return redirect(url_for('credentials'))
+
+    suffix = ''
+    if cleanup.get('count'):
+        suffix = f" Αφαιρέθηκαν {cleanup['count']} αρχεία δεδομένων πελάτη."
+    flash(f"Credential {name} διαγράφηκε.{suffix}", "success")
+    if was_active:
+        flash("Το credential αφαιρέθηκε επίσης από τα ενεργά.", "info")
+    if cleanup.get('failed'):
+        failed_count = len(cleanup.get('failed') or [])
+        if failed_count:
+            flash(f"Δεν ήταν δυνατή η διαγραφή {failed_count} αρχείων. Έλεγξε τα δικαιώματα πρόσβασης.", "error")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/set_active', methods=['POST'])
@@ -3747,8 +3818,7 @@ def credentials_edit(name):
 
 @app.route("/credentials/delete/<name>", methods=["POST"])
 def credentials_delete(name):
-    creds = load_credentials()
-    credential = next((c for c in creds if c.get("name") == name), None)
+    credential, was_active, cleanup = _delete_credential_and_related_data(name)
 
     if not credential:
         # Αν είναι AJAX, επιστρέφουμε JSON
@@ -3757,25 +3827,29 @@ def credentials_delete(name):
         flash(f"Credential '{name}' not found", "error")
         return redirect(url_for("credentials"))
 
-    # Αφαίρεση credential
-    creds = [c for c in creds if c.get("name") != name]
-    save_credentials(creds)
-
-    # Αν ήταν ενεργό, καθαρίζουμε session
-    was_active = False
-    if session.get("active_credential") == name:
-        session.pop("active_credential", None)
-        was_active = True
-
     # Αν request από AJAX, επιστρέφουμε JSON ώστε το frontend fetch να το χειριστεί
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'status': 'ok', 'deleted': name, 'was_active': was_active})
+        return jsonify({
+            'status': 'ok',
+            'deleted': name,
+            'was_active': was_active,
+            'data_files_removed': cleanup,
+        })
 
     # Διαφορετικά κάνουμε τα flash + redirect όπως παλιά
+    suffix = ''
+    removed_count = cleanup.get('count') or 0
+    failed_count = len(cleanup.get('failed') or [])
+    if removed_count:
+        suffix = f" Αφαιρέθηκαν {removed_count} αρχεία δεδομένων πελάτη."
+
     if was_active:
-        flash(f"Active credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.", "success")
+        flash(f"Active credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.{suffix}", "success")
     else:
-        flash(f"Credential '{name}' διαγράφηκε.", "success")
+        flash(f"Credential '{name}' διαγράφηκε.{suffix}", "success")
+
+    if failed_count:
+        flash(f"Δεν ήταν δυνατή η διαγραφή {failed_count} αρχείων. Έλεγξε τα δικαιώματα πρόσβασης.", "error")
 
     return redirect(url_for("credentials"))
 

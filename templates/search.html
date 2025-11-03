@@ -3307,6 +3307,14 @@ function readMappingFromUI(){
         }
         renderLines(lines);
 
+        try {
+          const waitApi = window.WaitOverlay;
+          if (waitApi) {
+            if (typeof waitApi.forceHide === 'function') waitApi.forceHide();
+            else if (typeof waitApi.hide === 'function') waitApi.hide();
+          }
+        } catch(_){}
+
         // if modal is hidden, ensure it's visible when populate invoked by scraper flow
         try {
           if (modal && modal.style.display === 'none') {
