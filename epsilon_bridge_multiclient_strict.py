@@ -597,6 +597,7 @@ def build_preview_rows_for_ui(
         rows.append({
             "MARK": str(mark),
             "AA": str(aa),
+            "SERIES": str(rec.get("series") or rec.get("SERIES") or ""),
             "DATE": date,
             "AFM_ISSUER": afm_norm or str(afm_raw),
             "ISSUER_NAME": issuer_name,
@@ -644,6 +645,20 @@ def load_epsilon_invoices(path: str) -> List[Dict[str, Any]]:
             return data[key]
     return [data]
 
+def _compose_invoice_value(rec: Dict[str, Any]) -> str:
+    """Return the bridge 'INVOICE' column value with optional series prefix."""
+    try:
+        series = str(rec.get("SERIES") or rec.get("series") or "").strip()
+    except Exception:
+        series = ""
+    try:
+        aa_val = str(rec.get("AA") or rec.get("aa") or rec.get("mark") or "").strip()
+    except Exception:
+        aa_val = ""
+    if series and aa_val:
+        return f"{series} {aa_val}".strip()
+    return series or aa_val
+
 def export_multiclient_strict(
     vat: str,
     credentials_json: str,
@@ -686,7 +701,7 @@ def export_multiclient_strict(
                 "CUSTID": rec.get("CUSTID"),
                 "MDATE": _to_date(rec.get("DATE")),
                 "REASON": rec.get("REASON"),
-                "INVOICE": rec.get("AA"),
+                "INVOICE": _compose_invoice_value(rec),
                 "SUMKEPYOYP": float(abs(sum_net)),
                 "LCODE_DETAIL": ln.get("lcode_detail") or "",
                 "ISAGRYP_DETAIL": 0,

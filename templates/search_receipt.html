@@ -101,6 +101,29 @@ function showFlash(message, type='info', timeout=3000){
   setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(),300); }catch(e){} }, timeout);
 }
 
+function persistReceiptFlash(message, type='info'){
+  try {
+    sessionStorage.setItem('RC:lastFlash', JSON.stringify({ message, type, ts: Date.now() }));
+  } catch(e) { console.warn('persistReceiptFlash failed', e); }
+}
+
+function replayPersistedReceiptFlash(){
+  try {
+    const raw = sessionStorage.getItem('RC:lastFlash');
+    if(!raw) return;
+    sessionStorage.removeItem('RC:lastFlash');
+    const data = JSON.parse(raw);
+    if(!data || !data.message) return;
+    const age = Date.now() - (data.ts || 0);
+    if(age > 5 * 60 * 1000) return; // ignore stale messages (>5min)
+    showFlash(data.message, data.type || 'info', 4000);
+  } catch(e) {
+    console.warn('replayPersistedReceiptFlash failed', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { once: true });
+
 /* helper fetch json */
 async function fetchJson(url, opts){
   try {
@@ -321,7 +344,13 @@ function populateReceiptsModal(lines){
       }
 
       const result = await sendConfirmPayload(payload);
-      if(result.ok){ showFlash('Αποθηκεύτηκε αποδειξη.', 'success', 3000); tr.classList.add('opacity-60'); setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 450); }
+      if(result.ok){
+        const successMsg = 'Αποθηκεύτηκε αποδειξη.';
+        showFlash(successMsg, 'success', 3000);
+        persistReceiptFlash(successMsg, 'success');
+        tr.classList.add('opacity-60');
+        setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 600);
+      }
       else { showFlash('Σφάλμα αποθήκευσης: ' + (result.body?.error || result.error || 'server'), 'error', 6000); }
     });
     actionsTd.appendChild(confirmBtn);
@@ -523,7 +552,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
     console.log('Bulk confirm payload:', payload);
     const resp = await sendConfirmPayload(payload);
-    if(resp.ok){ showFlash('Αποθηκεύτηκαν οι αποδείξεις.','success',4000); setTimeout(()=>window.location.reload(),350); }
+    if(resp.ok){
+      const successMsg = 'Αποθηκεύτηκαν οι αποδείξεις.';
+      showFlash(successMsg,'success',4000);
+      persistReceiptFlash(successMsg,'success');
+      setTimeout(()=>window.location.reload(),400);
+    }
     else { showFlash('Σφάλμα server: ' + (resp.body?.error || resp.error || 'unknown'),'error',6000); console.error('confirm failed', resp); }
   });
 });
