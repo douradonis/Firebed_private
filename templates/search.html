@@ -1413,11 +1413,22 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
   const rescanBtn = document.getElementById('qrModalRescan');
   const useBtn = document.getElementById('qrModalUseValue');
   const markInput = document.getElementById('markInput');
+  const urlInput = document.getElementById('scrapeUrlInput');
 
   let stream = null;
   let scanning = false;
   let timer = null;
   let lastPayload = '';
+
+  function suspendWaitOverlay(active){
+    try {
+      const api = window.WaitOverlay;
+      if(api && typeof api.suspend === 'function'){
+        api.suspend(!!active);
+        if(active && typeof api.hide === 'function') api.hide();
+      }
+    } catch(_){}
+  }
 
   function setStatus(text, tone){
     if(!statusEl) return;
@@ -1443,8 +1454,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     clearTimer();
     stopStream();
     setStatus('Ενεργοποίηση κάμερας…', 'info');
-    if(useBtn){ useBtn.classList.add('hidden'); delete useBtn.dataset.value; }
+    if(useBtn){
+      useBtn.classList.add('hidden');
+      delete useBtn.dataset.value;
+      delete useBtn.dataset.url;
+    }
     lastPayload = '';
+    suspendWaitOverlay(false);
   }
 
   function scheduleScan(delay){
@@ -1495,19 +1511,29 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       });
       const j = await res.json();
       if(res.ok && j && j.ok){
-        const val = (j.raw || j.mark || '').trim();
-        lastPayload = val;
-        if(val && markInput){
-          markInput.value = val;
+        const rawVal = (j.raw || '').trim();
+        const markVal = (j.mark || '').trim();
+        const chosen = markVal || rawVal;
+        lastPayload = chosen;
+        if(chosen && markInput){
+          markInput.value = chosen;
           try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
         }
-        scanning = false;
-        setStatus('Βρέθηκε QR κώδικας.', 'success');
-        if(useBtn){
-          useBtn.classList.toggle('hidden', !val);
-          if(val) useBtn.dataset.value = val;
+        if(urlInput && rawVal){
+          urlInput.value = rawVal;
+          if(/^https?:\/\//i.test(rawVal)){ urlInput.classList.remove('hidden'); }
         }
-        showFlash('Εντοπίστηκε QR: η τιμή προστέθηκε στο πεδίο αναζήτησης.', 'success', 5000);
+        scanning = false;
+        const statusMsg = markVal ? `Εντοπίστηκε MARK ${markVal}.` : 'Εντοπίστηκε QR κώδικας.';
+        setStatus(statusMsg, 'success');
+        if(useBtn){
+          useBtn.classList.toggle('hidden', !chosen);
+          if(chosen){
+            useBtn.dataset.value = chosen;
+            if(rawVal){ useBtn.dataset.url = rawVal; }
+          }
+        }
+        showFlash('Εντοπίστηκε QR και ενημερώθηκε το πεδίο αναζήτησης.', 'success', 5000);
         clearTimer();
         return;
       }
@@ -1526,6 +1552,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     setStatus('Ενεργοποίηση κάμερας…', 'info');
     clearTimer();
     stopStream();
+    suspendWaitOverlay(true);
     startCamera();
   }
 
@@ -1556,6 +1583,10 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     if(val && markInput){
       markInput.focus();
       markInput.setSelectionRange(val.length, val.length);
+    }
+    if(this.dataset.url && urlInput){
+      urlInput.value = this.dataset.url;
+      if(/^https?:\/\//i.test(this.dataset.url)){ urlInput.classList.remove('hidden'); }
     }
     closeModal();
   });
@@ -1601,6 +1632,20 @@ function removeForceEditParamFromUrl(){
     }
   } catch(e){ console.warn('removeForceEditParamFromUrl failed', e); }
 }
+
+function hideSummaryModal(){
+  const modal = document.getElementById('summaryModal');
+  if(!modal) return;
+  modal.style.display = 'none';
+  try {
+    const api = window.WaitOverlay;
+    if(api && typeof api.suspend === 'function'){
+      api.suspend(false);
+      if(typeof api.hide === 'function') api.hide();
+    }
+  } catch(_){}
+}
+window.hideSummaryModal = hideSummaryModal;
 
 document.addEventListener('DOMContentLoaded', function(){
   // ---------- DOM references ----------
@@ -2158,7 +2203,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   const modal = document.getElementById('summaryModal');
   const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
   modalCloseBtns.forEach(b => b?.addEventListener('click', function(){
-    if(modal) modal.style.display = 'none';
+    hideSummaryModal();
     removeForceEditParamFromUrl();
   }));
 
@@ -2658,7 +2703,7 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
       alert('Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
       return;
     }
-    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_) {}
+    try { hideSummaryModal(); } catch(_) {}
     window.location = window.location.pathname;
   } catch (err) {
     console.error('save_summary AJAX error', err);
@@ -2739,7 +2784,7 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     const successMsg = 'Αποθηκεύτηκε η απόδειξη (excel + json).';
     showFlash(successMsg, 'success');
     persistReceiptFlash(successMsg, 'success');
-    document.getElementById('summaryModal').style.display = 'none';
+    hideSummaryModal();
     // clean hidden fields
     document.getElementById('scrapeUrlField').value = '';
     document.getElementById('scrapeForceField').value = 'false';
@@ -3345,7 +3390,7 @@ function readMappingFromUI(){
       if (!modal || !summaryEl) { dbg('no modal/summaryEl present'); return; }
 
       // Force-hide now (neutralize server/client auto-show)
-      try { modal.style.display = 'none'; } catch(_) {}
+      hideSummaryModal();
 
       // If summary becomes meaningful, show it (and populate watcher should fill fields)
       const checkAndMaybeShow = () => {
@@ -3364,7 +3409,7 @@ function readMappingFromUI(){
         } else {
           // keep hidden
           dbg('summary not meaningful -> keep modal hidden');
-          try { modal.style.display = 'none'; } catch(_) {}
+          hideSummaryModal();
         }
       };
 
@@ -3399,7 +3444,7 @@ function readMappingFromUI(){
                 const disp = window.getComputedStyle(modalEl).display;
                 if (disp !== 'none') {
                   dbg('modal was opened by other code while summary not meaningful -> hiding it');
-                  modalEl.style.display = 'none';
+                  hideSummaryModal();
                 }
               }
             }
@@ -3658,7 +3703,7 @@ document.addEventListener('submit', function(ev){
       const obj = readSummary();
       if (!shouldOpenSummaryModal(obj)) {
         // Μπλόκαρε το modal και προχώρησε σε auto-submit
-        modal.style.display = 'none';
+        hideSummaryModal();
         autoSubmitReceipt(obj);
       }
     }catch(_){}
@@ -3674,7 +3719,7 @@ document.addEventListener('submit', function(ev){
       const visible = modal && getComputedStyle(modal).display !== 'none';
       const obj = readSummary();
       if (visible && !shouldOpenSummaryModal(obj)) {
-        modal.style.display = 'none';
+        hideSummaryModal();
         autoSubmitReceipt(obj);
       }
     }catch(_){}
@@ -4126,7 +4171,7 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     const successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
     showFlash(successMsg, 'success', 900);
     persistReceiptFlash(successMsg, 'success');
-    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_){}
+    try { hideSummaryModal(); } catch(_){}
     try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
     try { document.getElementById('markInput').value = ''; } catch(_){}
     window.location = window.location.pathname;
@@ -4541,7 +4586,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (done) return;
       const visible = getComputedStyle(modal).display !== 'none';
       if (!visible) return;
-      if (tryAutoSave()) { done = true; modal.style.display = 'none'; }
+      if (tryAutoSave()) { done = true; hideSummaryModal(); }
     };
     try { new MutationObserver(doIt).observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
     setTimeout(doIt, 80);
@@ -4654,10 +4699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lastMarkTried = mk;
 
     // hide modal pre-emptively to avoid flicker
-    try {
-      const modal = document.getElementById('summaryModal');
-      if (modal) modal.style.display = 'none';
-    } catch(_){}
+    try { hideSummaryModal(); } catch(_){}
 
     if (!(window.RC && RC.confirmReceiptOnce && RC.normalizeReceiptSummary)) {
       // RC not yet ready; retry later
