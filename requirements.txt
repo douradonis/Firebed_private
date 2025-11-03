@@ -11,7 +11,7 @@ pyzbar>=0.1.9
 xsdata>=24.0
 beautifulsoup4>=4.12
 lxml>=4.9
-xlrd>=2.0.2
+xlrd>=1.2.0
 xlsxwriter
 pdf2image>=1.16
 numpy>=1.25
