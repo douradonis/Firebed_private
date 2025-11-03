@@ -1413,11 +1413,22 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
   const rescanBtn = document.getElementById('qrModalRescan');
   const useBtn = document.getElementById('qrModalUseValue');
   const markInput = document.getElementById('markInput');
+  const urlInput = document.getElementById('scrapeUrlInput');
 
   let stream = null;
   let scanning = false;
   let timer = null;
   let lastPayload = '';
+
+  function suspendWaitOverlay(active){
+    try {
+      const api = window.WaitOverlay;
+      if(api && typeof api.suspend === 'function'){
+        api.suspend(!!active);
+        if(active && typeof api.hide === 'function') api.hide();
+      }
+    } catch(_){}
+  }
 
   function setStatus(text, tone){
     if(!statusEl) return;
@@ -1443,8 +1454,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     clearTimer();
     stopStream();
     setStatus('Ενεργοποίηση κάμερας…', 'info');
-    if(useBtn){ useBtn.classList.add('hidden'); delete useBtn.dataset.value; }
+    if(useBtn){
+      useBtn.classList.add('hidden');
+      delete useBtn.dataset.value;
+      delete useBtn.dataset.url;
+    }
     lastPayload = '';
+    suspendWaitOverlay(false);
   }
 
   function scheduleScan(delay){
@@ -1495,19 +1511,29 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       });
       const j = await res.json();
       if(res.ok && j && j.ok){
-        const val = (j.raw || j.mark || '').trim();
-        lastPayload = val;
-        if(val && markInput){
-          markInput.value = val;
+        const rawVal = (j.raw || '').trim();
+        const markVal = (j.mark || '').trim();
+        const chosen = markVal || rawVal;
+        lastPayload = chosen;
+        if(chosen && markInput){
+          markInput.value = chosen;
           try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
         }
-        scanning = false;
-        setStatus('Βρέθηκε QR κώδικας.', 'success');
-        if(useBtn){
-          useBtn.classList.toggle('hidden', !val);
-          if(val) useBtn.dataset.value = val;
+        if(urlInput && rawVal){
+          urlInput.value = rawVal;
+          if(/^https?:\/\//i.test(rawVal)){ urlInput.classList.remove('hidden'); }
         }
-        showFlash('Εντοπίστηκε QR: η τιμή προστέθηκε στο πεδίο αναζήτησης.', 'success', 5000);
+        scanning = false;
+        const statusMsg = markVal ? `Εντοπίστηκε MARK ${markVal}.` : 'Εντοπίστηκε QR κώδικας.';
+        setStatus(statusMsg, 'success');
+        if(useBtn){
+          useBtn.classList.toggle('hidden', !chosen);
+          if(chosen){
+            useBtn.dataset.value = chosen;
+            if(rawVal){ useBtn.dataset.url = rawVal; }
+          }
+        }
+        showFlash('Εντοπίστηκε QR και ενημερώθηκε το πεδίο αναζήτησης.', 'success', 5000);
         clearTimer();
         return;
       }
@@ -1526,6 +1552,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     setStatus('Ενεργοποίηση κάμερας…', 'info');
     clearTimer();
     stopStream();
+    suspendWaitOverlay(true);
     startCamera();
   }
 
@@ -1556,6 +1583,10 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     if(val && markInput){
       markInput.focus();
       markInput.setSelectionRange(val.length, val.length);
+    }
+    if(this.dataset.url && urlInput){
+      urlInput.value = this.dataset.url;
+      if(/^https?:\/\//i.test(this.dataset.url)){ urlInput.classList.remove('hidden'); }
     }
     closeModal();
   });
@@ -1601,6 +1632,20 @@ function removeForceEditParamFromUrl(){
     }
   } catch(e){ console.warn('removeForceEditParamFromUrl failed', e); }
 }
+
+function hideSummaryModal(){
+  const modal = document.getElementById('summaryModal');
+  if(!modal) return;
+  modal.style.display = 'none';
+  try {
+    const api = window.WaitOverlay;
+    if(api && typeof api.suspend === 'function'){
+      api.suspend(false);
+      if(typeof api.hide === 'function') api.hide();
+    }
+  } catch(_){}
+}
+window.hideSummaryModal = hideSummaryModal;
 
 document.addEventListener('DOMContentLoaded', function(){
   // ---------- DOM references ----------
@@ -2158,7 +2203,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   const modal = document.getElementById('summaryModal');
   const modalCloseBtns = Array.from(document.querySelectorAll('#modalCloseX, #modalCloseBtn'));
   modalCloseBtns.forEach(b => b?.addEventListener('click', function(){
-    if(modal) modal.style.display = 'none';
+    hideSummaryModal();
     removeForceEditParamFromUrl();
   }));
 
@@ -2658,7 +2703,7 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
       alert('Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
       return;
     }
-    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_) {}
+    try { hideSummaryModal(); } catch(_) {}
     window.location = window.location.pathname;
   } catch (err) {
     console.error('save_summary AJAX error', err);
@@ -2736,8 +2781,10 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
       showFlash('Σφάλμα αποθήκευσης: ' + ((j && j.error) ? j.error : ('Server ' + (res.status || ''))) , 'error', 7000);
       return;
     }
-    showFlash('Αποθηκεύτηκε η απόδειξη (excel + json).', 'success');
-    document.getElementById('summaryModal').style.display = 'none';
+    const successMsg = 'Αποθηκεύτηκε η απόδειξη (excel + json).';
+    showFlash(successMsg, 'success');
+    persistReceiptFlash(successMsg, 'success');
+    hideSummaryModal();
     // clean hidden fields
     document.getElementById('scrapeUrlField').value = '';
     document.getElementById('scrapeForceField').value = 'false';
@@ -3260,6 +3307,14 @@ function readMappingFromUI(){
         }
         renderLines(lines);
 
+        try {
+          const waitApi = window.WaitOverlay;
+          if (waitApi) {
+            if (typeof waitApi.forceHide === 'function') waitApi.forceHide();
+            else if (typeof waitApi.hide === 'function') waitApi.hide();
+          }
+        } catch(_){}
+
         // if modal is hidden, ensure it's visible when populate invoked by scraper flow
         try {
           if (modal && modal.style.display === 'none') {
@@ -3343,7 +3398,7 @@ function readMappingFromUI(){
       if (!modal || !summaryEl) { dbg('no modal/summaryEl present'); return; }
 
       // Force-hide now (neutralize server/client auto-show)
-      try { modal.style.display = 'none'; } catch(_) {}
+      hideSummaryModal();
 
       // If summary becomes meaningful, show it (and populate watcher should fill fields)
       const checkAndMaybeShow = () => {
@@ -3362,7 +3417,7 @@ function readMappingFromUI(){
         } else {
           // keep hidden
           dbg('summary not meaningful -> keep modal hidden');
-          try { modal.style.display = 'none'; } catch(_) {}
+          hideSummaryModal();
         }
       };
 
@@ -3397,7 +3452,7 @@ function readMappingFromUI(){
                 const disp = window.getComputedStyle(modalEl).display;
                 if (disp !== 'none') {
                   dbg('modal was opened by other code while summary not meaningful -> hiding it');
-                  modalEl.style.display = 'none';
+                  hideSummaryModal();
                 }
               }
             }
@@ -3656,7 +3711,7 @@ document.addEventListener('submit', function(ev){
       const obj = readSummary();
       if (!shouldOpenSummaryModal(obj)) {
         // Μπλόκαρε το modal και προχώρησε σε auto-submit
-        modal.style.display = 'none';
+        hideSummaryModal();
         autoSubmitReceipt(obj);
       }
     }catch(_){}
@@ -3672,7 +3727,7 @@ document.addEventListener('submit', function(ev){
       const visible = modal && getComputedStyle(modal).display !== 'none';
       const obj = readSummary();
       if (visible && !shouldOpenSummaryModal(obj)) {
-        modal.style.display = 'none';
+        hideSummaryModal();
         autoSubmitReceipt(obj);
       }
     }catch(_){}
@@ -4124,7 +4179,7 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
     const successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
     showFlash(successMsg, 'success', 900);
     persistReceiptFlash(successMsg, 'success');
-    try { document.getElementById('summaryModal').style.display = 'none'; } catch(_){}
+    try { hideSummaryModal(); } catch(_){}
     try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
     try { document.getElementById('markInput').value = ''; } catch(_){}
     window.location = window.location.pathname;
@@ -4539,7 +4594,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (done) return;
       const visible = getComputedStyle(modal).display !== 'none';
       if (!visible) return;
-      if (tryAutoSave()) { done = true; modal.style.display = 'none'; }
+      if (tryAutoSave()) { done = true; hideSummaryModal(); }
     };
     try { new MutationObserver(doIt).observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
     setTimeout(doIt, 80);
@@ -4652,10 +4707,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lastMarkTried = mk;
 
     // hide modal pre-emptively to avoid flicker
-    try {
-      const modal = document.getElementById('summaryModal');
-      if (modal) modal.style.display = 'none';
-    } catch(_){}
+    try { hideSummaryModal(); } catch(_){}
 
     if (!(window.RC && RC.confirmReceiptOnce && RC.normalizeReceiptSummary)) {
       // RC not yet ready; retry later
@@ -4734,35 +4786,76 @@ document.addEventListener('DOMContentLoaded', () => {
 })();</script>
 <script>
 (function(){
-  function setupSummaryWaitOverlay(){
-    const modal = document.getElementById('summaryModal');
+  function isVisible(el){
+    if(!el) return false;
+    const st = window.getComputedStyle(el);
+    return st.display !== 'none' && st.visibility !== 'hidden' && st.opacity !== '0';
+  }
+
+  function bindOverlaySuspension(modal){
     if(!modal || modal.dataset.waitOverlayBound === '1') return;
     modal.dataset.waitOverlayBound = '1';
     let suspended = false;
 
-    const update = () => {
+    const toggleOverlay = () => {
       const api = window.WaitOverlay;
       if(!api || typeof api.suspend !== 'function') return;
-      const visible = modal && window.getComputedStyle(modal).display !== 'none';
-      if(visible && !suspended){
-        try { api.suspend(true); if(typeof api.hide === 'function') api.hide(); } catch(_){}
+      const visible = isVisible(modal);
+      if (visible && !suspended) {
+        try {
+          api.suspend(true);
+          if (typeof api.hide === 'function') api.hide();
+        } catch(_){}
         suspended = true;
-      } else if(!visible && suspended){
+      } else if (!visible && suspended) {
         try { api.suspend(false); } catch(_){}
         suspended = false;
       }
     };
 
-    const observer = new MutationObserver(update);
-    try { observer.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
-    modal.addEventListener('transitionend', () => setTimeout(update, 0));
-    document.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') setTimeout(update, 0); }, true);
+    const watchAttrs = new MutationObserver(() => setTimeout(toggleOverlay, 0));
+    try { watchAttrs.observe(modal, { attributes:true, attributeFilter:['style','class','hidden'] }); } catch(_){}
+
+    const watchBody = new MutationObserver(() => setTimeout(toggleOverlay, 0));
+    try { watchBody.observe(document.body, { attributes:true, attributeFilter:['class'] }); } catch(_){}
+
+    modal.addEventListener('transitionend', () => setTimeout(toggleOverlay, 0));
+    document.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') setTimeout(toggleOverlay, 0); }, true);
+
     window.addEventListener('beforeunload', () => {
-      if(suspended){ try { window.WaitOverlay && window.WaitOverlay.suspend(false); } catch(_){} }
-      try { observer.disconnect(); } catch(_){}
+      if(suspended){
+        try { window.WaitOverlay && window.WaitOverlay.suspend(false); } catch(_){}
+      }
+      try { watchAttrs.disconnect(); } catch(_){}
+      try { watchBody.disconnect(); } catch(_){}
     }, { once:true });
 
-    setTimeout(update, 0);
+    // Ensure overlay reacts even if WaitOverlay loads later
+    let retries = 10;
+    (function ensureReady(){
+      toggleOverlay();
+      if(--retries > 0 && (!window.WaitOverlay || typeof window.WaitOverlay.suspend !== 'function')){
+        setTimeout(ensureReady, 150);
+      }
+    })();
+  }
+
+  function setupSummaryWaitOverlay(){
+    const modal = document.getElementById('summaryModal');
+    if(modal){
+      bindOverlaySuspension(modal);
+      return;
+    }
+
+    const root = document.body || document.documentElement;
+    if(!root) return;
+    const finder = new MutationObserver(() => {
+      const node = document.getElementById('summaryModal');
+      if(!node) return;
+      try { finder.disconnect(); } catch(_){}
+      bindOverlaySuspension(node);
+    });
+    try { finder.observe(root, { childList:true, subtree:true }); } catch(_){}
   }
 
   if(document.readyState === 'loading'){

@@ -11,9 +11,34 @@
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <style>
+    :root { --device-font-scale: 1; }
+    html { font-size: calc(16px * var(--device-font-scale, 1)); }
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; }
     .container { max-width: 1100px; margin: 28px auto; padding: 16px; }
     .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    body[data-device='mobile'] .container {
+      max-width: 100%;
+      margin: 16px auto;
+      padding: 12px;
+    }
+
+    body[data-device='tablet'] .container {
+      max-width: 1000px;
+    }
+
+    body[data-device='mobile'] .content-wrap {
+      padding: 12px;
+    }
+
+    body[data-device='mobile'] nav a {
+      font-size: 0.95rem;
+      padding: 0.5rem 0.65rem;
+    }
+
+    body[data-device='mobile'] h1 {
+      font-size: 1.75rem;
+    }
 
     .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
@@ -307,6 +332,54 @@
 
   <script>
     (function(){
+      const SCALE_MAP = { mobile: 1.1, tablet: 1.05, desktop: 1 };
+      let lastType = null;
+      let resizeTimer = null;
+
+      function detectDeviceType(){
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const width = window.innerWidth || document.documentElement.clientWidth || 0;
+        if (width <= 768 || /mobile|android|iphone|ipod/.test(ua)) return 'mobile';
+        if (width <= 1200 || /ipad|tablet/.test(ua)) return 'tablet';
+        return 'desktop';
+      }
+
+      function assignBody(type){
+        if (!document.body){
+          document.addEventListener('DOMContentLoaded', () => assignBody(type), { once:true });
+          return;
+        }
+        document.body.dataset.device = type;
+      }
+
+      function applyDeviceType(){
+        const type = detectDeviceType();
+        if (type === lastType) return;
+        lastType = type;
+        const scale = SCALE_MAP[type] || 1;
+        document.documentElement.style.setProperty('--device-font-scale', scale);
+        assignBody(type);
+      }
+
+      function schedule(){
+        if (resizeTimer){
+          clearTimeout(resizeTimer);
+        }
+        resizeTimer = setTimeout(applyDeviceType, 120);
+      }
+
+      if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', applyDeviceType, { once:true });
+      } else {
+        applyDeviceType();
+      }
+
+      window.addEventListener('resize', schedule);
+    })();
+  </script>
+
+  <script>
+    (function(){
       // ====== WAIT OVERLAY ======
       const waitEl = document.getElementById('globalWait');
       let waitCount = 0;
@@ -316,7 +389,7 @@
       function hideWait(){ if(!waitEl) return; waitCount = Math.max(0, waitCount-1); if(!waitCount) waitEl.style.display='none'; }
       function forceHide(){ if(!waitEl) return; waitCount = 0; waitEl.style.display='none'; }
       function suspend(on){ suspendWait = Math.max(0, suspendWait + (on?1:-1)); if (suspendWait>0) forceHide(); }
-      window.WaitOverlay = { show: showWait, hide: hideWait, suspend };
+      window.WaitOverlay = { show: showWait, hide: hideWait, suspend, forceHide };
 
       // Patch fetch (AJAX)
       const _fetch = window.fetch;
