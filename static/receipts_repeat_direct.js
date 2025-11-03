@@ -63,6 +63,11 @@
     lsSet('UI:useReceipts','1');
     ssDel(onceKey(mark));
     try{
+      var successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
+      if (window.showFlash) window.showFlash(successMsg, 'success', 4200);
+      if (window.persistReceiptFlash) window.persistReceiptFlash(successMsg, 'success');
+    }catch(_){ }
+    try{
       var url=location.pathname+'?use_receipts=1';
       location.replace(url);
     }catch(_){ location.reload(); }
@@ -87,7 +92,15 @@
       setTimeout(function(){ afterSubmit(mark); }, 50);
     }else{
       submitViaFetch(s).then(function(){ afterSubmit(mark); })
-        .catch(function(){ trying=false; ssDel(k); });
+        .catch(function(err){
+          trying=false;
+          ssDel(k);
+          try{
+            var errMsg = 'Σφάλμα αποθήκευσης: ' + (err && err.message ? err.message : 'server');
+            if (window.showFlash) window.showFlash(errMsg, 'error', 6000);
+            if (window.persistReceiptFlash) window.persistReceiptFlash(errMsg, 'error');
+          }catch(_){ }
+        });
     }
   }
 

@@ -11,9 +11,125 @@
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <style>
+    :root { --device-font-scale: 1; }
+    html { font-size: calc(16px * var(--device-font-scale, 1)); }
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; }
     .container { max-width: 1100px; margin: 28px auto; padding: 16px; }
     .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    body[data-device='mobile'] .container {
+      max-width: 100%;
+      margin: 16px auto;
+      padding: 12px;
+    }
+
+    body[data-device='tablet'] .container {
+      max-width: 1000px;
+      padding: 16px;
+    }
+
+    body[data-device='mobile'] .content-wrap {
+      padding: 12px;
+      border-radius: 16px;
+    }
+
+    body[data-device='mobile'] h1 {
+      font-size: 1.75rem;
+    }
+
+    .layout-header__nav {
+      flex-wrap: wrap;
+    }
+
+    body[data-device='tablet'] .layout-header__right {
+      align-items: stretch;
+      width: 100%;
+    }
+
+    body[data-device='tablet'] .layout-header__nav {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    body[data-device='tablet'] .layout-header__top-row {
+      align-items: stretch;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    body[data-device='tablet'] .layout-header__year-row {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    body[data-device='mobile'] .layout-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+
+    body[data-device='mobile'] .layout-header__brand {
+      width: 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__right {
+      width: 100%;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+
+    body[data-device='mobile'] .layout-header__top-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__nav {
+      width: 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      gap: 0.5rem;
+    }
+
+    body[data-device='mobile'] .layout-header__nav a {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: 0.95rem;
+      padding: 0.55rem 0.75rem;
+    }
+
+    body[data-device='mobile'] .layout-header__nav::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    body[data-device='mobile'] .layout-header__nav::-webkit-scrollbar-thumb {
+      background: rgba(14,165,233,0.45);
+      border-radius: 999px;
+    }
+
+    body[data-device='mobile'] .layout-header__active {
+      justify-content: space-between;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: flex-start;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row label {
+      flex: 1 1 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row select,
+    body[data-device='mobile'] .layout-header__year-row button,
+    body[data-device='mobile'] .layout-header__year-row span {
+      flex: 1 1 calc(50% - 0.5rem);
+      min-width: 0;
+    }
 
     .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
@@ -121,16 +237,16 @@
 <body>
   <div class="container">
     <header class="mb-6">
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="layout-header flex items-center justify-between">
+        <div class="layout-header__brand">
           <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
           <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
         </div>
 
-        <div class="flex flex-col items-end gap-2">
+        <div class="layout-header__right flex flex-col items-end gap-2">
           <!-- 1η γραμμή: Menu buttons + Active credential -->
-          <div class="flex items-center gap-4">
-            <nav class="flex gap-3 items-center">
+          <div class="layout-header__top-row flex items-center gap-4">
+            <nav class="layout-header__nav flex gap-3 items-center">
               <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
               <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
               <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
@@ -139,7 +255,7 @@
             </nav>
 
             <!-- Active credential badge -->
-            <div class="flex items-center gap-2">
+            <div class="layout-header__active flex items-center gap-2">
               <span class="text-sm text-gray-500">Active:</span>
               {% if active_credential %}
                 {% if active_credential_vat %}
@@ -154,7 +270,7 @@
           </div>
 
           <!-- 2η γραμμή: Fiscal year selector -->
-          <div class="flex items-center gap-2 w-max">
+          <div class="layout-header__year-row flex items-center gap-2 w-max">
             <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
             <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
             <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
@@ -307,6 +423,77 @@
 
   <script>
     (function(){
+      const SCALE_MIN = 0.96;
+      const SCALE_MAX = 1.18;
+      const WIDTH_MIN = 360;
+      const WIDTH_MAX = 1600;
+      let lastType = null;
+      let lastScale = null;
+      let resizeTimer = null;
+
+      function detectDeviceType(){
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const width = window.innerWidth || document.documentElement.clientWidth || 0;
+        if (width <= 768 || /mobile|android|iphone|ipod/.test(ua)) return 'mobile';
+        if (width <= 1200 || /ipad|tablet/.test(ua)) return 'tablet';
+        return 'desktop';
+      }
+
+      function assignBody(type){
+        if (!document.body){
+          document.addEventListener('DOMContentLoaded', () => assignBody(type), { once:true });
+          return;
+        }
+        document.body.dataset.device = type;
+      }
+
+      function computeScale(width){
+        const w = Math.min(Math.max(width || WIDTH_MIN, WIDTH_MIN), WIDTH_MAX);
+        const ratio = (w - WIDTH_MIN) / (WIDTH_MAX - WIDTH_MIN);
+        const scale = SCALE_MAX - ratio * (SCALE_MAX - SCALE_MIN);
+        return Number(scale.toFixed(3));
+      }
+
+      function applyDeviceType(){
+        const type = detectDeviceType();
+        const width = window.innerWidth || document.documentElement.clientWidth || screen.width || WIDTH_MAX;
+        const scale = computeScale(width);
+        if (type !== lastType) {
+          lastType = type;
+          assignBody(type);
+        }
+        if (lastScale !== scale) {
+          lastScale = scale;
+          document.documentElement.style.setProperty('--device-font-scale', String(scale));
+        }
+      }
+
+      function schedule(){
+        if (resizeTimer){
+          clearTimeout(resizeTimer);
+        }
+        resizeTimer = setTimeout(applyDeviceType, 90);
+      }
+
+      if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', applyDeviceType, { once:true });
+      } else {
+        applyDeviceType();
+      }
+
+      window.addEventListener('resize', schedule);
+      window.addEventListener('orientationchange', schedule);
+      if (window.ResizeObserver){
+        try {
+          const ro = new ResizeObserver(() => schedule());
+          ro.observe(document.documentElement);
+        } catch(_){}
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){
       // ====== WAIT OVERLAY ======
       const waitEl = document.getElementById('globalWait');
       let waitCount = 0;
@@ -316,7 +503,7 @@
       function hideWait(){ if(!waitEl) return; waitCount = Math.max(0, waitCount-1); if(!waitCount) waitEl.style.display='none'; }
       function forceHide(){ if(!waitEl) return; waitCount = 0; waitEl.style.display='none'; }
       function suspend(on){ suspendWait = Math.max(0, suspendWait + (on?1:-1)); if (suspendWait>0) forceHide(); }
-      window.WaitOverlay = { show: showWait, hide: hideWait, suspend };
+      window.WaitOverlay = { show: showWait, hide: hideWait, suspend, forceHide };
 
       // Patch fetch (AJAX)
       const _fetch = window.fetch;

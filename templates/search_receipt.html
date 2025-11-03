@@ -351,7 +351,11 @@ function populateReceiptsModal(lines){
         tr.classList.add('opacity-60');
         setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 600);
       }
-      else { showFlash('Σφάλμα αποθήκευσης: ' + (result.body?.error || result.error || 'server'), 'error', 6000); }
+      else {
+        const errMsg = 'Σφάλμα αποθήκευσης: ' + (result.body?.error || result.error || 'server');
+        showFlash(errMsg, 'error', 6000);
+        persistReceiptFlash(errMsg, 'error');
+      }
     });
     actionsTd.appendChild(confirmBtn);
 
