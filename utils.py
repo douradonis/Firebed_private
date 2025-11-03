@@ -7,11 +7,80 @@ from urllib.parse import urlparse, parse_qs
 import requests
 import xmltodict
 from PIL import Image
-from pyzbar.pyzbar import decode as qr_decode
+
 from pdf2image import convert_from_bytes
 import pandas as pd
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
+# --- QR decode shim: προτίμηση pyzbar, fallback σε OpenCV χωρίς zbar ---
+try:
+    # Αν υπάρχει pyzbar + zbar, το χρησιμοποιούμε (όπως πριν)
+    from pyzbar.pyzbar import decode as qr_decode
+except Exception:
+    # Χωρίς zbar: ορίζουμε συμβατή συνάρτηση qr_decode() με OpenCV που
+    # επιστρέφει αντικείμενα με .data (όπως κάνει το pyzbar), ώστε να
+    # μην αλλάξεις τίποτα στο υπόλοιπο codebase.
+    import io
+    import numpy as np
+    import cv2
+    from PIL import Image
+
+    class _QRObj:
+        __slots__ = ("data",)
+        def __init__(self, s: str):
+            # μιμούμαστε pyzbar: .data είναι bytes
+            self.data = s.encode("utf-8", errors="ignore")
+
+    def qr_decode(pil_img):
+        """
+        Συμβατή με pyzbar συνάρτηση:
+        - Δέχεται PIL.Image
+        - Επιστρέφει λίστα από objects με .data (bytes)
+        """
+        if not isinstance(pil_img, Image.Image):
+            try:
+                pil_img = Image.open(pil_img)
+            except Exception:
+                return []
+
+        # PIL -> OpenCV BGR
+        try:
+            arr = np.array(pil_img.convert("RGB"))
+            frame = arr[:, :, ::-1]  # RGB -> BGR
+        except Exception:
+            try:
+                buf = io.BytesIO()
+                pil_img.save(buf, format="PNG")
+                data = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+                frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
+            except Exception:
+                frame = None
+
+        if frame is None:
+            return []
+
+        det = cv2.QRCodeDetector()
+        decoded = []
+
+        # Multi
+        try:
+            res = det.detectAndDecodeMulti(frame)
+            if isinstance(res, tuple) and len(res) >= 2 and res[1]:
+                decoded = [s for s in res[1] if s]
+        except Exception:
+            pass
+
+        # Single
+        if not decoded:
+            try:
+                data, _, _ = det.detectAndDecode(frame)
+                if data:
+                    decoded = [data]
+            except Exception:
+                decoded = []
+
+        return [_QRObj(s) for s in decoded]
+# --- τέλος shim ---
 
 # Excel path
 UPLOAD_FOLDER = "uploads"

@@ -7,7 +7,8 @@ openpyxl>=3.0
 python-dotenv>=1.0
 markupsafe>=2.1
 Pillow>=9.0
-pyzbar>=0.1.9
+# pyzbar is optional; we rely on OpenCV fallback to avoid zbar system lib
+# pyzbar>=0.1.9
 xsdata>=24.0
 beautifulsoup4>=4.12
 lxml>=4.9
@@ -15,3 +16,4 @@ xlrd>=1.2.0
 xlsxwriter
 pdf2image>=1.16
 numpy>=1.25
+opencv-python-headless>=4.8
