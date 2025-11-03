@@ -12,6 +12,53 @@ from pdf2image import convert_from_bytes
 import pandas as pd
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
+from typing import List
+from PIL import Image
+
+_QR_BACKEND = "pyzbar"
+_qr_import_error = None
+
+try:
+    from pyzbar.pyzbar import decode as qr_decode
+except Exception as e:
+    _qr_import_error = e
+    _QR_BACKEND = "opencv"
+    try:
+        import cv2  # type: ignore
+    except Exception:
+        _QR_BACKEND = "none"
+
+def decode_qr_from_file(path: str) -> List[str]:
+    if _QR_BACKEND == "pyzbar":
+        img = Image.open(path)
+        codes = qr_decode(img)
+        return [c.data.decode("utf-8", errors="ignore") for c in codes if c.data]
+    elif _QR_BACKEND == "opencv":
+        import cv2  # lazy import
+        img = cv2.imread(path)
+        if img is None:
+            return []
+        det = cv2.QRCodeDetector()
+        # Multi -> Single
+        try:
+            ok, decoded, _, _ = det.detectAndDecodeMulti(img)
+            if ok and decoded:
+                return [s for s in decoded if s]
+        except Exception:
+            pass
+        try:
+            data, _, _ = det.detectAndDecode(img)
+            return [data] if data else []
+        except Exception:
+            return []
+    else:
+        msg = (
+            "QR backend not available. Εγκατέστησε 'libzbar0' (Ubuntu/Debian) "
+            "ή βάλε OpenCV (`pip install opencv-python`)."
+        )
+        if _qr_import_error:
+            msg += f" Original import error: {_qr_import_error}"
+        raise RuntimeError(msg)
 
 # Excel path
 UPLOAD_FOLDER = "uploads"
