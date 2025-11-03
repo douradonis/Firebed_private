@@ -15,6 +15,8 @@ from datetime import timezone
 from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
+import zipfile
+import shutil
 from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
 import requests
 import pandas as pd
@@ -6274,6 +6276,209 @@ def api_confirm_receipt():
 
 
 
+
+
+
+def _normalize_backup_member(name: str) -> str:
+    name = (name or "").replace("\\", "/")
+    name = name.lstrip("/")
+    parts = [p for p in name.split("/") if p not in ("", ".", "..")]
+    if parts and parts[0].lower() == "data":
+        parts = parts[1:]
+    return os.path.join(*parts) if parts else ""
+
+
+def _human_readable_size(num: int) -> str:
+    try:
+        value = float(num)
+    except Exception:
+        return str(num)
+    units = ["B", "KB", "MB", "GB", "TB"]
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.2f} {unit}"
+        value /= 1024.0
+    return f"{value:.2f} TB"
+
+
+def _analyze_backup_zip(file_like) -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "file_count": 0,
+        "total_size": 0,
+        "total_size_human": "0 B",
+        "customers_total": None,
+        "vat_total": 0,
+        "sample_vats": [],
+        "contains_credentials": False,
+        "contains_settings": False,
+        "modified_first": None,
+        "modified_last": None,
+    }
+    try:
+        file_like.seek(0)
+    except Exception:
+        pass
+
+    with zipfile.ZipFile(file_like) as zf:
+        infos = [info for info in zf.infolist() if not info.is_dir()]
+        summary["file_count"] = len(infos)
+        summary["total_size"] = sum(info.file_size for info in infos)
+        summary["total_size_human"] = _human_readable_size(summary["total_size"])
+
+        timestamps: List[datetime.datetime] = []
+        vats: set[str] = set()
+        customer_count: Optional[int] = None
+
+        for info in infos:
+            try:
+                timestamps.append(datetime.datetime(*info.date_time))
+            except Exception:
+                pass
+
+            rel = _normalize_backup_member(info.filename)
+            if not rel:
+                continue
+
+            if rel == "credentials.json":
+                summary["contains_credentials"] = True
+                try:
+                    with zf.open(info) as fh:
+                        data = json.loads(fh.read().decode("utf-8-sig"))
+                    if isinstance(data, list):
+                        customer_count = len(data)
+                        for item in data:
+                            if isinstance(item, dict):
+                                vat_val = item.get("vat") or item.get("VAT") or item.get("afm") or item.get("AFM")
+                                if vat_val:
+                                    vats.add(str(vat_val).strip())
+                    elif isinstance(data, dict):
+                        customer_count = len(data.keys())
+                except Exception:
+                    current_app.logger.warning("Failed to parse credentials.json from backup", exc_info=True)
+
+            if rel == "credentials_settings.json":
+                summary["contains_settings"] = True
+
+        summary["customers_total"] = customer_count
+        summary["vat_total"] = len(vats)
+        if vats:
+            summary["sample_vats"] = sorted(vats)[:10]
+        if timestamps:
+            summary["modified_first"] = min(timestamps).isoformat()
+            summary["modified_last"] = max(timestamps).isoformat()
+
+    try:
+        file_like.seek(0)
+    except Exception:
+        pass
+
+    return summary
+
+
+def _apply_backup_zip(zip_path: str) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    base = os.path.normpath(DATA_DIR)
+    has_credentials = False
+
+    with zipfile.ZipFile(zip_path) as zf:
+        members = [info for info in zf.infolist() if not info.is_dir()]
+        if not members:
+            raise ValueError("Το backup δεν περιέχει αρχεία.")
+        for info in members:
+            rel = _normalize_backup_member(info.filename)
+            if not rel:
+                continue
+            if rel == "credentials.json":
+                has_credentials = True
+            dest = os.path.normpath(os.path.join(DATA_DIR, rel))
+            if not dest.startswith(base + os.sep) and dest != base:
+                raise ValueError(f"Μη έγκυρη διαδρομή στο backup: {info.filename}")
+            dest_dir = os.path.dirname(dest)
+            if dest_dir:
+                os.makedirs(dest_dir, exist_ok=True)
+            with zf.open(info) as src, open(dest, "wb") as dst:
+                shutil.copyfileobj(src, dst)
+
+    if not has_credentials:
+        raise ValueError("Το backup δεν περιέχει το αρχείο credentials.json.")
+
+
+@app.get("/api/data_backup/download")
+def data_backup_download():
+    try:
+        mem = io.BytesIO()
+        with zipfile.ZipFile(mem, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(DATA_DIR):
+                for fname in files:
+                    path = os.path.join(root, fname)
+                    arc = os.path.relpath(path, DATA_DIR)
+                    zf.write(path, arc)
+        mem.seek(0)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            mem,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=f"data_backup_{ts}.zip",
+        )
+    except Exception as exc:
+        current_app.logger.exception("data_backup_download failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.post("/api/data_backup/inspect")
+def data_backup_inspect():
+    uploaded = request.files.get("backup_file")
+    if not uploaded:
+        return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
+    try:
+        summary = _analyze_backup_zip(uploaded.stream)
+        return jsonify({"ok": True, "summary": summary})
+    except zipfile.BadZipFile:
+        return jsonify({"ok": False, "error": "Μη έγκυρο αρχείο ZIP."}), 400
+    except Exception as exc:
+        current_app.logger.exception("data_backup_inspect failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    finally:
+        try:
+            uploaded.stream.seek(0)
+        except Exception:
+            pass
+
+
+@app.post("/api/data_backup/restore")
+def data_backup_restore():
+    uploaded = request.files.get("backup_file")
+    if not uploaded:
+        return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+            uploaded.stream.seek(0)
+            shutil.copyfileobj(uploaded.stream, tmp)
+            tmp_path = tmp.name
+
+        with open(tmp_path, "rb") as fh:
+            summary = _analyze_backup_zip(fh)
+        if not summary.get("contains_credentials"):
+            raise ValueError("Το backup δεν περιέχει credentials.json.")
+
+        _apply_backup_zip(tmp_path)
+        return jsonify({"ok": True, "summary": summary})
+    except zipfile.BadZipFile:
+        return jsonify({"ok": False, "error": "Μη έγκυρο αρχείο ZIP."}), 400
+    except ValueError as ve:
+        return jsonify({"ok": False, "error": str(ve)}), 400
+    except Exception:
+        current_app.logger.exception("data_backup_restore failed")
+        return jsonify({"ok": False, "error": "Αποτυχία επαναφοράς backup."}), 500
+    finally:
+        try:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])

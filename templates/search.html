@@ -1372,6 +1372,27 @@ function showFlash(message, type='info', timeout=3000){
   } catch(e){ console.warn('showFlash failed', e); }
 }
 
+function persistReceiptFlash(message, type='info'){
+  try {
+    sessionStorage.setItem('RC:lastFlash', JSON.stringify({ message, type, ts: Date.now() }));
+  } catch(e){ console.warn('persistReceiptFlash failed', e); }
+}
+
+function replayPersistedReceiptFlash(){
+  try {
+    const raw = sessionStorage.getItem('RC:lastFlash');
+    if(!raw) return;
+    sessionStorage.removeItem('RC:lastFlash');
+    const data = JSON.parse(raw);
+    if(!data || !data.message) return;
+    const age = Date.now() - (data.ts || 0);
+    if(age > 5 * 60 * 1000) return;
+    showFlash(data.message, data.type || 'info', 4000);
+  } catch(e){ console.warn('replayPersistedReceiptFlash failed', e); }
+}
+
+document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { once: true });
+
 (function(){
   const openBtn = document.getElementById('openQrScanner');
   const modal = document.getElementById('qrCameraModal');
@@ -4100,7 +4121,9 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
       return false;
     }
     window.__RC_FLAGS = window.__RC_FLAGS || {}; window.__RC_FLAGS.autoHandled = true;
-    showFlash('Αποθηκεύτηκε η απόδειξη (repeat).', 'success', 900);
+    const successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
+    showFlash(successMsg, 'success', 900);
+    persistReceiptFlash(successMsg, 'success');
     try { document.getElementById('summaryModal').style.display = 'none'; } catch(_){}
     try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
     try { document.getElementById('markInput').value = ''; } catch(_){}
@@ -4709,6 +4732,46 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_){}
   })();
 })();</script>
+<script>
+(function(){
+  function setupSummaryWaitOverlay(){
+    const modal = document.getElementById('summaryModal');
+    if(!modal || modal.dataset.waitOverlayBound === '1') return;
+    modal.dataset.waitOverlayBound = '1';
+    let suspended = false;
+
+    const update = () => {
+      const api = window.WaitOverlay;
+      if(!api || typeof api.suspend !== 'function') return;
+      const visible = modal && window.getComputedStyle(modal).display !== 'none';
+      if(visible && !suspended){
+        try { api.suspend(true); if(typeof api.hide === 'function') api.hide(); } catch(_){}
+        suspended = true;
+      } else if(!visible && suspended){
+        try { api.suspend(false); } catch(_){}
+        suspended = false;
+      }
+    };
+
+    const observer = new MutationObserver(update);
+    try { observer.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
+    modal.addEventListener('transitionend', () => setTimeout(update, 0));
+    document.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') setTimeout(update, 0); }, true);
+    window.addEventListener('beforeunload', () => {
+      if(suspended){ try { window.WaitOverlay && window.WaitOverlay.suspend(false); } catch(_){} }
+      try { observer.disconnect(); } catch(_){}
+    }, { once:true });
+
+    setTimeout(update, 0);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupSummaryWaitOverlay, { once:true });
+  } else {
+    setupSummaryWaitOverlay();
+  }
+})();
+</script>
 <script>
 document.addEventListener('click', function(e){
   const a = e.target.closest('#charProfilesLink');
