@@ -20,13 +20,24 @@
             </div>
         </div>
 
-        <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK" class="p-2 border rounded w-2/4" value="{{ mark }}">
+        <div class="relative w-2/4 min-w-[220px]">
+            <input name="mark" id="markInput" type="text" placeholder="15ψήφιο MARK ή URL" class="p-2 border rounded w-full pr-12" value="{{ mark }}" autocomplete="off">
+            <button type="button" id="openQrScanner" class="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-sky-600 hover:text-sky-700" title="Σάρωση QR με κάμερα" aria-label="Άνοιγμα κάμερας για σάρωση QR">
+                📷
+            </button>
+        </div>
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
-        <div class="flex items-center gap-2 ml-4">
-            <label for="useReceiptsSwitch" class="text-sm">
-                Τιμολόγια<label>
-                    <input type="checkbox" id="useReceiptsSwitch" role="switch" aria-checked="false" class="toggle-switch">
-                    <label for="useReceiptsSwitch" class="text-sm">Αποδείξεις</label>
+        <div class="flex items-center gap-2 ml-4" aria-labelledby="receiptsSwitchOff receiptsSwitchOn">
+            <span id="receiptsSwitchOff" class="text-sm">Τιμολόγια</span>
+            <label for="useReceiptsSwitch" class="inline-flex items-center">
+                <input type="checkbox"
+                       id="useReceiptsSwitch"
+                       role="switch"
+                       aria-checked="false"
+                       aria-labelledby="receiptsSwitchOff receiptsSwitchOn"
+                       class="toggle-switch">
+            </label>
+            <span id="receiptsSwitchOn" class="text-sm">Αποδείξεις</span>
         </div>
 
         <!-- Toggle επαναληψιμης εισαγωγής + edit button -->
@@ -171,6 +182,29 @@
 </div>
 {% endif %}
 
+<!-- QR Camera Modal -->
+<div id="qrCameraModal" class="fixed inset-0 bg-black/50 z-[70] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800">Σάρωση QR</h3>
+            <button type="button" id="qrModalClose" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+        </div>
+        <div class="text-sm text-gray-600">Στόχευσε τον κωδικό QR του παραστατικού. Αν ανιχνευτεί URL ή MARK θα συμπληρωθεί αυτόματα στο πεδίο αναζήτησης.</div>
+        <div class="rounded-lg overflow-hidden bg-black/80 flex items-center justify-center min-h-[240px]">
+            <video id="qrVideo" class="w-full" autoplay playsinline muted></video>
+        </div>
+        <canvas id="qrCanvas" class="hidden"></canvas>
+        <div id="qrStatus" class="text-sm text-gray-500">Ενεργοποίηση κάμερας…</div>
+        <div class="flex items-center justify-between">
+            <button type="button" id="qrModalRescan" class="px-3 py-2 border rounded text-sm">Ξανά σάρωση</button>
+            <div class="flex gap-2">
+                <button type="button" id="qrModalUseValue" class="px-3 py-2 bg-sky-600 text-white rounded hidden">Χρήση τιμής</button>
+                <button type="button" id="qrModalCloseBtn" class="px-3 py-2 border rounded">Κλείσιμο</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {# Flash container (JS will inject messages here) #}
 <div id="clientFlashContainer" class="fixed top-4 right-4 z-60"></div>
 
@@ -209,6 +243,55 @@ function setActiveProfileHint(name){
 
 </script>
 <script>
+function relabelSummaryModal(){
+  const modal = document.getElementById('summaryModal');
+  if(!modal) return;
+
+  // Κελιά που δείχνουν την κατηγορία ως κείμενο
+  modal.querySelectorAll('[data-cat-key], .category-cell, .summary-category')
+    .forEach(el=>{
+      const raw = el.getAttribute('data-cat-key') || el.textContent.trim();
+      el.textContent = labelForCategory(raw);
+    });
+
+  // Επιλογές dropdown (αν έχει select για κατηγορία)
+  modal.querySelectorAll('select[name$="[category]"] option')
+    .forEach(o=>{ o.textContent = labelForCategory(o.value); });
+}
+
+// Αν έχεις ήδη openModal(id), απλά κάλεσέ το εκεί:
+const oldOpenModal = window.openModal || function(id){
+  document.getElementById(id)?.classList.remove('hidden');
+};
+// helper: βεβαιώσου ότι τα labels έχουν φορτωθεί
+async function ensureCategoryLabelsLoaded(){
+  if (window.__labelsPrimed) return;
+  try {
+    const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), { credentials: 'same-origin' });
+    const j = await r.json();
+    if (j && j.category_labels) {
+      // Το CATEGORY_LABELS υπάρχει ήδη στο αρχείο (ίδιο scope με labelForCategory)
+      Object.assign(CATEGORY_LABELS, j.category_labels);
+      if (window.CATEGORY_LABELS) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+    }
+  } catch(e) {}
+  window.__labelsPrimed = true;
+}
+
+// ΠΑΛΙΟ
+// window.openModal = function(id){
+//   oldOpenModal(id);
+//   if(id === 'summaryModal') relabelSummaryModal();
+// };
+
+// ΝΕΟ
+window.openModal = function(id){
+  oldOpenModal(id);
+  if (id === 'summaryModal') {
+    ensureCategoryLabelsLoaded().then(() => { try { relabelSummaryModal(); } catch(_){} });
+  }
+};
+
 // Δέχεται είτε ποσοστά είτε kat_fpa_* και επιστρέφει ΠΑΝΤΑ ποσοστά σύμφωνα με: Α→0, Β→6, Γ→13, Δ→17, Ε→24
 // ΚΑΝΟΝΑΣ: Α→0%, Β→6%, Γ→13%, Δ→17%, Ε→24%
 function normalizeMapping(m){
@@ -278,6 +361,10 @@ function katToPercent(k){
       if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
         CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
       }
+      if (j && j.category_labels) {
+        Object.assign(CATEGORY_LABELS, j.category_labels);
+      if (window.CATEGORY_LABELS) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+      }
       // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
       const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
         ...p, mapping: normalizeMapping(p.mapping || {})
@@ -314,7 +401,8 @@ function katToPercent(k){
 
     const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— επίλεξε —'; sel.appendChild(o0);
     CUSTOMER_CATEGORIES.forEach(t => {
-      const o = document.createElement('option'); o.value = t; o.textContent = t;
+      const o = document.createElement('option'); o.value = t; o.textContent = labelForCategory(t);
+
       if (t === selected) o.selected = true;
       sel.appendChild(o);
     });
@@ -532,7 +620,14 @@ function katToPercent(k){
 try {
   const p = new URLSearchParams(location.search);
   if (p.get('open_repeat') === '1') {
-    setTimeout(() => { window.openRepeatModal && window.openRepeatModal(); }, 0);
+    setTimeout(() => {
+      if (window.openRepeatModal) window.openRepeatModal();
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('open_repeat');
+        history.replaceState({}, '', url.toString());
+      } catch(_){}
+    }, 0);
   }
 } catch {}
 
@@ -687,6 +782,18 @@ try {
 // --- Reclass guard (yellow box -> ?force_edit=1) ---
 const URL_PARAMS = (function(){ try { return new URL(window.location.href).searchParams; } catch(_) { return new URLSearchParams(''); } })();
 const FORCE_EDIT = (function(){ try { return URL_PARAMS.get('force_edit') === '1'; } catch(_) { return false; } })();
+const CATEGORY_LABELS = (function(){
+  try { return {{ (customer_category_labels or {}) | tojson | safe }} || {}; }
+  catch(e){ return {}; }
+})();
+const labelForCategory = (val) => {
+  if(!val) return '';
+  const key = String(val);
+  if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
+    return CATEGORY_LABELS[key];
+  }
+  return key;
+};
 
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
@@ -867,7 +974,8 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.innerText='-- επίλεξε --';
       select.appendChild(emptyOpt);
       (categories || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
+        const o = document.createElement('option'); o.value = c; o.textContent = labelForCategory(c);
+
         if(c === ln.category) o.selected = true;
         select.appendChild(o);
       });
@@ -908,7 +1016,8 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       btn.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
       btn.dataset.cat = c;
       btn.dataset.lineId = line.id || 'l0';
-      btn.innerText = c;
+      btn.innerText = (window.labelForCategory ? window.labelForCategory(c) : c);
+
       if(c === line.category){
         btn.classList.add('bg-sky-600');
         btn.classList.add('text-white');
@@ -1058,6 +1167,8 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
           if(disp !== 'none'){
             // modal visible -> render (ensure DOM inside ready)
             setTimeout(renderSummaryLines, 10);
+            setTimeout(relabelSummaryModal, 20);
+
           }
         }
       });
@@ -1113,11 +1224,14 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
       sel.className = 'expense-category p-1 border rounded w-full';
       sel.dataset.lineId = lid;
       const opt0 = document.createElement('option'); opt0.value = ''; opt0.innerText = '-- επίλεξε --'; sel.appendChild(opt0);
+      // ΝΕΟ
       (window.CUSTOMER_CATEGORIES || []).forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.innerText = c;
-        if ((ln.category || '') === c) o.selected = true;
-        sel.appendChild(o);
+      const o = document.createElement('option'); o.value = c;
+      o.textContent = (typeof labelForCategory === 'function' ? labelForCategory(c) : c);
+      if ((ln.category || '') === c) o.selected = true;
+      sel.appendChild(o);
       });
+
       sel.addEventListener('change', function(){
         const val = this.value;
         // find line in obj and update
@@ -1174,7 +1288,8 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
     b.className = 'category-btn px-3 py-2 border rounded hover:bg-sky-50';
     b.dataset.cat = c;
     b.dataset.lineId = lid;
-    b.innerText = c;
+    b.innerText = (typeof labelForCategory === 'function' ? labelForCategory(c) : c);
+
     if (c === selected_cat) { b.classList.add('bg-sky-600', 'text-white'); }
     b.addEventListener('click', function(){
       const cat = this.dataset.cat;
@@ -1215,20 +1330,236 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
    Examples of call sites are below (where modal.style.display='flex' is set). */
 
 
+function ensureFlashContainer(){
+  let container = document.getElementById('flashContainer');
+  if (container) return container;
+  const root = document.querySelector('.container') || document.body;
+  container = document.createElement('div');
+  container.id = 'flashContainer';
+  container.className = 'space-y-2 mb-4';
+  const header = root.querySelector('header');
+  if (header && header.nextSibling) {
+    root.insertBefore(container, header.nextSibling);
+  } else {
+    root.prepend(container);
+  }
+  return container;
+}
+
 function showFlash(message, type='info', timeout=3000){
   try {
-    const container = document.getElementById('clientFlashContainer');
+    const container = ensureFlashContainer() || document.getElementById('clientFlashContainer');
     if(!container) return;
+    const selector = `[data-flash-dynamic="1"][data-message="${message}"][data-type="${type}"]`;
+    const dup = container.querySelector(selector);
+    if (dup) dup.remove();
     const el = document.createElement('div');
-    el.className = 'mb-2 p-3 rounded shadow text-sm';
-    if(type === 'success') el.classList.add('bg-green-50', 'text-green-800');
-    else if(type === 'error') el.classList.add('bg-red-50', 'text-red-800');
-    else el.classList.add('bg-gray-50', 'text-gray-800');
-    el.innerText = message;
+    el.className = 'flash-banner text-sm';
+    if(type === 'success') el.classList.add('flash-success');
+    else if(type === 'error') el.classList.add('flash-error');
+    else {
+      el.classList.add('flash-info');
+      el.style.background = '#eff6ff';
+      el.style.color = '#1e3a8a';
+      el.style.border = '1px solid #bfdbfe';
+    }
+    el.dataset.flashDynamic = '1';
+    el.dataset.message = message;
+    el.dataset.type = type;
+    if (timeout) el.setAttribute('data-ttl', String(timeout));
+    el.textContent = message;
     container.appendChild(el);
-    setTimeout(()=>{ try{ el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }catch(e){} }, timeout);
   } catch(e){ console.warn('showFlash failed', e); }
 }
+
+function persistReceiptFlash(message, type='info'){
+  try {
+    sessionStorage.setItem('RC:lastFlash', JSON.stringify({ message, type, ts: Date.now() }));
+  } catch(e){ console.warn('persistReceiptFlash failed', e); }
+}
+
+function replayPersistedReceiptFlash(){
+  try {
+    const raw = sessionStorage.getItem('RC:lastFlash');
+    if(!raw) return;
+    sessionStorage.removeItem('RC:lastFlash');
+    const data = JSON.parse(raw);
+    if(!data || !data.message) return;
+    const age = Date.now() - (data.ts || 0);
+    if(age > 5 * 60 * 1000) return;
+    showFlash(data.message, data.type || 'info', 4000);
+  } catch(e){ console.warn('replayPersistedReceiptFlash failed', e); }
+}
+
+document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { once: true });
+
+(function(){
+  const openBtn = document.getElementById('openQrScanner');
+  const modal = document.getElementById('qrCameraModal');
+  if(!openBtn || !modal) return;
+
+  const supportsMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if(!supportsMedia){
+    openBtn.title = 'Η συσκευή δεν υποστηρίζει πρόσβαση σε κάμερα';
+    openBtn.classList.add('text-gray-400', 'cursor-not-allowed');
+    openBtn.disabled = true;
+    return;
+  }
+
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  const statusEl = document.getElementById('qrStatus');
+  const closeEls = [document.getElementById('qrModalClose'), document.getElementById('qrModalCloseBtn')];
+  const rescanBtn = document.getElementById('qrModalRescan');
+  const useBtn = document.getElementById('qrModalUseValue');
+  const markInput = document.getElementById('markInput');
+
+  let stream = null;
+  let scanning = false;
+  let timer = null;
+  let lastPayload = '';
+
+  function setStatus(text, tone){
+    if(!statusEl) return;
+    statusEl.textContent = text;
+    const base = 'text-sm ';
+    if(tone === 'error') statusEl.className = base + 'text-red-600';
+    else if(tone === 'success') statusEl.className = base + 'text-green-600';
+    else statusEl.className = base + 'text-gray-500';
+  }
+
+  function stopStream(){
+    if(stream){
+      try { stream.getTracks().forEach(tr => tr.stop()); } catch(_){}
+      stream = null;
+    }
+  }
+
+  function clearTimer(){ if(timer){ clearTimeout(timer); timer = null; } }
+
+  function closeModal(){
+    scanning = false;
+    modal.classList.add('hidden');
+    clearTimer();
+    stopStream();
+    setStatus('Ενεργοποίηση κάμερας…', 'info');
+    if(useBtn){ useBtn.classList.add('hidden'); delete useBtn.dataset.value; }
+    lastPayload = '';
+  }
+
+  function scheduleScan(delay){
+    clearTimer();
+    timer = setTimeout(runScan, delay);
+  }
+
+  async function startCamera(){
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      if(video){
+        video.srcObject = stream;
+        video.onloadedmetadata = function(){
+          try { video.play(); } catch(_){}
+          scanning = true;
+          setStatus('Σάρωση…', 'info');
+          scheduleScan(400);
+        };
+      }
+    } catch(err){
+      console.error('Camera access denied', err);
+      setStatus('Αποτυχία πρόσβασης στην κάμερα. Έλεγξε τα δικαιώματα.', 'error');
+      showFlash('Δεν δόθηκε πρόσβαση στην κάμερα.', 'error', 6000);
+    }
+  }
+
+  async function runScan(){
+    if(!scanning || !video) return;
+    if(video.readyState < 2){
+      scheduleScan(250);
+      return;
+    }
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    try {
+      setStatus('Ανάγνωση QR…', 'info');
+      const res = await fetch('/api/qr/decode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ image: dataUrl, filename: 'capture.png' })
+      });
+      const j = await res.json();
+      if(res.ok && j && j.ok){
+        const val = (j.raw || j.mark || '').trim();
+        lastPayload = val;
+        if(val && markInput){
+          markInput.value = val;
+          try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+        }
+        scanning = false;
+        setStatus('Βρέθηκε QR κώδικας.', 'success');
+        if(useBtn){
+          useBtn.classList.toggle('hidden', !val);
+          if(val) useBtn.dataset.value = val;
+        }
+        showFlash('Εντοπίστηκε QR: η τιμή προστέθηκε στο πεδίο αναζήτησης.', 'success', 5000);
+        clearTimer();
+        return;
+      }
+      const msg = (j && j.error) ? j.error : 'Δεν αναγνωρίστηκε QR. Προσπάθησε ξανά.';
+      setStatus(msg, 'info');
+      scheduleScan(900);
+    } catch(err){
+      console.warn('QR scan failed', err);
+      setStatus('Σφάλμα ανάγνωσης QR. Προσπάθησε ξανά.', 'error');
+      scheduleScan(1500);
+    }
+  }
+
+  function openModal(){
+    modal.classList.remove('hidden');
+    setStatus('Ενεργοποίηση κάμερας…', 'info');
+    clearTimer();
+    stopStream();
+    startCamera();
+  }
+
+  openBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    openModal();
+  });
+
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+
+  closeEls.forEach(btn => btn && btn.addEventListener('click', closeModal));
+
+  rescanBtn?.addEventListener('click', function(){
+    if(useBtn) useBtn.classList.add('hidden');
+    if(!stream){
+      startCamera();
+    } else {
+      scanning = true;
+      setStatus('Σάρωση…', 'info');
+      scheduleScan(300);
+    }
+  });
+
+  useBtn?.addEventListener('click', function(){
+    const val = this.dataset.value || lastPayload;
+    if(val && markInput){
+      markInput.focus();
+      markInput.setSelectionRange(val.length, val.length);
+    }
+    closeModal();
+  });
+})();
 
 // Helper API calls
 async function apiGetRepeatEntry(vat){
@@ -1498,7 +1829,7 @@ function prefillSummaryModal(){
     urlInput = document.createElement('input');
     urlInput.id = 'scrapeUrlInput';
     urlInput.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-    urlInput.className = 'p-2 border rounded w-2/4 hidden';
+    urlInput.className = 'p-2 border rounded w-full pr-12 hidden';
     urlInput.type = 'text';
     // insert after markInput
     const mi = document.getElementById('markInput');
@@ -1765,6 +2096,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   if(useReceiptsSwitch){
     useReceiptsSwitch.addEventListener('change', function(){
       const on = !!this.checked;
+      this.setAttribute('aria-checked', on ? 'true' : 'false');
       // UI: swap inputs
       if(on){
         document.getElementById('markInput')?.classList.add('hidden');
@@ -1793,6 +2125,7 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
         })();
       }
     });
+    useReceiptsSwitch.setAttribute('aria-checked', useReceiptsSwitch.checked ? 'true' : 'false');
   }
 
   // repeat modal handlers
@@ -2502,111 +2835,6 @@ function readMappingFromUI(){
   });
   return out;
 }
-
-async function saveRepeatModal(){
-  const mapping = readMappingFromUI();
-  const NEED = ["0%","6%","13%","17%","24%"];
-  const missing = NEED.filter(k => !mapping[k]);
-  const hint = document.getElementById('charMissingHint');
-  if (missing.length){
-    if(hint){ hint.style.display=''; hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', '); }
-    return;
-  }
-
-  const sel = document.getElementById('charProfileSelect');
-  const profileName = sel && sel.value ? sel.value : "";
-
-  const res = await fetch('/api/repeat_entry/save', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body: JSON.stringify({
-      vat: VAT,
-      enabled: true,
-      mapping,
-      profile_name: profileName
-    })
-  });
-
-  const j = await res.json().catch(()=>null);
-  if(!j || !j.ok){
-    if(hint){ hint.style.display=''; hint.textContent = (j && j.error) ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.'; }
-    return;
-  }
-
-  // Μήνυμα επιτυχίας
-  alert('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.');
-
-  // Κλείσε modal
-  document.getElementById('repeatMappingModal').style.display = 'none';
-
-  // Αναγραφή ενεργού προφίλ επάνω από το toggle
-  const activeName = j.repeat_entry?.profile_name || profileName || "";
-  setActiveProfileHint(activeName);
-  const sw = document.getElementById('repeatEntrySwitch');
-  if (sw) sw.checked = true;
-}
-
-document.getElementById('repeatModalSave')?.addEventListener('click', async ()=>{
-  const listBox = document.getElementById('repeatMappingList');
-  const hint = document.getElementById('charMissingHint');
-  const sel  = document.getElementById('charProfileSelect');
-  const VAT  = "{{ vat or '' }}";
-
-  // διάβασμα mapping από UI
-  const out = {};
-  const missing = [];
-  listBox.querySelectorAll('select[data-vat]').forEach(sel=>{
-    const k = sel.dataset.vat;
-    const v = (sel.value || '').trim();
-    if(!v) missing.push(k);
-    out[k] = v;
-  });
-  if(missing.length){
-    hint.style.display = '';
-    hint.textContent = 'Συμπλήρωσε κατηγορία για: ' + missing.join(', ');
-    return;
-  }
-  hint.style.display = 'none'; hint.textContent = '';
-
-  const chosenName = (sel && sel.value) ? sel.value : "";
-
-  // αποθήκευση
-  try{
-    const res = await fetch('/api/repeat_entry/save', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        vat: VAT,
-        enabled: true,
-        mapping: out,              // πάντα 0/6/13/17/24
-        profile_name: chosenName   // ζητάμε να το σώσει
-      })
-    });
-    const j = await res.json();
-    if(!res.ok || !j.ok){
-      const msg = j && j.error ? j.error : 'Αποτυχία αποθήκευσης ρυθμίσεων επαναληπτικής εισαγωγής.';
-      hint.style.display = ''; hint.textContent = msg;
-      return;
-    }
-
-    // κλείσιμο modal
-    document.getElementById('repeatMappingModal').style.display = 'none';
-
-    // ενημέρωση hint επάνω από το toggle
-    const activeName = (j.repeat_entry && j.repeat_entry.profile_name) || chosenName || "";
-    setActiveProfileHint(activeName);
-
-    // μικρό success toast
-    if (typeof showFlash === 'function') showFlash('Ενημερώθηκε η ρύθμιση επαναληπτικής εισαγωγής.', 'success');
-
-    // fallback επιμονής επιλογής (αν για οποιονδήποτε λόγο δεν σωθεί server-side)
-    try { localStorage.setItem('repeatProfile:'+VAT, activeName); } catch(_){}
-  }catch(e){
-    hint.style.display=''; hint.textContent='Δικτυακό σφάλμα.';
-  }
-});
 // === DEBUG SNIPPET: paste near end of your existing scripts ===
 (function(){
   function safeLog(...a){ try{ console.log('[RC-DEBUG]', ...a); }catch(e){} }
@@ -3737,7 +3965,7 @@ document.addEventListener('submit', function(ev){
       el = document.createElement('input');
       el.id = 'scrapeUrlInput';
       el.placeholder = 'Εισάγετε URL παραστατικού (για αποδείξεις)';
-      el.className = 'p-2 border rounded w-2/4 hidden';
+      el.className = 'p-2 border rounded w-full pr-12 hidden';
       el.type = 'text';
       if (markInput && markInput.parentElement) {
         markInput.parentElement.insertBefore(el, markInput.nextSibling);
@@ -3893,7 +4121,9 @@ RC.handleReceiptAfterScrape = async function(summaryObj, scrapeUrl){
       return false;
     }
     window.__RC_FLAGS = window.__RC_FLAGS || {}; window.__RC_FLAGS.autoHandled = true;
-    showFlash('Αποθηκεύτηκε η απόδειξη (repeat).', 'success', 900);
+    const successMsg = 'Αποθηκεύτηκε η απόδειξη (repeat).';
+    showFlash(successMsg, 'success', 900);
+    persistReceiptFlash(successMsg, 'success');
     try { document.getElementById('summaryModal').style.display = 'none'; } catch(_){}
     try { document.getElementById('scrapeUrlInput').value = ''; } catch(_){}
     try { document.getElementById('markInput').value = ''; } catch(_){}
@@ -3987,6 +4217,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script src="{{ url_for('static', filename='receipts_repeat_direct.js') }}"></script>
+
+<!-- === HOTFIX: Custom category labels in Summary modal === -->
+<script>
+(function(){
+  // 1) Ensure global mapping + helper
+  window.CATEGORY_LABELS = window.CATEGORY_LABELS || (function(){
+    try { return {{ (customer_category_labels or {}) | tojson | safe }} || {}; } catch(e){ return {}; }
+  })();
+  window.labelForCategory = window.labelForCategory || function(val){
+    if (val == null) return '';
+    const key = String(val);
+    const MAP = window.CATEGORY_LABELS || {};
+    if (Object.prototype.hasOwnProperty.call(MAP, key)) return MAP[key];
+    // graceful fallback for custom_* keys
+    if (key.startsWith('custom_')) return key.replace(/^custom_/, '').replace(/_/g,' ');
+    return key;
+  };
+
+  // 2) Prime labels from backend if available
+  async function primeCategoryLabels(){
+    if (window.__labelsPrimed) return;
+    try {
+      const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent("{{ vat or '' }}"), { credentials:'same-origin' });
+      const j = await r.json();
+      if (j && j.category_labels) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+    } catch(e) {}
+    window.__labelsPrimed = true;
+  }
+
+  // 3) Relabel all options & buttons inside the Summary modal
+  function relabelAllCategories(root){
+    const scope = root || document;
+    // select options
+    scope.querySelectorAll('#summaryModal select[name$="[category]"] option').forEach(o => {
+      if (!o) return;
+      const v = (o.value || '').trim();
+      if (!v) return;
+      o.textContent = window.labelForCategory(v);
+    });
+    // category buttons (single-line UI)
+    scope.querySelectorAll('#summaryModal .category-btn').forEach(b => {
+      if (!b) return;
+      const v = (b.dataset && b.dataset.cat) ? b.dataset.cat : (b.textContent || '').trim();
+      b.textContent = window.labelForCategory(v);
+    });
+  }
+
+  // 4) Observe Summary modal visibility & relabel after render
+  document.addEventListener('DOMContentLoaded', async function(){
+    const modal = document.getElementById('summaryModal');
+    if (!modal) return;
+
+    // Initial prime (labels ready even before open)
+    await primeCategoryLabels();
+
+    // If modal becomes visible later, relabel twice (render → relabel)
+    const obs = new MutationObserver(async () => {
+      const visible = window.getComputedStyle(modal).display !== 'none';
+      if (visible) {
+        await primeCategoryLabels();
+        setTimeout(() => relabelAllCategories(modal), 0);
+        setTimeout(() => relabelAllCategories(modal), 80);
+      }
+    });
+    try { obs.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(e){}
+
+    // If it happens to be already visible now
+    if (window.getComputedStyle(modal).display !== 'none') {
+      setTimeout(() => relabelAllCategories(modal), 0);
+      setTimeout(() => relabelAllCategories(modal), 80);
+    }
+  });
+})();
+</script>
+<!-- === /HOTFIX === -->
 {% endblock %}
 
 <!-- === BEGIN: Injected fix (v2) for receipts auto-flow & afm_epsilon cleanup === -->
@@ -4427,6 +4732,46 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_){}
   })();
 })();</script>
+<script>
+(function(){
+  function setupSummaryWaitOverlay(){
+    const modal = document.getElementById('summaryModal');
+    if(!modal || modal.dataset.waitOverlayBound === '1') return;
+    modal.dataset.waitOverlayBound = '1';
+    let suspended = false;
+
+    const update = () => {
+      const api = window.WaitOverlay;
+      if(!api || typeof api.suspend !== 'function') return;
+      const visible = modal && window.getComputedStyle(modal).display !== 'none';
+      if(visible && !suspended){
+        try { api.suspend(true); if(typeof api.hide === 'function') api.hide(); } catch(_){}
+        suspended = true;
+      } else if(!visible && suspended){
+        try { api.suspend(false); } catch(_){}
+        suspended = false;
+      }
+    };
+
+    const observer = new MutationObserver(update);
+    try { observer.observe(modal, { attributes:true, attributeFilter:['style','class'] }); } catch(_){}
+    modal.addEventListener('transitionend', () => setTimeout(update, 0));
+    document.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') setTimeout(update, 0); }, true);
+    window.addEventListener('beforeunload', () => {
+      if(suspended){ try { window.WaitOverlay && window.WaitOverlay.suspend(false); } catch(_){} }
+      try { observer.disconnect(); } catch(_){}
+    }, { once:true });
+
+    setTimeout(update, 0);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupSummaryWaitOverlay, { once:true });
+  } else {
+    setupSummaryWaitOverlay();
+  }
+})();
+</script>
 <script>
 document.addEventListener('click', function(e){
   const a = e.target.closest('#charProfilesLink');

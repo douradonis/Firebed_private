@@ -118,6 +118,34 @@ def _account_header_P(settings: Dict[str, Any], is_receipt: bool) -> str:
         return base
     return ""
 
+
+def _merge_custom_accounts(settings: Dict[str, Any], credential: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged = dict(settings or {})
+    if not isinstance(credential, dict):
+        return merged
+    custom_cats = credential.get("custom_categories")
+    if not isinstance(custom_cats, list):
+        return merged
+    for item in custom_cats:
+        if not isinstance(item, dict):
+            continue
+        if not item.get("enabled"):
+            continue
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        accounts = item.get("accounts") or {}
+        for rate_key, code in accounts.items():
+            code_str = str(code).strip()
+            if not code_str:
+                continue
+            rate_norm = re.sub(r"[^0-9]", "", str(rate_key))
+            if not rate_norm:
+                continue
+            key = f"account_{slug}_fpa_kat_{rate_norm}%"
+            merged[key] = code_str
+    return merged
+
 # ----------------------- category + VAT inference -----------------------
 def _canon_category(raw: str) -> str:
     s = (raw or "").strip().lower().replace(" ", "_")
@@ -468,8 +496,10 @@ def build_preview_rows_for_ui(
 
     cred_list = credentials if isinstance(credentials, list) else [credentials]
     active = next((c for c in cred_list if str(c.get("vat")) == str(vat)), (cred_list[0] if cred_list else {}))
+    settings_all = _merge_custom_accounts(settings_all, active)
     apod_type = (active or {}).get("apodeixakia_type", "")
     apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier",""))
+    other_expenses_flag = 1 if bool((active or {}).get("apodeixakia_other_expenses")) else 0
 
     # client map
     client_map = {"by_afm": {}, "by_id": set(), "names": {}, "cols": []}
@@ -495,6 +525,7 @@ def build_preview_rows_for_ui(
         afm_norm = _norm_afm(afm_raw)
         is_receipt = _is_receipt(rec)
         doc_type = rec.get("type") or ""
+        receipt_other_flag = 1 if (is_receipt and other_expenses_flag) else 0
 
         issuer_name = (
             rec.get("Name_issuer")
@@ -566,6 +597,7 @@ def build_preview_rows_for_ui(
         rows.append({
             "MARK": str(mark),
             "AA": str(aa),
+            "SERIES": str(rec.get("series") or rec.get("SERIES") or ""),
             "DATE": date,
             "AFM_ISSUER": afm_norm or str(afm_raw),
             "ISSUER_NAME": issuer_name,
@@ -579,6 +611,7 @@ def build_preview_rows_for_ui(
             "LINES": lines_out,
             "LCODE_DETAIL_SUMMARY": ", ".join(sorted({(c if isinstance(c, str) else str(c)) for c in lcodes_summary if c})),
             "LCODE": (lcode_p or ""),
+            "OTHEREXPEND": receipt_other_flag,
         })
 
     ok = (len(rows) > 0)
@@ -611,6 +644,20 @@ def load_epsilon_invoices(path: str) -> List[Dict[str, Any]]:
         if isinstance(data.get(key), list):
             return data[key]
     return [data]
+
+def _compose_invoice_value(rec: Dict[str, Any]) -> str:
+    """Return the bridge 'INVOICE' column value with optional series prefix."""
+    try:
+        series = str(rec.get("SERIES") or rec.get("series") or "").strip()
+    except Exception:
+        series = ""
+    try:
+        aa_val = str(rec.get("AA") or rec.get("aa") or rec.get("mark") or "").strip()
+    except Exception:
+        aa_val = ""
+    if series and aa_val:
+        return f"{series} {aa_val}".strip()
+    return series or aa_val
 
 def export_multiclient_strict(
     vat: str,
@@ -654,7 +701,7 @@ def export_multiclient_strict(
                 "CUSTID": rec.get("CUSTID"),
                 "MDATE": _to_date(rec.get("DATE")),
                 "REASON": rec.get("REASON"),
-                "INVOICE": rec.get("AA"),
+                "INVOICE": _compose_invoice_value(rec),
                 "SUMKEPYOYP": float(abs(sum_net)),
                 "LCODE_DETAIL": ln.get("lcode_detail") or "",
                 "ISAGRYP_DETAIL": 0,
@@ -663,12 +710,13 @@ def export_multiclient_strict(
                 "VATAMT_DETAIL": float(abs(ln.get("vat", 0.0))),
                 "MSIGN": msign,
                 "LCODE": rec.get("LCODE") or "",
+                "OTHEREXPEND": int(rec.get("OTHEREXPEND", 0) or 0),
             })
         artid += 1
 
     df = pd.DataFrame(flat, columns=[
         "ARTID","MTYPE","ISKEPYO","ISAGRYP","CUSTID","MDATE","REASON","INVOICE","SUMKEPYOYP",
-        "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE"
+        "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE","OTHEREXPEND"
     ])
 
     with pd.ExcelWriter(paths["out"], engine="xlsxwriter", datetime_format="dd/mm/yyyy") as writer:
@@ -678,7 +726,7 @@ def export_multiclient_strict(
         fmt_int  = wb.add_format({"num_format":"0"})
         fmt_date = wb.add_format({"num_format":"dd/mm/yyyy"})
         idx = {n:i for i,n in enumerate(df.columns)}
-        for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID"]:
+        for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID","OTHEREXPEND"]:
             if n in idx: ws.set_column(idx[n], idx[n], 10, fmt_int)
         for n in ["SUMKEPYOYP","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL"]:
             if n in idx: ws.set_column(idx[n], idx[n], 14, fmt_num)

@@ -4,23 +4,27 @@ import sys
 import json
 import traceback
 import logging
+import base64
+import re
 from logging.handlers import RotatingFileHandler
 import datetime
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Tuple
 from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 from datetime import timezone
 from markupsafe import escape, Markup
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
 import tempfile
+import zipfile
+import shutil
 from scraper import scrape_wedoconnect, scrape_mydatapi, scrape_einvoice, scrape_impact, scrape_epsilon
-import re
 import requests
 import pandas as pd
 from shutil import move
 import importlib
 import io
 import csv
+import unicodedata
 from epsilon_bridge_multiclient_strict import (
     run_and_report_dynamic,  # <-- απαιτείται
     # προαιρετικά: export_multiclient_strict
@@ -65,6 +69,7 @@ except Exception:
 
 from flask import current_app
 from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui
+from utils import decode_qr_from_file, decode_qr_payloads, extract_mark
 
 
 # --- end lock + current_app imports ---
@@ -248,7 +253,7 @@ def _profiles_get_for_active():
         return [], []
     c = creds[idx]
     c.setdefault("char_profiles", [])  # [{id,name,map}]
-    tags = [t for t in (c.get("expense_tags") or []) if str(t).strip().lower() != "αποδειξακια"]
+    tags = _list_invoice_categories(c)
     return c["char_profiles"], tags
 
 def _profiles_set_for_active(profiles):
@@ -351,6 +356,174 @@ DEFAULT_CRED_PATH = ROOT_DIR / "data" / "credentials.json"
 CREDENTIALS_PATH = Path(os.environ.get("CREDENTIALS_PATH", DEFAULT_CRED_PATH))
 
 VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
+VAT_RATE_NUMERIC = ["0", "6", "13", "17", "24"]
+
+SERIES_SETTING_KEYS = [
+    "invoice_general",
+    "invoice_services",
+    "invoice_credit",
+    "receipt_retail",
+    "receipt_services",
+    "receipt_credit",
+]
+
+SERIES_INVOICE_DEFAULT = "invoice_general"
+SERIES_RECEIPT_DEFAULT = "receipt_retail"
+
+SERIES_FALLBACK_MAP = {
+    "invoice_services": SERIES_INVOICE_DEFAULT,
+    "invoice_credit": SERIES_INVOICE_DEFAULT,
+    "receipt_services": SERIES_RECEIPT_DEFAULT,
+    "receipt_credit": SERIES_RECEIPT_DEFAULT,
+}
+
+DEFAULT_INVOICE_CATEGORY_LABELS: Dict[str, str] = {
+    "αγορες_εμπορευματων": "Αγορές εμπορευμάτων",
+    "αγορες_α_υλων": "Αγορές α' υλών",
+    "γενικες_δαπανες": "Γενικές δαπάνες",
+    "γενικες_δαπανες_με_φπα": "Γενικές δαπάνες με ΦΠΑ",
+    "αμοιβες_τριτων": "Αμοιβές και έξοδα τρίτων",
+    "δαπανες_χωρις_φπα": "Δαπάνες χωρίς δικαίωμα έκπτωσης ΦΠΑ",
+    "εγγυοδοσια": "Εγγυοδοσία",
+    "αποδειξακια": "Αποδειξάκια",
+}
+
+
+def _ensure_custom_categories_list(client: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(client, dict):
+        return []
+    arr = client.get("custom_categories")
+    if isinstance(arr, list):
+        return arr
+    client["custom_categories"] = []
+    return client["custom_categories"]
+
+
+def _category_labels_for_client(client: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
+    if not isinstance(client, dict):
+        return labels
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        label = str(item.get("label") or slug).strip()
+        if label:
+            labels[slug] = label
+    return labels
+
+
+def _list_invoice_categories(client: Optional[Dict[str, Any]], include_receipts: bool = False) -> List[str]:
+    if not isinstance(client, dict):
+        return []
+    out: List[str] = []
+    for tag in client.get("expense_tags") or []:
+        if not tag:
+            continue
+        tag_str = str(tag).strip()
+        if not tag_str:
+            continue
+        if not include_receipts and tag_str.lower() == "αποδειξακια":
+            continue
+        if tag_str not in out:
+            out.append(tag_str)
+    for item in _ensure_custom_categories_list(client):
+        if not item or not item.get("enabled"):
+            continue
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if slug and slug not in out:
+            out.append(slug)
+    return out
+
+
+def _slugify_custom_category(label: str, existing: Optional[set[str]] = None) -> str:
+    existing = existing or set()
+    base = _normalize(label or "")
+    base = base.replace(" ", "_")
+    base = re.sub(r"[^a-z0-9_]+", "", base)
+    base = re.sub(r"_+", "_", base).strip("_")
+    if not base:
+        base = "custom"
+    if not base.startswith("custom_"):
+        base = f"custom_{base}"
+    candidate = base
+    counter = 2
+    while candidate in existing:
+        candidate = f"{base}_{counter}"
+        counter += 1
+    return candidate
+
+
+def _normalize_custom_accounts(accounts: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    accounts = accounts or {}
+    for rate in VAT_RATE_NUMERIC:
+        raw = accounts.get(rate)
+        val = str(raw).strip() if isinstance(raw, (str, int, float)) else ""
+        out[rate] = val
+    return out
+
+
+def _allowed_vat_keys_for_category(item: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(item, dict):
+        return []
+    accounts = _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {})
+    allowed: List[str] = []
+    for rate in VAT_RATE_NUMERIC:
+        code = accounts.get(rate, "")
+        if code:
+            allowed.append(f"{rate}%")
+    return allowed
+
+
+def _category_vat_constraints(client: Optional[Dict[str, Any]]) -> Dict[str, List[str]]:
+    constraints: Dict[str, List[str]] = {}
+    if not isinstance(client, dict):
+        return constraints
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        allowed = _allowed_vat_keys_for_category(item)
+        if allowed:
+            constraints[slug] = allowed
+    return constraints
+
+
+def _merge_settings_with_custom(settings: Dict[str, Any], client: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged = dict(settings or {})
+    if not isinstance(client, dict):
+        return merged
+    for cat in _ensure_custom_categories_list(client):
+        slug = str(cat.get("id") or cat.get("slug") or "").strip()
+        if not slug:
+            continue
+        accounts = _normalize_custom_accounts(cat.get("accounts") if isinstance(cat, dict) else {})
+        for rate, code in accounts.items():
+            if not code:
+                continue
+            key = f"account_{slug}_fpa_kat_{rate}%"
+            merged[key] = code
+    return merged
+
+
+def _custom_categories_payload(client: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(client, dict):
+        return []
+    payload: List[Dict[str, Any]] = []
+    for item in _ensure_custom_categories_list(client):
+        slug = str(item.get("id") or item.get("slug") or "").strip()
+        if not slug:
+            continue
+        accounts = _normalize_custom_accounts(item.get("accounts") if isinstance(item, dict) else {})
+        payload.append({
+            "id": slug,
+            "label": str(item.get("label") or slug),
+            "enabled": bool(item.get("enabled")),
+            "accounts": accounts,
+            "allowed_vat_keys": _allowed_vat_keys_for_category(item),
+        })
+    return payload
 def _resolve_client_db_path(vat: str) -> str | None:
     """
     Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
@@ -658,7 +831,7 @@ def _get_customer(creds, vat: str, create=False):
             if str(c.get("vat", "")).strip() == vat:
                 return c, ("list", i)
         if create and vat:
-            newc = {"vat": vat, "expense_tags": []}
+            newc = {"vat": vat, "expense_tags": [], "custom_categories": []}
             creds.append(newc)
             return newc, ("list", len(creds)-1)
         return None, ("list", None)
@@ -667,19 +840,14 @@ def _get_customer(creds, vat: str, create=False):
         if vat in customers:
             return customers[vat], ("dict", vat)
         if create and vat:
-            customers[vat] = {"vat": vat, "expense_tags": []}
+            customers[vat] = {"vat": vat, "expense_tags": [], "custom_categories": []}
             return customers[vat], ("dict", vat)
         return None, ("dict", None)
     return None, ("unknown", None)
 
 def _get_expense_tags(creds, vat: str):
     cust, _ = _get_customer(creds, vat, create=False)
-    tags = []
-    if isinstance(cust, dict):
-        tags = list(cust.get("expense_tags") or [])
-    # φιλτράρουμε το 'αποδειξακια'
-    tags = [t for t in tags if (t or "").strip() and t.strip().lower() != "αποδειξακια"]
-    return tags
+    return _list_invoice_categories(cust)
 
 def _get_char_profiles(creds, vat: str):
     cust, _ = _get_customer(creds, vat, create=False)
@@ -1408,6 +1576,18 @@ def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None,
     import pandas as pd, os
     path = excel_path_for(cred_name=cred_name, vat=vat)
 
+    if isinstance(summary, dict):
+        summary = dict(summary)
+    else:
+        try:
+            summary = dict(summary or {})
+        except Exception:
+            summary = {}
+
+    cred_for_series = _resolve_series_credential(summary, vat=vat, cred_name=cred_name)
+    resolved_series = _resolved_series_for_summary(summary, vat=vat, cred=cred_for_series, cred_name=cred_name)
+    summary["series"] = resolved_series
+
     # Φτιάξε αρχείο αν λείπει (κράτα τη δομή που ήδη χρησιμοποιείς)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -1433,7 +1613,7 @@ def _ensure_excel_and_update_or_append(summary: dict, vat: Optional[str] = None,
     mark_val = str(summary.get("MARK") or summary.get("mark") or "").strip()
     afm_val  = str(summary.get("AFM") or summary.get("AFM_issuer") or "").strip()
     name_val = str(summary.get("Name") or summary.get("Name_issuer") or "").strip()
-    series   = str(summary.get("series") or "").strip()
+    series   = str(resolved_series or "").strip()
     number   = str(summary.get("number") or summary.get("AA") or summary.get("aa") or summary.get("progressive_aa") or "").strip()
     date_val = str(summary.get("issueDate") or "").strip()
     tipo     = str(summary.get("type") or "").strip()
@@ -2048,6 +2228,134 @@ def get_cred_by_name(name: str) -> Optional[Dict]:
         return None
     creds = load_credentials()
     return next((c for c in creds if c.get("name") == name), None)
+
+
+def get_cred_by_vat(vat: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not vat:
+        return None
+    try:
+        target = str(vat).strip()
+        if not target:
+            return None
+        for cred in load_credentials():
+            try:
+                if str(cred.get("vat", "")).strip() == target:
+                    return cred
+            except Exception:
+                continue
+    except Exception:
+        current_app.logger.exception("get_cred_by_vat failed for VAT %s", vat)
+    return None
+
+
+def _series_settings_from_form(form) -> Dict[str, Any]:
+    try:
+        mode_raw = str(form.get("series_mode") or "document").strip().lower()
+    except Exception:
+        mode_raw = "document"
+    mode = "custom" if mode_raw == "custom" else "document"
+    custom: Dict[str, str] = {}
+    for key in SERIES_SETTING_KEYS:
+        field = f"series_custom_{key}"
+        try:
+            raw_val = form.get(field)
+        except Exception:
+            raw_val = None
+        if raw_val is None:
+            continue
+        val = str(raw_val).strip()
+        if val:
+            custom[key] = val
+    if mode != "custom":
+        return {"mode": "document", "custom": {}}
+    return {"mode": "custom", "custom": custom}
+
+
+def _series_preference_keys(summary: Optional[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
+    data = summary if isinstance(summary, dict) else {}
+    doc_type = str(data.get("type") or data.get("type_code") or "").strip()
+    if doc_type.startswith("2."):
+        return "invoice_services", SERIES_FALLBACK_MAP.get("invoice_services")
+    if doc_type.startswith("5."):
+        return "invoice_credit", SERIES_FALLBACK_MAP.get("invoice_credit")
+    if doc_type.startswith("12."):
+        return "receipt_services", SERIES_FALLBACK_MAP.get("receipt_services")
+    if doc_type.startswith("13."):
+        return "receipt_credit", SERIES_FALLBACK_MAP.get("receipt_credit")
+    if doc_type.startswith("11."):
+        return "receipt_retail", None
+    if doc_type.startswith("1."):
+        return "invoice_general", None
+    category = str(
+        data.get("category")
+        or data.get("χαρακτηρισμός")
+        or data.get("characteristic")
+        or ""
+    ).strip()
+    if category == "αποδειξακια":
+        return "receipt_retail", None
+    return "invoice_general", None
+
+
+def _resolve_series_credential(
+    summary: Optional[Dict[str, Any]],
+    vat: Optional[str] = None,
+    cred_name: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    cred = None
+    if cred_name:
+        cred = get_cred_by_name(cred_name)
+    if not cred and vat:
+        cred = get_cred_by_vat(vat)
+    if not cred and isinstance(summary, dict):
+        for key in ("AFM", "AFM_issuer", "vat"):
+            candidate = summary.get(key)
+            if not candidate:
+                continue
+            cred = get_cred_by_vat(candidate)
+            if cred:
+                break
+    if not cred:
+        try:
+            cred = get_active_credential_from_session()
+        except Exception:
+            cred = None
+    return cred
+
+
+def _resolved_series_for_summary(
+    summary: Optional[Dict[str, Any]],
+    vat: Optional[str] = None,
+    cred: Optional[Dict[str, Any]] = None,
+    cred_name: Optional[str] = None,
+) -> str:
+    base_series = ""
+    data = summary if isinstance(summary, dict) else {}
+    if isinstance(summary, dict):
+        base_series = str(summary.get("series") or "").strip()
+    else:
+        try:
+            base_series = str(getattr(summary, "series", "") or "").strip()
+        except Exception:
+            base_series = ""
+    cred_obj = cred if isinstance(cred, dict) else None
+    if cred_obj is None:
+        cred_obj = _resolve_series_credential(data, vat=vat, cred_name=cred_name)
+    settings = cred_obj.get("series_settings") if isinstance(cred_obj, dict) else None
+    if not isinstance(settings, dict):
+        return base_series
+    mode = str(settings.get("mode") or "document").strip().lower()
+    if mode != "custom":
+        return base_series
+    custom = settings.get("custom") if isinstance(settings, dict) else {}
+    if not isinstance(custom, dict):
+        custom = {}
+    primary, fallback_key = _series_preference_keys(data)
+    for key in filter(None, [primary, fallback_key]):
+        val = custom.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return base_series
 
 # --- Excel path helper: πάντα με VAT + fiscal_year ---
 def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -> str:
@@ -2664,15 +2972,8 @@ def api_repeat_entry_get_v2():
         "profile_name": (repeat_raw.get("profile_name") or "").strip(),
     }
 
-    # expense_tags (χωρίς 'αποδειξάκια')
-    raw_tags = client_rec.get('expense_tags') or []
-    if isinstance(raw_tags, str):
-        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-    elif isinstance(raw_tags, list):
-        tags = [str(t) for t in raw_tags]
-    else:
-        tags = []
-    tags = [t for t in tags if t.strip().lower() not in ("αποδειξακια", "αποδειξάκια")]
+    tags = _list_invoice_categories(client_rec)
+    labels = _category_labels_for_client(client_rec)
 
     # afm/vat για πληρότητα
     afm_guess = ""
@@ -2686,6 +2987,7 @@ def api_repeat_entry_get_v2():
         "ok": True,
         "repeat_entry": repeat,
         "expense_tags": tags,
+        "category_labels": labels,
     }
     if afm_guess:
         resp["afm"] = afm_guess
@@ -2745,15 +3047,10 @@ def api_repeat_entry_get():
         resp = dict(base_resp)
         # if we can extract expense_tags from session_cred, include them
         try:
-            raw_tags = (session_cred.get('expense_tags') if isinstance(session_cred, dict) else None) or []
-            if isinstance(raw_tags, str):
-                expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-            elif isinstance(raw_tags, list):
-                expense_tags = [str(t) for t in raw_tags]
-            else:
-                expense_tags = []
+            expense_tags = _list_invoice_categories(session_cred)
             if expense_tags:
                 resp['expense_tags'] = expense_tags
+                resp['category_labels'] = _category_labels_for_client(session_cred)
         except Exception:
             pass
 
@@ -2767,13 +3064,8 @@ def api_repeat_entry_get():
     repeat = (client_rec.get('repeat_entry') if isinstance(client_rec, dict) else {}) or {"enabled": False, "mapping": {}}
 
     # normalize expense_tags
-    raw_tags = (client_rec.get('expense_tags') if isinstance(client_rec, dict) else None) or []
-    if isinstance(raw_tags, str):
-        expense_tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
-    elif isinstance(raw_tags, list):
-        expense_tags = [str(t) for t in raw_tags]
-    else:
-        expense_tags = []
+    expense_tags = _list_invoice_categories(client_rec)
+    category_labels = _category_labels_for_client(client_rec)
 
     # try to extract afm/vat from client_rec (many possible key names)
     afm_found = ""
@@ -2821,7 +3113,8 @@ def api_repeat_entry_get():
     resp = {
         "ok": True,
         "repeat_entry": repeat,
-        "expense_tags": expense_tags
+        "expense_tags": expense_tags,
+        "category_labels": category_labels,
     }
     # include descriptive client object (don't leak secrets) - include some fields if present
     try:
@@ -2895,16 +3188,55 @@ def api_repeat_entry_save():
 
     write_credentials_list(creds)
 
-    # Κανονικοποίηση expense_tags για ασφαλή επιστροφή (λίστα strings)
-    raw_tags = client.get("expense_tags") or []
-    if isinstance(raw_tags, str):
-        expense_tags = [t.strip() for t in raw_tags.split(",") if t.strip()]
-    elif isinstance(raw_tags, list):
-        expense_tags = [str(t) for t in raw_tags]
-    else:
-        expense_tags = []
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
 
-    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags)
+    return jsonify(ok=True, repeat_entry=repeat, expense_tags=expense_tags, category_labels=labels)
+
+
+def _decode_data_url(raw: str) -> Optional[bytes]:
+    if not raw:
+        return None
+    try:
+        if raw.startswith("data:"):
+            match = re.match(r"^data:(.*?);base64,(.*)$", raw, re.IGNORECASE)
+            if not match:
+                return None
+            payload = match.group(2)
+        else:
+            payload = raw
+        return base64.b64decode(payload)
+    except Exception:
+        current_app.logger.exception("Failed to decode QR data url")
+        return None
+
+
+@app.post("/api/qr/decode")
+def api_qr_decode():
+    """Αποκωδικοποιεί εικόνα QR και επιστρέφει raw string & MARK."""
+    payload_bytes: Optional[bytes] = None
+    filename = "capture.png"
+
+    if "file" in request.files:
+        f = request.files["file"]
+        payload_bytes = f.read()
+        filename = f.filename or filename
+    else:
+        data = request.get_json(silent=True) or {}
+        raw = data.get("image") or data.get("dataUrl") or data.get("data")
+        payload_bytes = _decode_data_url(raw)
+        filename = data.get("filename") or filename
+
+    if not payload_bytes:
+        return jsonify({"ok": False, "error": "Δεν ελήφθη εικόνα"}), 400
+
+    payloads = decode_qr_payloads(payload_bytes, filename) or []
+    if not payloads:
+        return jsonify({"ok": False, "error": "Δεν εντοπίστηκε QR κώδικας"}), 404
+
+    first = payloads[0]
+    mark = extract_mark(first)
+    return jsonify({"ok": True, "raw": first, "mark": mark, "payloads": payloads})
 
 
 
@@ -2923,6 +3255,8 @@ def credentials_add():
     expense_tags = request.form.getlist('expense_tags')
     apodeixakia_type = request.form.get('apodeixakia_type', '').strip()
     apodeixakia_supplier = request.form.get('apodeixakia_supplier', '').strip()
+    apodeixakia_other_expenses = request.form.get('apodeixakia_other_expenses')
+    apodeixakia_other_expenses = True if apodeixakia_other_expenses in ('on', 'true', '1', 'yes') else False
     new_cred = {
         'name': name,
         'vat': vat,
@@ -2933,6 +3267,8 @@ def credentials_add():
         'expense_tags': expense_tags,
         'apodeixakia_type': apodeixakia_type,
         'apodeixakia_supplier': apodeixakia_supplier,
+        'apodeixakia_other_expenses': apodeixakia_other_expenses,
+        'custom_categories': [],
         'active': False
     }
     credentials.append(new_cred)
@@ -3277,6 +3613,15 @@ def credentials():
         expense_tags = request.form.getlist("expense_tags") or []
         apodeixakia_type = request.form.get("apodeixakia_type", "").strip()   # "afm" or "supplier"
         apodeixakia_supplier = request.form.get("apodeixakia_supplier", "").strip()
+        apodeixakia_other_raw = request.form.get("apodeixakia_other_expenses")
+        apodeixakia_other_expenses = True if apodeixakia_other_raw in ("on", "true", "1", "yes") else False
+        series_settings = _series_settings_from_form(request.form)
+
+        # Normalize apodeixakia fields: if category not selected, force-reset them
+        if "αποδειξακια" not in expense_tags:
+            apodeixakia_type = ""
+            apodeixakia_supplier = ""
+            apodeixakia_other_expenses = False
 
         if not name:
             flash("Name required", "error")
@@ -3292,7 +3637,9 @@ def credentials():
                 "fpa_applicable": fpa_applicable,
                 "expense_tags": expense_tags,
                 "apodeixakia_type": apodeixakia_type,
-                "apodeixakia_supplier": apodeixakia_supplier
+                "apodeixakia_supplier": apodeixakia_supplier,
+                "apodeixakia_other_expenses": apodeixakia_other_expenses,
+                "series_settings": series_settings
             }
             ok, err = add_credential(entry)
             if ok:
@@ -3326,18 +3673,21 @@ def credentials_edit(name):
         fpa_applicable = True if request.form.get("fpa_applicable") in ("on", "true", "1") else False
         expense_tags = request.form.getlist("expense_tags") or []
 
-        # Νέα πεδία (apodeixakia) - fallback στις υπάρχουσες τιμές αν δεν παρέχονται
-        apodeixakia_type = request.form.get("apodeixakia_type")
-        if apodeixakia_type is None:
-            apodeixakia_type = credential.get("apodeixakia_type", "")
-        else:
-            apodeixakia_type = apodeixakia_type.strip()
+        # ----- Apodeixakia fields (robust handling) -----
+        apodeixakia_enabled = "αποδειξακια" in expense_tags
 
-        apodeixakia_supplier = request.form.get("apodeixakia_supplier")
-        if apodeixakia_supplier is None:
-            apodeixakia_supplier = credential.get("apodeixakia_supplier", "")
+        if apodeixakia_enabled:
+            apodeixakia_type = (request.form.get("apodeixakia_type") or "").strip()
+            apodeixakia_supplier = (request.form.get("apodeixakia_supplier") or "").strip()
+            apodeixakia_other_expenses = (request.form.get("apodeixakia_other_expenses") in ("on", "true", "1", "yes"))
         else:
-            apodeixakia_supplier = apodeixakia_supplier.strip()
+            # If category is not selected, force-reset related fields so stale values don't stick
+            apodeixakia_type = ""
+            apodeixakia_supplier = ""
+            apodeixakia_other_expenses = False
+
+        series_settings = _series_settings_from_form(request.form)
+
 
         if not new_name:
             flash("Name required", "error")
@@ -3359,7 +3709,10 @@ def credentials_edit(name):
             "expense_tags": expense_tags,
             # Αποθηκεύουμε και τα apodeixakia πεδία
             "apodeixakia_type": apodeixakia_type,
-            "apodeixakia_supplier": apodeixakia_supplier
+            "apodeixakia_supplier": apodeixakia_supplier,
+            "apodeixakia_other_expenses": bool(apodeixakia_other_expenses),
+            "custom_categories": credential.get("custom_categories", []),
+            "series_settings": series_settings or credential.get("series_settings", {})
         }
 
         updated = False
@@ -3866,12 +4219,9 @@ def search():
     vat = active_cred.get("vat") if active_cred else None
 
     # load customer_categories default from active_cred (used for invoices)
+    customer_category_labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
     try:
-        raw_tags = active_cred.get("expense_tags") if active_cred else None
-        if isinstance(raw_tags, str):
-            customer_categories = [t.strip() for t in raw_tags.split(",") if t.strip()]
-        elif isinstance(raw_tags, list):
-            customer_categories = raw_tags
+        customer_categories = _list_invoice_categories(active_cred)
         if not customer_categories:
             customer_categories = [
                 "αγορες_εμπορευματων",
@@ -3880,6 +4230,7 @@ def search():
                 "αμοιβες_τριτων",
                 "δαπανες_χωρις_φπα"
             ]
+        customer_category_labels.update(_category_labels_for_client(active_cred))
     except Exception:
         customer_categories = [
             "αγορες_εμπορευματων",
@@ -3888,6 +4239,7 @@ def search():
             "αμοιβες_τριτων",
             "δαπανες_χωρις_φπα"
         ]
+    customer_vat_constraints = _category_vat_constraints(active_cred)
 
     # --- Handle JSON AJAX request to save repeat mapping ---
     if request.method == "POST" and request.is_json:
@@ -4477,8 +4829,9 @@ def search():
             import pandas as pd
             df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
             df = df.astype(str)
-            if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
-                df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            drop_cols = [col for col in ["ΦΠΑ_ΑΝΑΛΥΣΗ", "Α/Α", "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ"] if col in df.columns]
+            if drop_cols:
+                df = df.drop(columns=drop_cols)
             checkbox_html = '<input type="checkbox" name="delete_mark" />'
             df.insert(0, "✓", [checkbox_html] * len(df))
             table_html = df.to_html(classes="summary-table", index=False, escape=False)
@@ -4497,24 +4850,174 @@ def search():
         modal_summary=modal_summary,
         invoice_lines=invoice_lines,
         customer_categories=customer_categories,
+        customer_category_labels=customer_category_labels,
         allow_edit_existing=allow_edit_existing,
         vat=vat,
         active_page="search",
-        table_html = strip_server_totals(table_html),
+        table_html=strip_server_totals(table_html),
         file_exists=file_exists,
         css_numcols=css_numcols,
         modal_warning=modal_warning,
         fiscal_mismatch_block=fiscal_mismatch_block,
         repeat_entry_conf=repeat_entry_conf,
-        active_year=active_year_val
+        active_year=active_year_val,
+        category_vat_constraints=customer_vat_constraints,
     )
 @app.get("/profiles")
 def profiles_page():
     vat = (request.args.get("vat") or "").strip()
     creds = _load_credentials()
     categories = _get_expense_tags(creds, vat)
+    client = _find_client(creds, vat=vat) or {}
+    labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
     # δίνουμε πάντα λίστα (όχι Undefined)
-    return render_template("profiles.html", vat=vat, customer_categories=categories)
+    return render_template(
+        "profiles.html",
+        vat=vat,
+        customer_categories=categories,
+        category_labels=labels,
+        vat_constraints=constraints,
+    )
+
+
+@app.route("/custom_categories", methods=["GET"])
+def custom_categories_page():
+    vat = (request.args.get("vat") or "").strip()
+    active = get_active_credential_from_session() or {}
+    if not vat:
+        vat = str(active.get("vat") or "").strip()
+
+    creds = load_credentials()
+    client = None
+    for c in creds:
+        if str(c.get("vat") or "").strip() == vat:
+            client = c
+            break
+    if client is None and active and str(active.get("vat") or "").strip() == vat:
+        client = active
+
+    categories = _custom_categories_payload(client)
+    labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
+    client_name = str((client or {}).get("name") or "").strip()
+    return_name = (request.args.get("return_name") or client_name).strip()
+    return_args: Dict[str, str] = {}
+    if vat:
+        return_args["vat"] = vat
+    if return_name:
+        return_args["return_name"] = return_name
+    if return_args:
+        return_args["open_custom"] = "1"
+    return_url = url_for("credentials", **return_args)
+    return render_template(
+        "custom_categories.html",
+        vat=vat,
+        categories=categories,
+        category_labels=labels,
+        default_labels=DEFAULT_INVOICE_CATEGORY_LABELS,
+        vat_rates=VAT_RATE_NUMERIC,
+        vat_constraints=constraints,
+        credential_name=client_name,
+        return_url=return_url,
+        active_page="custom_categories",
+    )
+
+
+@app.post("/custom_categories/save")
+def custom_categories_save():
+    vat = str(request.form.get("vat") or "").strip()
+    label = str(request.form.get("label") or "").strip()
+    slug = str(request.form.get("id") or "").strip()
+    enabled = request.form.get("enabled") in ("on", "true", "1")
+
+    if not vat:
+        flash("Επιλογή πελάτη (VAT) απαιτείται.", "error")
+        return redirect(url_for("custom_categories_page"))
+
+    creds = load_credentials()
+    client = next((c for c in creds if str(c.get("vat") or "").strip() == vat), None)
+    if not client:
+        flash("Ο πελάτης δεν βρέθηκε.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    client_name = str(client.get("name") or "").strip()
+    existing_slugs = {str(cat.get("id") or cat.get("slug") or "").strip() for cat in _ensure_custom_categories_list(client)}
+    if slug:
+        target = None
+        for cat in _ensure_custom_categories_list(client):
+            if str(cat.get("id") or cat.get("slug") or "").strip() == slug:
+                target = cat
+                break
+        if target is None:
+            existing_slugs.discard(slug)
+            target = {"id": slug}
+            _ensure_custom_categories_list(client).append(target)
+    else:
+        if not label:
+            flash("Συμπλήρωσε τίτλο κατηγορίας.", "error")
+            return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
+        slug = _slugify_custom_category(label, existing_slugs)
+        target = {"id": slug}
+        _ensure_custom_categories_list(client).append(target)
+
+    if label:
+        target["label"] = label
+    target["enabled"] = bool(enabled)
+    accounts = {}
+    for rate in VAT_RATE_NUMERIC:
+        accounts[rate] = str(request.form.get(f"account_{rate}") or "").strip()
+    target["accounts"] = accounts
+
+    save_credentials(creds)
+    flash("Η κατηγορία αποθηκεύτηκε.", "success")
+    return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
+
+
+@app.post("/custom_categories/delete")
+def custom_categories_delete():
+    vat = str(request.form.get("vat") or "").strip()
+    slug = str(request.form.get("id") or "").strip()
+    if not (vat and slug):
+        flash("Ανεπαρκή στοιχεία διαγραφής.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    creds = load_credentials()
+    client = next((c for c in creds if str(c.get("vat") or "").strip() == vat), None)
+    if not client:
+        flash("Ο πελάτης δεν βρέθηκε.", "error")
+        return redirect(url_for("custom_categories_page", vat=vat))
+
+    client_name = str(client.get("name") or "").strip()
+    arr = _ensure_custom_categories_list(client)
+    new_arr = [cat for cat in arr if str(cat.get("id") or cat.get("slug") or "").strip() != slug]
+    client["custom_categories"] = new_arr
+
+    # καθάρισε repeat mapping που δείχνουν σε αυτή την κατηγορία
+    repeat = client.get("repeat_entry")
+    if isinstance(repeat, dict):
+        mapping = repeat.get("mapping") or {}
+        for key, val in list(mapping.items()):
+            if str(val).strip() == slug:
+                mapping[key] = ""
+        repeat["mapping"] = mapping
+        client["repeat_entry"] = repeat
+
+    # καθάρισε char_profiles
+    profiles = client.get("char_profiles")
+    if isinstance(profiles, list):
+        for prof in profiles:
+            if not isinstance(prof, dict):
+                continue
+            mp = prof.get("mapping")
+            if isinstance(mp, dict):
+                for key, val in list(mp.items()):
+                    if str(val).strip() == slug:
+                        mp[key] = ""
+
+    save_credentials(creds)
+    flash("Η κατηγορία διαγράφηκε.", "success")
+    return redirect(url_for("custom_categories_page", vat=vat, return_name=client_name))
 
 @app.get("/api/char_profiles")
 def api_char_profiles_get():
@@ -4523,10 +5026,16 @@ def api_char_profiles_get():
     creds = _load_credentials()
     client = _find_client(creds, vat=vat) or {}
     profiles = client.get("char_profiles", [])
-    expense_tags = client.get("expense_tags", [])
-    # Αποκλείουμε τα 'αποδειξακια' από τα τιμολόγια
-    expense_tags = [t for t in expense_tags if t != "αποδειξακια"]
-    return jsonify(ok=True, profiles=profiles, expense_tags=expense_tags)
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
+    return jsonify(
+        ok=True,
+        profiles=profiles,
+        expense_tags=expense_tags,
+        category_labels=labels,
+        vat_constraints=constraints,
+    )
 
 @app.post("/api/char_profiles/save")
 def api_char_profiles_save():
@@ -4539,13 +5048,38 @@ def api_char_profiles_save():
     name = (data.get("name") or "").strip()
     mapping = data.get("mapping") or {}
 
-    if not (vat and name and all(mapping.get(k) for k in ("kat_fpa_a","kat_fpa_b","kat_fpa_g","kat_fpa_d"))):
+    if not (
+        vat
+        and name
+        and all(mapping.get(k) for k in ("kat_fpa_a", "kat_fpa_b", "kat_fpa_g", "kat_fpa_d", "kat_fpa_e"))
+    ):
         return jsonify(ok=False, error="Παράμετροι λείπουν"), 400
 
     creds = _load_credentials()
     client = _find_client(creds, vat=vat)
     if not client:
         return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
+
+    constraints = _category_vat_constraints(client)
+    labels = _category_labels_for_client(client)
+    vat_by_key = {
+        "kat_fpa_a": "0%",
+        "kat_fpa_b": "6%",
+        "kat_fpa_g": "13%",
+        "kat_fpa_d": "17%",
+        "kat_fpa_e": "24%",
+    }
+    for key, vat_label in vat_by_key.items():
+        val = str(mapping.get(key) or "").strip()
+        if not val:
+            continue
+        allowed = constraints.get(val)
+        if allowed is not None and vat_label not in allowed:
+            display = labels.get(val, val)
+            return jsonify(
+                ok=False,
+                error=f"Η κατηγορία '{display}' δεν υποστηρίζει ΦΠΑ {vat_label}.",
+            ), 400
 
     arr = list(client.get("char_profiles", []))
     # upsert
@@ -4586,13 +5120,17 @@ def char_profiles_ui():
     vat = request.args.get("vat","").strip()
     creds = _load_credentials()
     client = _find_client(creds, vat=vat) or {}
-    expense_tags = [t for t in client.get("expense_tags", []) if t != "αποδειξακια"]
+    expense_tags = _list_invoice_categories(client)
+    labels = _category_labels_for_client(client)
+    constraints = _category_vat_constraints(client)
     profiles = client.get("char_profiles", [])
     return render_template(
         "profiles.html",
         vat=client.get("vat",""),
         expense_tags=expense_tags,
-        profiles=profiles
+        profiles=profiles,
+        category_labels=labels,
+        vat_constraints=constraints,
     )
 @app.route("/api/next_receipt_mark", methods=["GET"])
 def api_next_receipt_mark():
@@ -5128,6 +5666,9 @@ def save_summary():
     summary = _hydrate_summary_for_excel(summary, vat=str(vat or ""))
     is_receipt = _is_receipt(summary)
 
+    series_cred = _resolve_series_credential(summary, vat=vat)
+    summary["series"] = _resolved_series_for_summary(summary, vat=vat, cred=series_cred)
+
     conf = _load_repeat_entry_for_vat(vat)
     # ΤΙΜΟΛΟΓΙΑ: mapping ανά VAT%
     if not is_receipt:
@@ -5483,7 +6024,6 @@ def save_receipt():
     with open(json_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    flash("Η απόδειξη αποθηκεύτηκε επιτυχώς!", "success")
     return redirect(url_for("search"))
 
 @app.route("/api/repeat_state/get", methods=["GET"])
@@ -5737,6 +6277,209 @@ def api_confirm_receipt():
 
 
 
+
+
+def _normalize_backup_member(name: str) -> str:
+    name = (name or "").replace("\\", "/")
+    name = name.lstrip("/")
+    parts = [p for p in name.split("/") if p not in ("", ".", "..")]
+    if parts and parts[0].lower() == "data":
+        parts = parts[1:]
+    return os.path.join(*parts) if parts else ""
+
+
+def _human_readable_size(num: int) -> str:
+    try:
+        value = float(num)
+    except Exception:
+        return str(num)
+    units = ["B", "KB", "MB", "GB", "TB"]
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.2f} {unit}"
+        value /= 1024.0
+    return f"{value:.2f} TB"
+
+
+def _analyze_backup_zip(file_like) -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "file_count": 0,
+        "total_size": 0,
+        "total_size_human": "0 B",
+        "customers_total": None,
+        "vat_total": 0,
+        "sample_vats": [],
+        "contains_credentials": False,
+        "contains_settings": False,
+        "modified_first": None,
+        "modified_last": None,
+    }
+    try:
+        file_like.seek(0)
+    except Exception:
+        pass
+
+    with zipfile.ZipFile(file_like) as zf:
+        infos = [info for info in zf.infolist() if not info.is_dir()]
+        summary["file_count"] = len(infos)
+        summary["total_size"] = sum(info.file_size for info in infos)
+        summary["total_size_human"] = _human_readable_size(summary["total_size"])
+
+        timestamps: List[datetime.datetime] = []
+        vats: set[str] = set()
+        customer_count: Optional[int] = None
+
+        for info in infos:
+            try:
+                timestamps.append(datetime.datetime(*info.date_time))
+            except Exception:
+                pass
+
+            rel = _normalize_backup_member(info.filename)
+            if not rel:
+                continue
+
+            if rel == "credentials.json":
+                summary["contains_credentials"] = True
+                try:
+                    with zf.open(info) as fh:
+                        data = json.loads(fh.read().decode("utf-8-sig"))
+                    if isinstance(data, list):
+                        customer_count = len(data)
+                        for item in data:
+                            if isinstance(item, dict):
+                                vat_val = item.get("vat") or item.get("VAT") or item.get("afm") or item.get("AFM")
+                                if vat_val:
+                                    vats.add(str(vat_val).strip())
+                    elif isinstance(data, dict):
+                        customer_count = len(data.keys())
+                except Exception:
+                    current_app.logger.warning("Failed to parse credentials.json from backup", exc_info=True)
+
+            if rel == "credentials_settings.json":
+                summary["contains_settings"] = True
+
+        summary["customers_total"] = customer_count
+        summary["vat_total"] = len(vats)
+        if vats:
+            summary["sample_vats"] = sorted(vats)[:10]
+        if timestamps:
+            summary["modified_first"] = min(timestamps).isoformat()
+            summary["modified_last"] = max(timestamps).isoformat()
+
+    try:
+        file_like.seek(0)
+    except Exception:
+        pass
+
+    return summary
+
+
+def _apply_backup_zip(zip_path: str) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    base = os.path.normpath(DATA_DIR)
+    has_credentials = False
+
+    with zipfile.ZipFile(zip_path) as zf:
+        members = [info for info in zf.infolist() if not info.is_dir()]
+        if not members:
+            raise ValueError("Το backup δεν περιέχει αρχεία.")
+        for info in members:
+            rel = _normalize_backup_member(info.filename)
+            if not rel:
+                continue
+            if rel == "credentials.json":
+                has_credentials = True
+            dest = os.path.normpath(os.path.join(DATA_DIR, rel))
+            if not dest.startswith(base + os.sep) and dest != base:
+                raise ValueError(f"Μη έγκυρη διαδρομή στο backup: {info.filename}")
+            dest_dir = os.path.dirname(dest)
+            if dest_dir:
+                os.makedirs(dest_dir, exist_ok=True)
+            with zf.open(info) as src, open(dest, "wb") as dst:
+                shutil.copyfileobj(src, dst)
+
+    if not has_credentials:
+        raise ValueError("Το backup δεν περιέχει το αρχείο credentials.json.")
+
+
+@app.get("/api/data_backup/download")
+def data_backup_download():
+    try:
+        mem = io.BytesIO()
+        with zipfile.ZipFile(mem, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(DATA_DIR):
+                for fname in files:
+                    path = os.path.join(root, fname)
+                    arc = os.path.relpath(path, DATA_DIR)
+                    zf.write(path, arc)
+        mem.seek(0)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            mem,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=f"data_backup_{ts}.zip",
+        )
+    except Exception as exc:
+        current_app.logger.exception("data_backup_download failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.post("/api/data_backup/inspect")
+def data_backup_inspect():
+    uploaded = request.files.get("backup_file")
+    if not uploaded:
+        return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
+    try:
+        summary = _analyze_backup_zip(uploaded.stream)
+        return jsonify({"ok": True, "summary": summary})
+    except zipfile.BadZipFile:
+        return jsonify({"ok": False, "error": "Μη έγκυρο αρχείο ZIP."}), 400
+    except Exception as exc:
+        current_app.logger.exception("data_backup_inspect failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    finally:
+        try:
+            uploaded.stream.seek(0)
+        except Exception:
+            pass
+
+
+@app.post("/api/data_backup/restore")
+def data_backup_restore():
+    uploaded = request.files.get("backup_file")
+    if not uploaded:
+        return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+            uploaded.stream.seek(0)
+            shutil.copyfileobj(uploaded.stream, tmp)
+            tmp_path = tmp.name
+
+        with open(tmp_path, "rb") as fh:
+            summary = _analyze_backup_zip(fh)
+        if not summary.get("contains_credentials"):
+            raise ValueError("Το backup δεν περιέχει credentials.json.")
+
+        _apply_backup_zip(tmp_path)
+        return jsonify({"ok": True, "summary": summary})
+    except zipfile.BadZipFile:
+        return jsonify({"ok": False, "error": "Μη έγκυρο αρχείο ZIP."}), 400
+    except ValueError as ve:
+        return jsonify({"ok": False, "error": str(ve)}), 400
+    except Exception:
+        current_app.logger.exception("data_backup_restore failed")
+        return jsonify({"ok": False, "error": "Αποτυχία επαναφοράς backup."}), 500
+    finally:
+        try:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
+
 # ---------------- List / download ----------------
 @app.route("/list", methods=["GET"])
 def list_invoices():
@@ -5769,8 +6512,9 @@ def list_invoices():
             df = df.astype(str)
 
             # Κόψε εσωτερική ανάλυση ΦΠΑ
-            if "ΦΠΑ_ΑΝΑΛΥΣΗ" in df.columns:
-                df = df.drop(columns=["ΦΠΑ_ΑΝΑΛΥΣΗ"])
+            drop_cols = [col for col in ["ΦΠΑ_ΑΝΑΛΥΣΗ", "Α/Α", "ΦΠΑ_ΚΑΤΗΓΟΡΙΑ"] if col in df.columns]
+            if drop_cols:
+                df = df.drop(columns=drop_cols)
 
             # Πρώτη στήλη με checkbox
             if "MARK" in df.columns:
@@ -5833,6 +6577,13 @@ def list_invoices():
 @app.route("/epsilon/preview")
 def epsilon_preview():
     vat = (request.args.get("vat") or (get_active_credential_from_session() or {}).get("vat") or "").strip()
+    cred_for_labels = get_cred_by_vat(vat) or get_active_credential_from_session()
+    category_labels = dict(DEFAULT_INVOICE_CATEGORY_LABELS)
+    if cred_for_labels:
+        try:
+            category_labels.update(_category_labels_for_client(cred_for_labels))
+        except Exception:
+            current_app.logger.exception("Failed to build category labels for epsilon preview")
     rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
         credentials_json="data/credentials.json",
@@ -5846,7 +6597,8 @@ def epsilon_preview():
                            vat=vat,
                            table_rows=rows,
                            bridge_ok=(not issues and len(rows)>0),
-                           bridge_issues=issues)
+                           bridge_issues=issues,
+                           category_labels=category_labels)
 
 
 @app.route("/export/fastimport/kinitseis")

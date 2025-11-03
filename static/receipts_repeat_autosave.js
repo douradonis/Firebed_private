@@ -47,6 +47,12 @@
     try{ window.USE_RECEIPTS = !!on; }catch(_){}
   }
 
+  function persistFlash(message, type){
+    try{
+      sessionStorage.setItem('RC:lastFlash', JSON.stringify({ message: String(message||'').trim() || message, type: type || 'info', ts: Date.now() }));
+    }catch(_){}
+  }
+
   // Initial bridge (keep in sync with server-rendered switches)
   setRep(repOn());
   setRec(recOn());
@@ -98,8 +104,11 @@
       });
       const j = await res.json().catch(()=>({}));
       console.log("[RC-AUTO] confirm_receipt resp", j);
+      const ok = !!(res.ok && (!j || j.ok !== false));
+      return { ok, data: j };
     }catch(e){
       console.warn("[RC-AUTO] confirm_receipt failed", e);
+      return { ok: false, error: e };
     }
   }
 
@@ -152,9 +161,19 @@
     obj.is_receipt = true;
 
     console.log("[RC-AUTO] auto-confirming receipt", obj);
-    confirmReceipt(obj).finally(() => {
-      setTimeout(() => location.replace(location.pathname + "?use_receipts=1"), 150);
-    });
+    confirmReceipt(obj)
+      .then(result => {
+        if(result && result.ok){
+          persistFlash('Αποθηκεύτηκε η απόδειξη (repeat).', 'success');
+        } else if(result) {
+          const err = (result.data && result.data.error) ? String(result.data.error) : (result.error ? String(result.error) : '');
+          const msg = err ? `Σφάλμα αυτόματης αποθήκευσης: ${err}` : 'Σφάλμα αυτόματης αποθήκευσης αποδείξεων.';
+          persistFlash(msg, 'error');
+        }
+      })
+      .finally(() => {
+        setTimeout(() => location.replace(location.pathname + "?use_receipts=1"), 150);
+      });
   }
 
   // If submit flagged auto-confirm, poll briefly until scraper fills the summary
