@@ -1559,33 +1559,16 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         lastPayload = chosen;
 
         const isURL = /^https?:\/\//i.test(rawVal);
-
-    if (chosen) {
-    // αποφασίζουμε από data-mode, αλλιώς fallback στο toggle
-    const mode = (document.body && document.body.dataset && document.body.dataset.mode)
-    ? String(document.body.dataset.mode).toLowerCase()
-    : '';
-    const receiptsOn = mode ? (mode === 'receipts')
-                          : !!(document.getElementById('useReceiptsSwitch') && document.getElementById('useReceiptsSwitch').checked);
-
-    if (isURL && receiptsOn) {
-      // Αποδείξεις: paste ΜΟΝΟ στο πεδίο αποδείξεων
-      const receiptsInput = document.getElementById('scrapeUrlInput');
-      if (receiptsInput) {
-        receiptsInput.value = rawVal;
-        try { receiptsInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
-      }
-      const hiddenUrl = document.getElementById('scrapeUrlField');
-      if (hiddenUrl) hiddenUrl.value = rawVal;
-    } else {
-      // Τιμολόγια ή μη-URL: paste στο markInput
-      if (markInput) {
-        markInput.value = isURL ? rawVal : chosen;
-        try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
-      }
-    }
-  }
-
+        if (chosen){
+          if (markInput){
+            markInput.value = isURL ? rawVal : chosen;
+            try { markInput.dispatchEvent(new Event('input',{bubbles:true})); } catch(_){}
+          }
+          if (isURL && urlInput){
+            urlInput.value = rawVal;
+            urlInput.classList.remove('hidden');
+          }
+        }
 
         setStatus(isURL ? 'Εντοπίστηκε URL από QR.' : (markVal ? `Εντοπίστηκε MARK ${markVal}.` : 'Εντοπίστηκε QR.'), 'success');
         try { modal.classList.add('hidden'); } catch(_){}
