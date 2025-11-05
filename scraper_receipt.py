@@ -863,50 +863,125 @@ def scrape_einvoice(url, timeout=15, debug=False):
 
 def scrape_impact(url, timeout=15, debug=False):
     """
-    Impact pages: HTML-oriented; try to find MARK or invoice fields.
+    Impact (ECOS) view pages: 
+    1) Αν υπάρχει #erpQrBtn, ακολούθησε το redirect (href / data-url / onclick / script).
+    2) Αν ο τελικός προορισμός είναι mydatapi/mydata, τρέξε scrape_mydatapi και γύρνα το αποτέλεσμα.
+    3) Fallback: παλιό HTML parsing των πεδίων μέσα στη σελίδα impact.
     """
-    out = {"issuer_vat": None, "issue_date": None, "issuer_name": None,
-           "progressive_aa": None, "doc_type": None, "total_amount": None,
-           "is_invoice": False, "MARK": None, "source": "Impact"}
+    out = {
+        "issuer_vat": None, "issue_date": None, "issuer_name": None,
+        "progressive_aa": None, "doc_type": None, "total_amount": None,
+        "is_invoice": False, "MARK": None, "source": "Impact"
+    }
+
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
     try:
-        r = requests.get(url, headers=HEADERS, timeout=timeout)
+        r = sess.get(url, timeout=timeout)
         r.raise_for_status()
         html = r.text
     except Exception as e:
         if debug: print("impact fetch error:", e)
         return out
+
     soup = BeautifulSoup(html, "html.parser")
-    # MARK
+
+    # --- 1) Βρες URL του erpQrBtn (href, data-url, onclick, scripts) ---
+    def _extract_erp_redirect(soup_obj, base_url):
+        # άμεσο element
+        btn = soup_obj.select_one("#erpQrBtn")
+        cand = None
+        if btn:
+            # <a id="erpQrBtn" href="...">
+            cand = btn.get("href")
+            if not cand:
+                # <button id="erpQrBtn" data-url="...">
+                cand = btn.get("data-url") or btn.get("data-href")
+            if not cand:
+                # onclick="window.location.href='...';" / window.open("...")
+                onclick = btn.get("onclick") or ""
+                m = re.search(r"(?:location\.href|window\.location(?:\.href)?|document\.location(?:\.href)?|window\.open)\s*\(\s*['\"]([^'\"]+)['\"]\s*\)", onclick, flags=re.I)
+                if m:
+                    cand = m.group(1)
+        # αν δεν βρέθηκε, δοκίμασε scripts που αναφέρουν το id
+        if not cand:
+            for s in soup_obj.find_all("script"):
+                txt = s.string or s.get_text() or ""
+                if "erpQrBtn" in txt.lower():
+                    # πιάσε πρώτο URL μέσα στο script
+                    m2 = re.search(r"https?://[^\s'\"<>]+", txt)
+                    if m2:
+                        cand = m2.group(0)
+                        break
+                    # ή ρυθμίσεις τύπου location.href='...'
+                    m3 = re.search(r"(?:location\.href|window\.location(?:\.href)?|document\.location(?:\.href)?|window\.open)\s*\(\s*['\"]([^'\"]+)['\"]\s*\)", txt, flags=re.I)
+                    if m3:
+                        cand = m3.group(1)
+                        break
+        if cand:
+            return urljoin(base_url, cand)
+        return None
+
+    erp_url = _extract_erp_redirect(soup, r.url)
+
+    # Αν έχουμε erp_url, ακολούθησέ το και, αν πάει σε mydata, τρέξε scrape_mydatapi
+    if erp_url:
+        try:
+            r2 = sess.get(erp_url, timeout=timeout, allow_redirects=True)
+            r2.raise_for_status()
+            final_u = r2.url.lower()
+            if debug: print("erpQrBtn resolved to:", r2.url)
+
+            if ("mydatapi.aade.gr" in final_u) or ("mydata.aade.gr" in final_u):
+                sub = scrape_mydatapi(r2.url, timeout=timeout, debug=debug)
+                sub["source"] = "Impact->MyData"
+                return sub
+            else:
+                # μερικές φορές το intermediate redirect ξαναστέλνει σύνδεσμο για mydatapi στη σελίδα
+                sub_try = scrape_mydatapi(r2.url, timeout=timeout, debug=debug)
+                if any(sub_try.get(k) for k in ("issuer_vat", "issue_date", "total_amount", "MARK")):
+                    sub_try["source"] = "Impact->MyData(?)"
+                    return sub_try
+        except Exception as e:
+            if debug: print("erpQrBtn follow error:", e)
+            # συνέχισε σε fallback
+
+    # --- 2) Fallback: παλιό HTML parsing μέσα στην impact σελίδα ---
+    # MARK (συνηθισμένο DOM για Impact)
     el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
     if el and el.get_text(strip=True):
         out["MARK"] = el.get_text(strip=True)
-    # try table labels for AFM/date/total/doc_type
-    for lbl in soup.find_all(string=re.compile(r"Α\.?Φ\.?Μ|Ημερομηνία|Συνολική αξία|Είδος παραστατικού|Α/Α", re.I)):
-        txt = lbl.strip()
+
+    # Πίνακες με labels (ΑΦΜ, Ημερομηνία, Συνολική αξία, Είδος παραστατικού, Α/Α)
+    for lbl in soup.find_all(string=re.compile(r"Α\.?Φ\.?Μ|Ημερομηνία|Συνολική αξία|Συνολικό ποσό|Είδος παραστατικού|Α/Α", re.I)):
         parent = lbl.find_parent()
-        if parent:
-            nxt = parent.find_next(["input","td","span","strong"])
-            if not nxt:
-                continue
-            val = nxt.get("value") or nxt.get_text(" ", strip=True)
-            if re.search(r"Α\.?Φ\.?Μ", txt, re.I) and val:
-                m = re.search(r"(\d{9,})", val)
-                if m: out["issuer_vat"] = m.group(1)
-            if re.search(r"Ημερομηνία", txt, re.I) and val:
-                out["issue_date"] = _norm_date_to_ddmmyyyy(val)
-            if re.search(r"Συνολική αξία|Συνολικό ποσό", txt, re.I) and val:
-                out["total_amount"] = _clean_amount_to_comma(val)
-            if re.search(r"Είδος παραστατικού", txt, re.I) and val:
-                out["doc_type"] = val
-                if re.search(r"τιμολό?γιο|τιμολογιο", val, re.I): out["is_invoice"] = True
-    # fallback regex
+        if not parent: continue
+        nxt = parent.find_next(["input","td","span","strong"])
+        if not nxt: continue
+        val = nxt.get("value") or nxt.get_text(" ", strip=True)
+
+        if re.search(r"Α\.?Φ\.?Μ", lbl, re.I) and val:
+            m = re.search(r"(\d{9,})", val); 
+            if m: out["issuer_vat"] = m.group(1)
+        if re.search(r"Ημερομηνία", lbl, re.I) and val:
+            out["issue_date"] = _norm_date_to_ddmmyyyy(val)
+        if re.search(r"Συνολική αξία|Συνολικό ποσό", lbl, re.I) and val:
+            out["total_amount"] = _clean_amount_to_comma(val)
+        if re.search(r"Είδος παραστατικού", lbl, re.I) and val:
+            out["doc_type"] = val
+            if re.search(r"τιμολό?γιο|τιμολογιο", val, re.I):
+                out["is_invoice"] = True
+
+    # regex fallbacks
     if not out["issuer_vat"]:
         m = VAT_RE.search(html)
         if m: out["issuer_vat"] = m.group(0)
     if not out["total_amount"]:
         m = re.search(r"€\s*([0-9\.,]+)", html)
         if m: out["total_amount"] = _clean_amount_to_comma(m.group(1))
+
     return out
+
 
 def scrape_epsilon(url, timeout=20, debug=False):
     """
@@ -1216,6 +1291,116 @@ def scrape_epsilon(url, timeout=20, debug=False):
 
     return out
 
+def scrape_s1ecos(url, timeout=15, debug=False):
+    """
+    ECOS/S1 einvoice pages, π.χ. https://einvoice.s1ecos.gr/v/...
+    1) Βρίσκουμε το #erpQrBtn και ακολουθούμε το redirect.
+    2) Αν καταλήξει σε mydatapi/mydata → τρέχουμε scrape_mydatapi.
+    3) Fallback: απλό parsing από τη σελίδα (αν υπάρχει).
+    """
+    out = {
+        "issuer_vat": None, "issue_date": None, "issuer_name": None,
+        "progressive_aa": None, "doc_type": None, "total_amount": None,
+        "is_invoice": False, "MARK": None, "source": "S1ECOS"
+    }
+
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
+    try:
+        r = sess.get(url, timeout=timeout, allow_redirects=True)
+        r.raise_for_status()
+        html = r.text
+    except Exception as e:
+        if debug: print("s1ecos fetch error:", e)
+        return out
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # --- εντοπισμός redirect από το κουμπί/σκριπτάκια του viewer ---
+    def _extract_erp_redirect(soup_obj, base_url):
+        btn = soup_obj.select_one("#erpQrBtn")
+        cand = None
+        if btn:
+            cand = btn.get("href") or btn.get("data-url") or btn.get("data-href")
+            if not cand:
+                onclick = btn.get("onclick") or ""
+                m = re.search(
+                    r"(?:location\.href|window\.location(?:\.href)?|document\.location(?:\.href)?|window\.open)\s*\(\s*['\"]([^'\"]+)['\"]\s*\)",
+                    onclick, flags=re.I
+                )
+                if m: cand = m.group(1)
+
+        if not cand:
+            for s in soup_obj.find_all("script"):
+                txt = s.string or s.get_text() or ""
+                if "erpQrBtn" in txt.lower():
+                    m2 = re.search(r"https?://[^\s'\"<>]+", txt)
+                    if m2:
+                        cand = m2.group(0); break
+                    m3 = re.search(
+                        r"(?:location\.href|window\.location(?:\.href)?|document\.location(?:\.href)?|window\.open)\s*\(\s*['\"]([^'\"]+)['\"]\s*\)",
+                        txt, flags=re.I
+                    )
+                    if m3:
+                        cand = m3.group(1); break
+        return urljoin(base_url, cand) if cand else None
+
+    erp_url = _extract_erp_redirect(soup, r.url)
+
+    if erp_url:
+        try:
+            r2 = sess.get(erp_url, timeout=timeout, allow_redirects=True)
+            r2.raise_for_status()
+            final_u = r2.url.lower()
+            if debug: print("s1ecos erpQrBtn resolved to:", r2.url)
+
+            if ("mydatapi.aade.gr" in final_u) or ("mydata.aade.gr" in final_u):
+                sub = scrape_mydatapi(r2.url, timeout=timeout, debug=debug)
+                sub["source"] = "S1ECOS->MyData"
+                return sub
+            else:
+                # δοκίμασε απευθείας μήπως είναι ενδιάμεση σελίδα με embedded mydatapi στοιχεία
+                sub_try = scrape_mydatapi(r2.url, timeout=timeout, debug=debug)
+                if any(sub_try.get(k) for k in ("issuer_vat", "issue_date", "total_amount", "MARK")):
+                    sub_try["source"] = "S1ECOS->MyData(?)"
+                    return sub_try
+        except Exception as e:
+            if debug: print("s1ecos follow error:", e)
+            # συνέχισε στο fallback
+
+    # --- Fallback: ελαφρύ parsing στη σελίδα S1ECOS (αν έχει ευδιάκριτα labels/τιμές) ---
+    el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
+    if el and el.get_text(strip=True):
+        out["MARK"] = el.get_text(strip=True)
+
+    for lbl in soup.find_all(string=re.compile(r"Α\.?Φ\.?Μ|Ημερομηνία|Συνολική αξία|Συνολικό ποσό|Είδος παραστατικού|Α/Α", re.I)):
+        parent = lbl.find_parent()
+        if not parent: continue
+        nxt = parent.find_next(["input","td","span","strong"])
+        if not nxt: continue
+        val = nxt.get("value") or nxt.get_text(" ", strip=True)
+
+        if re.search(r"Α\.?Φ\.?Μ", lbl, re.I) and val:
+            m = re.search(r"(\d{9,})", val)
+            if m: out["issuer_vat"] = m.group(1)
+        if re.search(r"Ημερομηνία", lbl, re.I) and val:
+            out["issue_date"] = _norm_date_to_ddmmyyyy(val)
+        if re.search(r"Συνολική αξία|Συνολικό ποσό", lbl, re.I) and val:
+            out["total_amount"] = _clean_amount_to_comma(val)
+        if re.search(r"Είδος παραστατικού", lbl, re.I) and val:
+            out["doc_type"] = val
+            if re.search(r"τιμολό?γιο|τιμολογιο", val, re.I):
+                out["is_invoice"] = True
+
+    if not out["issuer_vat"]:
+        m = VAT_RE.search(html)
+        if m: out["issuer_vat"] = m.group(0)
+    if not out["total_amount"]:
+        m = re.search(r"€\s*([0-9\.,]+)", html)
+        if m: out["total_amount"] = _clean_amount_to_comma(m.group(1))
+
+    return out
+
 # ---------- entry point demonstration ----------
 def detect_and_scrape(url, timeout=20, debug=False):
     """
@@ -1229,7 +1414,7 @@ def detect_and_scrape(url, timeout=20, debug=False):
     if "wedoconnect" in domain:
         return scrape_wedoconnect(url, timeout=timeout, debug=debug)
     if "einvoice.s1ecos.gr" in domain:
-        return scrape_einvoice(url, timeout=timeout, debug=debug)
+        return scrape_s1ecos(url, timeout=timeout, debug=debug)
     if "impact.gr" in domain or "einvoice.impact" in domain:
         return scrape_impact(url, timeout=timeout, debug=debug)
     if "epsilonnet.gr" in domain or "epsilon" in domain:

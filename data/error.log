@@ -2101,3 +2101,158 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 
 2025-11-03 15:50:16+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-bassoon-4jp9q7prjpxvf7w5-5000.app.github.dev/search
 2025-11-03 15:50:22+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://crispy-bassoon-4jp9q7prjpxvf7w5-5000.app.github.dev/search
+2025-11-05 09:22:59+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-05 09:23:01+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-05 09:23:06+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p.github.dev/
+2025-11-05 09:23:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/
+2025-11-05 09:23:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/
+2025-11-05 09:23:08+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/
+2025-11-05 09:23:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:08+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:10+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:10+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:11+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:11+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:23:15+0200 INFO Incoming request: method=GET path=/api/data_backup/download remote=127.0.0.1 ref=https://sturdy-spoon-69rp56qrr5v4frj4p-5000.app.github.dev/credentials
+2025-11-05 09:48:50+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:48:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:48:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:48:54+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:49:05+0200 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:49:05+0200 INFO api_scrape_receipt: incoming url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619
+2025-11-05 09:49:05+0200 INFO api_scrape_receipt: scraped url=https://epsilondigital-mcd.epsilonnet.gr/DocViewer/f592d67e-22fa-40aa-8cbe-08ddfae57619 is_invoice=False mark=400011087006549
+2025-11-05 09:49:05+0200 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:49:05+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:49:05+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-05 09:49:05+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:49:05+0200 ERROR Failed building table_html for search page
+Traceback (most recent call last):
+  File "/workspaces/Firebed_private/app.py", line 4904, in search
+    df = pd.read_excel(excel_path, engine="openpyxl", dtype=str).fillna("")
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_base.py", line 495, in read_excel
+    io = ExcelFile(
+         ^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_base.py", line 1567, in __init__
+    self._reader = self._engines[engine](
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_openpyxl.py", line 553, in __init__
+    super().__init__(
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_base.py", line 573, in __init__
+    self.book = self.load_workbook(self.handles.handle, engine_kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/codespace/.local/lib/python3.12/site-packages/pandas/io/excel/_openpyxl.py", line 572, in load_workbook
+    return load_workbook(
+           ^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/openpyxl/reader/excel.py", line 346, in load_workbook
+    reader = ExcelReader(filename, read_only, keep_vba,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/openpyxl/reader/excel.py", line 123, in __init__
+    self.archive = _validate_archive(fn)
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/openpyxl/reader/excel.py", line 95, in _validate_archive
+    archive = ZipFile(filename, 'r')
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/zipfile/__init__.py", line 1339, in __init__
+    self._RealGetContents()
+  File "/usr/local/python/3.12.1/lib/python3.12/zipfile/__init__.py", line 1406, in _RealGetContents
+    raise BadZipFile("File is not a zip file")
+zipfile.BadZipFile: File is not a zip file
+2025-11-05 09:49:05+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:09+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:23+0200 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:23+0200 INFO api_scrape_receipt: incoming url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DSZ2400579600036671D4B85D019A0F19853BA6509E41340225101020088.00
+2025-11-05 09:49:23+0200 INFO api_scrape_receipt: scraped url=https://www1.aade.gr/tameiakes/myweb/q1.php?SIG=DSZ2400579600036671D4B85D019A0F19853BA6509E41340225101020088.00 is_invoice=False mark=
+2025-11-05 09:49:23+0200 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:23+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:23+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-05 09:49:23+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-11-05 09:49:23+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:24+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:30+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search?use_receipts=1
+2025-11-05 09:49:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:38+0200 INFO Incoming request: method=POST path=/credentials/edit/ΒΑΨΙΜΟ remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:38+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:38+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:38+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:42+0200 INFO Incoming request: method=GET path=/custom_categories remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials
+2025-11-05 09:49:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/custom_categories?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F
+2025-11-05 09:49:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/custom_categories?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F
+2025-11-05 09:49:47+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/custom_categories?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F
+2025-11-05 09:49:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F&open_custom=1
+2025-11-05 09:49:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F&open_custom=1
+2025-11-05 09:50:24+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/credentials?vat=802576637&return_name=%CE%92%CE%91%CE%A8%CE%99%CE%9C%CE%9F&open_custom=1
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:25+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:28+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:29+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:30+0200 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:30+0200 INFO api_scrape_receipt: incoming url=https://einvoice.impact.gr/v/EL802673972-784516604-EE1FAF6A877179B2768F66975E6F60536F26A21E-2544B2D4CD5845409C7794912748899C
+2025-11-05 09:50:31+0200 INFO api_scrape_receipt: scraped url=https://einvoice.impact.gr/v/EL802673972-784516604-EE1FAF6A877179B2768F66975E6F60536F26A21E-2544B2D4CD5845409C7794912748899C is_invoice=False mark=400011498457340
+2025-11-05 09:50:31+0200 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:42+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:42+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-05 09:50:42+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-11-05 09:50:42+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=POST path=/delete remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO delete_invoices: request from 127.0.0.1 form_keys=['delete_mark']
+2025-11-05 09:50:49+0200 INFO delete_invoices: marks_to_delete resolved = ['400011219241358']
+2025-11-05 09:50:49+0200 INFO delete_invoices: deleted 1 marks from Excel /workspaces/Firebed_private/data/excel/802576637_2025_invoices.xlsx: ['400011219241358']
+2025-11-05 09:50:49+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json
+2025-11-05 09:50:49+0200 INFO delete_invoices: Deleted 1 marks from epsilon cache /workspaces/Firebed_private/data/epsilon/802576637_epsilon_invoices.json for VAT 802576637
+2025-11-05 09:50:49+0200 INFO delete_invoices: finished request. requested=1 excel=1 epsilon=1
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
+2025-11-05 09:50:49+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://crispy-happiness-x5gqrwg45qwpf6j9x-5000.app.github.dev/search
