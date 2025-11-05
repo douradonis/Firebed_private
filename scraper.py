@@ -20,6 +20,80 @@ VAT_RE = re.compile(r"\b\d{9}\b")    # 9-digit AFM
 
 # -------------------- WEDOCONNECT --------------------
 # -------------------- WEDOCONNECT --------------------
+def _find_erp_qr_target(soup, base_url):
+    """
+    Βρίσκει τον τελικό target URL του κουμπιού #erpQrBtn (ή παραλλαγές),
+    ακόμη κι αν είναι σε onclick, data-href κλπ. Επιστρέφει absolute URL ή None.
+    """
+    # 1) Άμεσο στοιχείο με id=erpQrBtn
+    el = soup.find(id="erpQrBtn")
+    href = None
+    if el:
+        href = el.get("href") or el.get("data-href") or el.get("data-url")
+        if not href:
+            onclick = el.get("onclick") or ""
+            m = re.search(r"(?:window\.open|open|location\.href)\(\s*['\"]([^'\"]+)['\"]", onclick)
+            if m:
+                href = m.group(1)
+
+    # 2) Εναλλακτικές (anchor/button με class ή id)
+    if not href:
+        a = soup.select_one("a#erpQrBtn, a.erpQrBtn, button#erpQrBtn, button.erpQrBtn")
+        if a and a.get("href"):
+            href = a["href"]
+
+    # 3) Οποιοδήποτε <a> που δείχνει ήδη σε mydatapi
+    if not href:
+        for a in soup.find_all("a", href=True):
+            if "mydatapi.aade.gr" in a["href"]:
+                href = a["href"]
+                break
+
+    # 4) Αναζήτηση μέσα σε <script> (hard fallback)
+    if not href:
+        for script in soup.find_all("script"):
+            sc = (script.string or script.get_text() or "")
+            m = re.search(r"https?://mydatapi\.aade\.gr[^\s\"']+", sc)
+            if m:
+                href = m.group(0)
+                break
+
+    if not href:
+        return None
+    return urljoin(base_url, href)
+
+
+def _erp_qr_to_mydatapi_from_soup(sess, soup, base_url, timeout=15):
+    """
+    Από ήδη φορτωμένη σελίδα: βρίσκει το erpQrBtn, κάνει follow, και διαβάζει το mydatapi.
+    Επιστρέφει dict από scrape_mydatapi ή None.
+    """
+    target = _find_erp_qr_target(soup, base_url)
+    if not target:
+        return None
+
+    r2 = sess.get(target, timeout=timeout, allow_redirects=True)
+    r2.raise_for_status()
+
+    final_url = r2.url
+    if "mydatapi.aade.gr" not in urlparse(final_url).netloc:
+        # Προσπάθησε να εξάγεις mydatapi URL από τη σελίδα (meta refresh / link)
+        soup2 = BeautifulSoup(r2.text, "html.parser")
+        a2 = soup2.find("a", href=lambda h: h and "mydatapi.aade.gr" in h)
+        if a2:
+            final_url = urljoin(r2.url, a2["href"])
+        else:
+            meta = soup2.find("meta", attrs={"http-equiv": lambda v: v and v.lower() == "refresh"})
+            if meta and meta.get("content"):
+                cm = re.search(r"url=([^;]+)", meta["content"], re.I)
+                if cm:
+                    final_url = urljoin(r2.url, cm.group(1).strip())
+
+    data = scrape_mydatapi(final_url)
+    if data:
+        data["__mydatapi_url__"] = final_url
+    return data
+
 def _extract_from_root(root):
     """
     Δομημένη εξαγωγή από ElementTree root (namespace-agnostic).
@@ -274,9 +348,11 @@ def scrape_mydatapi(url):
 def scrape_einvoice(url):
     """
     Επιστρέφει (marks_list, counterpart_vat)
-    Νέα λογική: αν υπάρχει link με εικόνα τύπου mydatalogo (mydatapi link),
-    ακολουθεί το link και χρησιμοποιεί scrape_mydatapi για το σωστό ΑΦΜ.
-    Διαφορετικά, εκτελεί υπάρχουσες εξαγωγές (MARK, πίνακας section-counterparties κλπ).
+
+    Νέα λογική:
+    - Αν υπάρχει κουμπί/σύνδεσμος #erpQrBtn που οδηγεί σε mydatapi, το ακολουθά
+      και παίρνει MARK/ΑΦΜ από scrape_mydatapi (προτιμητέο).
+    - Αλλιώς, συνεχίζει με την υπάρχουσα λογική εξαγωγής (πίνακες/attachments).
     """
     sess = requests.Session()
     sess.headers.update(HEADERS)
@@ -290,6 +366,21 @@ def scrape_einvoice(url):
 
     soup = BeautifulSoup(r.text, "html.parser")
 
+    # 1) Προσπάθησε μέσω erpQrBtn -> mydatapi
+    try:
+        data = _erp_qr_to_mydatapi_from_soup(sess, soup, r.url, timeout=15)
+    except Exception:
+        data = None
+
+    if data:
+        mark = (data.get("MARK") or "").strip()
+        afm = (data.get("ΑΦΜ Πελάτη") or "").strip()
+        afm = re.sub(r"\D", "", afm) if afm else None
+        marks_list = [mark] if mark and mark != "N/A" else []
+        return marks_list, afm
+
+    # 2) Fallback στην παλιά λογική (όπως είχες)
+    # --- αρχή υπάρχουσας λογικής ---
     # 1) MARK extraction (προτίμηση explicit span.field-Mark)
     mark = None
     mark_tag = soup.find("span", class_=lambda c: c and "field-Mark" in c)
@@ -298,7 +389,6 @@ def scrape_einvoice(url):
         if val and val.get_text(strip=True):
             mark = val.get_text(strip=True)
     if not mark:
-        # fallback any 15-digit on page
         txt = soup.get_text(" ", strip=True)
         m = re.search(r"\b\d{15}\b", txt)
         if m:
@@ -306,44 +396,36 @@ def scrape_einvoice(url):
 
     counterpart_vat = None
 
-    # 2) try to find mydata/mydatalogo link (button with mydatalogo.png)
+    # 2) mydatalogo link (παλιό heuristic)
     mydatapi_candidate = None
-    # find anchors that contain an <img> whose src mentions mydat
     for a in soup.find_all("a", href=True):
         img = a.find("img")
         if img and img.get("src"):
             src = img["src"].lower()
-            if "mydatalogo" in src or "mydatlogo" in src or "mydata" in src and "logo" in src:
+            if "mydatalogo" in src or "mydatlogo" in src or ("mydata" in src and "logo" in src):
                 mydatapi_candidate = urljoin(r.url, a["href"])
                 break
-    # also consider img elements that are not inside anchors but have onclick or parent links
     if not mydatapi_candidate:
         for img in soup.find_all("img", src=True):
             src = img["src"].lower()
             if "mydatalogo" in src or "mydatlogo" in src or ("mydata" in src and "logo" in src):
-                # try parent anchor
                 parent_a = img.find_parent("a")
                 if parent_a and parent_a.get("href"):
                     mydatapi_candidate = urljoin(r.url, parent_a["href"])
                     break
-
-    # If we found a mydatapi link, follow it and parse via scrape_mydatapi
     if mydatapi_candidate:
         try:
-            # the mydatapi candidate might be a direct mydatapi link or a proxy; follow redirects
             r2 = sess.get(mydatapi_candidate, timeout=15)
             r2.raise_for_status()
-            # If this page itself is a mydatapi page we can call scrape_mydatapi directly on the resolved URL
             resolved_url = r2.url
             mydata_info = scrape_mydatapi(resolved_url)
             afm = mydata_info.get("ΑΦΜ Πελάτη") or mydata_info.get("ΑΦΜ", "")
             if afm and afm != "N/A":
-                counterpart_vat = re.sub(r"\D", "", afm)  # keep only digits
+                counterpart_vat = re.sub(r"\D", "", afm)
         except Exception:
-            # ignore failures and continue to fallback extraction
             counterpart_vat = None
 
-    # 3) if not found via mydatapi, try table 'ΣΤΟΙΧΕΙΑ ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟΥ' -> scan rows for 'Α.Φ.Μ.'
+    # 3) ... (ό,τι υπήρχε ήδη μετά) ...
     if not counterpart_vat:
         heading = soup.find(string=re.compile(r"ΣΤΟΙΧΕΙΑ\s+ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟΥ|ΣΤΟΙΧΕΙΑ\s+ΠΕΛΑΤΗ", re.I))
         if heading:
@@ -366,7 +448,6 @@ def scrape_einvoice(url):
                             counterpart_vat = m2.group(1)
                             break
 
-    # 4) fallback: section-counterparties block scan
     if not counterpart_vat:
         cp_section = soup.find("div", class_=lambda c: c and "section-counterparties" in c)
         if cp_section:
@@ -388,7 +469,6 @@ def scrape_einvoice(url):
                                 counterpart_vat = m2.group(1)
                                 break
 
-    # 5) attachments XML fallback (if still not found)
     if not counterpart_vat:
         candidate_urls = []
         for a in soup.find_all("a", href=True):
@@ -404,7 +484,6 @@ def scrape_einvoice(url):
             if "file" in qd:
                 candidate_urls.append(unquote(qd["file"][0]))
             candidate_urls.append(fullsrc)
-        # dedupe
         seen = set()
         candidate_urls = [u for u in candidate_urls if not (u in seen or seen.add(u))]
         for cu in candidate_urls:
@@ -415,7 +494,6 @@ def scrape_einvoice(url):
                 content = r3.content
             except Exception:
                 continue
-            # try xml parse
             if "xml" in (r3.headers.get("Content-Type") or "").lower() or "<?xml" in text[:200] or re.search(r"<(Invoice|InvoicesDoc|cbc:Invoice)", text, flags=re.I):
                 try:
                     root = ET.fromstring(content)
@@ -429,23 +507,19 @@ def scrape_einvoice(url):
                             continue
                     except Exception:
                         continue
-                # try find AccountingCustomerParty or counterpart
                 el = root.find(".//{*}AccountingCustomerParty") or root.find(".//{*}counterpart") or root.find(".//counterpart")
                 if el is not None:
-                    # search CompanyID / vatNumber
                     comp = el.find(".//{*}CompanyID") or el.find(".//{*}vatNumber") or el.find(".//vatNumber")
                     if comp is not None and (comp.text or "").strip():
                         m = re.search(r"(\d{9})", comp.text)
                         if m:
                             counterpart_vat = m.group(1)
                             break
-                # fallback generic xml text scan
                 m_any = re.search(r"EL?([0-9]{9})", text)
                 if m_any:
                     counterpart_vat = m_any.group(1)
                     break
             else:
-                # binary/pdf raw search
                 m2 = re.search(rb"\b\d{9}\b", content)
                 if m2:
                     counterpart_vat = m2.group(0).decode("ascii")
@@ -455,21 +529,18 @@ def scrape_einvoice(url):
                     counterpart_vat = m3.group(0)
                     break
 
-    # 6) last resort: page-wide regex but prefer ones near 'ΑΦΜ'
     if not counterpart_vat:
         page_txt = soup.get_text(" ", strip=True)
         m = re.search(r"Α\.?Φ\.?Μ\.?[:\s]*([0-9]{9})", page_txt, flags=re.I)
         if m:
             counterpart_vat = m.group(1)
         else:
-            # avoid picking the EL... prefix from URL if possible
             m2 = re.search(r"\b([0-9]{9})\b", page_txt)
             if m2:
                 url_match = re.search(r"/v/EL?(\d{9})[-_]", url, flags=re.I)
                 if url_match:
                     url_v = url_match.group(1)
                     all9 = re.findall(r"\b([0-9]{9})\b", page_txt)
-                    # prefer a different 9-digit than the one in URL
                     for a9 in all9:
                         if a9 != url_v:
                             counterpart_vat = a9
@@ -488,34 +559,59 @@ def scrape_einvoice(url):
 
 # -------------------- IMPACT E-INVOICING --------------------
 def scrape_impact(url):
+    """
+    Επιστρέφει (marks_list, counterpart_vat)
+    1) Αν υπάρχει #erpQrBtn που οδηγεί σε mydatapi → διαβάζει MARK/ΑΦΜ από scrape_mydatapi.
+    2) Αλλιώς, fallback στην παλιά εξαγωγή του MARK μόνο.
+    """
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        r = sess.get(url, headers=HEADERS, timeout=15)
         r.encoding = 'utf-8'
         r.raise_for_status()
     except Exception as e:
         print(f"[RequestError] {e}")
-        return []
+        return [], None
+
     soup = BeautifulSoup(r.text, "html.parser")
+
+    # 1) Προσπάθησε μέσω erpQrBtn -> mydatapi
+    try:
+        data = _erp_qr_to_mydatapi_from_soup(sess, soup, r.url, timeout=15)
+    except Exception:
+        data = None
+
+    if data:
+        mark = (data.get("MARK") or "").strip()
+        afm = (data.get("ΑΦΜ Πελάτη") or "").strip()
+        afm = re.sub(r"\D", "", afm) if afm else None
+        marks_list = [mark] if mark and mark != "N/A" else []
+        return marks_list, afm
+
+    # 2) Fallback: παλιά λογική εύρεσης MARK από τη σελίδα
     el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
     if el and el.get_text(strip=True):
-        return [el.get_text(strip=True)]
+        return [el.get_text(strip=True)], None
+
     for lbl in soup.find_all(string=re.compile(r"Μ\.?Αρ\.?Κ\.?", re.I)):
         parent = lbl.parent
         if parent:
             block_text = parent.get_text(" ", strip=True)
             m = MARK_RE.search(block_text)
             if m:
-                return [m.group(0)]
+                return [m.group(0)], None
             sib_text = " ".join(
                 str(sib.get_text(" ", strip=True) if hasattr(sib, "get_text") else sib)
                 for sib in parent.next_siblings
             )
             m2 = MARK_RE.search(sib_text)
             if m2:
-                return [m2.group(0)]
+                return [m2.group(0)], None
+
     full_text = soup.get_text(" ", strip=True)
     m = MARK_RE.search(full_text)
-    return [m.group(0)] if m else []
+    return ([m.group(0)] if m else []), None
 
 
 # -------------------- EPSILON --------------------
@@ -594,7 +690,7 @@ def main():
 
     elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
         source = "Impact E-Invoicing"
-        marks = scrape_impact(url)
+        marks, counterpart_vat = scrape_impact(url)
 
     elif "epsilonnet.gr" in domain:
         source = "Epsilon (myData)"
