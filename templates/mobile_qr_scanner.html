@@ -103,6 +103,51 @@
       color: #ffffff;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
     }
+    .repeat-toggle {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 18px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .toggle-switch .slider {
+      width: 46px;
+      height: 26px;
+      border-radius: 999px;
+      background: #cbd5f5;
+      position: relative;
+      transition: background 0.2s ease;
+    }
+    .toggle-switch .slider::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      top: 3px;
+      left: 4px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+      transition: transform 0.2s ease;
+    }
+    .toggle-switch input:checked + .slider {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    }
+    .toggle-switch input:checked + .slider::after {
+      transform: translateX(18px);
+    }
     select,
     button {
       font-size: 0.95rem;
@@ -192,6 +237,9 @@
       .mode-toggle button {
         width: 100%;
       }
+      .repeat-toggle {
+        justify-content: center;
+      }
       select,
       button {
         width: 100%;
@@ -224,6 +272,14 @@
         <button type="button" data-mode-option="receipts">Αποδείξεις</button>
       </div>
 
+      <div class="repeat-toggle">
+        <label class="toggle-switch" for="repeatToggle">
+          <input type="checkbox" id="repeatToggle">
+          <span class="slider" aria-hidden="true"></span>
+          <span class="label">Επαναληπτική εισαγωγή</span>
+        </label>
+      </div>
+
       <div id="qr-reader"></div>
 
       <div id="mobileResult">Η τελευταία τιμή που θα σαρωθεί θα εμφανίζεται εδώ.</div>
@@ -246,6 +302,7 @@
       "token": token,
       "mode": mode,
       "expiresAt": expires_at,
+      "repeatEnabled": repeat_enabled,
       "error": error
     } | tojson | safe }};
   </script>
@@ -265,8 +322,10 @@
       const expiresEl = document.getElementById('expiresInfo');
       const modeBadge = document.getElementById('modeBadge');
       const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
+      const repeatToggle = document.getElementById('repeatToggle');
 
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
+      CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
 
       let html5QrCode = null;
       let cameras = [];
@@ -294,30 +353,48 @@
         return { mode: normalized, changed };
       }
 
-      async function sendModeUpdate(mode){
-        if (!CFG.sessionId || !CFG.token) return;
+      async function sendSessionUpdate(payload, options){
+        options = options || {};
+        if (!CFG.sessionId || !CFG.token) return null;
         try {
+          const body = Object.assign({ session_id: CFG.sessionId, token: CFG.token }, payload || {});
           const res = await fetch('/api/qr/remote/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode })
+            body: JSON.stringify(body)
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
-            const message = data && data.error ? data.error : 'Δεν ενημερώθηκε η λειτουργία.';
+            const message = data && data.error ? data.error : 'Δεν ενημερώθηκε η συνεδρία.';
             setStatus(message, 'error');
-            return;
+            return null;
           }
-          applyMode(data.mode || mode);
+          if (data.mode){
+            applyMode(data.mode);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
           if (data.expires_at){
             CFG.expiresAt = data.expires_at;
             updateExpiryCountdown();
           }
+          return data;
         } catch (err){
-          console.warn('sendModeUpdate failed', err);
-          setStatus('Δεν ήταν δυνατή η ενημέρωση λειτουργίας.', 'error');
+          console.warn('sendSessionUpdate failed', err);
+          setStatus('Δεν ήταν δυνατή η ενημέρωση συνεδρίας.', 'error');
+          return null;
         }
+      }
+
+      async function sendModeUpdate(mode){
+        await sendSessionUpdate({ mode, repeat_enabled: CFG.repeatEnabled });
+      }
+
+      async function sendRepeatUpdate(enabled){
+        CFG.repeatEnabled = !!enabled;
+        await sendSessionUpdate({ repeat_enabled: CFG.repeatEnabled });
       }
 
       function updateModeBadge(){
@@ -330,6 +407,20 @@
           const active = target === 'receipts' ? CFG.mode === 'receipts' : CFG.mode !== 'receipts';
           btn.classList.toggle('active', active);
         });
+      }
+
+      function updateRepeatToggle(){
+        if (repeatToggle){
+          repeatToggle.checked = !!CFG.repeatEnabled;
+        }
+      }
+
+      function applyRepeat(next){
+        const normalized = next === true || next === 'true' || next === 1 ? true : !!next;
+        const changed = normalized !== !!CFG.repeatEnabled;
+        CFG.repeatEnabled = normalized;
+        updateRepeatToggle();
+        return { repeat: normalized, changed };
       }
 
       function updateExpiryCountdown(){
@@ -517,7 +608,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
           });
           if (res.status === 410) {
             setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
@@ -532,6 +623,9 @@
           }
           if (data && data.mode){
             applyMode(data.mode);
+          }
+          if (data && Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
           }
         } catch (err) {
           console.warn('heartbeat failed', err);
@@ -551,7 +645,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
@@ -562,6 +656,9 @@
           }
           if (data.mode){
             applyMode(data.mode);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
           }
           CFG.expiresAt = data.expires_at || CFG.expiresAt;
           updateModeBadge();
@@ -586,7 +683,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
@@ -598,6 +695,9 @@
           const info = mark ? `MARK ${mark}` : text;
           resultEl.innerHTML = `<strong>Εστάλη:</strong> ${escapeHtml(info)}`;
           setStatus('Ο κωδικός στάλθηκε στον υπολογιστή.', 'success');
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
         } catch (err) {
           console.warn('pushPayload failed', err);
           setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
@@ -663,7 +763,16 @@
         });
       });
 
+      repeatToggle?.addEventListener('change', async () => {
+        const { repeat, changed } = applyRepeat(!!repeatToggle.checked);
+        if (changed){
+          setStatus(repeat ? 'Η επαναληπτική εισαγωγή ενεργοποιήθηκε.' : 'Η επαναληπτική εισαγωγή απενεργοποιήθηκε.', 'info');
+          await sendRepeatUpdate(repeat);
+        }
+      });
+
       updateModeBadge();
+      updateRepeatToggle();
       attach();
     })();
   </script>

@@ -6,7 +6,7 @@ import traceback
 import logging
 import base64
 import re
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlparse, urlunparse
 from logging.handlers import RotatingFileHandler
 import datetime
 from typing import Any, List, Dict, Optional, Tuple
@@ -167,6 +167,7 @@ REMOTE_QR_LOCK = threading.Lock()
 REMOTE_QR_MAX_SESSIONS = 200
 REMOTE_QR_SESSION_TTL = datetime.timedelta(minutes=15)
 REMOTE_QR_IDLE_TTL = datetime.timedelta(minutes=5)
+REMOTE_QR_REMOTE_STALE = datetime.timedelta(seconds=45)
 
 
 def _preferred_request_scheme() -> str:
@@ -229,6 +230,55 @@ def _normalize_remote_mode(mode: Any) -> str:
 
 def _remote_qr_now() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
+
+
+def _parse_bool(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", ""}:
+            return False
+    return None
+
+
+def _normalize_scanned_value(raw: str) -> str:
+    try:
+        text = (raw or "").strip()
+    except Exception:
+        return ""
+    if not text:
+        return ""
+
+    if not text.lower().startswith(("http://", "https://")):
+        return text
+
+    try:
+        parsed = urlparse(text)
+    except Exception:
+        return text
+
+    hostname = (parsed.hostname or "").lower()
+    path = parsed.path or ""
+
+    if "epsilondigital" in hostname:
+        path = re.sub(r":\d+(?=$|/)", "", path)
+        path = re.sub(r"/{2,}", "/", path or "/")
+        if not path.startswith("/"):
+            path = "/" + path
+        trimmed = path.rstrip("/")
+        if not trimmed:
+            trimmed = "/"
+        parsed = parsed._replace(path=trimmed, query="", fragment="")
+        return urlunparse(parsed)
+
+    return urlunparse(parsed)
 
 
 def _ensure_remote_owner_token() -> str:
@@ -3393,9 +3443,14 @@ def api_qr_decode():
     if not payloads:
         return jsonify({"ok": False, "error": "Δεν εντοπίστηκε QR κώδικας"}), 404
 
-    first = payloads[0]
+    sanitized_payloads = []
+    for item in payloads:
+        normalized = _normalize_scanned_value(item)
+        sanitized_payloads.append(normalized or item)
+
+    first = sanitized_payloads[0]
     mark = extract_mark(first)
-    return jsonify({"ok": True, "raw": first, "mark": mark, "payloads": payloads})
+    return jsonify({"ok": True, "raw": first, "mark": mark, "payloads": sanitized_payloads})
 
 
 @app.post("/api/qr/remote/start")
@@ -3407,6 +3462,9 @@ def api_qr_remote_start():
     mode = _normalize_remote_mode(requested_mode)
     if requested_mode is None and payload.get("receipts"):
         mode = "receipts"
+
+    repeat_flag = _parse_bool(payload.get("repeat_enabled"))
+    repeat_enabled = bool(repeat_flag) if repeat_flag is not None else False
 
     now = _remote_qr_now()
     session_id = secrets.token_urlsafe(9)
@@ -3427,6 +3485,8 @@ def api_qr_remote_start():
         "version": 0,
         "last_delivered_version": 0,
         "owner_ip": request.remote_addr,
+        "repeat_enabled": repeat_enabled,
+        "remote_last_seen": None,
     }
 
     with REMOTE_QR_LOCK:
@@ -3447,6 +3507,7 @@ def api_qr_remote_start():
         "expires_in": int((expires_at - now).total_seconds()),
         "mode": mode,
         "version": entry["version"],
+        "repeat_enabled": repeat_enabled,
     })
 
 
@@ -3476,6 +3537,19 @@ def api_qr_remote_status():
             REMOTE_QR_SESSIONS.pop(session_id, None)
             return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
 
+        remote_last_seen = entry.get("remote_last_seen")
+        if entry.get("attached") and isinstance(remote_last_seen, datetime.datetime):
+            if now - remote_last_seen > REMOTE_QR_REMOTE_STALE:
+                REMOTE_QR_SESSIONS.pop(session_id, None)
+                return (
+                    jsonify(
+                        ok=False,
+                        error="Η φορητή συσκευή αποσυνδέθηκε.",
+                        disconnected=True,
+                    ),
+                    410,
+                )
+
         entry["last_seen"] = now
         version = entry.get("version", 0)
         last_delivered = entry.get("last_delivered_version", 0)
@@ -3498,6 +3572,7 @@ def api_qr_remote_status():
             "mode": entry.get("mode") or "invoices",
             "version": version,
             "expires_at": expires_at.isoformat() if expires_at else None,
+            "repeat_enabled": bool(entry.get("repeat_enabled")),
         }
 
     if payload_data:
@@ -3530,6 +3605,8 @@ def api_qr_remote_attach():
     session_id = data.get("session_id") or data.get("session")
     token = data.get("token") or data.get("secret")
     mode = data.get("mode")
+    repeat_flag = _parse_bool(data.get("repeat_enabled"))
+    repeat_flag = _parse_bool(data.get("repeat_enabled"))
 
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
@@ -3550,9 +3627,13 @@ def api_qr_remote_attach():
         if mode is not None:
             entry["mode"] = _normalize_remote_mode(mode)
 
+        if repeat_flag is not None:
+            entry["repeat_enabled"] = repeat_flag
+
         entry["attached"] = True
         entry["attached_at"] = now
         entry["last_seen"] = now
+        entry["remote_last_seen"] = now
         entry["mobile_agent"] = request.headers.get("User-Agent", "")
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         expires_at = entry.get("expires_at")
@@ -3561,6 +3642,7 @@ def api_qr_remote_attach():
             "ok": True,
             "mode": entry.get("mode") or "invoices",
             "expires_at": expires_at.isoformat() if expires_at else None,
+            "repeat_enabled": bool(entry.get("repeat_enabled")),
         }
 
     return jsonify(response)
@@ -3592,6 +3674,10 @@ def api_qr_remote_heartbeat():
         entry["last_seen"] = now
         if mode is not None:
             entry["mode"] = _normalize_remote_mode(mode)
+        if repeat_flag is not None:
+            entry["repeat_enabled"] = repeat_flag
+        entry["remote_last_seen"] = now
+        entry["attached"] = True
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         expires_at = entry.get("expires_at")
 
@@ -3599,6 +3685,7 @@ def api_qr_remote_heartbeat():
             "ok": True,
             "expires_at": expires_at.isoformat() if expires_at else None,
             "mode": entry.get("mode") or "invoices",
+            "repeat_enabled": bool(entry.get("repeat_enabled")),
         }
 
     return jsonify(response)
@@ -3612,11 +3699,13 @@ def api_qr_remote_update():
     if not session_id:
         return jsonify(ok=False, error="Λείπει το αναγνωριστικό συνεδρίας."), 400
 
-    if "mode" not in data:
-        return jsonify(ok=False, error="Λείπει η λειτουργία."), 400
+    mode_present = "mode" in data
+    repeat_flag = _parse_bool(data.get("repeat_enabled"))
+    if not mode_present and repeat_flag is None:
+        return jsonify(ok=False, error="Δεν ελήφθη ενημέρωση.", field="missing"), 400
 
     token = data.get("token") or data.get("secret")
-    desired_mode = _normalize_remote_mode(data.get("mode"))
+    desired_mode = _normalize_remote_mode(data.get("mode")) if mode_present else None
     owner = session.get("_remote_qr_owner")
     now = _remote_qr_now()
 
@@ -3634,14 +3723,18 @@ def api_qr_remote_update():
         if not authorized:
             return jsonify(ok=False, error="Μη εξουσιοδοτημένη αλλαγή."), 403
 
-        entry["mode"] = desired_mode
+        if desired_mode is not None:
+            entry["mode"] = desired_mode
+        if repeat_flag is not None:
+            entry["repeat_enabled"] = repeat_flag
         entry["last_seen"] = now
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         expires_at = entry.get("expires_at")
 
     return jsonify(
         ok=True,
-        mode=desired_mode,
+        mode=(entry.get("mode") if desired_mode is None else desired_mode),
+        repeat_enabled=bool(entry.get("repeat_enabled")),
         expires_at=expires_at.isoformat() if expires_at else None,
     )
 
@@ -3654,6 +3747,7 @@ def api_qr_remote_push():
     token = data.get("token") or data.get("secret")
     raw_value = (data.get("payload") or data.get("raw") or "").strip()
     mode = data.get("mode")
+    repeat_flag = _parse_bool(data.get("repeat_enabled"))
 
     if not session_id or not token or not raw_value:
         return jsonify(ok=False, error="Λείπουν δεδομένα προς αποστολή."), 400
@@ -3671,10 +3765,11 @@ def api_qr_remote_push():
             REMOTE_QR_SESSIONS.pop(session_id, None)
             return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
 
-        mark = extract_mark(raw_value) or ""
-        is_url = bool(re.match(r"^https?://", raw_value, re.IGNORECASE))
+        normalized_value = _normalize_scanned_value(raw_value)
+        mark = extract_mark(normalized_value) or extract_mark(raw_value) or ""
+        is_url = bool(re.match(r"^https?://", normalized_value, re.IGNORECASE))
         payload = {
-            "raw": raw_value,
+            "raw": normalized_value,
             "mark": mark,
             "is_url": is_url,
             "pushed_at": now.isoformat(),
@@ -3683,16 +3778,25 @@ def api_qr_remote_push():
 
         if mode is not None:
             entry["mode"] = _normalize_remote_mode(mode)
+        if repeat_flag is not None:
+            entry["repeat_enabled"] = repeat_flag
 
         entry["payload"] = payload
         entry["version"] = (entry.get("version") or 0) + 1
         entry["last_seen"] = now
         entry["attached"] = True
         entry["last_push_at"] = now
+        entry["remote_last_seen"] = now
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         version = entry["version"]
 
-    return jsonify(ok=True, mark=mark, is_url=is_url, version=version)
+    return jsonify(
+        ok=True,
+        mark=mark,
+        is_url=is_url,
+        version=version,
+        repeat_enabled=bool(repeat_flag if repeat_flag is not None else entry.get("repeat_enabled")),
+    )
 
 
 @app.get("/mobile/qr-scanner")
@@ -3709,6 +3813,7 @@ def mobile_qr_scanner():
                 token=token or "",
                 mode="invoices",
                 expires_at="",
+                repeat_enabled=False,
                 error="Η συνεδρία δεν είναι διαθέσιμη.",
             ),
             400,
@@ -3726,6 +3831,7 @@ def mobile_qr_scanner():
                     token=token,
                     mode="invoices",
                     expires_at="",
+                    repeat_enabled=False,
                     error="Η συνεδρία δεν βρέθηκε ή έληξε.",
                 ),
                 404,
@@ -3738,6 +3844,7 @@ def mobile_qr_scanner():
                     token=token,
                     mode="invoices",
                     expires_at="",
+                    repeat_enabled=False,
                     error="Ο σύνδεσμος δεν είναι πλέον έγκυρος.",
                 ),
                 403,
@@ -3753,6 +3860,7 @@ def mobile_qr_scanner():
                     token=token,
                     mode="invoices",
                     expires_at="",
+                    repeat_enabled=False,
                     error="Η συνεδρία έληξε. Δημιούργησε νέο σύνδεσμο από τον υπολογιστή.",
                 ),
                 410,
@@ -3764,6 +3872,7 @@ def mobile_qr_scanner():
         entry["mobile_agent"] = request.headers.get("User-Agent", "")
         mode = _normalize_remote_mode(entry.get("mode"))
         expires_iso = expires_at.isoformat() if expires_at else ""
+        repeat_enabled = bool(entry.get("repeat_enabled"))
 
     return render_template(
         "mobile_qr_scanner.html",
@@ -3771,6 +3880,7 @@ def mobile_qr_scanner():
         token=token,
         mode=mode,
         expires_at=expires_iso,
+        repeat_enabled=repeat_enabled,
         error=None,
     )
 

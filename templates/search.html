@@ -55,6 +55,18 @@
                 </div>
             </div>
         </div>
+        <div id="remoteSessionIndicator"
+             class="hidden items-center gap-2 text-sm text-slate-600 ml-3 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200"
+             role="status"
+             aria-live="polite">
+            <span id="remoteSessionDot" class="inline-flex h-2.5 w-2.5 rounded-full bg-slate-300"></span>
+            <span id="remoteSessionText">Δεν υπάρχει σύνδεση φορητής συσκευής</span>
+            <button type="button"
+                    id="remoteDisconnectBtn"
+                    class="hidden text-xs font-medium text-slate-600 hover:text-slate-800 px-2 py-1 border border-slate-300 rounded">
+                Τερματισμός
+            </button>
+        </div>
         <button type="submit" class="bg-sky-600 text-white px-3 py-2 rounded">Αναζήτηση</button>
         <div class="flex items-center gap-2 ml-4" aria-labelledby="receiptsSwitchOff receiptsSwitchOn">
             <span id="receiptsSwitchOff" class="text-sm">Τιμολόγια</span>
@@ -310,6 +322,29 @@
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
 <script>
+function normalizeScanValue(raw){
+  try {
+    const text = (raw == null) ? '' : String(raw).trim();
+    if (!text) return '';
+    if (!/^https?:\/\//i.test(text)) return text;
+    if (typeof URL === 'undefined') return text;
+
+    const url = new URL(text);
+    const host = (url.hostname || '').toLowerCase();
+    if (host.includes('epsilondigital')){
+      url.pathname = (url.pathname || '/').replace(/:\d+(?=$|\/)/g, '');
+      url.pathname = url.pathname.replace(/\/{2,}/g, '/');
+      if (!url.pathname.startsWith('/')) url.pathname = '/' + url.pathname;
+      url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+      url.search = '';
+      url.hash = '';
+    }
+    return url.toString();
+  } catch (err){
+    return (raw == null) ? '' : String(raw).trim();
+  }
+}
+
 function isReceiptsOn(){
   const r = document.getElementById('useReceiptsSwitch');
   return !!(r && r.checked);
@@ -348,14 +383,19 @@ function applyScannedPayload(payload, options){
   options = options || {};
   const rawVal = payload && payload.raw != null ? String(payload.raw).trim() : '';
   const markVal = payload && payload.mark != null ? String(payload.mark).trim() : '';
-  const chosen = markVal || rawVal;
+  const normalizedRaw = normalizeScanValue(rawVal);
+  const effectiveRaw = normalizedRaw || rawVal;
+  if (payload && typeof payload === 'object'){
+    payload.raw = effectiveRaw;
+  }
+  const chosen = markVal || effectiveRaw;
   if (!chosen) return null;
 
   let isUrl;
   if (Object.prototype.hasOwnProperty.call(options, 'forceUrl')) {
     isUrl = !!options.forceUrl;
   } else {
-    isUrl = /^https?:\/\//i.test(rawVal);
+    isUrl = /^https?:\/\//i.test(effectiveRaw);
   }
 
   let mode = options.mode || currentScannerMode();
@@ -367,16 +407,16 @@ function applyScannedPayload(payload, options){
   if (mode === 'receipts' && isUrl) {
     const receiptsInput = document.getElementById('scrapeUrlInput');
     if (receiptsInput) {
-      receiptsInput.value = rawVal;
+      receiptsInput.value = effectiveRaw;
       try { receiptsInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
       appliedTo = 'receipts';
     }
     const hiddenUrl = document.getElementById('scrapeUrlField');
-    if (hiddenUrl) hiddenUrl.value = rawVal;
+    if (hiddenUrl) hiddenUrl.value = effectiveRaw;
   } else {
     const markInput = document.getElementById('markInput');
     if (markInput) {
-      markInput.value = isUrl ? rawVal : chosen;
+      markInput.value = isUrl ? effectiveRaw : chosen;
       try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
       appliedTo = 'mark';
     }
@@ -384,7 +424,7 @@ function applyScannedPayload(payload, options){
 
   return {
     appliedTo,
-    raw: rawVal,
+    raw: effectiveRaw,
     mark: markVal,
     is_url: !!isUrl,
     mode
@@ -1847,6 +1887,11 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     const countdownEl = document.getElementById('qrRemoteCountdown');
     const linkWrapper = document.getElementById('qrRemoteLinkWrapper');
     const linkValue = document.getElementById('qrRemoteLinkValue');
+    const indicator = document.getElementById('remoteSessionIndicator');
+    const indicatorDot = document.getElementById('remoteSessionDot');
+    const indicatorText = document.getElementById('remoteSessionText');
+    const indicatorDisconnect = document.getElementById('remoteDisconnectBtn');
+    const repeatSwitch = document.getElementById('repeatEntrySwitch');
     const modeButtons = Array.from(modal.querySelectorAll('[data-remote-mode-option]'));
 
     let sessionId = null;
@@ -1856,13 +1901,78 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     let connectUrl = '';
     let expiresAt = null;
     let remoteMode = currentScannerMode();
+    let remoteRepeatEnabled = !!(repeatSwitch && repeatSwitch.checked);
     let qrImageData = '';
     let suppressPageNotify = false;
+    let suppressRepeatNotify = false;
+    let isAttached = false;
+    let autoClosed = false;
+
+    const indicatorDotClasses = ['bg-slate-300','bg-amber-400','bg-green-500','bg-red-500'];
 
     function setStatus(text, tone){
       if (!statusEl) return;
+      const base = 'text-sm ';
+      if (tone === 'error') statusEl.className = base + 'text-red-600';
+      else if (tone === 'success') statusEl.className = base + 'text-green-600';
+      else statusEl.className = base + 'text-gray-600';
       statusEl.textContent = text;
-      statusEl.className = 'text-sm ' + (tone === 'error' ? 'text-red-600' : tone === 'success' ? 'text-green-600' : 'text-gray-600');
+    }
+
+    function updateIndicator(state, message){
+      if (!indicator || !indicatorDot || !indicatorText){
+        return;
+      }
+      indicatorDotClasses.forEach(cls => indicatorDot.classList.remove(cls));
+
+      if (state === 'inactive'){
+        indicator.classList.add('hidden');
+        indicator.dataset.state = 'inactive';
+        indicatorDot.classList.add('bg-slate-300');
+        if (indicatorDisconnect){
+          indicatorDisconnect.classList.add('hidden');
+          indicatorDisconnect.disabled = true;
+        }
+        return;
+      }
+
+      indicator.classList.remove('hidden');
+      indicator.dataset.state = state;
+      let text = message;
+      let showButton = false;
+
+      switch(state){
+        case 'starting':
+          indicatorDot.classList.add('bg-amber-400');
+          text = text || 'Δημιουργία ασφαλούς συνεδρίας…';
+          showButton = true;
+          break;
+        case 'waiting':
+          indicatorDot.classList.add('bg-amber-400');
+          text = text || 'Αναμονή φορητής συσκευής…';
+          showButton = true;
+          break;
+        case 'connected':
+          indicatorDot.classList.add('bg-green-500');
+          text = text || 'Φορητή συσκευή συνδεδεμένη.';
+          showButton = true;
+          break;
+        case 'error':
+          indicatorDot.classList.add('bg-red-500');
+          text = text || 'Η απομακρυσμένη σύνδεση τερματίστηκε.';
+          showButton = false;
+          break;
+        default:
+          indicatorDot.classList.add('bg-slate-300');
+          text = text || '';
+          showButton = false;
+      }
+
+      indicatorText.textContent = text;
+      if (indicatorDisconnect){
+        indicatorDisconnect.classList.toggle('hidden', !showButton);
+        indicatorDisconnect.disabled = !showButton;
+      }
     }
 
     function updateModeBadge(){
@@ -1880,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         btn.classList.toggle('text-white', active);
         btn.classList.toggle('shadow-inner', active);
         if (!active){
-          btn.classList.remove('bg-sky-600', 'text-white', 'shadow-inner');
+          btn.classList.remove('bg-sky-600','text-white','shadow-inner');
         }
       });
     }
@@ -1911,33 +2021,24 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       return { mode: normalized, changed };
     }
 
-    async function sendModeUpdate(nextMode, options){
+    function setRemoteRepeat(value, options){
       options = options || {};
-      if (!sessionId) return;
-      try {
-        const res = await fetch('/api/qr/remote/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ session_id: sessionId, mode: nextMode })
-        });
-        const data = await res.json();
-        if (!res.ok || !data || data.ok === false){
-          const message = data && data.error ? data.error : 'Αποτυχία ενημέρωσης λειτουργίας.';
-          setStatus(message, 'error');
-          return;
+      const normalized = value === true || value === 'true' || value === 1 ? true : !!value;
+      const changed = normalized !== remoteRepeatEnabled;
+      remoteRepeatEnabled = normalized;
+      if (options.syncPage !== false && repeatSwitch){
+        if (!!repeatSwitch.checked !== normalized){
+          suppressRepeatNotify = true;
+          repeatSwitch.checked = normalized;
+          try { repeatSwitch.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+          setTimeout(() => { suppressRepeatNotify = false; }, 0);
+        } else {
+          suppressRepeatNotify = false;
         }
-        const appliedMode = data.mode === 'receipts' ? 'receipts' : 'invoices';
-        remoteMode = appliedMode;
-        updateModeBadge();
-        highlightModeButtons();
-        if (options.syncPage !== false){
-          syncPageToggle(appliedMode);
-        }
-      } catch (err){
-        console.warn('remote mode update failed', err);
-        setStatus('Δεν ήταν δυνατή η ενημέρωση λειτουργίας.', 'error');
+      } else {
+        suppressRepeatNotify = false;
       }
+      return { repeat: normalized, changed };
     }
 
     function clearCode(){
@@ -1982,20 +2083,6 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     function stopPoll(){ if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; } }
     function stopCountdown(){ if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; } }
 
-    setRemoteMode(remoteMode, { syncPage: false });
-
-    modeButtons.forEach(btn => {
-      if (!btn) return;
-      btn.addEventListener('click', async () => {
-        const choice = btn.getAttribute('data-remote-mode-option');
-        const { mode, changed } = setRemoteMode(choice, { syncPage: true });
-        if (changed){
-          setStatus(mode === 'receipts' ? 'Η αποστολή θα στοχεύει στις αποδείξεις.' : 'Η αποστολή θα στοχεύει στα τιμολόγια.', 'info');
-        }
-        await sendModeUpdate(mode);
-      });
-    });
-
     function updateCountdown(){
       if (!countdownEl){
         return;
@@ -2033,9 +2120,15 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         if (pollVersion) params.set('since', String(pollVersion));
         const res = await fetch('/api/qr/remote/status?' + params.toString(), { credentials: 'same-origin' });
         if (res.status === 410){
-          setStatus('Η συνεδρία έληξε. Δημιούργησε νέα.', 'error');
-          stopPoll();
-          stopCountdown();
+          let data = null;
+          try { data = await res.json(); } catch (_) {}
+          const disconnected = data && data.disconnected;
+          const message = disconnected
+            ? 'Η φορητή συσκευή αποσυνδέθηκε. Η συνεδρία τερματίστηκε.'
+            : 'Η συνεδρία έληξε. Δημιούργησε νέα.';
+          setStatus(message, 'error');
+          showFlash(message, disconnected ? 'error' : 'info', 4000);
+          await terminateSession({ notify: false, indicator: 'error', indicatorMessage: message });
           return;
         }
         if (!res.ok){
@@ -2052,8 +2145,12 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
 
         pollVersion = data.version || pollVersion;
+
         if (data.mode){
           setRemoteMode(data.mode, { syncPage: true });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+          setRemoteRepeat(data.repeat_enabled, { syncPage: true });
         }
 
         if (data.expires_at){
@@ -2064,10 +2161,31 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           }
         }
 
-        if (data.attached){
-          connectedBadge?.classList.remove('hidden');
+        const nextAttached = !!data.attached;
+        if (nextAttached !== isAttached){
+          isAttached = nextAttached;
+          if (isAttached){
+            connectedBadge?.classList.remove('hidden');
+            updateIndicator('connected');
+            if (!autoClosed){
+              autoClosed = true;
+              if (!modal.classList.contains('hidden')){
+                modal.classList.add('hidden');
+              }
+              showFlash('Η φορητή συσκευή συνδέθηκε. Μπορείς να σαρώνεις κωδικούς.', 'success', 4000);
+            }
+          } else {
+            connectedBadge?.classList.add('hidden');
+            if (sessionId){
+              updateIndicator('waiting');
+            }
+          }
         } else {
-          connectedBadge?.classList.add('hidden');
+          if (isAttached){
+            updateIndicator('connected');
+          } else if (sessionId){
+            updateIndicator('waiting');
+          }
         }
 
         if (data.payload){
@@ -2081,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           if (!applied){
             showFlash('Η απομακρυσμένη σάρωση ολοκληρώθηκε αλλά δεν συμπληρώθηκε πεδίο.', 'error', 4000);
           }
-        } else if (data.attached){
+        } else if (isAttached){
           setStatus('Η φορητή συσκευή είναι συνδεδεμένη. Σάρωσε έναν κωδικό.', 'info');
         } else {
           setStatus('Περιμένουμε σύνδεση φορητής συσκευής…', 'info');
@@ -2095,31 +2213,68 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       }
     }
 
-    async function startSession(){
+    async function terminateSession(options){
+      const opts = options || {};
+      const notify = opts.notify !== false;
+      const indicatorState = opts.indicator || 'inactive';
+      const indicatorMessage = opts.indicatorMessage;
+
       stopPoll();
       stopCountdown();
-      setStatus('Δημιουργία ασφαλούς συνεδρίας…', 'info');
-      resetPlaceholder();
-      clearCode();
-      if (linkWrapper) linkWrapper.style.display = 'none';
-      connectedBadge?.classList.add('hidden');
+
+      if (notify && sessionId){
+        try {
+          await fetch('/api/qr/remote/close', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: sessionId })
+          });
+        } catch (_) {}
+      }
+
       sessionId = null;
       pollVersion = 0;
       connectUrl = '';
       expiresAt = null;
-      setRemoteMode(currentScannerMode(), { syncPage: true });
+      isAttached = false;
+      autoClosed = false;
+      qrImageData = '';
+      resetPlaceholder();
+      clearCode();
+      if (linkWrapper) linkWrapper.style.display = 'none';
+      connectedBadge?.classList.add('hidden');
+      if (indicatorState === 'inactive') updateIndicator('inactive');
+      else updateIndicator(indicatorState, indicatorMessage);
+    }
+
+    async function startSession(){
+      await terminateSession({ notify: true, indicator: 'inactive' });
+
+      remoteMode = currentScannerMode();
+      remoteRepeatEnabled = !!(repeatSwitch && repeatSwitch.checked);
+      setRemoteMode(remoteMode, { syncPage: true });
+      setRemoteRepeat(remoteRepeatEnabled, { syncPage: false });
+
+      setStatus('Δημιουργία ασφαλούς συνεδρίας…', 'info');
+      updateIndicator('starting');
+      resetPlaceholder();
+      clearCode();
+      if (linkWrapper) linkWrapper.style.display = 'none';
+      connectedBadge?.classList.add('hidden');
 
       try {
         const res = await fetch('/api/qr/remote/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ mode: remoteMode })
+          body: JSON.stringify({ mode: remoteMode, repeat_enabled: remoteRepeatEnabled })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
         if (!res.ok || !data || data.ok === false){
           const message = data && data.error ? data.error : 'Αποτυχία δημιουργίας συνεδρίας.';
           setStatus(message, 'error');
+          updateIndicator('error', message);
           showFlash(message, 'error', 4000);
           return;
         }
@@ -2127,9 +2282,14 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         sessionId = data.session_id;
         connectUrl = data.connect_url || '';
         pollVersion = data.version || 0;
+        isAttached = false;
+        autoClosed = false;
 
         if (data.mode){
           setRemoteMode(data.mode, { syncPage: true });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+          setRemoteRepeat(data.repeat_enabled, { syncPage: true });
         }
         if (data.expires_at){
           const ts = Date.parse(data.expires_at);
@@ -2148,33 +2308,17 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
             linkValue.href = connectUrl;
           }
           setStatus('Σάρωσε τον κωδικό με τη φορητή συσκευή σου.', 'info');
+          updateIndicator('waiting');
           schedulePoll(1500);
         } else {
           setStatus('Δεν δημιουργήθηκε σύνδεσμος QR.', 'error');
+          updateIndicator('error', 'Δεν δημιουργήθηκε σύνδεσμος QR.');
         }
       } catch (err){
         console.warn('remote session start failed', err);
         setStatus('Σφάλμα δημιουργίας συνεδρίας.', 'error');
+        updateIndicator('error', 'Σφάλμα δημιουργίας συνεδρίας.');
       }
-    }
-
-    async function endSession(){
-      stopPoll();
-      stopCountdown();
-      if (sessionId){
-        try {
-          await fetch('/api/qr/remote/close', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ session_id: sessionId })
-          });
-        } catch (_) {}
-      }
-      sessionId = null;
-      pollVersion = 0;
-      connectUrl = '';
-      expiresAt = null;
     }
 
     async function copyLink(){
@@ -2185,6 +2329,59 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       } catch (err){
         console.warn('clipboard write failed', err);
         showFlash('Δεν ήταν δυνατή η αντιγραφή. Αντέγραψε χειροκίνητα τον σύνδεσμο.', 'error', 4000);
+      }
+    }
+
+    async function sendSessionUpdate(fields, options){
+      options = options || {};
+      if (!sessionId) return null;
+      try {
+        const payload = Object.assign({ session_id: sessionId }, fields || {});
+        const res = await fetch('/api/qr/remote/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.ok === false){
+          const message = data && data.error ? data.error : 'Αποτυχία ενημέρωσης συνεδρίας.';
+          setStatus(message, 'error');
+          return null;
+        }
+        if (data.mode){
+          setRemoteMode(data.mode, { syncPage: options.syncPage !== false });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+          setRemoteRepeat(data.repeat_enabled, { syncPage: options.syncRepeat !== false });
+        }
+        if (data.expires_at){
+          const ts = Date.parse(data.expires_at);
+          if (!Number.isNaN(ts)){
+            expiresAt = ts;
+            startCountdown();
+          }
+        }
+        return data;
+      } catch (err){
+        console.warn('remote update failed', err);
+        setStatus('Δεν ήταν δυνατή η ενημέρωση συνεδρίας.', 'error');
+        return null;
+      }
+    }
+
+    async function sendModeUpdate(nextMode, options){
+      options = options || {};
+      if (!sessionId) return;
+      await sendSessionUpdate({ mode: nextMode, repeat_enabled: remoteRepeatEnabled }, options);
+    }
+
+    async function handleRepeatChange(nextValue){
+      const { repeat, changed } = setRemoteRepeat(nextValue, { syncPage: false });
+      if (!changed) return;
+      if (sessionId){
+        await sendSessionUpdate({ repeat_enabled: repeat }, { syncRepeat: false });
+        setStatus(repeat ? 'Η επαναληπτική εισαγωγή ενεργοποιήθηκε.' : 'Η επαναληπτική εισαγωγή απενεργοποιήθηκε.', 'info');
       }
     }
 
@@ -2205,21 +2402,49 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       } else {
         schedulePoll(500);
         startCountdown();
+        updateIndicator(isAttached ? 'connected' : 'waiting');
       }
     }
 
-    function close(){
+    function hide(){
       modal.classList.add('hidden');
-      endSession();
     }
 
-    modal.addEventListener('click', (evt) => { if (evt.target === modal) close(); });
-    closeEls.forEach(btn => btn && btn.addEventListener('click', close));
+    async function disconnect(){
+      await terminateSession({ notify: true, indicator: 'inactive' });
+      setStatus('Η συνεδρία τερματίστηκε.', 'info');
+      showFlash('Η απομακρυσμένη συνεδρία τερματίστηκε.', 'info', 3000);
+    }
+
+    modeButtons.forEach(btn => {
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        const choice = btn.getAttribute('data-remote-mode-option');
+        const { mode, changed } = setRemoteMode(choice, { syncPage: true });
+        if (changed){
+          setStatus(mode === 'receipts' ? 'Η αποστολή θα στοχεύει στις αποδείξεις.' : 'Η αποστολή θα στοχεύει στα τιμολόγια.', 'info');
+        }
+        await sendModeUpdate(mode);
+      });
+    });
+
+    repeatSwitch?.addEventListener('change', () => {
+      if (suppressRepeatNotify) return;
+      handleRepeatChange(!!repeatSwitch.checked);
+    });
+
+    modal.addEventListener('click', (evt) => { if (evt.target === modal) hide(); });
+    closeEls.forEach(btn => btn && btn.addEventListener('click', hide));
     restartBtn?.addEventListener('click', (evt) => { evt.preventDefault(); startSession(); });
     copyBtn?.addEventListener('click', (evt) => { evt.preventDefault(); copyLink(); });
+    indicatorDisconnect?.addEventListener('click', (evt) => { evt.preventDefault(); disconnect(); });
 
-    return { open, close, restart: startSession, pageModeChanged: handlePageModeChange };
+    updateIndicator('inactive');
+    setRemoteMode(remoteMode, { syncPage: false });
+
+    return { open, close: hide, restart: startSession, disconnect, pageModeChanged: handlePageModeChange, repeatChanged: handleRepeatChange };
   }
+
 })();
 
 // Helper API calls
