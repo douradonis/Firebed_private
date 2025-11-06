@@ -25,6 +25,7 @@ import importlib
 import io
 import csv
 import unicodedata
+import secrets
 from epsilon_bridge_multiclient_strict import (
     run_and_report_dynamic,  # <-- απαιτείται
     # προαιρετικά: export_multiclient_strict
@@ -156,6 +157,61 @@ if scrape_receipt_callable is None:
         scrape_receipt_callable = None
 
 # Now call_scrape_receipt(mark) is available if either module provided the functionality.
+
+
+# Remote QR session management (desktop ↔ mobile bridge)
+REMOTE_QR_SESSIONS: Dict[str, Dict[str, Any]] = {}
+REMOTE_QR_LOCK = threading.Lock()
+REMOTE_QR_MAX_SESSIONS = 200
+REMOTE_QR_SESSION_TTL = datetime.timedelta(minutes=15)
+REMOTE_QR_IDLE_TTL = datetime.timedelta(minutes=5)
+
+
+def _remote_qr_now() -> datetime.datetime:
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def _ensure_remote_owner_token() -> str:
+    token = session.get("_remote_qr_owner")
+    if not token:
+        token = secrets.token_urlsafe(18)
+        session["_remote_qr_owner"] = token
+    return token
+
+
+def _purge_remote_sessions() -> None:
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        expired: List[str] = []
+        for sid, data in list(REMOTE_QR_SESSIONS.items()):
+            expires_at: Optional[datetime.datetime] = data.get("expires_at")
+            last_seen: datetime.datetime = (
+                data.get("last_seen")
+                or data.get("created_at")
+                or now
+            )
+            if expires_at and now > expires_at:
+                expired.append(sid)
+                continue
+            if now - last_seen > REMOTE_QR_IDLE_TTL:
+                expired.append(sid)
+
+        for sid in expired:
+            REMOTE_QR_SESSIONS.pop(sid, None)
+
+        excess = len(REMOTE_QR_SESSIONS) - REMOTE_QR_MAX_SESSIONS
+        if excess > 0:
+            # Sort by last_seen (fallback to created_at) ascending so the stalest are evicted first.
+            sorted_items = sorted(
+                REMOTE_QR_SESSIONS.items(),
+                key=lambda item: (
+                    item[1].get("last_seen")
+                    or item[1].get("created_at")
+                    or now
+                ),
+            )
+            for sid, _ in sorted_items[:excess]:
+                REMOTE_QR_SESSIONS.pop(sid, None)
 
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -3280,6 +3336,325 @@ def api_qr_decode():
     first = payloads[0]
     mark = extract_mark(first)
     return jsonify({"ok": True, "raw": first, "mark": mark, "payloads": payloads})
+
+
+@app.post("/api/qr/remote/start")
+def api_qr_remote_start():
+    _purge_remote_sessions()
+    owner = _ensure_remote_owner_token()
+    payload = request.get_json(silent=True) or {}
+    mode = str(payload.get("mode") or "").strip().lower()
+    if mode not in ("receipts", "invoices"):
+        mode = "receipts" if payload.get("receipts") else "invoices"
+
+    now = _remote_qr_now()
+    session_id = secrets.token_urlsafe(9)
+    push_secret = secrets.token_urlsafe(32)
+    expires_at = now + REMOTE_QR_SESSION_TTL
+
+    entry = {
+        "id": session_id,
+        "owner_token": owner,
+        "push_secret": push_secret,
+        "mode": mode,
+        "created_at": now,
+        "expires_at": expires_at,
+        "last_seen": now,
+        "attached": False,
+        "attached_at": None,
+        "payload": None,
+        "version": 0,
+        "last_delivered_version": 0,
+        "owner_ip": request.remote_addr,
+    }
+
+    with REMOTE_QR_LOCK:
+        while session_id in REMOTE_QR_SESSIONS:
+            session_id = secrets.token_urlsafe(9)
+            entry["id"] = session_id
+        REMOTE_QR_SESSIONS[session_id] = entry
+
+    connect_url = url_for("mobile_qr_scanner", session=session_id, token=push_secret, _external=True)
+
+    return jsonify({
+        "ok": True,
+        "session_id": session_id,
+        "connect_url": connect_url,
+        "expires_at": expires_at.isoformat(),
+        "expires_in": int((expires_at - now).total_seconds()),
+        "mode": mode,
+        "version": entry["version"],
+    })
+
+
+@app.get("/api/qr/remote/status")
+def api_qr_remote_status():
+    _purge_remote_sessions()
+    owner = session.get("_remote_qr_owner")
+    session_id = request.args.get("session_id") or request.args.get("session")
+    if not session_id:
+        return jsonify(ok=False, error="Λείπει το αναγνωριστικό συνεδρίας."), 400
+    if not owner:
+        return jsonify(ok=False, error="Η συνεδρία δεν είναι διαθέσιμη."), 404
+
+    try:
+        since = int(request.args.get("since", "0"))
+    except (TypeError, ValueError):
+        since = 0
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry or entry.get("owner_token") != owner:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        entry["last_seen"] = now
+        version = entry.get("version", 0)
+        last_delivered = entry.get("last_delivered_version", 0)
+        payload_data: Optional[Dict[str, Any]] = None
+
+        if version and version > max(last_delivered, since):
+            payload = entry.get("payload") or {}
+            payload_data = {
+                "raw": payload.get("raw", ""),
+                "mark": payload.get("mark", ""),
+                "is_url": bool(payload.get("is_url")),
+                "pushed_at": payload.get("pushed_at"),
+            }
+            entry["last_delivered_version"] = version
+
+        response = {
+            "ok": True,
+            "session_id": session_id,
+            "attached": bool(entry.get("attached")),
+            "mode": entry.get("mode") or "invoices",
+            "version": version,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        }
+
+    if payload_data:
+        response["payload"] = payload_data
+
+    return jsonify(response)
+
+
+@app.post("/api/qr/remote/close")
+def api_qr_remote_close():
+    _purge_remote_sessions()
+    owner = session.get("_remote_qr_owner")
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    if not session_id or not owner:
+        return jsonify(ok=True)
+
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if entry and entry.get("owner_token") == owner:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+
+    return jsonify(ok=True)
+
+
+@app.post("/api/qr/remote/attach")
+def api_qr_remote_attach():
+    _purge_remote_sessions()
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    token = data.get("token") or data.get("secret")
+    if not session_id or not token:
+        return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+        if entry.get("push_secret") != token:
+            return jsonify(ok=False, error="Μη έγκυρο διακριτικό."), 403
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        entry["attached"] = True
+        entry["attached_at"] = now
+        entry["last_seen"] = now
+        entry["mobile_agent"] = request.headers.get("User-Agent", "")
+        entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+        expires_at = entry.get("expires_at")
+
+        response = {
+            "ok": True,
+            "mode": entry.get("mode") or "invoices",
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        }
+
+    return jsonify(response)
+
+
+@app.post("/api/qr/remote/heartbeat")
+def api_qr_remote_heartbeat():
+    _purge_remote_sessions()
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    token = data.get("token") or data.get("secret")
+    if not session_id or not token:
+        return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+        if entry.get("push_secret") != token:
+            return jsonify(ok=False, error="Μη έγκυρο διακριτικό."), 403
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        entry["last_seen"] = now
+        entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+        expires_at = entry.get("expires_at")
+
+        response = {
+            "ok": True,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        }
+
+    return jsonify(response)
+
+
+@app.post("/api/qr/remote/push")
+def api_qr_remote_push():
+    _purge_remote_sessions()
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    token = data.get("token") or data.get("secret")
+    raw_value = (data.get("payload") or data.get("raw") or "").strip()
+
+    if not session_id or not token or not raw_value:
+        return jsonify(ok=False, error="Λείπουν δεδομένα προς αποστολή."), 400
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+        if entry.get("push_secret") != token:
+            return jsonify(ok=False, error="Μη έγκυρο διακριτικό."), 403
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        mark = extract_mark(raw_value) or ""
+        is_url = bool(re.match(r"^https?://", raw_value, re.IGNORECASE))
+        payload = {
+            "raw": raw_value,
+            "mark": mark,
+            "is_url": is_url,
+            "pushed_at": now.isoformat(),
+            "source": "remote",
+        }
+
+        entry["payload"] = payload
+        entry["version"] = (entry.get("version") or 0) + 1
+        entry["last_seen"] = now
+        entry["attached"] = True
+        entry["last_push_at"] = now
+        entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+        version = entry["version"]
+
+    return jsonify(ok=True, mark=mark, is_url=is_url, version=version)
+
+
+@app.get("/mobile/qr-scanner")
+def mobile_qr_scanner():
+    _purge_remote_sessions()
+    session_id = request.args.get("session") or request.args.get("session_id") or request.args.get("id")
+    token = request.args.get("token") or request.args.get("secret")
+
+    if not session_id or not token:
+        return (
+            render_template(
+                "mobile_qr_scanner.html",
+                session_id=session_id or "",
+                token=token or "",
+                mode="invoices",
+                expires_at="",
+                error="Η συνεδρία δεν είναι διαθέσιμη.",
+            ),
+            400,
+        )
+
+    now = _remote_qr_now()
+
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return (
+                render_template(
+                    "mobile_qr_scanner.html",
+                    session_id=session_id,
+                    token=token,
+                    mode="invoices",
+                    expires_at="",
+                    error="Η συνεδρία δεν βρέθηκε ή έληξε.",
+                ),
+                404,
+            )
+        if entry.get("push_secret") != token:
+            return (
+                render_template(
+                    "mobile_qr_scanner.html",
+                    session_id=session_id,
+                    token=token,
+                    mode="invoices",
+                    expires_at="",
+                    error="Ο σύνδεσμος δεν είναι πλέον έγκυρος.",
+                ),
+                403,
+            )
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return (
+                render_template(
+                    "mobile_qr_scanner.html",
+                    session_id=session_id,
+                    token=token,
+                    mode="invoices",
+                    expires_at="",
+                    error="Η συνεδρία έληξε. Δημιούργησε νέο σύνδεσμο από τον υπολογιστή.",
+                ),
+                410,
+            )
+
+        entry["last_seen"] = now
+        entry.setdefault("mobile_visits", 0)
+        entry["mobile_visits"] += 1
+        entry["mobile_agent"] = request.headers.get("User-Agent", "")
+        mode = entry.get("mode") or "invoices"
+        expires_iso = expires_at.isoformat() if expires_at else ""
+
+    return render_template(
+        "mobile_qr_scanner.html",
+        session_id=session_id,
+        token=token,
+        mode=mode,
+        expires_at=expires_iso,
+        error=None,
+    )
 
 
 

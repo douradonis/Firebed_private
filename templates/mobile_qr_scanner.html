@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Σάρωση QR από φορητή συσκευή</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(145deg, #0f172a, #1e293b);
+      color: #0f172a;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+    main {
+      width: 100%;
+      max-width: 720px;
+      padding: 32px 20px 48px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+    }
+    h1 {
+      font-size: 1.45rem;
+      margin: 0 0 4px;
+      color: #0f172a;
+    }
+    p.lead {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      color: #475569;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 0.8rem;
+      margin-bottom: 18px;
+    }
+    .status {
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .status.success {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    select,
+    button {
+      font-size: 0.95rem;
+      border-radius: 12px;
+      border: 1px solid #cbd5f5;
+      padding: 10px 14px;
+      background: #f8fafc;
+      color: #0f172a;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 12px 30px rgba(2, 132, 199, 0.25);
+    }
+    button.primary:active {
+      transform: translateY(1px);
+    }
+    button:disabled,
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    #qr-reader {
+      width: 100%;
+      min-height: 320px;
+      background: #0f172a;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 18px;
+    }
+    #qr-reader video {
+      width: 100% !important;
+      height: auto !important;
+    }
+    #mobileResult {
+      background: #f1f5f9;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      color: #1f2937;
+      word-break: break-word;
+      min-height: 48px;
+    }
+    .note {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-top: 18px;
+      line-height: 1.5;
+    }
+    .alert {
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+    .alert.error {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    footer {
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      main {
+        padding: 24px 16px 36px;
+      }
+      .card {
+        padding: 24px 18px;
+      }
+      #qr-reader {
+        min-height: 260px;
+      }
+      .controls {
+        flex-direction: column;
+      }
+      select,
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>Σάρωση QR από φορητή συσκευή</h1>
+      <p class="lead">Η κάμερα της συσκευής σου θα στέλνει αυτόματα QR κωδικούς στον υπολογιστή για άμεση συμπλήρωση.</p>
+      <span class="badge" id="modeBadge">&nbsp;</span>
+
+      {% if error %}
+      <div class="alert error">{{ error }}</div>
+      <p class="note">Άνοιξε ξανά τη σελίδα Αναζήτησης και δημιούργησε νέο σύνδεσμο σύνδεσης για τη φορητή συσκευή.</p>
+      {% else %}
+      <div id="mobileStatus" class="status">Έλεγχος ασφαλούς σύνδεσης…</div>
+
+      <div class="controls">
+        <select id="cameraSelect" aria-label="Επιλογή κάμερας" disabled></select>
+        <button id="startStopButton" class="primary" type="button" disabled>Εκκίνηση σάρωσης</button>
+        <button id="torchToggle" type="button" disabled>Φλας μη διαθέσιμο</button>
+      </div>
+
+      <div id="qr-reader"></div>
+
+      <div id="mobileResult">Η τελευταία τιμή που θα σαρωθεί θα εμφανίζεται εδώ.</div>
+
+      <div class="note" id="expiresInfo"></div>
+
+      <div class="note">
+        • Κράτησε τη συσκευή σταθερή και φρόντισε ο κωδικός να φωτίζεται καλά.<br>
+        • Η σύνδεση είναι μοναδική και κρυπτογραφημένη. Μόλις κλείσει το παράθυρο, δημιουργεί νέα συνεδρία από τον υπολογιστή.<br>
+        • Για αποδείξεις, θα αποστέλλονται αυτόματα URLs στο πεδίο αναζήτησης αποδείξεων.
+      </div>
+      {% endif %}
+    </div>
+    <footer>Firebed • Remote QR link</footer>
+  </main>
+
+  <script>
+    window.__REMOTE_QR_CONFIG__ = {{ {
+      "sessionId": session_id,
+      "token": token,
+      "mode": mode,
+      "expiresAt": expires_at,
+      "error": error
+    } | tojson | safe }};
+  </script>
+  <script>
+    (function(){
+      const CFG = window.__REMOTE_QR_CONFIG__ || {};
+      if (CFG.error) {
+        return;
+      }
+
+      const statusEl = document.getElementById('mobileStatus');
+      const cameraSelect = document.getElementById('cameraSelect');
+      const startStopBtn = document.getElementById('startStopButton');
+      const torchBtn = document.getElementById('torchToggle');
+      const readerId = 'qr-reader';
+      const resultEl = document.getElementById('mobileResult');
+      const expiresEl = document.getElementById('expiresInfo');
+      const modeBadge = document.getElementById('modeBadge');
+
+      let html5QrCode = null;
+      let cameras = [];
+      let scanning = false;
+      let torchSupported = false;
+      let torchOn = false;
+      let heartbeatTimer = null;
+      let lastSentText = '';
+      let countdownTimer = null;
+
+      function setStatus(text, tone){
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        statusEl.classList.remove('error','success');
+        if (tone === 'error') statusEl.classList.add('error');
+        else if (tone === 'success') statusEl.classList.add('success');
+        else statusEl.classList.remove('error','success');
+      }
+
+      function updateModeBadge(){
+        if (!modeBadge) return;
+        modeBadge.textContent = CFG.mode === 'receipts' ? 'Αποδείξεις' : 'Τιμολόγια';
+      }
+
+      function updateExpiryCountdown(){
+        if (!expiresEl) return;
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+        if (!CFG.expiresAt) {
+          expiresEl.textContent = '';
+          return;
+        }
+        const expiresAt = Date.parse(CFG.expiresAt);
+        if (Number.isNaN(expiresAt)) {
+          expiresEl.textContent = '';
+          return;
+        }
+        const update = () => {
+          const diff = expiresAt - Date.now();
+          if (diff <= 0){
+            expiresEl.textContent = 'Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.';
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+            disableControls();
+            return;
+          }
+          const mins = Math.floor(diff / 60000);
+          const secs = Math.floor((diff % 60000) / 1000);
+          expiresEl.textContent = `Η σύνδεση λήγει σε ${mins}:${secs.toString().padStart(2,'0')}`;
+        };
+        update();
+        countdownTimer = setInterval(update, 1000);
+      }
+
+      function disableControls(){
+        if (startStopBtn) startStopBtn.disabled = true;
+        if (cameraSelect) cameraSelect.disabled = true;
+        if (torchBtn) {
+          torchBtn.disabled = true;
+          torchBtn.textContent = 'Φλας μη διαθέσιμο';
+        }
+      }
+
+      function ensureSecureContext(){
+        if (!window.isSecureContext) {
+          setStatus('Απαιτείται ασφαλής σύνδεση (HTTPS) για πρόσβαση στην κάμερα.', 'error');
+          disableControls();
+          return false;
+        }
+        return true;
+      }
+
+      function escapeHtml(str){
+        return (str || '').replace(/[&<>"]+/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch] || ch));
+      }
+
+      async function listCameras(){
+        try {
+          cameras = await Html5Qrcode.getCameras();
+        } catch (err) {
+          console.warn('getCameras failed', err);
+          cameras = [];
+        }
+
+        if (!cameraSelect) return;
+        cameraSelect.innerHTML = '';
+        if (!cameras.length){
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'Δεν βρέθηκε κάμερα';
+          cameraSelect.appendChild(option);
+          cameraSelect.disabled = true;
+          return;
+        }
+
+        cameras.forEach((cam, idx) => {
+          const option = document.createElement('option');
+          option.value = cam.id;
+          option.textContent = cam.label || `Κάμερα ${idx + 1}`;
+          cameraSelect.appendChild(option);
+        });
+
+        cameraSelect.disabled = false;
+        if (!cameraSelect.value && cameras[0]) {
+          cameraSelect.value = cameras[0].id;
+        }
+      }
+
+      async function startScanner(preferredId){
+        if (!ensureSecureContext()) return;
+        if (!Html5Qrcode) {
+          setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
+          return;
+        }
+        try {
+          if (!html5QrCode) {
+            const supportedFormats = (window.Html5QrcodeSupportedFormats && Html5QrcodeSupportedFormats.QR_CODE)
+              ? [Html5QrcodeSupportedFormats.QR_CODE]
+              : undefined;
+            const ctorConfig = supportedFormats ? { formatsToSupport: supportedFormats } : undefined;
+            html5QrCode = new Html5Qrcode(readerId, ctorConfig);
+          }
+          const cameraConfig = preferredId ? { deviceId: { exact: preferredId } } : { facingMode: 'environment' };
+          const viewport = Math.max(220, Math.min(360, window.innerWidth - 48));
+          const config = {
+            fps: 12,
+            qrbox: { width: viewport, height: viewport },
+            disableFlip: true,
+          };
+          await html5QrCode.start(cameraConfig, config, onScanSuccess, onScanFailure);
+          scanning = true;
+          setStatus('Η κάμερα είναι ενεργή. Σάρωσε έναν κωδικό QR.', 'success');
+          if (startStopBtn) {
+            startStopBtn.disabled = false;
+            startStopBtn.textContent = 'Παύση σάρωσης';
+          }
+          await evaluateTorchSupport();
+        } catch (err) {
+          console.error('startScanner failed', err);
+          setStatus('Αποτυχία εκκίνησης της κάμερας. Έλεγξε τα δικαιώματα.', 'error');
+        }
+      }
+
+      async function stopScanner(){
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+        if (html5QrCode && scanning){
+          try {
+            await html5QrCode.stop();
+          } catch (err) {
+            console.warn('stopScanner', err);
+          }
+        }
+        scanning = false;
+        torchSupported = false;
+        torchOn = false;
+        if (torchBtn){
+          torchBtn.disabled = true;
+          torchBtn.textContent = 'Φλας μη διαθέσιμο';
+        }
+        if (startStopBtn){
+          startStopBtn.textContent = 'Εκκίνηση σάρωσης';
+          startStopBtn.disabled = false;
+        }
+      }
+
+      async function evaluateTorchSupport(){
+        if (!html5QrCode || !torchBtn) return;
+        try {
+          const caps = await html5QrCode.getRunningTrackCapabilities();
+          torchSupported = !!(caps && caps.torch);
+        } catch (err) {
+          torchSupported = false;
+        }
+        torchBtn.disabled = !torchSupported;
+        torchBtn.textContent = torchSupported ? 'Ενεργοποίηση φλας' : 'Φλας μη διαθέσιμο';
+      }
+
+      async function toggleTorch(){
+        if (!html5QrCode || !torchSupported) return;
+        try {
+          await html5QrCode.applyVideoConstraints({ advanced: [{ torch: !torchOn }] });
+          torchOn = !torchOn;
+          torchBtn.textContent = torchOn ? 'Απενεργοποίηση φλας' : 'Ενεργοποίηση φλας';
+        } catch (err) {
+          console.warn('toggleTorch', err);
+          setStatus('Δεν ήταν δυνατή η αλλαγή του φλας.', 'error');
+        }
+      }
+
+      async function sendHeartbeat(){
+        try {
+          const res = await fetch('/api/qr/remote/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token })
+          });
+          if (res.status === 410) {
+            setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
+            disableControls();
+            await stopScanner();
+            return;
+          }
+          const data = await res.json().catch(() => null);
+          if (data && data.expires_at) {
+            CFG.expiresAt = data.expires_at;
+            updateExpiryCountdown();
+          }
+        } catch (err) {
+          console.warn('heartbeat failed', err);
+        }
+      }
+
+      async function attach(){
+        if (!CFG.sessionId || !CFG.token){
+          setStatus('Λείπουν στοιχεία συνεδρίας. Δημιούργησε νέο σύνδεσμο.', 'error');
+          disableControls();
+          return;
+        }
+        if (!ensureSecureContext()) return;
+        setStatus('Σύνδεση με τον υπολογιστή…', 'info');
+        try {
+          const res = await fetch('/api/qr/remote/attach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = (data && data.error) ? data.error : 'Δεν ήταν δυνατή η σύνδεση με τον υπολογιστή.';
+            setStatus(message, 'error');
+            disableControls();
+            return;
+          }
+          CFG.mode = data.mode || CFG.mode;
+          CFG.expiresAt = data.expires_at || CFG.expiresAt;
+          updateModeBadge();
+          updateExpiryCountdown();
+          await listCameras();
+          await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          if (!heartbeatTimer){
+            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+          }
+        } catch (err) {
+          console.warn('attach failed', err);
+          setStatus('Αποτυχία σύνδεσης. Δοκίμασε να ανανεώσεις τον σύνδεσμο.', 'error');
+          disableControls();
+        }
+      }
+
+      async function pushPayload(text){
+        lastSentText = text;
+        setTimeout(() => { lastSentText = ''; }, 1800);
+        try {
+          const res = await fetch('/api/qr/remote/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = (data && data.error) ? data.error : 'Δεν στάλθηκε ο κωδικός. Προσπάθησε ξανά.';
+            setStatus(message, 'error');
+            return;
+          }
+          const mark = data.mark || '';
+          const info = mark ? `MARK ${mark}` : text;
+          resultEl.innerHTML = `<strong>Εστάλη:</strong> ${escapeHtml(info)}`;
+          setStatus('Ο κωδικός στάλθηκε στον υπολογιστή.', 'success');
+        } catch (err) {
+          console.warn('pushPayload failed', err);
+          setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+        }
+      }
+
+      function onScanSuccess(decodedText){
+        const clean = (decodedText || '').trim();
+        if (!clean) return;
+        if (clean === lastSentText) return;
+        pushPayload(clean);
+      }
+
+      function onScanFailure(){
+        // intentionally ignored - the library fires this frequently
+      }
+
+      if (startStopBtn){
+        startStopBtn.addEventListener('click', async () => {
+          if (scanning){
+            await stopScanner();
+            setStatus('Η σάρωση έχει παύσει.', 'info');
+          } else {
+            await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          }
+        });
+      }
+
+      cameraSelect?.addEventListener('change', async (ev) => {
+        if (!cameraSelect) return;
+        if (scanning){
+          await stopScanner();
+          await startScanner(cameraSelect.value);
+        }
+      });
+
+      torchBtn?.addEventListener('click', toggleTorch);
+
+      window.addEventListener('beforeunload', stopScanner);
+      window.addEventListener('pagehide', stopScanner);
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'hidden') {
+          await stopScanner();
+        } else if (!scanning && CFG.sessionId && CFG.token) {
+          if (!heartbeatTimer) {
+            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+          }
+          if (!(startStopBtn && startStopBtn.disabled)) {
+            await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          }
+        }
+      });
+
+      updateModeBadge();
+      attach();
+    })();
+  </script>
+</body>
+</html>
