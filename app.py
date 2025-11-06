@@ -3606,7 +3606,6 @@ def api_qr_remote_attach():
     token = data.get("token") or data.get("secret")
     mode = data.get("mode")
     repeat_flag = _parse_bool(data.get("repeat_enabled"))
-    repeat_flag = _parse_bool(data.get("repeat_enabled"))
 
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
@@ -3655,6 +3654,7 @@ def api_qr_remote_heartbeat():
     session_id = data.get("session_id") or data.get("session")
     token = data.get("token") or data.get("secret")
     mode = data.get("mode")
+    repeat_flag = _parse_bool(data.get("repeat_enabled"))
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
 

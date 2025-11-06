@@ -1907,6 +1907,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     let suppressRepeatNotify = false;
     let isAttached = false;
     let autoClosed = false;
+    let hasRemoteDevice = false;
+    let lastRemoteActivity = 0;
 
     const indicatorDotClasses = ['bg-slate-300','bg-amber-400','bg-green-500','bg-red-500'];
 
@@ -1973,6 +1975,11 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         indicatorDisconnect.classList.toggle('hidden', !showButton);
         indicatorDisconnect.disabled = !showButton;
       }
+    }
+
+    function rememberRemoteActivity(){
+      hasRemoteDevice = true;
+      lastRemoteActivity = Date.now();
     }
 
     function updateModeBadge(){
@@ -2161,9 +2168,15 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           }
         }
 
+        if (data.attached){
+          rememberRemoteActivity();
+        }
+
+        const wasAttached = isAttached;
         const nextAttached = !!data.attached;
-        if (nextAttached !== isAttached){
-          isAttached = nextAttached;
+        isAttached = nextAttached;
+
+        if (nextAttached !== wasAttached){
           if (isAttached){
             connectedBadge?.classList.remove('hidden');
             updateIndicator('connected');
@@ -2175,16 +2188,32 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
               showFlash('Η φορητή συσκευή συνδέθηκε. Μπορείς να σαρώνεις κωδικούς.', 'success', 4000);
             }
           } else {
-            connectedBadge?.classList.add('hidden');
-            if (sessionId){
-              updateIndicator('waiting');
+            if (hasRemoteDevice){
+              connectedBadge?.classList.remove('hidden');
+              updateIndicator('connected', 'Η φορητή συσκευή παραμένει διαθέσιμη για νέες σαρώσεις.');
+            } else {
+              connectedBadge?.classList.add('hidden');
+              if (sessionId){
+                updateIndicator('waiting');
+              }
             }
           }
         } else {
           if (isAttached){
+            connectedBadge?.classList.remove('hidden');
             updateIndicator('connected');
           } else if (sessionId){
-            updateIndicator('waiting');
+            if (hasRemoteDevice){
+              const idleFor = Date.now() - lastRemoteActivity;
+              const indicatorMessage = idleFor > 60000
+                ? 'Η φορητή συσκευή παραμένει διαθέσιμη. Περιμένουμε νέο κωδικό.'
+                : 'Η φορητή συσκευή παραμένει διαθέσιμη για νέες σαρώσεις.';
+              updateIndicator('connected', indicatorMessage);
+              connectedBadge?.classList.remove('hidden');
+            } else {
+              connectedBadge?.classList.add('hidden');
+              updateIndicator('waiting');
+            }
           }
         }
 
@@ -2194,15 +2223,25 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           const message = payload.is_url
             ? 'Ελήφθη URL από τη φορητή συσκευή.'
             : (payload.mark ? `Ελήφθη MARK ${payload.mark}.` : 'Ελήφθη QR τιμή.');
-          setStatus(message, 'success');
-          showFlash('Ελήφθη QR από φορητή συσκευή.', 'success', 4000);
+          rememberRemoteActivity();
+          setStatus(message + ' Η σύνδεση παραμένει ενεργή.', 'success');
+          showFlash('Ελήφθη QR από φορητή συσκευή. Η σύνδεση παραμένει ενεργή.', 'success', 4000);
           if (!applied){
             showFlash('Η απομακρυσμένη σάρωση ολοκληρώθηκε αλλά δεν συμπληρώθηκε πεδίο.', 'error', 4000);
           }
         } else if (isAttached){
           setStatus('Η φορητή συσκευή είναι συνδεδεμένη. Σάρωσε έναν κωδικό.', 'info');
         } else {
-          setStatus('Περιμένουμε σύνδεση φορητής συσκευής…', 'info');
+          if (hasRemoteDevice){
+            const idleFor = Date.now() - lastRemoteActivity;
+            if (idleFor > 60000){
+              setStatus('Η φορητή συσκευή είναι σε ετοιμότητα. Περιμένουμε νέο κωδικό.', 'info');
+            } else {
+              setStatus('Η φορητή συσκευή παραμένει διαθέσιμη. Συνέχισε να σαρώνεις κωδικούς.', 'info');
+            }
+          } else {
+            setStatus('Περιμένουμε σύνδεση φορητής συσκευής…', 'info');
+          }
         }
 
         schedulePoll(data.payload ? 800 : 2000);
@@ -2239,6 +2278,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       expiresAt = null;
       isAttached = false;
       autoClosed = false;
+      hasRemoteDevice = false;
+      lastRemoteActivity = 0;
       qrImageData = '';
       resetPlaceholder();
       clearCode();
@@ -2253,6 +2294,9 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
       remoteMode = currentScannerMode();
       remoteRepeatEnabled = !!(repeatSwitch && repeatSwitch.checked);
+      hasRemoteDevice = false;
+      lastRemoteActivity = 0;
+      isAttached = false;
       setRemoteMode(remoteMode, { syncPage: true });
       setRemoteRepeat(remoteRepeatEnabled, { syncPage: false });
 

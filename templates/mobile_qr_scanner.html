@@ -173,27 +173,102 @@
       cursor: not-allowed;
       box-shadow: none;
     }
+    .scanner-wrapper {
+      position: relative;
+      margin: 20px 0 12px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #0f172a;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
+    }
     #qr-reader {
       width: 100%;
       min-height: 320px;
-      background: #0f172a;
-      border-radius: 18px;
-      overflow: hidden;
-      position: relative;
-      margin-bottom: 18px;
+      background: rgba(15, 23, 42, 0.9);
     }
     #qr-reader video {
       width: 100% !important;
       height: auto !important;
     }
+    .scan-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scan-frame {
+      position: relative;
+      width: min(320px, 72%);
+      aspect-ratio: 1 / 1;
+      border: 3px solid rgba(255, 255, 255, 0.45);
+      border-radius: 26px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.55);
+    }
+    .scan-frame::after {
+      content: '';
+      position: absolute;
+      inset: 14%;
+      border-radius: 22px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+    }
+    .scan-corner {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border: 4px solid rgba(255, 255, 255, 0.9);
+    }
+    .scan-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 22px; }
+    .scan-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 22px; }
+    .scan-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 22px; }
+    .scan-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 22px; }
+    .scan-frame.detected,
+    .scan-frame.success {
+      border-color: rgba(34, 197, 94, 0.85);
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35), 0 0 28px rgba(34, 197, 94, 0.4);
+    }
+    .scan-frame.error {
+      border-color: rgba(248, 113, 113, 0.9);
+      box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35), 0 0 24px rgba(248, 113, 113, 0.4);
+    }
+    .scan-flash {
+      position: absolute;
+      width: min(320px, 72%);
+      aspect-ratio: 1 / 1;
+      border-radius: 26px;
+      background: rgba(34, 197, 94, 0.3);
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    .scan-flash.active {
+      animation: scan-flash 0.4s ease forwards;
+    }
+    @keyframes scan-flash {
+      0% { opacity: 0.85; transform: scale(0.92); }
+      100% { opacity: 0; transform: scale(1); }
+    }
     #mobileResult {
-      background: #f1f5f9;
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-size: 0.9rem;
-      color: #1f2937;
+      background: rgba(15, 23, 42, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 0.95rem;
+      color: #0f172a;
       word-break: break-word;
-      min-height: 48px;
+      min-height: 54px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    #mobileResult.success {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+    #mobileResult.error {
+      background: #fee2e2;
+      border-color: #fecaca;
+      color: #b91c1c;
     }
     .note {
       font-size: 0.85rem;
@@ -225,8 +300,11 @@
       .card {
         padding: 24px 18px;
       }
+      .scanner-wrapper {
+        margin: 16px 0 10px;
+      }
       #qr-reader {
-        min-height: 260px;
+        min-height: 240px;
       }
       .controls {
         flex-direction: column;
@@ -280,7 +358,18 @@
         </label>
       </div>
 
-      <div id="qr-reader"></div>
+      <div class="scanner-wrapper" id="scannerWrapper">
+        <div id="qr-reader"></div>
+        <div class="scan-overlay" aria-hidden="true">
+          <div id="scanFrame" class="scan-frame">
+            <span class="scan-corner tl"></span>
+            <span class="scan-corner tr"></span>
+            <span class="scan-corner bl"></span>
+            <span class="scan-corner br"></span>
+          </div>
+          <div id="scanFlash" class="scan-flash"></div>
+        </div>
+      </div>
 
       <div id="mobileResult">Η τελευταία τιμή που θα σαρωθεί θα εμφανίζεται εδώ.</div>
 
@@ -323,6 +412,9 @@
       const modeBadge = document.getElementById('modeBadge');
       const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
       const repeatToggle = document.getElementById('repeatToggle');
+      const scanFrame = document.getElementById('scanFrame');
+      const scanFlash = document.getElementById('scanFlash');
+      const defaultResultText = resultEl ? resultEl.innerHTML : '';
 
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
       CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
@@ -335,6 +427,7 @@
       let heartbeatTimer = null;
       let lastSentText = '';
       let countdownTimer = null;
+      let frameHighlightTimer = null;
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -343,6 +436,49 @@
         if (tone === 'error') statusEl.classList.add('error');
         else if (tone === 'success') statusEl.classList.add('success');
         else statusEl.classList.remove('error','success');
+      }
+
+      function updateResultBox(html, tone){
+        if (!resultEl) return;
+        if (typeof html === 'string'){ resultEl.innerHTML = html; }
+        resultEl.classList.remove('success','error');
+        if (tone === 'success') resultEl.classList.add('success');
+        else if (tone === 'error') resultEl.classList.add('error');
+      }
+
+      function clearFrameHighlights(){
+        if (frameHighlightTimer){
+          clearTimeout(frameHighlightTimer);
+          frameHighlightTimer = null;
+        }
+        if (scanFrame){
+          scanFrame.classList.remove('detected','success','error');
+        }
+        if (scanFlash){
+          scanFlash.classList.remove('active');
+        }
+      }
+
+      function pulseFrame(state){
+        if (!scanFrame) return;
+        clearFrameHighlights();
+        if (state === 'detected'){
+          scanFrame.classList.add('detected');
+        } else if (state === 'success'){
+          scanFrame.classList.add('success');
+          if (scanFlash){
+            scanFlash.classList.add('active');
+            setTimeout(() => scanFlash.classList.remove('active'), 260);
+          }
+        } else if (state === 'error'){
+          scanFrame.classList.add('error');
+        }
+        frameHighlightTimer = setTimeout(() => {
+          clearFrameHighlights();
+          if (scanFrame){
+            scanFrame.classList.remove('detected','success','error');
+          }
+        }, 1100);
       }
 
       function applyMode(newMode){
@@ -535,6 +671,7 @@
             qrbox: { width: viewport, height: viewport },
             disableFlip: true,
           };
+          clearFrameHighlights();
           await html5QrCode.start(cameraConfig, config, onScanSuccess, onScanFailure);
           scanning = true;
           setStatus('Η κάμερα είναι ενεργή. Σάρωσε έναν κωδικό QR.', 'success');
@@ -568,6 +705,7 @@
         scanning = false;
         torchSupported = false;
         torchOn = false;
+        clearFrameHighlights();
         if (torchBtn){
           torchBtn.disabled = true;
           torchBtn.textContent = 'Φλας μη διαθέσιμο';
@@ -663,6 +801,7 @@
           CFG.expiresAt = data.expires_at || CFG.expiresAt;
           updateModeBadge();
           updateExpiryCountdown();
+          updateResultBox(defaultResultText, null);
           await listCameras();
           await startScanner(cameraSelect ? cameraSelect.value : undefined);
           if (!heartbeatTimer){
@@ -689,18 +828,23 @@
           if (!res.ok || !data || data.ok === false){
             const message = (data && data.error) ? data.error : 'Δεν στάλθηκε ο κωδικός. Προσπάθησε ξανά.';
             setStatus(message, 'error');
+            pulseFrame('error');
+            updateResultBox(message, 'error');
             return;
           }
           const mark = data.mark || '';
           const info = mark ? `MARK ${mark}` : text;
-          resultEl.innerHTML = `<strong>Εστάλη:</strong> ${escapeHtml(info)}`;
-          setStatus('Ο κωδικός στάλθηκε στον υπολογιστή.', 'success');
+          updateResultBox(`<strong>Εστάλη:</strong> ${escapeHtml(info)}`, 'success');
+          setStatus('Ο κωδικός στάλθηκε στον υπολογιστή. Μπορείς να συνεχίσεις τη σάρωση.', 'success');
+          pulseFrame('success');
           if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
           }
         } catch (err) {
           console.warn('pushPayload failed', err);
           setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+          pulseFrame('error');
+          updateResultBox('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
         }
       }
 
@@ -708,6 +852,7 @@
         const clean = (decodedText || '').trim();
         if (!clean) return;
         if (clean === lastSentText) return;
+        pulseFrame('detected');
         pushPayload(clean);
       }
 
