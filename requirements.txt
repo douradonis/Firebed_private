@@ -17,3 +17,4 @@ xlsxwriter
 pdf2image>=1.16
 numpy>=1.25
 opencv-python-headless>=4.8
+qrcode>=7.4

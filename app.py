@@ -6,6 +6,7 @@ import traceback
 import logging
 import base64
 import re
+from urllib.parse import urlsplit
 from logging.handlers import RotatingFileHandler
 import datetime
 from typing import Any, List, Dict, Optional, Tuple
@@ -26,6 +27,7 @@ import io
 import csv
 import unicodedata
 import secrets
+import qrcode
 from epsilon_bridge_multiclient_strict import (
     run_and_report_dynamic,  # <-- απαιτείται
     # προαιρετικά: export_multiclient_strict
@@ -165,6 +167,64 @@ REMOTE_QR_LOCK = threading.Lock()
 REMOTE_QR_MAX_SESSIONS = 200
 REMOTE_QR_SESSION_TTL = datetime.timedelta(minutes=15)
 REMOTE_QR_IDLE_TTL = datetime.timedelta(minutes=5)
+
+
+def _preferred_request_scheme() -> str:
+    """Resolve the most appropriate scheme for external links."""
+    forwarded_proto = request.headers.get("X-Forwarded-Proto") if request else None
+    if forwarded_proto:
+        return forwarded_proto.split(",")[0].strip() or request.scheme
+    render_external_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("PUBLIC_BASE_URL")
+    if render_external_url:
+        try:
+            return urlsplit(render_external_url).scheme or request.scheme
+        except Exception:
+            return request.scheme
+    return request.scheme
+
+
+def _build_external_url(endpoint: str, **values: Any) -> str:
+    """Build an external URL that respects proxy headers or explicit overrides."""
+    base_override = os.environ.get("PUBLIC_BASE_URL") or os.environ.get("RENDER_EXTERNAL_URL")
+    relative = url_for(endpoint, _external=False, **values)
+    if base_override:
+        base = base_override.rstrip("/")
+        return f"{base}{relative}"
+
+    scheme = _preferred_request_scheme()
+    forwarded_host = request.headers.get("X-Forwarded-Host") if request else None
+    host = (forwarded_host.split(",")[0].strip() if forwarded_host else None) or request.host
+    return f"{scheme}://{host}{relative}"
+
+
+def _generate_qr_data_uri(text: str) -> str:
+    if not text:
+        return ""
+    try:
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_Q,
+            box_size=6,
+            border=2,
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        image = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{encoded}"
+    except Exception as exc:
+        current_app.logger.warning("Failed to render QR data URI: %s", exc)
+        return ""
+
+
+def _normalize_remote_mode(mode: Any) -> str:
+    try:
+        value = str(mode or "").strip().lower()
+    except Exception:
+        value = ""
+    return "receipts" if value == "receipts" else "invoices"
 
 
 def _remote_qr_now() -> datetime.datetime:
@@ -3343,9 +3403,10 @@ def api_qr_remote_start():
     _purge_remote_sessions()
     owner = _ensure_remote_owner_token()
     payload = request.get_json(silent=True) or {}
-    mode = str(payload.get("mode") or "").strip().lower()
-    if mode not in ("receipts", "invoices"):
-        mode = "receipts" if payload.get("receipts") else "invoices"
+    requested_mode = payload.get("mode")
+    mode = _normalize_remote_mode(requested_mode)
+    if requested_mode is None and payload.get("receipts"):
+        mode = "receipts"
 
     now = _remote_qr_now()
     session_id = secrets.token_urlsafe(9)
@@ -3374,12 +3435,14 @@ def api_qr_remote_start():
             entry["id"] = session_id
         REMOTE_QR_SESSIONS[session_id] = entry
 
-    connect_url = url_for("mobile_qr_scanner", session=session_id, token=push_secret, _external=True)
+    connect_url = _build_external_url("mobile_qr_scanner", session=session_id, token=push_secret)
+    qr_image = _generate_qr_data_uri(connect_url)
 
     return jsonify({
         "ok": True,
         "session_id": session_id,
         "connect_url": connect_url,
+        "qr_image": qr_image,
         "expires_at": expires_at.isoformat(),
         "expires_in": int((expires_at - now).total_seconds()),
         "mode": mode,
@@ -3466,6 +3529,8 @@ def api_qr_remote_attach():
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id") or data.get("session")
     token = data.get("token") or data.get("secret")
+    mode = data.get("mode")
+
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
 
@@ -3481,6 +3546,9 @@ def api_qr_remote_attach():
         if expires_at and now > expires_at:
             REMOTE_QR_SESSIONS.pop(session_id, None)
             return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        if mode is not None:
+            entry["mode"] = _normalize_remote_mode(mode)
 
         entry["attached"] = True
         entry["attached_at"] = now
@@ -3504,6 +3572,7 @@ def api_qr_remote_heartbeat():
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id") or data.get("session")
     token = data.get("token") or data.get("secret")
+    mode = data.get("mode")
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
 
@@ -3521,15 +3590,60 @@ def api_qr_remote_heartbeat():
             return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
 
         entry["last_seen"] = now
+        if mode is not None:
+            entry["mode"] = _normalize_remote_mode(mode)
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         expires_at = entry.get("expires_at")
 
         response = {
             "ok": True,
             "expires_at": expires_at.isoformat() if expires_at else None,
+            "mode": entry.get("mode") or "invoices",
         }
 
     return jsonify(response)
+
+
+@app.post("/api/qr/remote/update")
+def api_qr_remote_update():
+    _purge_remote_sessions()
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    if not session_id:
+        return jsonify(ok=False, error="Λείπει το αναγνωριστικό συνεδρίας."), 400
+
+    if "mode" not in data:
+        return jsonify(ok=False, error="Λείπει η λειτουργία."), 400
+
+    token = data.get("token") or data.get("secret")
+    desired_mode = _normalize_remote_mode(data.get("mode"))
+    owner = session.get("_remote_qr_owner")
+    now = _remote_qr_now()
+
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+
+        authorized = False
+        if owner and entry.get("owner_token") == owner:
+            authorized = True
+        elif token and entry.get("push_secret") == token:
+            authorized = True
+
+        if not authorized:
+            return jsonify(ok=False, error="Μη εξουσιοδοτημένη αλλαγή."), 403
+
+        entry["mode"] = desired_mode
+        entry["last_seen"] = now
+        entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+        expires_at = entry.get("expires_at")
+
+    return jsonify(
+        ok=True,
+        mode=desired_mode,
+        expires_at=expires_at.isoformat() if expires_at else None,
+    )
 
 
 @app.post("/api/qr/remote/push")
@@ -3539,6 +3653,7 @@ def api_qr_remote_push():
     session_id = data.get("session_id") or data.get("session")
     token = data.get("token") or data.get("secret")
     raw_value = (data.get("payload") or data.get("raw") or "").strip()
+    mode = data.get("mode")
 
     if not session_id or not token or not raw_value:
         return jsonify(ok=False, error="Λείπουν δεδομένα προς αποστολή."), 400
@@ -3565,6 +3680,9 @@ def api_qr_remote_push():
             "pushed_at": now.isoformat(),
             "source": "remote",
         }
+
+        if mode is not None:
+            entry["mode"] = _normalize_remote_mode(mode)
 
         entry["payload"] = payload
         entry["version"] = (entry.get("version") or 0) + 1
@@ -3644,7 +3762,7 @@ def mobile_qr_scanner():
         entry.setdefault("mobile_visits", 0)
         entry["mobile_visits"] += 1
         entry["mobile_agent"] = request.headers.get("User-Agent", "")
-        mode = entry.get("mode") or "invoices"
+        mode = _normalize_remote_mode(entry.get("mode"))
         expires_iso = expires_at.isoformat() if expires_at else ""
 
     return render_template(

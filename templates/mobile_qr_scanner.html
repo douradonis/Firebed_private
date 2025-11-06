@@ -79,6 +79,30 @@
       flex-wrap: wrap;
       margin-bottom: 16px;
     }
+    .mode-toggle {
+      display: inline-flex;
+      gap: 0;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #cbd5f5;
+      background: #e2e8f0;
+      margin-bottom: 16px;
+    }
+    .mode-toggle button {
+      flex: 1 1 auto;
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px 14px;
+      color: #0f172a;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .mode-toggle button.active {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+    }
     select,
     button {
       font-size: 0.95rem;
@@ -162,6 +186,12 @@
       .controls {
         flex-direction: column;
       }
+      .mode-toggle {
+        width: 100%;
+      }
+      .mode-toggle button {
+        width: 100%;
+      }
       select,
       button {
         width: 100%;
@@ -187,6 +217,11 @@
         <select id="cameraSelect" aria-label="Επιλογή κάμερας" disabled></select>
         <button id="startStopButton" class="primary" type="button" disabled>Εκκίνηση σάρωσης</button>
         <button id="torchToggle" type="button" disabled>Φλας μη διαθέσιμο</button>
+      </div>
+
+      <div class="mode-toggle" role="group" aria-label="Επιλογή λειτουργίας αποστολής" id="modeToggle">
+        <button type="button" data-mode-option="invoices">Τιμολόγια</button>
+        <button type="button" data-mode-option="receipts">Αποδείξεις</button>
       </div>
 
       <div id="qr-reader"></div>
@@ -229,6 +264,9 @@
       const resultEl = document.getElementById('mobileResult');
       const expiresEl = document.getElementById('expiresInfo');
       const modeBadge = document.getElementById('modeBadge');
+      const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
+
+      CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
 
       let html5QrCode = null;
       let cameras = [];
@@ -248,9 +286,50 @@
         else statusEl.classList.remove('error','success');
       }
 
+      function applyMode(newMode){
+        const normalized = newMode === 'receipts' ? 'receipts' : 'invoices';
+        const changed = normalized !== CFG.mode;
+        CFG.mode = normalized;
+        updateModeBadge();
+        return { mode: normalized, changed };
+      }
+
+      async function sendModeUpdate(mode){
+        if (!CFG.sessionId || !CFG.token) return;
+        try {
+          const res = await fetch('/api/qr/remote/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = data && data.error ? data.error : 'Δεν ενημερώθηκε η λειτουργία.';
+            setStatus(message, 'error');
+            return;
+          }
+          applyMode(data.mode || mode);
+          if (data.expires_at){
+            CFG.expiresAt = data.expires_at;
+            updateExpiryCountdown();
+          }
+        } catch (err){
+          console.warn('sendModeUpdate failed', err);
+          setStatus('Δεν ήταν δυνατή η ενημέρωση λειτουργίας.', 'error');
+        }
+      }
+
       function updateModeBadge(){
-        if (!modeBadge) return;
-        modeBadge.textContent = CFG.mode === 'receipts' ? 'Αποδείξεις' : 'Τιμολόγια';
+        if (modeBadge){
+          modeBadge.textContent = CFG.mode === 'receipts' ? 'Αποδείξεις' : 'Τιμολόγια';
+        }
+        modeButtons.forEach(btn => {
+          if (!btn) return;
+          const target = btn.getAttribute('data-mode-option');
+          const active = target === 'receipts' ? CFG.mode === 'receipts' : CFG.mode !== 'receipts';
+          btn.classList.toggle('active', active);
+        });
       }
 
       function updateExpiryCountdown(){
@@ -308,11 +387,16 @@
       }
 
       async function listCameras(){
-        try {
-          cameras = await Html5Qrcode.getCameras();
-        } catch (err) {
-          console.warn('getCameras failed', err);
+        if (typeof window.Html5Qrcode === 'undefined'){
+          setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
           cameras = [];
+        } else {
+          try {
+            cameras = await window.Html5Qrcode.getCameras();
+          } catch (err) {
+            console.warn('getCameras failed', err);
+            cameras = [];
+          }
         }
 
         if (!cameraSelect) return;
@@ -341,17 +425,17 @@
 
       async function startScanner(preferredId){
         if (!ensureSecureContext()) return;
-        if (!Html5Qrcode) {
+        if (typeof window.Html5Qrcode === 'undefined') {
           setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
           return;
         }
         try {
           if (!html5QrCode) {
-            const supportedFormats = (window.Html5QrcodeSupportedFormats && Html5QrcodeSupportedFormats.QR_CODE)
-              ? [Html5QrcodeSupportedFormats.QR_CODE]
+            const supportedFormats = (window.Html5QrcodeSupportedFormats && window.Html5QrcodeSupportedFormats.QR_CODE)
+              ? [window.Html5QrcodeSupportedFormats.QR_CODE]
               : undefined;
             const ctorConfig = supportedFormats ? { formatsToSupport: supportedFormats } : undefined;
-            html5QrCode = new Html5Qrcode(readerId, ctorConfig);
+            html5QrCode = new window.Html5Qrcode(readerId, ctorConfig);
           }
           const cameraConfig = preferredId ? { deviceId: { exact: preferredId } } : { facingMode: 'environment' };
           const viewport = Math.max(220, Math.min(360, window.innerWidth - 48));
@@ -433,7 +517,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode })
           });
           if (res.status === 410) {
             setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
@@ -445,6 +529,9 @@
           if (data && data.expires_at) {
             CFG.expiresAt = data.expires_at;
             updateExpiryCountdown();
+          }
+          if (data && data.mode){
+            applyMode(data.mode);
           }
         } catch (err) {
           console.warn('heartbeat failed', err);
@@ -464,7 +551,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
@@ -473,7 +560,9 @@
             disableControls();
             return;
           }
-          CFG.mode = data.mode || CFG.mode;
+          if (data.mode){
+            applyMode(data.mode);
+          }
           CFG.expiresAt = data.expires_at || CFG.expiresAt;
           updateModeBadge();
           updateExpiryCountdown();
@@ -497,7 +586,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
@@ -560,6 +649,18 @@
             await startScanner(cameraSelect ? cameraSelect.value : undefined);
           }
         }
+      });
+
+      modeButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const choice = btn.getAttribute('data-mode-option');
+          const { mode, changed } = applyMode(choice);
+          if (changed){
+            setStatus(mode === 'receipts' ? 'Η συσκευή θα στέλνει αποδείξεις.' : 'Η συσκευή θα στέλνει τιμολόγια.', 'info');
+          }
+          await sendModeUpdate(mode);
+        });
       });
 
       updateModeBadge();

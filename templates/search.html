@@ -263,6 +263,14 @@
       <span id="qrRemoteMode" class="px-2 py-1 rounded-full bg-slate-100 text-slate-600"></span>
     </div>
 
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="text-sm font-medium text-gray-600">Λειτουργία αποστολής</div>
+      <div class="inline-flex overflow-hidden rounded-lg border border-sky-200 bg-slate-50" role="group" aria-label="Επιλογή λειτουργίας σάρωσης">
+        <button type="button" id="qrRemoteModeInvoices" data-remote-mode-option="invoices" class="px-3 py-2 text-sm font-medium text-slate-600 hover:bg-sky-100 focus:outline-none">Τιμολόγια</button>
+        <button type="button" id="qrRemoteModeReceipts" data-remote-mode-option="receipts" class="px-3 py-2 text-sm font-medium text-slate-600 hover:bg-sky-100 focus:outline-none">Αποδείξεις</button>
+      </div>
+    </div>
+
     <div class="flex justify-center">
       <div id="qrRemoteCode" class="p-3 bg-white rounded-lg border border-gray-200 shadow-inner">
         <div id="qrRemoteCodePlaceholder" class="w-56 h-56 flex items-center justify-center text-gray-400 text-sm">Δημιουργία QR…</div>
@@ -301,9 +309,6 @@
 
 <script src="/static/loop_hard_guard.js"></script>
 <script src="{{ url_for('static', filename='repeat_flow_guard.js') }}"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" referrerpolicy="no-referrer"></script>
-
-
 <script>
 function isReceiptsOn(){
   const r = document.getElementById('useReceiptsSwitch');
@@ -1842,6 +1847,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     const countdownEl = document.getElementById('qrRemoteCountdown');
     const linkWrapper = document.getElementById('qrRemoteLinkWrapper');
     const linkValue = document.getElementById('qrRemoteLinkValue');
+    const modeButtons = Array.from(modal.querySelectorAll('[data-remote-mode-option]'));
 
     let sessionId = null;
     let pollVersion = 0;
@@ -1850,6 +1856,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     let connectUrl = '';
     let expiresAt = null;
     let remoteMode = currentScannerMode();
+    let qrImageData = '';
+    let suppressPageNotify = false;
 
     function setStatus(text, tone){
       if (!statusEl) return;
@@ -1862,39 +1870,105 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       modeBadge.textContent = remoteMode === 'receipts' ? 'Αποδείξεις' : 'Τιμολόγια';
     }
 
+    function highlightModeButtons(){
+      modeButtons.forEach(btn => {
+        if (!btn) return;
+        const target = btn.getAttribute('data-remote-mode-option');
+        if (!target) return;
+        const active = (target === 'receipts' && remoteMode === 'receipts') || (target === 'invoices' && remoteMode !== 'receipts');
+        btn.classList.toggle('bg-sky-600', active);
+        btn.classList.toggle('text-white', active);
+        btn.classList.toggle('shadow-inner', active);
+        if (!active){
+          btn.classList.remove('bg-sky-600', 'text-white', 'shadow-inner');
+        }
+      });
+    }
+
+    function syncPageToggle(mode){
+      const switchEl = document.getElementById('useReceiptsSwitch');
+      if (!switchEl) return;
+      const shouldBeReceipts = mode === 'receipts';
+      if (switchEl.checked === shouldBeReceipts) return;
+      suppressPageNotify = true;
+      switchEl.checked = shouldBeReceipts;
+      try {
+        switchEl.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (_) {}
+      setTimeout(() => { suppressPageNotify = false; }, 0);
+    }
+
+    function setRemoteMode(newMode, options){
+      options = options || {};
+      const normalized = newMode === 'receipts' ? 'receipts' : 'invoices';
+      const changed = normalized !== remoteMode;
+      remoteMode = normalized;
+      updateModeBadge();
+      highlightModeButtons();
+      if (options.syncPage !== false){
+        syncPageToggle(normalized);
+      }
+      return { mode: normalized, changed };
+    }
+
+    async function sendModeUpdate(nextMode, options){
+      options = options || {};
+      if (!sessionId) return;
+      try {
+        const res = await fetch('/api/qr/remote/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ session_id: sessionId, mode: nextMode })
+        });
+        const data = await res.json();
+        if (!res.ok || !data || data.ok === false){
+          const message = data && data.error ? data.error : 'Αποτυχία ενημέρωσης λειτουργίας.';
+          setStatus(message, 'error');
+          return;
+        }
+        const appliedMode = data.mode === 'receipts' ? 'receipts' : 'invoices';
+        remoteMode = appliedMode;
+        updateModeBadge();
+        highlightModeButtons();
+        if (options.syncPage !== false){
+          syncPageToggle(appliedMode);
+        }
+      } catch (err){
+        console.warn('remote mode update failed', err);
+        setStatus('Δεν ήταν δυνατή η ενημέρωση λειτουργίας.', 'error');
+      }
+    }
+
     function clearCode(){
       if (!codeContainer) return;
       Array.from(codeContainer.querySelectorAll('canvas, img, div[data-generated="1"]')).forEach(el => el.remove());
     }
 
-    function renderQr(text){
+    function renderQr(text, imageData){
       if (!codeContainer) return;
       clearCode();
       if (codePlaceholder){
         codePlaceholder.style.display = 'none';
       }
-      if (window.QRCode && typeof window.QRCode.toCanvas === 'function'){
-        const canvas = document.createElement('canvas');
-        QRCode.toCanvas(canvas, text, { width: 240, margin: 1 }, function(err){
-          if (err){
-            console.warn('QRCode render failed', err);
-            const fallback = document.createElement('div');
-            fallback.dataset.generated = '1';
-            fallback.className = 'w-56 h-56 flex items-center justify-center text-center text-gray-500 text-sm p-4';
-            fallback.textContent = 'Δεν ήταν δυνατή η δημιουργία QR. Αντέγραψε τον σύνδεσμο.';
-            codeContainer.appendChild(fallback);
-            return;
-          }
-          canvas.dataset.generated = '1';
-          codeContainer.appendChild(canvas);
-        });
-      } else {
+      if (imageData){
+        const img = document.createElement('img');
+        img.dataset.generated = '1';
+        img.src = imageData;
+        img.alt = 'QR σύνδεσμος απομακρυσμένης σάρωσης';
+        img.className = 'w-56 h-56 object-contain';
+        codeContainer.appendChild(img);
+        return;
+      }
+      if (text){
         const fallback = document.createElement('div');
         fallback.dataset.generated = '1';
         fallback.className = 'w-56 h-56 flex items-center justify-center text-center text-gray-500 text-sm p-4';
-        fallback.textContent = 'Δεν φορτώθηκε η βιβλιοθήκη QR. Αντέγραψε τον σύνδεσμο.';
+        fallback.textContent = 'Αντέγραψε τον σύνδεσμο και άνοιξέ τον χειροκίνητα.';
         codeContainer.appendChild(fallback);
+        return;
       }
+      resetPlaceholder();
     }
 
     function resetPlaceholder(){
@@ -1902,10 +1976,25 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         codePlaceholder.style.display = 'flex';
         codePlaceholder.textContent = 'Δημιουργία QR…';
       }
+      qrImageData = '';
     }
 
     function stopPoll(){ if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; } }
     function stopCountdown(){ if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; } }
+
+    setRemoteMode(remoteMode, { syncPage: false });
+
+    modeButtons.forEach(btn => {
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        const choice = btn.getAttribute('data-remote-mode-option');
+        const { mode, changed } = setRemoteMode(choice, { syncPage: true });
+        if (changed){
+          setStatus(mode === 'receipts' ? 'Η αποστολή θα στοχεύει στις αποδείξεις.' : 'Η αποστολή θα στοχεύει στα τιμολόγια.', 'info');
+        }
+        await sendModeUpdate(mode);
+      });
+    });
 
     function updateCountdown(){
       if (!countdownEl){
@@ -1964,8 +2053,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
         pollVersion = data.version || pollVersion;
         if (data.mode){
-          remoteMode = data.mode === 'receipts' ? 'receipts' : 'invoices';
-          updateModeBadge();
+          setRemoteMode(data.mode, { syncPage: true });
         }
 
         if (data.expires_at){
@@ -2019,8 +2107,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       pollVersion = 0;
       connectUrl = '';
       expiresAt = null;
-      remoteMode = currentScannerMode();
-      updateModeBadge();
+      setRemoteMode(currentScannerMode(), { syncPage: true });
 
       try {
         const res = await fetch('/api/qr/remote/start', {
@@ -2042,8 +2129,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         pollVersion = data.version || 0;
 
         if (data.mode){
-          remoteMode = data.mode === 'receipts' ? 'receipts' : 'invoices';
-          updateModeBadge();
+          setRemoteMode(data.mode, { syncPage: true });
         }
         if (data.expires_at){
           const ts = Date.parse(data.expires_at);
@@ -2054,7 +2140,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
 
         if (connectUrl){
-          renderQr(connectUrl);
+          qrImageData = data.qr_image || '';
+          renderQr(connectUrl, qrImageData);
           if (linkWrapper && linkValue){
             linkWrapper.style.display = 'block';
             linkValue.textContent = connectUrl;
@@ -2101,8 +2188,18 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       }
     }
 
+    function handlePageModeChange(nextMode){
+      if (suppressPageNotify) return;
+      const { mode, changed } = setRemoteMode(nextMode, { syncPage: false });
+      if (sessionId && changed){
+        sendModeUpdate(mode, { syncPage: false });
+        setStatus(mode === 'receipts' ? 'Η λειτουργία άλλαξε σε Αποδείξεις.' : 'Η λειτουργία άλλαξε σε Τιμολόγια.', 'info');
+      }
+    }
+
     function open(){
       modal.classList.remove('hidden');
+      setRemoteMode(currentScannerMode(), { syncPage: true });
       if (!sessionId){
         startSession();
       } else {
@@ -2121,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     restartBtn?.addEventListener('click', (evt) => { evt.preventDefault(); startSession(); });
     copyBtn?.addEventListener('click', (evt) => { evt.preventDefault(); copyLink(); });
 
-    return { open, close, restart: startSession };
+    return { open, close, restart: startSession, pageModeChanged: handlePageModeChange };
   }
 })();
 
@@ -2399,6 +2496,9 @@ function prefillSummaryModal(){
   // αλλιώς άφησε κενό => θα εμφανιστεί "Γενικό"
   const name = (document.getElementById('charProfileSelect')?.value || "");
   setActiveProfileHint(name);
+  try {
+    remoteCtrl?.pageModeChanged?.(currentScannerMode());
+  } catch (err) { console.warn('remoteCtrl pageModeChanged failed', err); }
 });
 
   // find or create an URL input (if not present in template we create one dynamically)
