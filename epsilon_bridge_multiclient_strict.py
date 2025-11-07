@@ -669,6 +669,10 @@ def export_multiclient_strict(
     base_invoices_dir: str = "data/epsilon",
     base_exports_dir: str = "exports",
 ):
+    """
+    ΜΟΝΟ export: κρατάει ΚΙΝΗΣΕΙΣ όπως είναι και χτίζει ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ
+    χωρίς να αλλάξει τίποτα στη λογική εύρεσης λογαριασμών/κατηγοριών/ΦΠΑ.
+    """
     preview = build_preview_strict_multiclient(
         vat=vat,
         credentials_json=credentials_json,
@@ -681,9 +685,10 @@ def export_multiclient_strict(
         return False, "", preview["issues"]
 
     paths = resolve_paths_for_vat(vat, invoices_json, client_db, out_xlsx, base_invoices_dir, base_exports_dir)
-    rows = preview["rows"]
+    rows = preview["rows"]           # rows από τον builder (ΔΕΝ τα αλλάζουμε)
+    issues = []                      # δεν προσθέτουμε νέα issues εδώ
 
-    # -------- Flatten σε ΚΙΝΗΣΕΙΣ (όπως πριν) --------
+    # ---------- Φτιάξε ΚΙΝΗΣΕΙΣ όπως ΕΙΝΑΙ (δεν πειράζουμε mapping/λογικές) ----------
     flat: List[Dict[str, Any]] = []
     artid = 1
     for rec in rows:
@@ -719,15 +724,27 @@ def export_multiclient_strict(
         "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE","OTHEREXPEND"
     ])
 
-    # -------- ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ (2ο φύλλο) --------
-    # 1) Συλλογή CUSTID που χρησιμοποιήθηκαν
-    used_ids: List[Any] = []
+    # ---------- Διαβάσε ρυθμίσεις για supplier mode (χωρίς να αλλάξεις τίποτα άλλο) ----------
+    try:
+        credentials = _safe_json_read(credentials_json, default=[])
+    except Exception:
+        credentials = []
+    settings_all = _safe_json_read(cred_settings_json, default={})
+
+    cred_list = credentials if isinstance(credentials, list) else [credentials]
+    active = next((c for c in cred_list if str(c.get("vat")) == str(vat)), (cred_list[0] if cred_list else {}))
+    apod_type = (active or {}).get("apodeixakia_type", "")
+    apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier",""))
+
+    # ---------- Χτίσε ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ με ΜΟΝΗ προσαρμογή για supplier mode ----------
+    # 1) used CUSTIDs από το df_moves
+    used_ids = []
     if not df_moves.empty and "CUSTID" in df_moves.columns:
         used_ids = [x for x in df_moves["CUSTID"].tolist() if x not in (None, "", float("nan"))]
-    used_ids_unique = []
+
+    used_ids_unique: List[Any] = []
     for x in used_ids:
         try:
-            # διατήρησε ακέραιο αν είναι ακέραιος (170.0 -> 170)
             fx = float(x)
             x = int(fx) if fx.is_integer() else x
         except Exception:
@@ -735,71 +752,38 @@ def export_multiclient_strict(
         if x not in used_ids_unique:
             used_ids_unique.append(x)
 
-    # 2) Χάρτης από client_db (αν υπάρχει): AFM->ID και ονόματα
-    id_to_afm: Dict[Any, str] = {}
-    id_to_name: Dict[Any, str] = {}
-
-    cm = {}
-    try:
-        if paths["client_db"] and os.path.exists(paths["client_db"]):
-            cm = _load_client_map(paths["client_db"])  # --> {"by_afm":{afm:id}, "ids":set(), "names":{afm:name}, ...}
-    except Exception:
-        cm = {}
-
-    by_afm = (cm or {}).get("by_afm", {}) or {}
-    names  = (cm or {}).get("names", {}) or {}
-
-    for afm_norm, cid in by_afm.items():
-        if cid not in id_to_afm:
-            id_to_afm[cid] = str(afm_norm)
-            nm = names.get(afm_norm, "")
-            if nm:
-                id_to_name[cid] = nm
-
-    # 3) Συμπλήρωμα από τις ίδιες τις εγγραφές (αν λείπει από client_db)
-    #    Παίρνουμε AFM/Name από τα preview rows.
-    fallback_by_id: Dict[Any, Tuple[str,str]] = {}
+    # 2) Χτίσε mapping CUSTID -> (AFM, NAME) από τα rows (χωρίς αλλαγές σε λογικές)
+    partners: Dict[Any, Tuple[str,str]] = {}
     for rec in rows:
         cid = rec.get("CUSTID")
-        if cid in (None, ""):
+        if cid in (None, ""): 
             continue
-        afm = str(rec.get("AFM_ISSUER") or "").strip()
-        nm  = str(rec.get("ISSUER_NAME") or "").strip()
-        if cid not in fallback_by_id and (afm or nm):
-            fallback_by_id[cid] = (afm, nm)
+        afm = _norm_afm(rec.get("AFM_ISSUER") or rec.get("AFM") or "")
+        nm  = str(rec.get("ISSUER_NAME") or rec.get("Name") or "").strip()
+        if cid not in partners:
+            partners[cid] = (afm, nm)
 
-    # 4) Ειδική μέριμνα για αποδείξεις λιανικής χωρίς client_db: 000000000 / ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ
-    receipt_ids = set()
-    for rec in rows:
-        is_receipt = any(k in str(rec.get("DOCTYPE","")).lower() for k in ["receipt","αποδείξ","αποδειξ","λιαν"])
-        if is_receipt and rec.get("CUSTID") not in (None, ""):
-            receipt_ids.add(rec.get("CUSTID"))
+    # 3) Αν είναι supplier mode και ο supplier id χρησιμοποιήθηκε, ΕΠΙΒΑΛΕ default “000000000 / ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ”
+    if str(apod_type).lower() == "supplier" and apod_supplier_id not in (None, ""):
+        if apod_supplier_id in used_ids_unique:
+            partners[apod_supplier_id] = ("000000000", "ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ")
 
+    # 4) Κράτα ΜΟΝΟ όσους χρησιμοποιήθηκαν πράγματι στις κινήσεις (με τη σωστή σειρά)
     partners_rows: List[Dict[str, Any]] = []
     for cid in used_ids_unique:
-        afm = id_to_afm.get(cid, "")
-        nm  = id_to_name.get(cid, "")
-        if not afm or not nm:
-            fb = fallback_by_id.get(cid)
-            if fb:
-                afm = afm or str(fb[0] or "")
-                nm  = nm  or str(fb[1] or "")
-        # Αν είναι id αποδείξεων και ακόμη δεν έχουμε AFM/Name, βάλε default (NEW συμπεριφορά)
-        if (cid in receipt_ids) and (not afm and not nm):
-            afm = "000000000"
-            nm  = "ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ"
+        afm, nm = partners.get(cid, ("", ""))
         partners_rows.append({"Α/Α": cid, "ΑΦΜ": afm, "ΕΠΩΝΥΜΙΑ": nm})
 
-    # Καθάρισμα/ταξινόμηση
     df_partners = pd.DataFrame(partners_rows, columns=["Α/Α","ΑΦΜ","ΕΠΩΝΥΜΙΑ"]).drop_duplicates(subset=["Α/Α"])
     try:
-        df_partners.sort_values(by=["Α/Α"], inplace=True, kind="mergesort", ignore_index=True)
+        df_partners["_k"] = df_partners["Α/Α"].apply(lambda x: int(x) if str(x).isdigit() else x)
+        df_partners = df_partners.sort_values(by="_k", kind="mergesort").drop(columns=["_k"])
     except Exception:
         pass
 
-    # 5) Γραφή Excel με 2 φύλλα
+    # ---------- Γράψε Excel: ΚΙΝΗΣΕΙΣ + ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ ----------
     with pd.ExcelWriter(paths["out"], engine="xlsxwriter", datetime_format="dd/mm/yyyy") as writer:
-        # Sheet 1: ΚΙΝΗΣΕΙΣ (όπως πριν)
+        # ΚΙΝΗΣΕΙΣ (ίδιο format όπως πριν)
         df_moves.to_excel(writer, index=False, sheet_name="ΚΙΝΗΣΕΙΣ")
         wb, ws = writer.book, writer.sheets["ΚΙΝΗΣΕΙΣ"]
         fmt_num  = wb.add_format({"num_format":"0.00"})
@@ -814,21 +798,19 @@ def export_multiclient_strict(
         for n,w in [("REASON",40),("INVOICE",18),("LCODE_DETAIL",16),("LCODE",16)]:
             if n in idx: ws.set_column(idx[n], idx[n], w)
 
-        # Sheet 2: ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ
-        # Αν δεν προέκυψε τίποτα, φτιάξε έστω άδειο με headers
+        # ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ
         if df_partners.empty:
             df_partners = pd.DataFrame(columns=["Α/Α","ΑΦΜ","ΕΠΩΝΥΜΙΑ"])
-        df_partners.to_excel(writer, index=False, sheet_name="ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ")
-        ws2 = writer.sheets["ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ"]
-        # widths
+        df_partners.to_excel(writer, index=False, sheet_name="ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ")
+        ws2 = writer.sheets["ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ"]
         try:
-            ws2.set_column(0, 0, 8, fmt_int)    # Α/Α
-            ws2.set_column(1, 1, 14)            # ΑΦΜ
-            ws2.set_column(2, 2, 40)            # ΕΠΩΝΥΜΙΑ
+            ws2.set_column(0, 0, 8,  fmt_int)  # Α/Α
+            ws2.set_column(1, 1, 14)           # ΑΦΜ
+            ws2.set_column(2, 2, 40)           # ΕΠΩΝΥΜΙΑ
         except Exception:
             pass
 
-    return True, paths["out"], []
+    return True, paths["out"], issues
 
 
 def run_and_report_dynamic(
