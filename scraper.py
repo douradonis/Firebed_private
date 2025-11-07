@@ -616,6 +616,30 @@ def scrape_impact(url):
 
 # -------------------- EPSILON --------------------
 def scrape_epsilon(url):
+    # --- ΝΕΟ: κανονικοποίηση fd → DocViewer/UUID ---
+    def _normalize_fd_to_docviewer(u: str) -> str:
+        p = urlparse(u)
+        # Αν είναι ήδη DocViewer, μην το πειράξεις
+        if "/DocViewer/" in p.path:
+            return u
+        # Πιάσε το κομμάτι μετά το /fd/
+        m = re.search(r"/fd/([^/?#]+)", p.path, flags=re.I)
+        if not m:
+            return u
+        token = m.group(1)
+        # Κόψε ό,τι υπάρχει μετά το ':'
+        token = token.split(":")[0]
+        # Κράτα μόνο hex και βεβαιώσου ότι είναι 32 ψηφία
+        hexonly = re.sub(r"[^0-9a-fA-F]", "", token)
+        if len(hexonly) != 32:
+            return u
+        # Μετατροπή 32-hex σε UUID (8-4-4-4-12)
+        docid = f"{hexonly[0:8]}-{hexonly[8:12]}-{hexonly[12:16]}-{hexonly[16:20]}-{hexonly[20:32]}"
+        return f"{p.scheme}://{p.netloc}/DocViewer/{docid}"
+
+    # Εφάρμοσε κανονικοποίηση στην είσοδο
+    url = _normalize_fd_to_docviewer(url)
+
     parsed = urlparse(url)
     base = f"{parsed.scheme}://{parsed.netloc}"
     # documentId
@@ -628,6 +652,7 @@ def scrape_epsilon(url):
             docid = q["documentId"][0]
     if not docid:
         return None, None, {"error": "documentId not found", "attempt_url": url}
+
     getfile_url = f"{base}/filedocument/getfile?fileType=3&documentId={docid}"
     sess = requests.Session()
     sess.headers.update(HEADERS)
@@ -636,6 +661,7 @@ def scrape_epsilon(url):
         r.raise_for_status()
     except Exception as e:
         return None, None, {"error": f"Request failed: {e}", "attempt_url": getfile_url}
+
     mark = None
     counterpart_vat = None
     if "xml" in r.headers.get("Content-Type", "").lower() or r.text.strip().startswith("<"):
@@ -663,6 +689,7 @@ def scrape_epsilon(url):
         m2 = re.search(r"(?:AFM|vatNumber|crvatnumber)[\"']?\s*[:=]?\s*[\"']?(\d{9})[\"']?", txt, re.I)
         if m2:
             counterpart_vat = m2.group(1)
+
     return mark, counterpart_vat, {"attempt_url": getfile_url, "status_code": r.status_code}
 
 

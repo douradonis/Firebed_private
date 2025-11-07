@@ -986,11 +986,12 @@ def scrape_impact(url, timeout=15, debug=False):
 def scrape_epsilon(url, timeout=20, debug=False):
     """
     Getfile-only approach for Epsilon DocViewer links.
-    Returns dict with:
+    ΔΕΧΕΤΑΙ και fd-links (π.χ. .../fd/8d885db2d8c14cbc320608de01edd6d3:97)
+    και τα μετατρέπει αυτόματα σε DocViewer/UUID.
+
+    Επιστρέφει dict με:
       issuer_vat, issue_date (dd/mm/YYYY), issuer_name,
-      progressive_aa (from aa / saa / s_aa / snumber), doc_type (invoiceType if present),
-      total_amount (comma decimal), MARK, is_invoice (bool), tried_url
-      --- NOTE: if invoiceType exists and is NOT one of 13.1,13.2,13.31 => treat as invoice
+      progressive_aa, doc_type, total_amount, MARK, is_invoice (bool), tried_url
     """
     from urllib.parse import urlparse, parse_qs
     import re, requests
@@ -1000,13 +1001,40 @@ def scrape_epsilon(url, timeout=20, debug=False):
 
     VAT_RE = re.compile(r"\b\d{9}\b")
     MARK_RE = re.compile(r"\b\d{15}\b")
-    NON_INVOICE_CODES = {"11.1", "11.2", "13.31"}  # these codes are NOT invoices; anything else (if present) => invoice
+    NON_INVOICE_CODES = {"11.1", "11.2", "13.31"}  # όχι τιμολόγια
+
+    # --- ΝΕΟ: Κανονικοποίηση fd → DocViewer ---
+    def _normalize_epsilon_url_to_docviewer(u: str) -> str:
+        try:
+            p = urlparse(u)
+            # αν είναι ήδη DocViewer, μην πειράξεις τίποτα
+            if "/DocViewer/" in p.path:
+                return u
+            # πιάσε το token μετά το /fd/
+            m = re.search(r"/fd/([^/?#]+)", p.path, flags=re.I)
+            if not m:
+                return u
+            token = m.group(1)
+            # κόψε οτιδήποτε μετά από ':'
+            token = token.split(":")[0]
+            # κράτα μόνο hex
+            hexonly = re.sub(r"[^0-9a-fA-F]", "", token)
+            if len(hexonly) != 32:
+                return u  # δεν είναι το αναμενόμενο format
+            # βάλε παύλες: 8-4-4-4-12
+            docid = f"{hexonly[0:8]}-{hexonly[8:12]}-{hexonly[12:16]}-{hexonly[16:20]}-{hexonly[20:32]}"
+            new_path = f"/DocViewer/{docid}"
+            return f"{p.scheme}://{p.netloc}{new_path}"
+        except Exception:
+            return u
+
+    # εφαρμόζουμε την κανονικοποίηση
+    url = _normalize_epsilon_url_to_docviewer(url)
 
     def _clean_amount_to_comma(raw):
         if raw is None: return None
         s = str(raw).strip()
         s = s.replace("€", "").replace("EUR", "").replace("\xa0", "").replace(" ", "")
-        # handle separators: prefer comma as decimal separator
         if '.' in s and ',' in s:
             if s.rfind(',') > s.rfind('.'):
                 s = s.replace('.', '')
@@ -1027,7 +1055,6 @@ def scrape_epsilon(url, timeout=20, debug=False):
     def _fmt_date_to_ddmmyyyy(s):
         if not s: return None
         s = str(s).strip()
-        # try iso first
         try:
             dt = datetime.fromisoformat(s.split()[0])
             return dt.strftime("%d/%m/%Y")
@@ -1059,7 +1086,6 @@ def scrape_epsilon(url, timeout=20, debug=False):
             "total_amount": None,
             "MARK": None,
         }
-        # issuer VAT (supplier)
         for candidate_tag in ("AccountingSupplierParty", "SupplierParty", "Supplier", "AccountingSupplier"):
             for cand in root.findall(".//{*}" + candidate_tag):
                 for el in cand.iter():
@@ -1068,76 +1094,54 @@ def scrape_epsilon(url, timeout=20, debug=False):
                         text = (el.text or "").strip()
                         m = VAT_RE.search(text)
                         if m:
-                            out["issuer_vat"] = m.group(0)
-                            break
-                if out["issuer_vat"]:
-                    break
-            if out["issuer_vat"]:
-                break
-        # xml-wide vat fallback
+                            out["issuer_vat"] = m.group(0); break
+                if out["issuer_vat"]: break
+            if out["issuer_vat"]: break
         if not out["issuer_vat"]:
             txt = ET.tostring(root, encoding="utf-8", method="text").decode("utf-8")
             m = VAT_RE.search(txt)
             if m: out["issuer_vat"] = m.group(0)
-
-        # issue date - prefer invoiceIssueDate / IssueDate etc.
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if ln in ("invoiceissuedate", "issuedate", "issue_date", "date", "documentdate", "issue", "invoice_date"):
                 if el.text and el.text.strip():
-                    out["issue_date"] = _fmt_date_to_ddmmyyyy(el.text.strip())
-                    break
-
-        # issuer name
+                    out["issue_date"] = _fmt_date_to_ddmmyyyy(el.text.strip()); break
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if ln in ("partyname", "name", "companyname", "suppliername", "legalname"):
                 if el.text and el.text.strip():
-                    out["issuer_name"] = el.text.strip()
-                    break
-
-        # progressive aa (look for aa or sequence)
+                    out["issuer_name"] = el.text.strip(); break
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if ln in ("aa", "a_a", "saa", "sequence", "sequentialid", "sequentialidnumeric"):
                 txt = (el.text or "").strip()
                 if txt and re.search(r"\d{1,}", txt):
-                    out["progressive_aa"] = re.sub(r"\D", "", txt)
-                    break
-
-        # invoiceType -> doc_type
+                    out["progressive_aa"] = re.sub(r"\D", "", txt); break
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if ln in ("invoicetype", "invoicetypecode", "invoicetypeid", "invoicetypecode"):
                 if el.text and el.text.strip():
-                    out["doc_type"] = el.text.strip()
-                    break
-
-        # total amount
+                    out["doc_type"] = el.text.strip(); break
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if ln in ("payableamount", "legalmonetarytotal", "grandtotal", "totalamount", "amount", "payableamount"):
                 txt = (el.text or "").strip()
                 if txt and re.search(r"[0-9]", txt):
-                    out["total_amount"] = _clean_amount_to_comma(txt)
-                    break
+                    out["total_amount"] = _clean_amount_to_comma(txt); break
         if not out["total_amount"]:
             txt = ET.tostring(root, encoding="utf-8", method="text").decode("utf-8")
             m = re.search(r"([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{1,2})", txt)
             if m: out["total_amount"] = _clean_amount_to_comma(m.group(1))
-
-        # MARK
         for el in root.iter():
             ln = el.tag.split("}")[-1].lower()
             if "mark" in ln or "tmark" in ln:
                 txt = (el.text or "").strip()
                 mm = MARK_RE.search(txt)
                 if mm:
-                    out["MARK"] = mm.group(0)
-                    break
-
+                    out["MARK"] = mm.group(0); break
         return out
 
+    # --- extract documentId από DocViewer URL / ή από query ?documentId= ---
     parsed = urlparse(url)
     base = f"{parsed.scheme}://{parsed.netloc}"
     docid = None
@@ -1149,15 +1153,9 @@ def scrape_epsilon(url, timeout=20, debug=False):
             docid = q["documentId"][0]
 
     out = {
-        "issuer_vat": None,
-        "issue_date": None,
-        "issuer_name": None,
-        "progressive_aa": None,
-        "doc_type": None,
-        "total_amount": None,
-        "MARK": None,
-        "is_invoice": False,
-        "tried_url": None,
+        "issuer_vat": None, "issue_date": None, "issuer_name": None,
+        "progressive_aa": None, "doc_type": None, "total_amount": None,
+        "MARK": None, "is_invoice": False, "tried_url": None,
         "source": "Epsilon-getfile-only"
     }
 
@@ -1167,6 +1165,7 @@ def scrape_epsilon(url, timeout=20, debug=False):
 
     getfile_url = f"{base}/filedocument/getfile?fileType=3&documentId={docid}"
     out["tried_url"] = getfile_url
+
     sess = requests.Session()
     sess.headers.update({"User-Agent": "Mozilla/5.0", "Accept": "*/*", "Referer": url})
     try:
@@ -1180,55 +1179,35 @@ def scrape_epsilon(url, timeout=20, debug=False):
     text = r.text or ""
     ctype = (r.headers.get("Content-Type") or "").lower()
 
-    # Try XML first
     if "xml" in ctype or text.lstrip().startswith("<?xml") or re.search(r"<(Invoice|InvoicesDoc|cbc:Invoice|InvoiceLine)", text, flags=re.I):
         try:
             root = ET.fromstring(content)
             extracted = _extract_from_ubl_root(root)
             for k, v in extracted.items():
-                if v:
-                    out[k] = v
-            # NEW LOGIC: if doc_type exists and is NOT one of NON_INVOICE_CODES => it's an invoice
+                if v: out[k] = v
             itype = out.get("doc_type")
-            if itype:
-                itype_s = str(itype).strip()
-                if itype_s not in NON_INVOICE_CODES:
-                    out["is_invoice"] = True
-            # fallback detect word 'τιμολόγ'
+            if itype and str(itype).strip() not in NON_INVOICE_CODES:
+                out["is_invoice"] = True
             txt_all = ET.tostring(root, encoding="utf-8", method="text").decode("utf-8")
             if re.search(r"τιμολόγ", txt_all, flags=re.I):
                 out["is_invoice"] = True
         except Exception as e:
             if debug: print("XML parse error:", e)
-
     else:
-        # HTML parse fallbacks
         try:
             soup = BeautifulSoup(text, "html.parser")
-            # map of ids/names we expect
             id_map = {
-                "vatnumber": "issuer_vat",
-                "tdate": "issue_date",
-                "tamount": "total_amount",
-                "t_amount": "total_amount",
-                "bname": "issuer_name",
-                "saa": "progressive_aa",
-                "aa": "progressive_aa",
-                "s_aa": "progressive_aa",
-                "snumber": "progressive_aa",
-                "tmark": "MARK",
-                "dtype": "doc_type",
-                "invoiceType": "doc_type",
-                "t_date": "issue_date",
+                "vatnumber": "issuer_vat", "tdate": "issue_date",
+                "tamount": "total_amount", "t_amount": "total_amount",
+                "bname": "issuer_name", "saa": "progressive_aa",
+                "aa": "progressive_aa", "s_aa": "progressive_aa",
+                "snumber": "progressive_aa", "tmark": "MARK",
+                "dtype": "doc_type", "invoiceType": "doc_type", "t_date": "issue_date",
             }
             for idn, field in id_map.items():
                 el = soup.find(id=idn) or soup.find(attrs={"name": idn})
                 if not el: continue
-                val = None
-                if el.name in ("input", "textarea"):
-                    val = (el.get("value") or "").strip()
-                else:
-                    val = el.get_text(" ", strip=True).strip()
+                val = (el.get("value") or "").strip() if el.name in ("input", "textarea") else el.get_text(" ", strip=True).strip()
                 if not val: continue
                 if field == "total_amount":
                     out[field] = out[field] or _clean_amount_to_comma(val)
@@ -1243,34 +1222,24 @@ def scrape_epsilon(url, timeout=20, debug=False):
                 else:
                     out[field] = out[field] or val
 
-            # wide page fallbacks
             page_txt = soup.get_text(" ", strip=True)
             if not out["total_amount"]:
-                m = re.search(r"(?:Συνολική αξία|Συνολικού ποσού|Συνολική αξία)[^\d\w\n\r]*([0-9\.,\s€]+)", page_txt, flags=re.I)
-                if not m:
-                    m = re.search(r"€\s*([0-9\.,]+)", page_txt)
+                m = re.search(r"(?:Συνολική αξία|Συνολικού ποσού|Συνολική αξία)[^\d\w\n\r]*([0-9\.,\s€]+)", page_txt, flags=re.I) or re.search(r"€\s*([0-9\.,]+)", page_txt)
                 if m: out["total_amount"] = _clean_amount_to_comma(m.group(1))
             if not out["issuer_vat"]:
-                mv = VAT_RE.search(page_txt)
+                mv = re.search(r"\b\d{9}\b", page_txt)
                 if mv: out["issuer_vat"] = mv.group(0)
             if not out["issue_date"]:
                 md = re.search(r"(\d{2}\/\d{2}\/\d{4})", page_txt)
                 if md: out["issue_date"] = _fmt_date_to_ddmmyyyy(md.group(1))
 
-            # NEW LOGIC: if doc_type exists and is NOT one of NON_INVOICE_CODES => it's an invoice
-            if out.get("doc_type"):
-                dval = str(out["doc_type"]).strip()
-                if dval not in NON_INVOICE_CODES:
-                    out["is_invoice"] = True
-
-            # fallback text detection
+            if out.get("doc_type") and str(out["doc_type"]).strip() not in NON_INVOICE_CODES:
+                out["is_invoice"] = True
             if re.search(r"τιμολόγ", page_txt, flags=re.I):
                 out["is_invoice"] = True
-
         except Exception as e:
             if debug: print("HTML parse error on getfile response:", e)
 
-    # Normalize outputs
     if out["issuer_vat"]:
         m = VAT_RE.search(str(out["issuer_vat"]))
         out["issuer_vat"] = m.group(0) if m else re.sub(r"\D", "", str(out["issuer_vat"]))
@@ -1279,17 +1248,16 @@ def scrape_epsilon(url, timeout=20, debug=False):
     if out["total_amount"]:
         out["total_amount"] = _clean_amount_to_comma(out["total_amount"])
 
-    # final invoiceType numeric check (if doc_type has numeric code like '13.1' embedded)
     if not out["is_invoice"] and out.get("doc_type"):
         mcode = re.search(r"(\d{1,2}\.\d{1,2})", str(out["doc_type"]))
-        if mcode:
-            if mcode.group(1) not in NON_INVOICE_CODES:
-                out["is_invoice"] = True
+        if mcode and mcode.group(1) not in NON_INVOICE_CODES:
+            out["is_invoice"] = True
 
     if debug:
         print("scrape_epsilon (getfile-only) result:", out)
 
     return out
+
 
 def scrape_s1ecos(url, timeout=15, debug=False):
     """

@@ -139,11 +139,11 @@
         "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
         "amount": "8,75",
         "vat": "2,10",
-        "category": "custom_custom",
+        "category": "αγορες_α_υλων",
         "vat_category": "ΦΠΑ 24%"
       }
     ],
-    "_updated_at": "2025-11-01T19:48:50.108751+00:00"
+    "_updated_at": "2025-11-07T12:32:57.362051+00:00"
   },
   {
     "mark": "400011186892779",
@@ -352,6 +352,180 @@
         "id": "r0",
         "description": "",
         "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241358",
+    "issueDate": "10/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241359",
+    "issueDate": "12/09/2025",
+    "series": "ΑΛΠ",
+    "aa": "142040",
+    "AA": "142040",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "19,44",
+    "totalVatAmount": "",
+    "totalValue": "19,44",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "800717142",
+    "Name_issuer": "ΠΕΡΙ ΓΗΣ ΙΚΕ",
+    "AFM": "800717142",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "19,44",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241360",
+    "issueDate": "10/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241361",
+    "issueDate": "25/09/2025",
+    "series": "ΑΛΠ",
+    "aa": "165",
+    "AA": "165",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "9,4",
+    "totalVatAmount": "",
+    "totalValue": "9,4",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094386010",
+    "Name_issuer": "",
+    "AFM": "094386010",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "9,4",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241362",
+    "issueDate": "14/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "2221034",
+    "AA": "2221034",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "40",
+    "totalVatAmount": "",
+    "totalValue": "40",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094475066",
+    "Name_issuer": "ΜΥΡΤΕΑ 106",
+    "AFM": "094475066",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "40",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011219241363",
+    "issueDate": "14/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "1412560",
+    "AA": "1412560",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "70",
+    "totalVatAmount": "",
+    "totalValue": "70",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "999644611",
+    "Name_issuer": "ΕΚΟ ΗΛΙΟΥΠΟΛΗΣ (R020)",
+    "AFM": "999644611",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "70",
         "vat": "",
         "category": "αποδειξακια",
         "vat_category": ""
