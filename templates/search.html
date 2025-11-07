@@ -1909,8 +1909,365 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     let autoClosed = false;
     let hasRemoteDevice = false;
     let lastRemoteActivity = 0;
+    let summaryWatcherTimer = null;
+    let lastSummaryPayload = '';
+    let lastSummaryVersion = 0;
+    let resumeAttempted = false;
+
+    const STORAGE_KEY = 'remoteQrSessionState';
 
     const indicatorDotClasses = ['bg-slate-300','bg-amber-400','bg-green-500','bg-red-500'];
+
+    function isElementVisible(el){
+      if (!el) return false;
+      if (el.classList && el.classList.contains('hidden')) return false;
+      try {
+        const style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        if (!style) return true;
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        if (style.opacity === '0') return false;
+      } catch (_) {}
+      return true;
+    }
+
+    function persistSessionState(extra){
+      try {
+        if (!window.sessionStorage || !sessionId) return;
+        const state = {
+          sessionId,
+          version: pollVersion || 0,
+          attached: !!isAttached,
+          hasRemoteDevice: !!hasRemoteDevice,
+          lastRemoteActivity,
+          mode: remoteMode,
+          repeat: remoteRepeatEnabled,
+          summaryVersion: lastSummaryVersion || 0,
+        };
+        if (expiresAt){
+          const expIso = new Date(expiresAt).toISOString();
+          if (expIso) state.expiresAt = expIso;
+        }
+        if (extra && typeof extra === 'object'){
+          Object.assign(state, extra);
+        }
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (err){ console.warn('persistSessionState failed', err); }
+    }
+
+    function clearPersistedSession(){
+      try { if (window.sessionStorage) sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    }
+
+    function loadPersistedSession(){
+      try {
+        if (!window.sessionStorage) return null;
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
+      } catch (err){ console.warn('loadPersistedSession failed', err); return null; }
+    }
+
+    function stopSummaryWatcher(){
+      if (summaryWatcherTimer){
+        clearInterval(summaryWatcherTimer);
+        summaryWatcherTimer = null;
+      }
+    }
+
+    async function pushSummaryState(force){
+      if (!sessionId) return;
+      const state = collectSummaryState();
+      const payload = state ? JSON.stringify(state) : '';
+      if (!force && payload === lastSummaryPayload){
+        return;
+      }
+      lastSummaryPayload = payload;
+      try {
+        await sendSessionUpdate({ summary_state: state }, { syncPage: false, syncRepeat: false });
+      } catch (err){
+        console.warn('summary broadcast failed', err);
+      }
+    }
+
+    function startSummaryWatcher(){
+      stopSummaryWatcher();
+      if (!sessionId) return;
+      summaryWatcherTimer = setInterval(() => {
+        pushSummaryState(false);
+      }, 2500);
+      pushSummaryState(true);
+    }
+
+    function collectSummaryState(){
+      const modal = document.getElementById('summaryModal');
+      const summaryInput = document.getElementById('summaryJsonInput');
+      const markEl = document.getElementById('summaryModalMark');
+      const netEl = document.getElementById('summary_totalNetValue');
+      const vatEl = document.getElementById('summary_totalVatAmount');
+      const totalEl = document.getElementById('summary_totalValue');
+      const banner = document.getElementById('existingBanner');
+      const canSave = !!document.getElementById('saveSummaryForm');
+      const canClose = !!document.getElementById('modalCloseBtn') || !!document.getElementById('modalCloseX');
+
+      const base = {
+        visible: isElementVisible(modal),
+        mark: markEl ? markEl.textContent.trim() : '',
+        totals: {
+          net: netEl ? netEl.textContent.trim() : '',
+          vat: vatEl ? vatEl.textContent.trim() : '',
+          total: totalEl ? totalEl.textContent.trim() : '',
+        },
+        can_save: canSave,
+        can_close: canClose,
+        reclassification_banner: {
+          visible: isElementVisible(banner),
+          text: banner ? banner.textContent.trim() : '',
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      const container = document.getElementById('summaryLinesContainer') || modal;
+      const rows = [];
+      if (container){
+        const primary = Array.from(container.querySelectorAll('[data-line-id]'));
+        if (primary.length){ rows.push(...primary); }
+        else if (modal){ rows.push(...modal.querySelectorAll('[data-line-id]')); }
+      }
+
+      const seen = new Set();
+      const lines = [];
+      rows.forEach((row, idx) => {
+        if (!row || !(row instanceof HTMLElement)) return;
+        const lid = (row.dataset && row.dataset.lineId) || row.getAttribute('data-line-id') || '';
+        const lineId = (lid || '').toString().trim();
+        if (!lineId || seen.has(lineId)) return;
+        seen.add(lineId);
+
+        const descriptionEl = row.querySelector('[data-role="description"], .line-description, td[data-role="description"], .summary-description, td:nth-child(2)');
+        const amountEl = row.querySelector('[data-role="amount"], .line-amount, td[data-role="amount"], .summary-amount, td:nth-child(3)');
+        const vatCell = row.querySelector('[data-role="vat"], .line-vat, td[data-role="vat"], .summary-vat, td:nth-child(4)');
+        const description = descriptionEl ? descriptionEl.textContent.trim() : ((row.getAttribute('data-description') || '').trim());
+        const amount = amountEl ? amountEl.textContent.trim() : ((row.getAttribute('data-amount') || '').trim());
+        const vat = vatCell ? vatCell.textContent.trim() : ((row.getAttribute('data-vat') || '').trim());
+
+        let category = (row.dataset && row.dataset.category) || row.getAttribute('data-category') || '';
+        let selectedLabel = '';
+        const select = row.querySelector('select.expense-category');
+        if (select){
+          if (!category) category = select.value || '';
+          const opt = select.options[select.selectedIndex];
+          if (opt){ selectedLabel = opt.textContent.trim(); }
+        }
+        const activeBtn = row.querySelector('.category-btn.bg-sky-600, .category-btn.active');
+        if (activeBtn){
+          if (!category && activeBtn.dataset && activeBtn.dataset.cat){ category = activeBtn.dataset.cat; }
+          if (!selectedLabel) selectedLabel = activeBtn.textContent.trim();
+        }
+
+        const options = [];
+        if (select){
+          Array.from(select.options).forEach(opt => {
+            options.push({ value: opt.value || '', label: opt.textContent.trim() });
+          });
+        }
+        row.querySelectorAll('.category-btn[data-cat]').forEach(btn => {
+          options.push({ value: btn.dataset.cat || '', label: btn.textContent.trim() });
+        });
+
+        lines.push({
+          id: lineId,
+          index: idx,
+          description,
+          amount,
+          vat,
+          category,
+          selected_label: selectedLabel,
+          options,
+        });
+      });
+
+      base.lines = lines;
+      if (summaryInput){
+        base.summary_present = !!summaryInput.value;
+      }
+      return base;
+    }
+
+    function cssEscape(value){
+      const text = value == null ? '' : String(value);
+      try {
+        if (window.CSS && typeof window.CSS.escape === 'function'){
+          return window.CSS.escape(text);
+        }
+      } catch (_) {}
+      try {
+        if (typeof CSSescape === 'function'){
+          return CSSescape(text);
+        }
+      } catch (_) {}
+      return text.replace(/[^a-zA-Z0-9_-]/g, (ch) => '\\' + ch);
+    }
+
+    function scheduleSummaryRefresh(delay){
+      if (!sessionId) return;
+      setTimeout(() => { pushSummaryState(true); }, delay || 250);
+    }
+
+    function applyRemoteSummaryCategory(lineId, category){
+      if (!lineId) return;
+      const escapedId = cssEscape(lineId);
+      const container = document.getElementById('summaryModal') || document;
+      let changed = false;
+      const select = container.querySelector('select.expense-category[data-line-id="' + escapedId + '"]');
+      if (select){
+        if (select.value !== category){
+          select.value = category;
+          try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+        }
+        changed = true;
+      }
+      if (category){
+        const escapedCat = cssEscape(category);
+        const btn = container.querySelector('.category-btn[data-line-id="' + escapedId + '"][data-cat="' + escapedCat + '"]');
+        if (btn){
+          btn.click();
+          changed = true;
+        }
+      }
+      if (changed){
+        scheduleSummaryRefresh(200);
+      }
+    }
+
+    function triggerSummarySave(){
+      const form = document.getElementById('saveSummaryForm');
+      if (!form) return;
+      try {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+        showFlash('Η αποθήκευση ζητήθηκε από τη φορητή συσκευή.', 'info', 2500);
+      } catch (_) {
+        try { form.submit(); } catch (_) {}
+      }
+      scheduleSummaryRefresh(400);
+    }
+
+    function triggerSummaryClose(){
+      const closeBtn = document.getElementById('modalCloseBtn') || document.getElementById('modalCloseX');
+      if (closeBtn){
+        closeBtn.click();
+      } else {
+        const modal = document.getElementById('summaryModal');
+        if (modal){ modal.classList.add('hidden'); modal.style.display = 'none'; }
+      }
+      scheduleSummaryRefresh(350);
+    }
+
+    function triggerSummaryConfirm(){
+      const forceBtn = document.getElementById('forceEditBtn');
+      if (forceBtn && isElementVisible(forceBtn)){
+        forceBtn.click();
+        showFlash('Επιβεβαιώθηκε ο επαναχαρακτηρισμός από τη φορητή συσκευή.', 'success', 2500);
+        scheduleSummaryRefresh(350);
+      }
+    }
+
+    function handleRemoteControl(control){
+      if (!control || typeof control !== 'object') return;
+      const type = (control.type || '').toString().toLowerCase();
+      if (type === 'summary_set_category'){
+        applyRemoteSummaryCategory(control.line_id || control.lineId || control.id, control.category || control.value || '');
+        return;
+      }
+      if (type === 'summary_save'){
+        triggerSummarySave();
+        return;
+      }
+      if (type === 'summary_close'){
+        triggerSummaryClose();
+        return;
+      }
+      if (type === 'summary_confirm'){
+        triggerSummaryConfirm();
+      }
+    }
+
+    async function attemptResumeFromStorage(){
+      if (resumeAttempted || sessionId) return;
+      resumeAttempted = true;
+      const stored = loadPersistedSession();
+      if (!stored || !stored.sessionId) return;
+      try {
+        setStatus('Επαναφορά υπάρχουσας συνεδρίας…', 'info');
+        updateIndicator('starting', 'Επαναφορά υπάρχουσας συνεδρίας…');
+        const params = new URLSearchParams({ session_id: stored.sessionId });
+        if (stored.version) params.set('since', String(stored.version));
+        const res = await fetch('/api/qr/remote/status?' + params.toString(), { credentials: 'same-origin' });
+        if (!res.ok){
+          clearPersistedSession();
+          updateIndicator('inactive');
+          return;
+        }
+        const data = await res.json();
+        if (!data || data.ok === false){
+          clearPersistedSession();
+          updateIndicator('inactive');
+          return;
+        }
+
+        sessionId = data.session_id;
+        pollVersion = data.version || stored.version || 0;
+        isAttached = !!data.attached;
+        autoClosed = !!data.attached;
+        if (data.mode){
+          setRemoteMode(data.mode, { syncPage: true });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+          setRemoteRepeat(data.repeat_enabled, { syncPage: true });
+        }
+        if (data.expires_at){
+          const ts = Date.parse(data.expires_at);
+          if (!Number.isNaN(ts)){
+            expiresAt = ts;
+            startCountdown();
+          }
+        }
+        if (data.remote_last_seen){
+          const seenTs = Date.parse(data.remote_last_seen);
+          if (!Number.isNaN(seenTs)){
+            hasRemoteDevice = true;
+            lastRemoteActivity = seenTs;
+          }
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+          lastSummaryVersion = data.summary_version || 0;
+        }
+        if (data.summary_state){
+          try { lastSummaryPayload = JSON.stringify(data.summary_state); } catch (_) {}
+        }
+
+        if (isAttached){
+          connectedBadge?.classList.remove('hidden');
+          updateIndicator('connected', 'Η φορητή συσκευή παραμένει διαθέσιμη.');
+        } else if (hasRemoteDevice){
+          connectedBadge?.classList.remove('hidden');
+          updateIndicator('connected', 'Η φορητή συσκευή παραμένει διαθέσιμη για νέες σαρώσεις.');
+        } else {
+          updateIndicator('waiting');
+        }
+
+        showFlash('Η απομακρυσμένη συνεδρία επανενεργοποιήθηκε μετά την καταχώρηση.', 'info', 3000);
+        startSummaryWatcher();
+        persistSessionState();
+        schedulePoll(800);
+      } catch (err){
+        console.warn('remote resume failed', err);
+        clearPersistedSession();
+        updateIndicator('inactive');
+      }
+    }
 
     function setStatus(text, tone){
       if (!statusEl) return;
@@ -2153,6 +2510,14 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
         pollVersion = data.version || pollVersion;
 
+        if (data.remote_last_seen){
+          const seenTs = Date.parse(data.remote_last_seen);
+          if (!Number.isNaN(seenTs)){
+            hasRemoteDevice = true;
+            lastRemoteActivity = seenTs;
+          }
+        }
+
         if (data.mode){
           setRemoteMode(data.mode, { syncPage: true });
         }
@@ -2166,6 +2531,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
             expiresAt = ts;
             startCountdown();
           }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+          lastSummaryVersion = data.summary_version || 0;
+        }
+        if (data.summary_state){
+          try { lastSummaryPayload = JSON.stringify(data.summary_state); } catch (_) {}
         }
 
         if (data.attached){
@@ -2217,6 +2589,10 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           }
         }
 
+        if (data.control){
+          handleRemoteControl(data.control);
+        }
+
         if (data.payload){
           const payload = typeof data.payload === 'object' ? data.payload : { raw: String(data.payload || '') };
           const applied = applyScannedPayload(payload, { mode: remoteMode });
@@ -2244,6 +2620,11 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           }
         }
 
+        if (!summaryWatcherTimer && sessionId){
+          startSummaryWatcher();
+        }
+
+        persistSessionState();
         schedulePoll(data.payload ? 800 : 2000);
       } catch (err){
         console.warn('remote poll error', err);
@@ -2260,6 +2641,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
       stopPoll();
       stopCountdown();
+      stopSummaryWatcher();
 
       if (notify && sessionId){
         try {
@@ -2281,12 +2663,15 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       hasRemoteDevice = false;
       lastRemoteActivity = 0;
       qrImageData = '';
+      lastSummaryPayload = '';
+      lastSummaryVersion = 0;
       resetPlaceholder();
       clearCode();
       if (linkWrapper) linkWrapper.style.display = 'none';
       connectedBadge?.classList.add('hidden');
       if (indicatorState === 'inactive') updateIndicator('inactive');
       else updateIndicator(indicatorState, indicatorMessage);
+      clearPersistedSession();
     }
 
     async function startSession(){
@@ -2328,6 +2713,10 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         pollVersion = data.version || 0;
         isAttached = false;
         autoClosed = false;
+        lastSummaryVersion = data.summary_version || 0;
+        if (data.summary_state){
+          try { lastSummaryPayload = JSON.stringify(data.summary_state); } catch (_) { lastSummaryPayload = ''; }
+        }
 
         if (data.mode){
           setRemoteMode(data.mode, { syncPage: true });
@@ -2354,6 +2743,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           setStatus('Σάρωσε τον κωδικό με τη φορητή συσκευή σου.', 'info');
           updateIndicator('waiting');
           schedulePoll(1500);
+          persistSessionState();
+          startSummaryWatcher();
         } else {
           setStatus('Δεν δημιουργήθηκε σύνδεσμος QR.', 'error');
           updateIndicator('error', 'Δεν δημιουργήθηκε σύνδεσμος QR.');
@@ -2406,6 +2797,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
             startCountdown();
           }
         }
+        if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+          lastSummaryVersion = data.summary_version || 0;
+        }
+        if (data.summary_state){
+          try { lastSummaryPayload = JSON.stringify(data.summary_state); } catch (_) {}
+        }
+        persistSessionState();
         return data;
       } catch (err){
         console.warn('remote update failed', err);
@@ -2485,6 +2883,8 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
     updateIndicator('inactive');
     setRemoteMode(remoteMode, { syncPage: false });
+
+    setTimeout(() => { attemptResumeFromStorage(); }, 120);
 
     return { open, close: hide, restart: startSession, disconnect, pageModeChanged: handlePageModeChange, repeatChanged: handleRepeatChange };
   }

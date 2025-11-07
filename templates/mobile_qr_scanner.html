@@ -276,6 +276,112 @@
       margin-top: 18px;
       line-height: 1.5;
     }
+    .summary-card {
+      margin-top: 24px;
+      padding: 18px 16px;
+      border-radius: 16px;
+      border: 1px solid #cbd5f5;
+      background: #f8fafc;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+    }
+    .summary-card.hidden { display: none; }
+    .summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .summary-header h2 {
+      font-size: 1.05rem;
+      margin: 0;
+      color: #0f172a;
+    }
+    .summary-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .summary-status {
+      font-size: 0.85rem;
+      color: #0369a1;
+      margin-bottom: 10px;
+    }
+    .summary-status.error { color: #b91c1c; }
+    .summary-status.success { color: #15803d; }
+    .summary-banner {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .summary-banner.show { display: block; }
+    .summary-totals {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    .summary-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-line {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+    }
+    .summary-line-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .summary-line-meta {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .summary-select-wrapper select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5f5;
+      background: #ffffff;
+      font-size: 0.9rem;
+      color: #0f172a;
+    }
+    .summary-empty {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .summary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .summary-actions button {
+      flex: 1 1 auto;
+      min-width: 140px;
+    }
+    .summary-actions button.secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+      border: none;
+    }
     .alert {
       border-radius: 16px;
       padding: 14px 18px;
@@ -380,6 +486,22 @@
         • Η σύνδεση είναι μοναδική και κρυπτογραφημένη. Μόλις κλείσει το παράθυρο, δημιουργεί νέα συνεδρία από τον υπολογιστή.<br>
         • Για αποδείξεις, θα αποστέλλονται αυτόματα URLs στο πεδίο αναζήτησης αποδείξεων.
       </div>
+
+      <div id="summaryControlPanel" class="summary-card hidden">
+        <div class="summary-header">
+          <h2>Χειρισμός χαρακτηρισμών</h2>
+          <span id="summaryMarkBadge" class="summary-badge"></span>
+        </div>
+        <div id="summaryStatusText" class="summary-status"></div>
+        <div id="summaryBanner" class="summary-banner"></div>
+        <div id="summaryTotals" class="summary-totals"></div>
+        <div id="summaryLines" class="summary-lines"></div>
+        <div class="summary-actions">
+          <button type="button" id="summaryConfirmBtn" class="secondary" style="display:none;">Επιβεβαίωση επαναχαρακτηρισμού</button>
+          <button type="button" id="summarySaveBtn" class="primary">Αποθήκευση</button>
+          <button type="button" id="summaryCloseBtn" class="secondary">Κλείσιμο</button>
+        </div>
+      </div>
       {% endif %}
     </div>
     <footer>Firebed • Remote QR link</footer>
@@ -412,12 +534,22 @@
       const modeBadge = document.getElementById('modeBadge');
       const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
       const repeatToggle = document.getElementById('repeatToggle');
+      const summaryPanel = document.getElementById('summaryControlPanel');
+      const summaryStatus = document.getElementById('summaryStatusText');
+      const summaryMark = document.getElementById('summaryMarkBadge');
+      const summaryBanner = document.getElementById('summaryBanner');
+      const summaryTotals = document.getElementById('summaryTotals');
+      const summaryLines = document.getElementById('summaryLines');
+      const summarySaveBtn = document.getElementById('summarySaveBtn');
+      const summaryCloseBtn = document.getElementById('summaryCloseBtn');
+      const summaryConfirmBtn = document.getElementById('summaryConfirmBtn');
       const scanFrame = document.getElementById('scanFrame');
       const scanFlash = document.getElementById('scanFlash');
       const defaultResultText = resultEl ? resultEl.innerHTML : '';
 
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
       CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
+      CFG.summaryVersion = CFG.summaryVersion || 0;
 
       let html5QrCode = null;
       let cameras = [];
@@ -428,6 +560,7 @@
       let lastSentText = '';
       let countdownTimer = null;
       let frameHighlightTimer = null;
+      let lastSummaryHash = '';
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -444,6 +577,136 @@
         resultEl.classList.remove('success','error');
         if (tone === 'success') resultEl.classList.add('success');
         else if (tone === 'error') resultEl.classList.add('error');
+      }
+
+      function setSummaryStatus(text, tone){
+        if (!summaryStatus) return;
+        summaryStatus.textContent = text || '';
+        summaryStatus.classList.remove('error','success');
+        if (tone === 'error') summaryStatus.classList.add('error');
+        else if (tone === 'success') summaryStatus.classList.add('success');
+      }
+
+      function renderSummaryLines(lines){
+        if (!summaryLines) return;
+        summaryLines.innerHTML = '';
+        if (!Array.isArray(lines) || !lines.length){
+          const empty = document.createElement('div');
+          empty.className = 'summary-empty';
+          empty.textContent = 'Δεν υπάρχουν γραμμές προς χαρακτηρισμό.';
+          summaryLines.appendChild(empty);
+          return;
+        }
+        lines.forEach((line) => {
+          if (!line || !line.id) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'summary-line';
+
+          const title = document.createElement('div');
+          title.className = 'summary-line-title';
+          const fallbackName = `Γραμμή ${typeof line.index === 'number' ? line.index + 1 : ''}`;
+          const label = line.description != null ? String(line.description).trim() : fallbackName.trim();
+          title.textContent = label || 'Γραμμή';
+          wrap.appendChild(title);
+
+          const meta = document.createElement('div');
+          meta.className = 'summary-line-meta';
+          const amountTxt = line.amount ? `Ποσό: ${line.amount}` : 'Ποσό: -';
+          const vatTxt = line.vat ? `ΦΠΑ: ${line.vat}` : 'ΦΠΑ: -';
+          meta.textContent = `${amountTxt} • ${vatTxt}`;
+          wrap.appendChild(meta);
+
+          const selectWrap = document.createElement('div');
+          selectWrap.className = 'summary-select-wrapper';
+          const select = document.createElement('select');
+          select.dataset.lineId = line.id;
+
+          const seen = new Set();
+          const options = Array.isArray(line.options) && line.options.length ? line.options : [];
+          options.forEach(opt => {
+            if (!opt) return;
+            const val = opt.value != null ? String(opt.value) : '';
+            if (seen.has(val)) return;
+            seen.add(val);
+            const optionNode = document.createElement('option');
+            optionNode.value = val;
+            optionNode.textContent = opt.label != null ? String(opt.label) : (val || 'Χωρίς κατηγορία');
+            select.appendChild(optionNode);
+          });
+          const current = line.category != null ? String(line.category) : '';
+          if (!seen.has(current)){
+            const optionNode = document.createElement('option');
+            optionNode.value = current;
+            optionNode.textContent = line.selected_label || current || 'Χωρίς κατηγορία';
+            select.appendChild(optionNode);
+          }
+          select.value = current;
+          select.addEventListener('change', () => {
+            setSummaryStatus('Αποστολή επιλογής…', null);
+            sendControlCommand({ type: 'summary_set_category', line_id: line.id, category: select.value });
+          });
+          selectWrap.appendChild(select);
+          wrap.appendChild(selectWrap);
+
+          summaryLines.appendChild(wrap);
+        });
+      }
+
+      function applySummaryState(state, version){
+        if (!summaryPanel) return;
+        const payload = state ? JSON.stringify(state) : '';
+        if (payload && payload === lastSummaryHash) return;
+        lastSummaryHash = payload;
+        if (typeof version === 'number'){
+          CFG.summaryVersion = version;
+        }
+
+        if (!state || (!state.visible && (!state.lines || !state.lines.length) && !(state.reclassification_banner && state.reclassification_banner.visible))){
+          summaryPanel.classList.add('hidden');
+          setSummaryStatus('', null);
+          if (summaryBanner){ summaryBanner.classList.remove('show'); summaryBanner.textContent = ''; }
+          return;
+        }
+
+        summaryPanel.classList.remove('hidden');
+        if (summaryMark){ summaryMark.textContent = state.mark ? `MARK ${state.mark}` : ''; }
+
+        const totals = (state && state.totals) || {};
+        if (summaryTotals){
+          const net = totals.net || '-';
+          const vat = totals.vat || '-';
+          const total = totals.total || '-';
+          summaryTotals.innerHTML = `<span>Καθαρή: ${escapeHtml(net)}</span><span>ΦΠΑ: ${escapeHtml(vat)}</span><span>Σύνολο: ${escapeHtml(total)}</span>`;
+        }
+
+        if (state && state.reclassification_banner && state.reclassification_banner.visible){
+          if (summaryBanner){
+            summaryBanner.textContent = state.reclassification_banner.text || 'Απαιτείται επιβεβαίωση επαναχαρακτηρισμού.';
+            summaryBanner.classList.add('show');
+          }
+          if (summaryConfirmBtn){
+            summaryConfirmBtn.style.display = '';
+            summaryConfirmBtn.disabled = false;
+          }
+        } else {
+          if (summaryBanner){
+            summaryBanner.classList.remove('show');
+            summaryBanner.textContent = '';
+          }
+          if (summaryConfirmBtn){
+            summaryConfirmBtn.style.display = 'none';
+          }
+        }
+
+        if (summarySaveBtn){ summarySaveBtn.disabled = state && state.can_save === false; }
+        if (summaryCloseBtn){ summaryCloseBtn.disabled = state && state.can_close === false; }
+
+        const message = state && state.visible
+          ? 'Το παράθυρο χαρακτηρισμών είναι ανοιχτό στον υπολογιστή.'
+          : 'Το παράθυρο χαρακτηρισμών είναι κλειστό. Μπορείς να προεπιλέξεις κατηγορίες.';
+        setSummaryStatus(message, null);
+
+        renderSummaryLines(state && state.lines ? state.lines : []);
       }
 
       function clearFrameHighlights(){
@@ -516,6 +779,12 @@
             CFG.expiresAt = data.expires_at;
             updateExpiryCountdown();
           }
+          if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
           return data;
         } catch (err){
           console.warn('sendSessionUpdate failed', err);
@@ -531,6 +800,28 @@
       async function sendRepeatUpdate(enabled){
         CFG.repeatEnabled = !!enabled;
         await sendSessionUpdate({ repeat_enabled: CFG.repeatEnabled });
+      }
+
+      async function sendControlCommand(command){
+        if (!CFG.sessionId || !CFG.token) return;
+        try {
+          const res = await fetch('/api/qr/remote/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, command })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = data && data.error ? data.error : 'Δεν στάλθηκε η εντολή.';
+            setSummaryStatus(message, 'error');
+            return;
+          }
+          setSummaryStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+        } catch (err){
+          console.warn('sendControlCommand failed', err);
+          setSummaryStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
+        }
       }
 
       function updateModeBadge(){
@@ -765,6 +1056,12 @@
           if (data && Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
           }
+          if (data && Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data && data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
         } catch (err) {
           console.warn('heartbeat failed', err);
         }
@@ -801,6 +1098,12 @@
           CFG.expiresAt = data.expires_at || CFG.expiresAt;
           updateModeBadge();
           updateExpiryCountdown();
+          if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
           updateResultBox(defaultResultText, null);
           await listCameras();
           await startScanner(cameraSelect ? cameraSelect.value : undefined);
@@ -914,6 +1217,21 @@
           setStatus(repeat ? 'Η επαναληπτική εισαγωγή ενεργοποιήθηκε.' : 'Η επαναληπτική εισαγωγή απενεργοποιήθηκε.', 'info');
           await sendRepeatUpdate(repeat);
         }
+      });
+
+      summarySaveBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή αποθήκευσης…', null);
+        sendControlCommand({ type: 'summary_save' });
+      });
+
+      summaryCloseBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή κλεισίματος…', null);
+        sendControlCommand({ type: 'summary_close' });
+      });
+
+      summaryConfirmBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή επιβεβαίωσης επαναχαρακτηρισμού…', null);
+        sendControlCommand({ type: 'summary_confirm' });
       });
 
       updateModeBadge();

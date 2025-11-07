@@ -324,6 +324,122 @@ def _purge_remote_sessions() -> None:
                 REMOTE_QR_SESSIONS.pop(sid, None)
 
 
+def _sanitize_summary_state(value: Any) -> Optional[Dict[str, Any]]:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        return {}
+
+    def _clip_text(text: Any, limit: int = 240) -> str:
+        try:
+            rendered = str(text or "")
+        except Exception:
+            rendered = ""
+        if len(rendered) > limit:
+            return rendered[: limit - 1] + "…"
+        return rendered
+
+    state: Dict[str, Any] = {
+        "visible": bool(value.get("visible")),
+        "mark": _clip_text(value.get("mark"), 120),
+        "can_save": bool(value.get("can_save")),
+        "can_close": bool(value.get("can_close")),
+    }
+
+    totals = value.get("totals")
+    if isinstance(totals, dict):
+        state["totals"] = {
+            "net": _clip_text(totals.get("net"), 80),
+            "vat": _clip_text(totals.get("vat"), 80),
+            "total": _clip_text(totals.get("total"), 80),
+        }
+
+    banner = value.get("reclassification_banner") or {}
+    if isinstance(banner, dict):
+        state["reclassification_banner"] = {
+            "visible": bool(banner.get("visible")),
+            "text": _clip_text(banner.get("text"), 280),
+        }
+
+    lines: List[Dict[str, Any]] = []
+    for entry in value.get("lines", []):
+        if not isinstance(entry, dict):
+            continue
+        line_id_raw = entry.get("id") or entry.get("line_id") or entry.get("lid")
+        try:
+            line_id = str(line_id_raw or "").strip()
+        except Exception:
+            line_id = ""
+        if not line_id:
+            continue
+        line: Dict[str, Any] = {"id": line_id[: 80]}
+        if entry.get("index") is not None:
+            line["index"] = int(entry.get("index")) if isinstance(entry.get("index"), int) else entry.get("index")
+        if entry.get("description") is not None:
+            line["description"] = _clip_text(entry.get("description"), 360)
+        if entry.get("amount") is not None:
+            line["amount"] = _clip_text(entry.get("amount"), 120)
+        if entry.get("vat") is not None:
+            line["vat"] = _clip_text(entry.get("vat"), 120)
+        if entry.get("category") is not None:
+            line["category"] = _clip_text(entry.get("category"), 160)
+        if entry.get("selected_label") is not None:
+            line["selected_label"] = _clip_text(entry.get("selected_label"), 160)
+
+        options: List[Dict[str, str]] = []
+        for opt in entry.get("options", []):
+            if not isinstance(opt, dict):
+                continue
+            val = _clip_text(opt.get("value"), 160)
+            label = _clip_text(opt.get("label"), 220)
+            options.append({"value": val, "label": label})
+            if len(options) >= 40:
+                break
+        if options:
+            line["options"] = options
+
+        lines.append(line)
+        if len(lines) >= 80:
+            break
+
+    state["lines"] = lines
+    state["updated_at"] = _clip_text(value.get("updated_at") or value.get("timestamp") or "", 160)
+
+    return state
+
+
+def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(value, dict):
+        return None
+    control_type = value.get("type")
+    try:
+        normalized_type = str(control_type or "").strip().lower()
+    except Exception:
+        normalized_type = ""
+    allowed = {
+        "summary_set_category",
+        "summary_save",
+        "summary_close",
+        "summary_confirm",
+    }
+    if normalized_type not in allowed:
+        return None
+
+    control: Dict[str, Any] = {"type": normalized_type}
+    if normalized_type == "summary_set_category":
+        try:
+            line_id = str(value.get("line_id") or value.get("id") or "").strip()
+        except Exception:
+            line_id = ""
+        try:
+            category = str(value.get("category") or value.get("value") or "").strip()
+        except Exception:
+            category = ""
+        if not line_id:
+            return None
+        control["line_id"] = line_id[: 80]
+        control["category"] = category[: 200]
+    return control
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -3487,6 +3603,12 @@ def api_qr_remote_start():
         "owner_ip": request.remote_addr,
         "repeat_enabled": repeat_enabled,
         "remote_last_seen": None,
+        "summary_state": None,
+        "summary_version": 0,
+        "summary_last_delivered": 0,
+        "control": None,
+        "control_version": 0,
+        "control_last_delivered": 0,
     }
 
     with REMOTE_QR_LOCK:
@@ -3578,6 +3700,28 @@ def api_qr_remote_status():
     if payload_data:
         response["payload"] = payload_data
 
+    remote_last_seen_val = entry.get("remote_last_seen")
+    if isinstance(remote_last_seen_val, datetime.datetime):
+        response["remote_last_seen"] = remote_last_seen_val.isoformat()
+
+    summary_version = entry.get("summary_version") or 0
+    if summary_version:
+        last_summary = entry.get("summary_last_delivered") or 0
+        if summary_version > last_summary:
+            if entry.get("summary_state") is not None:
+                response["summary_state"] = entry["summary_state"]
+            response["summary_version"] = summary_version
+            entry["summary_last_delivered"] = summary_version
+
+    control_version = entry.get("control_version") or 0
+    if control_version:
+        last_control = entry.get("control_last_delivered") or 0
+        if control_version > last_control:
+            if entry.get("control") is not None:
+                response["control"] = entry["control"]
+            response["control_version"] = control_version
+            entry["control_last_delivered"] = control_version
+
     return jsonify(response)
 
 
@@ -3644,6 +3788,16 @@ def api_qr_remote_attach():
             "repeat_enabled": bool(entry.get("repeat_enabled")),
         }
 
+        summary_version = entry.get("summary_version") or 0
+        if summary_version:
+            response["summary_version"] = summary_version
+            if entry.get("summary_state") is not None:
+                response["summary_state"] = entry["summary_state"]
+
+        remote_last_seen = entry.get("remote_last_seen")
+        if isinstance(remote_last_seen, datetime.datetime):
+            response["remote_last_seen"] = remote_last_seen.isoformat()
+
     return jsonify(response)
 
 
@@ -3688,6 +3842,16 @@ def api_qr_remote_heartbeat():
             "repeat_enabled": bool(entry.get("repeat_enabled")),
         }
 
+        summary_version = entry.get("summary_version") or 0
+        if summary_version:
+            response["summary_version"] = summary_version
+            if entry.get("summary_state") is not None:
+                response["summary_state"] = entry["summary_state"]
+
+        remote_last_seen = entry.get("remote_last_seen")
+        if isinstance(remote_last_seen, datetime.datetime):
+            response["remote_last_seen"] = remote_last_seen.isoformat()
+
     return jsonify(response)
 
 
@@ -3701,7 +3865,8 @@ def api_qr_remote_update():
 
     mode_present = "mode" in data
     repeat_flag = _parse_bool(data.get("repeat_enabled"))
-    if not mode_present and repeat_flag is None:
+    summary_present = "summary_state" in data
+    if not mode_present and repeat_flag is None and not summary_present:
         return jsonify(ok=False, error="Δεν ελήφθη ενημέρωση.", field="missing"), 400
 
     token = data.get("token") or data.get("secret")
@@ -3723,10 +3888,18 @@ def api_qr_remote_update():
         if not authorized:
             return jsonify(ok=False, error="Μη εξουσιοδοτημένη αλλαγή."), 403
 
+        summary_state = None
+        if summary_present and owner and entry.get("owner_token") == owner:
+            summary_state = _sanitize_summary_state(data.get("summary_state"))
+
         if desired_mode is not None:
             entry["mode"] = desired_mode
         if repeat_flag is not None:
             entry["repeat_enabled"] = repeat_flag
+        if summary_present and summary_state is not None:
+            entry["summary_state"] = summary_state
+            entry["summary_version"] = (entry.get("summary_version") or 0) + 1
+            entry["summary_last_delivered"] = 0
         entry["last_seen"] = now
         entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
         expires_at = entry.get("expires_at")
@@ -3736,6 +3909,7 @@ def api_qr_remote_update():
         mode=(entry.get("mode") if desired_mode is None else desired_mode),
         repeat_enabled=bool(entry.get("repeat_enabled")),
         expires_at=expires_at.isoformat() if expires_at else None,
+        summary_version=entry.get("summary_version"),
     )
 
 
@@ -3797,6 +3971,48 @@ def api_qr_remote_push():
         version=version,
         repeat_enabled=bool(repeat_flag if repeat_flag is not None else entry.get("repeat_enabled")),
     )
+
+
+@app.post("/api/qr/remote/control")
+def api_qr_remote_control():
+    _purge_remote_sessions()
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id") or data.get("session")
+    token = data.get("token") or data.get("secret")
+    command = data.get("command") or {}
+
+    if not session_id or not token:
+        return jsonify(ok=False, error="Λείπουν δεδομένα εντολής."), 400
+
+    sanitized = _sanitize_remote_control(command)
+    if sanitized is None:
+        return jsonify(ok=False, error="Μη έγκυρη εντολή."), 400
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        entry = REMOTE_QR_SESSIONS.get(session_id)
+        if not entry:
+            return jsonify(ok=False, error="Η συνεδρία δεν βρέθηκε."), 404
+        if entry.get("push_secret") != token:
+            return jsonify(ok=False, error="Μη έγκυρο διακριτικό."), 403
+
+        expires_at = entry.get("expires_at")
+        if expires_at and now > expires_at:
+            REMOTE_QR_SESSIONS.pop(session_id, None)
+            return jsonify(ok=False, error="Η συνεδρία έληξε.", expired=True), 410
+
+        entry["last_seen"] = now
+        entry["remote_last_seen"] = now
+        entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+        entry["attached"] = True
+        entry["control"] = {
+            **sanitized,
+            "issued_at": now.isoformat(),
+        }
+        entry["control_version"] = (entry.get("control_version") or 0) + 1
+        entry["control_last_delivered"] = 0
+
+    return jsonify(ok=True, control_version=entry.get("control_version"))
 
 
 @app.get("/mobile/qr-scanner")
