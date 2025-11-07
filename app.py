@@ -7971,9 +7971,7 @@ def credentials_page():
     html += "</ul>"
     return html
 
-@app.route("/health")
-def health():
-    return "OK"
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
