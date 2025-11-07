@@ -702,8 +702,8 @@
         if (summaryCloseBtn){ summaryCloseBtn.disabled = state && state.can_close === false; }
 
         const message = state && state.visible
-          ? 'Το παράθυρο χαρακτηρισμών είναι ανοιχτό στον υπολογιστή.'
-          : 'Το παράθυρο χαρακτηρισμών είναι κλειστό. Μπορείς να προεπιλέξεις κατηγορίες.';
+          ? 'Το παράθυρο χαρακτηρισμών είναι ανοιχτό στον υπολογιστή. Μπορείς να επεξεργαστείς και να αποθηκεύσεις από τη φορητή συσκευή.'
+          : 'Το παράθυρο χαρακτηρισμών είναι κλειστό. Μπορείς να προεπιλέξεις κατηγορίες και να αποθηκεύσεις από εδώ.';
         setSummaryStatus(message, null);
 
         renderSummaryLines(state && state.lines ? state.lines : []);
@@ -804,6 +804,7 @@
 
       async function sendControlCommand(command){
         if (!CFG.sessionId || !CFG.token) return;
+        setSummaryStatus('Παρακαλώ περιμένετε…', null);
         try {
           const res = await fetch('/api/qr/remote/control', {
             method: 'POST',
@@ -1120,6 +1121,8 @@
       async function pushPayload(text){
         lastSentText = text;
         setTimeout(() => { lastSentText = ''; }, 1800);
+        setStatus('Παρακαλώ περιμένετε…', null);
+        updateResultBox(`<strong>Αποστολή:</strong> ${escapeHtml(text)}`, null);
         try {
           const res = await fetch('/api/qr/remote/push', {
             method: 'POST',

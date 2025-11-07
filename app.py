@@ -14,7 +14,18 @@ from datetime import datetime as _dt
 from werkzeug.utils import secure_filename
 from datetime import timezone
 from markupsafe import escape, Markup
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify, session
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    send_file,
+    flash,
+    jsonify,
+    session,
+    after_this_request,
+)
 import tempfile
 import zipfile
 import shutil
@@ -7648,13 +7659,23 @@ def export_fastimport_kinitseis():
 
     # Διάβασε active credential για να δούμε αν είμαστε σε AFM mode
     apod_type = ""
+    active_cred = None
     try:
         creds = _safe_json_read("data/credentials.json", default=[])
         cl = creds if isinstance(creds, list) else [creds]
         active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
+        active_cred = active if isinstance(active, dict) else {}
         apod_type = str((active or {}).get("apodeixakia_type", "")).lower()
     except Exception:
         pass
+
+    book_category = ""
+    if isinstance(active_cred, dict):
+        try:
+            book_category = str(active_cred.get("book_category") or "").strip()
+        except Exception:
+            book_category = ""
+    is_b_category = book_category.upper() == "Β" or book_category.upper() == "B"
 
     base_client_db = _resolve_client_db_path(vat)
 
@@ -7707,6 +7728,38 @@ def export_fastimport_kinitseis():
     )
 
     if ok and out_path:
+        if is_b_category:
+            bkat_path = os.path.join(BASE_DIR, "b_kat.ect")
+            if os.path.exists(bkat_path):
+                fd, temp_path = tempfile.mkstemp(suffix=".zip")
+                os.close(fd)
+                zip_name_root, _ = os.path.splitext(os.path.basename(out_path))
+                if not zip_name_root:
+                    zip_name_root = "epsilon_bridge"
+                zip_filename = f"{zip_name_root}_with_b_kat.zip"
+                try:
+                    with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                        zf.write(out_path, arcname=os.path.basename(out_path))
+                        zf.write(bkat_path, arcname="b_kat.ect")
+
+                    @after_this_request
+                    def _cleanup_temp_archive(response):
+                        try:
+                            os.remove(temp_path)
+                        except OSError:
+                            pass
+                        return response
+
+                    return send_file(temp_path, as_attachment=True, download_name=zip_filename)
+                except Exception:
+                    current_app.logger.exception("Failed to bundle b_kat.ect with bridge export")
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
+            else:
+                current_app.logger.warning("b_kat.ect file not found for Β category export")
+
         return send_file(out_path, as_attachment=True)
 
     # fallback: δείξε ό,τι άλλο πρόβλημα επιστρέφει
