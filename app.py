@@ -7949,6 +7949,32 @@ def handle_unexpected_error(e):
 def favicon():
     return '', 204
 
+@app.route("/credentials", methods=["GET", "POST"])
+def credentials_page():
+    msg = None
+    if request.method == "POST":
+        name = request.form.get("name","").strip()
+        user = request.form.get("user","").strip()
+        key = request.form.get("key","").strip()
+        env = request.form.get("env","sandbox").strip()
+        vat = request.form.get("vat","").strip()
+        if not name:
+            msg = ("error","Name required")
+        else:
+            ok, err = add_credential({"name":name,"user":user,"key":key,"env":env,"vat":vat})
+            msg = ("success","Saved") if ok else ("error", err or "Could not save")
+    creds = load_credentials()
+    # simple HTML listing (if you have template file use render_template instead)
+    html = "<h1>Credentials</h1><p><a href='/'>Back</a></p><ul>"
+    for c in creds:
+        html += f"<li><strong>{c.get('name')}</strong> - VAT: {c.get('vat','')}</li>"
+    html += "</ul>"
+    return html
+
+@app.route("/health")
+def health():
+    return "OK"
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     debug_flag = True
