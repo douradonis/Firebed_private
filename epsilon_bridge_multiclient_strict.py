@@ -683,7 +683,7 @@ def export_multiclient_strict(
     paths = resolve_paths_for_vat(vat, invoices_json, client_db, out_xlsx, base_invoices_dir, base_exports_dir)
     rows = preview["rows"]
 
-    # Flatten into ΚΙΝΗΣΕΙΣ
+    # -------- Flatten σε ΚΙΝΗΣΕΙΣ (όπως πριν) --------
     flat: List[Dict[str, Any]] = []
     artid = 1
     for rec in rows:
@@ -695,7 +695,7 @@ def export_multiclient_strict(
         for ln in rec.get("LINES", []):
             flat.append({
                 "ARTID": artid,
-                "MTYPE": 1 if is_receipt or ("αγορ" in ln.get("category","") or "δαπ" in ln.get("category","")) else 0,
+                "MTYPE": 1 if is_receipt or ("αγορ" in (ln.get("category","") or "") or "δαπ" in (ln.get("category","") or "")) else 0,
                 "ISKEPYO": 1,
                 "ISAGRYP": 0,
                 "CUSTID": rec.get("CUSTID"),
@@ -714,18 +714,98 @@ def export_multiclient_strict(
             })
         artid += 1
 
-    df = pd.DataFrame(flat, columns=[
+    df_moves = pd.DataFrame(flat, columns=[
         "ARTID","MTYPE","ISKEPYO","ISAGRYP","CUSTID","MDATE","REASON","INVOICE","SUMKEPYOYP",
         "LCODE_DETAIL","ISAGRYP_DETAIL","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL","MSIGN","LCODE","OTHEREXPEND"
     ])
 
+    # -------- ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ (2ο φύλλο) --------
+    # 1) Συλλογή CUSTID που χρησιμοποιήθηκαν
+    used_ids: List[Any] = []
+    if not df_moves.empty and "CUSTID" in df_moves.columns:
+        used_ids = [x for x in df_moves["CUSTID"].tolist() if x not in (None, "", float("nan"))]
+    used_ids_unique = []
+    for x in used_ids:
+        try:
+            # διατήρησε ακέραιο αν είναι ακέραιος (170.0 -> 170)
+            fx = float(x)
+            x = int(fx) if fx.is_integer() else x
+        except Exception:
+            pass
+        if x not in used_ids_unique:
+            used_ids_unique.append(x)
+
+    # 2) Χάρτης από client_db (αν υπάρχει): AFM->ID και ονόματα
+    id_to_afm: Dict[Any, str] = {}
+    id_to_name: Dict[Any, str] = {}
+
+    cm = {}
+    try:
+        if paths["client_db"] and os.path.exists(paths["client_db"]):
+            cm = _load_client_map(paths["client_db"])  # --> {"by_afm":{afm:id}, "ids":set(), "names":{afm:name}, ...}
+    except Exception:
+        cm = {}
+
+    by_afm = (cm or {}).get("by_afm", {}) or {}
+    names  = (cm or {}).get("names", {}) or {}
+
+    for afm_norm, cid in by_afm.items():
+        if cid not in id_to_afm:
+            id_to_afm[cid] = str(afm_norm)
+            nm = names.get(afm_norm, "")
+            if nm:
+                id_to_name[cid] = nm
+
+    # 3) Συμπλήρωμα από τις ίδιες τις εγγραφές (αν λείπει από client_db)
+    #    Παίρνουμε AFM/Name από τα preview rows.
+    fallback_by_id: Dict[Any, Tuple[str,str]] = {}
+    for rec in rows:
+        cid = rec.get("CUSTID")
+        if cid in (None, ""):
+            continue
+        afm = str(rec.get("AFM_ISSUER") or "").strip()
+        nm  = str(rec.get("ISSUER_NAME") or "").strip()
+        if cid not in fallback_by_id and (afm or nm):
+            fallback_by_id[cid] = (afm, nm)
+
+    # 4) Ειδική μέριμνα για αποδείξεις λιανικής χωρίς client_db: 000000000 / ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ
+    receipt_ids = set()
+    for rec in rows:
+        is_receipt = any(k in str(rec.get("DOCTYPE","")).lower() for k in ["receipt","αποδείξ","αποδειξ","λιαν"])
+        if is_receipt and rec.get("CUSTID") not in (None, ""):
+            receipt_ids.add(rec.get("CUSTID"))
+
+    partners_rows: List[Dict[str, Any]] = []
+    for cid in used_ids_unique:
+        afm = id_to_afm.get(cid, "")
+        nm  = id_to_name.get(cid, "")
+        if not afm or not nm:
+            fb = fallback_by_id.get(cid)
+            if fb:
+                afm = afm or str(fb[0] or "")
+                nm  = nm  or str(fb[1] or "")
+        # Αν είναι id αποδείξεων και ακόμη δεν έχουμε AFM/Name, βάλε default (NEW συμπεριφορά)
+        if (cid in receipt_ids) and (not afm and not nm):
+            afm = "000000000"
+            nm  = "ΠΡΟΜΗΘΕΥΤΕΣ ΔΑΠΑΝΩΝ"
+        partners_rows.append({"Α/Α": cid, "ΑΦΜ": afm, "ΕΠΩΝΥΜΙΑ": nm})
+
+    # Καθάρισμα/ταξινόμηση
+    df_partners = pd.DataFrame(partners_rows, columns=["Α/Α","ΑΦΜ","ΕΠΩΝΥΜΙΑ"]).drop_duplicates(subset=["Α/Α"])
+    try:
+        df_partners.sort_values(by=["Α/Α"], inplace=True, kind="mergesort", ignore_index=True)
+    except Exception:
+        pass
+
+    # 5) Γραφή Excel με 2 φύλλα
     with pd.ExcelWriter(paths["out"], engine="xlsxwriter", datetime_format="dd/mm/yyyy") as writer:
-        df.to_excel(writer, index=False, sheet_name="ΚΙΝΗΣΕΙΣ")
+        # Sheet 1: ΚΙΝΗΣΕΙΣ (όπως πριν)
+        df_moves.to_excel(writer, index=False, sheet_name="ΚΙΝΗΣΕΙΣ")
         wb, ws = writer.book, writer.sheets["ΚΙΝΗΣΕΙΣ"]
         fmt_num  = wb.add_format({"num_format":"0.00"})
         fmt_int  = wb.add_format({"num_format":"0"})
         fmt_date = wb.add_format({"num_format":"dd/mm/yyyy"})
-        idx = {n:i for i,n in enumerate(df.columns)}
+        idx = {n:i for i,n in enumerate(df_moves.columns)}
         for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID","OTHEREXPEND"]:
             if n in idx: ws.set_column(idx[n], idx[n], 10, fmt_int)
         for n in ["SUMKEPYOYP","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL"]:
@@ -734,7 +814,22 @@ def export_multiclient_strict(
         for n,w in [("REASON",40),("INVOICE",18),("LCODE_DETAIL",16),("LCODE",16)]:
             if n in idx: ws.set_column(idx[n], idx[n], w)
 
+        # Sheet 2: ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ
+        # Αν δεν προέκυψε τίποτα, φτιάξε έστω άδειο με headers
+        if df_partners.empty:
+            df_partners = pd.DataFrame(columns=["Α/Α","ΑΦΜ","ΕΠΩΝΥΜΙΑ"])
+        df_partners.to_excel(writer, index=False, sheet_name="ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ")
+        ws2 = writer.sheets["ΣΥΝΑΛΛΑΣΟΜΕΝΟΙ"]
+        # widths
+        try:
+            ws2.set_column(0, 0, 8, fmt_int)    # Α/Α
+            ws2.set_column(1, 1, 14)            # ΑΦΜ
+            ws2.set_column(2, 2, 40)            # ΕΠΩΝΥΜΙΑ
+        except Exception:
+            pass
+
     return True, paths["out"], []
+
 
 def run_and_report_dynamic(
     vat: str,

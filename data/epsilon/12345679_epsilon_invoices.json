@@ -1,0 +1,118 @@
+[
+  {
+    "mark": "400000000000000",
+    "issueDate": "31/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "142362",
+    "AA": "142362",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "30,00",
+    "totalVatAmount": "",
+    "totalValue": "30,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "101401017",
+    "Name_issuer": "ΣΤΡΙΚΟΣ ΙΩΑΝΝ",
+    "AFM": "101401017",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "30,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400000000000001",
+    "issueDate": "14/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "2221034",
+    "AA": "2221034",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "40",
+    "totalVatAmount": "",
+    "totalValue": "40",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094475066",
+    "Name_issuer": "ΜΥΡΤΕΑ 106",
+    "AFM": "094475066",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "40",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400000000000002",
+    "issueDate": "14/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "1412560",
+    "AA": "1412560",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "70",
+    "totalVatAmount": "",
+    "totalValue": "70",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "999644611",
+    "Name_issuer": "ΕΚΟ ΗΛΙΟΥΠΟΛΗΣ (R020)",
+    "AFM": "999644611",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "70",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400000000000003",
+    "issueDate": "08/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "87920",
+    "AA": "87920",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "70,00",
+    "totalVatAmount": "",
+    "totalValue": "70,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "082657798",
+    "Name_issuer": "ΝΙΚΟΛΑΟΥ ΙΩΑΝΝΗΣ ΚΑΙ ΣΙΑ ΟΕ",
+    "AFM": "082657798",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "70,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  }
+]
