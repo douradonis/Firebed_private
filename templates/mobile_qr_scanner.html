@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Σάρωση QR από φορητή συσκευή</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(145deg, #0f172a, #1e293b);
+      color: #0f172a;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+    main {
+      width: 100%;
+      max-width: 720px;
+      padding: 32px 20px 48px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+    }
+    h1 {
+      font-size: 1.45rem;
+      margin: 0 0 4px;
+      color: #0f172a;
+    }
+    p.lead {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      color: #475569;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 0.8rem;
+      margin-bottom: 18px;
+    }
+    .status {
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .status.success {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .mode-toggle {
+      display: inline-flex;
+      gap: 0;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #cbd5f5;
+      background: #e2e8f0;
+      margin-bottom: 16px;
+    }
+    .mode-toggle button {
+      flex: 1 1 auto;
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px 14px;
+      color: #0f172a;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .mode-toggle button.active {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+    }
+    .repeat-toggle {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 18px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .toggle-switch .slider {
+      width: 46px;
+      height: 26px;
+      border-radius: 999px;
+      background: #cbd5f5;
+      position: relative;
+      transition: background 0.2s ease;
+    }
+    .toggle-switch .slider::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      top: 3px;
+      left: 4px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+      transition: transform 0.2s ease;
+    }
+    .toggle-switch input:checked + .slider {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+    }
+    .toggle-switch input:checked + .slider::after {
+      transform: translateX(18px);
+    }
+    select,
+    button {
+      font-size: 0.95rem;
+      border-radius: 12px;
+      border: 1px solid #cbd5f5;
+      padding: 10px 14px;
+      background: #f8fafc;
+      color: #0f172a;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 12px 30px rgba(2, 132, 199, 0.25);
+    }
+    button.primary:active {
+      transform: translateY(1px);
+    }
+    button:disabled,
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .scanner-wrapper {
+      position: relative;
+      margin: 20px 0 12px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #0f172a;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
+    }
+    #qr-reader {
+      width: 100%;
+      min-height: 320px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+    #qr-reader video {
+      width: 100% !important;
+      height: auto !important;
+    }
+    .scan-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scan-frame {
+      position: relative;
+      width: min(320px, 72%);
+      aspect-ratio: 1 / 1;
+      border: 3px solid rgba(255, 255, 255, 0.45);
+      border-radius: 26px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.55);
+    }
+    .scan-frame::after {
+      content: '';
+      position: absolute;
+      inset: 14%;
+      border-radius: 22px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+    }
+    .scan-corner {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border: 4px solid rgba(255, 255, 255, 0.9);
+    }
+    .scan-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 22px; }
+    .scan-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 22px; }
+    .scan-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 22px; }
+    .scan-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 22px; }
+    .scan-frame.detected,
+    .scan-frame.success {
+      border-color: rgba(34, 197, 94, 0.85);
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35), 0 0 28px rgba(34, 197, 94, 0.4);
+    }
+    .scan-frame.error {
+      border-color: rgba(248, 113, 113, 0.9);
+      box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35), 0 0 24px rgba(248, 113, 113, 0.4);
+    }
+    .scan-flash {
+      position: absolute;
+      width: min(320px, 72%);
+      aspect-ratio: 1 / 1;
+      border-radius: 26px;
+      background: rgba(34, 197, 94, 0.3);
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    .scan-flash.active {
+      animation: scan-flash 0.4s ease forwards;
+    }
+    @keyframes scan-flash {
+      0% { opacity: 0.85; transform: scale(0.92); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+    #mobileResult {
+      background: rgba(15, 23, 42, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 0.95rem;
+      color: #0f172a;
+      word-break: break-word;
+      min-height: 54px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    #mobileResult.success {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+    #mobileResult.error {
+      background: #fee2e2;
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+    .note {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-top: 18px;
+      line-height: 1.5;
+    }
+    .summary-card {
+      margin-top: 24px;
+      padding: 18px 16px;
+      border-radius: 16px;
+      border: 1px solid #cbd5f5;
+      background: #f8fafc;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+    }
+    .summary-card.hidden { display: none; }
+    .summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .summary-header h2 {
+      font-size: 1.05rem;
+      margin: 0;
+      color: #0f172a;
+    }
+    .summary-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .summary-status {
+      font-size: 0.85rem;
+      color: #0369a1;
+      margin-bottom: 10px;
+    }
+    .summary-status.error { color: #b91c1c; }
+    .summary-status.success { color: #15803d; }
+    .summary-banner {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .summary-banner.show { display: block; }
+    .summary-totals {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    .summary-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-line {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+    }
+    .summary-line-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .summary-line-meta {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .summary-select-wrapper select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5f5;
+      background: #ffffff;
+      font-size: 0.9rem;
+      color: #0f172a;
+    }
+    .summary-empty {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .summary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .summary-actions button {
+      flex: 1 1 auto;
+      min-width: 140px;
+    }
+    .summary-actions button.secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+      border: none;
+    }
+    .alert {
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+    .alert.error {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    footer {
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      main {
+        padding: 24px 16px 36px;
+      }
+      .card {
+        padding: 24px 18px;
+      }
+      .scanner-wrapper {
+        margin: 16px 0 10px;
+      }
+      #qr-reader {
+        min-height: 240px;
+      }
+      .controls {
+        flex-direction: column;
+      }
+      .mode-toggle {
+        width: 100%;
+      }
+      .mode-toggle button {
+        width: 100%;
+      }
+      .repeat-toggle {
+        justify-content: center;
+      }
+      select,
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>Σάρωση QR από φορητή συσκευή</h1>
+      <p class="lead">Η κάμερα της συσκευής σου θα στέλνει αυτόματα QR κωδικούς στον υπολογιστή για άμεση συμπλήρωση.</p>
+      <span class="badge" id="modeBadge">&nbsp;</span>
+
+      {% if error %}
+      <div class="alert error">{{ error }}</div>
+      <p class="note">Άνοιξε ξανά τη σελίδα Αναζήτησης και δημιούργησε νέο σύνδεσμο σύνδεσης για τη φορητή συσκευή.</p>
+      {% else %}
+      <div id="mobileStatus" class="status">Έλεγχος ασφαλούς σύνδεσης…</div>
+
+      <div class="controls">
+        <select id="cameraSelect" aria-label="Επιλογή κάμερας" disabled></select>
+        <button id="startStopButton" class="primary" type="button" disabled>Εκκίνηση σάρωσης</button>
+        <button id="torchToggle" type="button" disabled>Φλας μη διαθέσιμο</button>
+      </div>
+
+      <div class="mode-toggle" role="group" aria-label="Επιλογή λειτουργίας αποστολής" id="modeToggle">
+        <button type="button" data-mode-option="invoices">Τιμολόγια</button>
+        <button type="button" data-mode-option="receipts">Αποδείξεις</button>
+      </div>
+
+      <div class="repeat-toggle">
+        <label class="toggle-switch" for="repeatToggle">
+          <input type="checkbox" id="repeatToggle">
+          <span class="slider" aria-hidden="true"></span>
+          <span class="label">Επαναληπτική εισαγωγή</span>
+        </label>
+      </div>
+
+      <div class="scanner-wrapper" id="scannerWrapper">
+        <div id="qr-reader"></div>
+        <div class="scan-overlay" aria-hidden="true">
+          <div id="scanFrame" class="scan-frame">
+            <span class="scan-corner tl"></span>
+            <span class="scan-corner tr"></span>
+            <span class="scan-corner bl"></span>
+            <span class="scan-corner br"></span>
+          </div>
+          <div id="scanFlash" class="scan-flash"></div>
+        </div>
+      </div>
+
+      <div id="mobileResult">Η τελευταία τιμή που θα σαρωθεί θα εμφανίζεται εδώ.</div>
+
+      <div class="note" id="expiresInfo"></div>
+
+      <div class="note">
+        • Κράτησε τη συσκευή σταθερή και φρόντισε ο κωδικός να φωτίζεται καλά.<br>
+        • Η σύνδεση είναι μοναδική και κρυπτογραφημένη. Μόλις κλείσει το παράθυρο, δημιουργεί νέα συνεδρία από τον υπολογιστή.<br>
+        • Για αποδείξεις, θα αποστέλλονται αυτόματα URLs στο πεδίο αναζήτησης αποδείξεων.
+      </div>
+
+      <div id="summaryControlPanel" class="summary-card hidden">
+        <div class="summary-header">
+          <h2>Χειρισμός χαρακτηρισμών</h2>
+          <span id="summaryMarkBadge" class="summary-badge"></span>
+        </div>
+        <div id="summaryStatusText" class="summary-status"></div>
+        <div id="summaryBanner" class="summary-banner"></div>
+        <div id="summaryTotals" class="summary-totals"></div>
+        <div id="summaryLines" class="summary-lines"></div>
+        <div class="summary-actions">
+          <button type="button" id="summaryConfirmBtn" class="secondary" style="display:none;">Επιβεβαίωση επαναχαρακτηρισμού</button>
+          <button type="button" id="summarySaveBtn" class="primary">Αποθήκευση</button>
+          <button type="button" id="summaryCloseBtn" class="secondary">Κλείσιμο</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <footer>Firebed • Remote QR link</footer>
+  </main>
+
+  <script>
+    window.__REMOTE_QR_CONFIG__ = {{ {
+      "sessionId": session_id,
+      "token": token,
+      "mode": mode,
+      "expiresAt": expires_at,
+      "repeatEnabled": repeat_enabled,
+      "error": error
+    } | tojson | safe }};
+  </script>
+  <script>
+    (function(){
+      const CFG = window.__REMOTE_QR_CONFIG__ || {};
+      if (CFG.error) {
+        return;
+      }
+
+      const statusEl = document.getElementById('mobileStatus');
+      const cameraSelect = document.getElementById('cameraSelect');
+      const startStopBtn = document.getElementById('startStopButton');
+      const torchBtn = document.getElementById('torchToggle');
+      const readerId = 'qr-reader';
+      const resultEl = document.getElementById('mobileResult');
+      const expiresEl = document.getElementById('expiresInfo');
+      const modeBadge = document.getElementById('modeBadge');
+      const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
+      const repeatToggle = document.getElementById('repeatToggle');
+      const summaryPanel = document.getElementById('summaryControlPanel');
+      const summaryStatus = document.getElementById('summaryStatusText');
+      const summaryMark = document.getElementById('summaryMarkBadge');
+      const summaryBanner = document.getElementById('summaryBanner');
+      const summaryTotals = document.getElementById('summaryTotals');
+      const summaryLines = document.getElementById('summaryLines');
+      const summarySaveBtn = document.getElementById('summarySaveBtn');
+      const summaryCloseBtn = document.getElementById('summaryCloseBtn');
+      const summaryConfirmBtn = document.getElementById('summaryConfirmBtn');
+      const scanFrame = document.getElementById('scanFrame');
+      const scanFlash = document.getElementById('scanFlash');
+      const defaultResultText = resultEl ? resultEl.innerHTML : '';
+
+      CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
+      CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
+      CFG.summaryVersion = CFG.summaryVersion || 0;
+
+      let html5QrCode = null;
+      let cameras = [];
+      let scanning = false;
+      let torchSupported = false;
+      let torchOn = false;
+      let heartbeatTimer = null;
+      let lastSentText = '';
+      let countdownTimer = null;
+      let frameHighlightTimer = null;
+      let lastSummaryHash = '';
+
+      function setStatus(text, tone){
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        statusEl.classList.remove('error','success');
+        if (tone === 'error') statusEl.classList.add('error');
+        else if (tone === 'success') statusEl.classList.add('success');
+        else statusEl.classList.remove('error','success');
+      }
+
+      function updateResultBox(html, tone){
+        if (!resultEl) return;
+        if (typeof html === 'string'){ resultEl.innerHTML = html; }
+        resultEl.classList.remove('success','error');
+        if (tone === 'success') resultEl.classList.add('success');
+        else if (tone === 'error') resultEl.classList.add('error');
+      }
+
+      function setSummaryStatus(text, tone){
+        if (!summaryStatus) return;
+        summaryStatus.textContent = text || '';
+        summaryStatus.classList.remove('error','success');
+        if (tone === 'error') summaryStatus.classList.add('error');
+        else if (tone === 'success') summaryStatus.classList.add('success');
+      }
+
+      function renderSummaryLines(lines){
+        if (!summaryLines) return;
+        summaryLines.innerHTML = '';
+        if (!Array.isArray(lines) || !lines.length){
+          const empty = document.createElement('div');
+          empty.className = 'summary-empty';
+          empty.textContent = 'Δεν υπάρχουν γραμμές προς χαρακτηρισμό.';
+          summaryLines.appendChild(empty);
+          return;
+        }
+        lines.forEach((line) => {
+          if (!line || !line.id) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'summary-line';
+
+          const title = document.createElement('div');
+          title.className = 'summary-line-title';
+          const fallbackName = `Γραμμή ${typeof line.index === 'number' ? line.index + 1 : ''}`;
+          const label = line.description != null ? String(line.description).trim() : fallbackName.trim();
+          title.textContent = label || 'Γραμμή';
+          wrap.appendChild(title);
+
+          const meta = document.createElement('div');
+          meta.className = 'summary-line-meta';
+          const amountTxt = line.amount ? `Ποσό: ${line.amount}` : 'Ποσό: -';
+          const vatTxt = line.vat ? `ΦΠΑ: ${line.vat}` : 'ΦΠΑ: -';
+          meta.textContent = `${amountTxt} • ${vatTxt}`;
+          wrap.appendChild(meta);
+
+          const selectWrap = document.createElement('div');
+          selectWrap.className = 'summary-select-wrapper';
+          const select = document.createElement('select');
+          select.dataset.lineId = line.id;
+
+          const seen = new Set();
+          const options = Array.isArray(line.options) && line.options.length ? line.options : [];
+          options.forEach(opt => {
+            if (!opt) return;
+            const val = opt.value != null ? String(opt.value) : '';
+            if (seen.has(val)) return;
+            seen.add(val);
+            const optionNode = document.createElement('option');
+            optionNode.value = val;
+            optionNode.textContent = opt.label != null ? String(opt.label) : (val || 'Χωρίς κατηγορία');
+            select.appendChild(optionNode);
+          });
+          const current = line.category != null ? String(line.category) : '';
+          if (!seen.has(current)){
+            const optionNode = document.createElement('option');
+            optionNode.value = current;
+            optionNode.textContent = line.selected_label || current || 'Χωρίς κατηγορία';
+            select.appendChild(optionNode);
+          }
+          select.value = current;
+          select.addEventListener('change', () => {
+            setSummaryStatus('Αποστολή επιλογής…', null);
+            sendControlCommand({ type: 'summary_set_category', line_id: line.id, category: select.value });
+          });
+          selectWrap.appendChild(select);
+          wrap.appendChild(selectWrap);
+
+          summaryLines.appendChild(wrap);
+        });
+      }
+
+      function applySummaryState(state, version){
+        if (!summaryPanel) return;
+        const payload = state ? JSON.stringify(state) : '';
+        if (payload && payload === lastSummaryHash) return;
+        lastSummaryHash = payload;
+        if (typeof version === 'number'){
+          CFG.summaryVersion = version;
+        }
+
+        if (!state || (!state.visible && (!state.lines || !state.lines.length) && !(state.reclassification_banner && state.reclassification_banner.visible))){
+          summaryPanel.classList.add('hidden');
+          setSummaryStatus('', null);
+          if (summaryBanner){ summaryBanner.classList.remove('show'); summaryBanner.textContent = ''; }
+          return;
+        }
+
+        summaryPanel.classList.remove('hidden');
+        if (summaryMark){ summaryMark.textContent = state.mark ? `MARK ${state.mark}` : ''; }
+
+        const totals = (state && state.totals) || {};
+        if (summaryTotals){
+          const net = totals.net || '-';
+          const vat = totals.vat || '-';
+          const total = totals.total || '-';
+          summaryTotals.innerHTML = `<span>Καθαρή: ${escapeHtml(net)}</span><span>ΦΠΑ: ${escapeHtml(vat)}</span><span>Σύνολο: ${escapeHtml(total)}</span>`;
+        }
+
+        if (state && state.reclassification_banner && state.reclassification_banner.visible){
+          if (summaryBanner){
+            summaryBanner.textContent = state.reclassification_banner.text || 'Απαιτείται επιβεβαίωση επαναχαρακτηρισμού.';
+            summaryBanner.classList.add('show');
+          }
+          if (summaryConfirmBtn){
+            summaryConfirmBtn.style.display = '';
+            summaryConfirmBtn.disabled = false;
+          }
+        } else {
+          if (summaryBanner){
+            summaryBanner.classList.remove('show');
+            summaryBanner.textContent = '';
+          }
+          if (summaryConfirmBtn){
+            summaryConfirmBtn.style.display = 'none';
+          }
+        }
+
+        if (summarySaveBtn){ summarySaveBtn.disabled = state && state.can_save === false; }
+        if (summaryCloseBtn){ summaryCloseBtn.disabled = state && state.can_close === false; }
+
+        const message = state && state.visible
+          ? 'Το παράθυρο χαρακτηρισμών είναι ανοιχτό στον υπολογιστή.'
+          : 'Το παράθυρο χαρακτηρισμών είναι κλειστό. Μπορείς να προεπιλέξεις κατηγορίες.';
+        setSummaryStatus(message, null);
+
+        renderSummaryLines(state && state.lines ? state.lines : []);
+      }
+
+      function clearFrameHighlights(){
+        if (frameHighlightTimer){
+          clearTimeout(frameHighlightTimer);
+          frameHighlightTimer = null;
+        }
+        if (scanFrame){
+          scanFrame.classList.remove('detected','success','error');
+        }
+        if (scanFlash){
+          scanFlash.classList.remove('active');
+        }
+      }
+
+      function pulseFrame(state){
+        if (!scanFrame) return;
+        clearFrameHighlights();
+        if (state === 'detected'){
+          scanFrame.classList.add('detected');
+        } else if (state === 'success'){
+          scanFrame.classList.add('success');
+          if (scanFlash){
+            scanFlash.classList.add('active');
+            setTimeout(() => scanFlash.classList.remove('active'), 260);
+          }
+        } else if (state === 'error'){
+          scanFrame.classList.add('error');
+        }
+        frameHighlightTimer = setTimeout(() => {
+          clearFrameHighlights();
+          if (scanFrame){
+            scanFrame.classList.remove('detected','success','error');
+          }
+        }, 1100);
+      }
+
+      function applyMode(newMode){
+        const normalized = newMode === 'receipts' ? 'receipts' : 'invoices';
+        const changed = normalized !== CFG.mode;
+        CFG.mode = normalized;
+        updateModeBadge();
+        return { mode: normalized, changed };
+      }
+
+      async function sendSessionUpdate(payload, options){
+        options = options || {};
+        if (!CFG.sessionId || !CFG.token) return null;
+        try {
+          const body = Object.assign({ session_id: CFG.sessionId, token: CFG.token }, payload || {});
+          const res = await fetch('/api/qr/remote/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = data && data.error ? data.error : 'Δεν ενημερώθηκε η συνεδρία.';
+            setStatus(message, 'error');
+            return null;
+          }
+          if (data.mode){
+            applyMode(data.mode);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
+          if (data.expires_at){
+            CFG.expiresAt = data.expires_at;
+            updateExpiryCountdown();
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
+          return data;
+        } catch (err){
+          console.warn('sendSessionUpdate failed', err);
+          setStatus('Δεν ήταν δυνατή η ενημέρωση συνεδρίας.', 'error');
+          return null;
+        }
+      }
+
+      async function sendModeUpdate(mode){
+        await sendSessionUpdate({ mode, repeat_enabled: CFG.repeatEnabled });
+      }
+
+      async function sendRepeatUpdate(enabled){
+        CFG.repeatEnabled = !!enabled;
+        await sendSessionUpdate({ repeat_enabled: CFG.repeatEnabled });
+      }
+
+      async function sendControlCommand(command){
+        if (!CFG.sessionId || !CFG.token) return;
+        try {
+          const res = await fetch('/api/qr/remote/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, command })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = data && data.error ? data.error : 'Δεν στάλθηκε η εντολή.';
+            setSummaryStatus(message, 'error');
+            return;
+          }
+          setSummaryStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+        } catch (err){
+          console.warn('sendControlCommand failed', err);
+          setSummaryStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
+        }
+      }
+
+      function updateModeBadge(){
+        if (modeBadge){
+          modeBadge.textContent = CFG.mode === 'receipts' ? 'Αποδείξεις' : 'Τιμολόγια';
+        }
+        modeButtons.forEach(btn => {
+          if (!btn) return;
+          const target = btn.getAttribute('data-mode-option');
+          const active = target === 'receipts' ? CFG.mode === 'receipts' : CFG.mode !== 'receipts';
+          btn.classList.toggle('active', active);
+        });
+      }
+
+      function updateRepeatToggle(){
+        if (repeatToggle){
+          repeatToggle.checked = !!CFG.repeatEnabled;
+        }
+      }
+
+      function applyRepeat(next){
+        const normalized = next === true || next === 'true' || next === 1 ? true : !!next;
+        const changed = normalized !== !!CFG.repeatEnabled;
+        CFG.repeatEnabled = normalized;
+        updateRepeatToggle();
+        return { repeat: normalized, changed };
+      }
+
+      function updateExpiryCountdown(){
+        if (!expiresEl) return;
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+        if (!CFG.expiresAt) {
+          expiresEl.textContent = '';
+          return;
+        }
+        const expiresAt = Date.parse(CFG.expiresAt);
+        if (Number.isNaN(expiresAt)) {
+          expiresEl.textContent = '';
+          return;
+        }
+        const update = () => {
+          const diff = expiresAt - Date.now();
+          if (diff <= 0){
+            expiresEl.textContent = 'Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.';
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+            disableControls();
+            return;
+          }
+          const mins = Math.floor(diff / 60000);
+          const secs = Math.floor((diff % 60000) / 1000);
+          expiresEl.textContent = `Η σύνδεση λήγει σε ${mins}:${secs.toString().padStart(2,'0')}`;
+        };
+        update();
+        countdownTimer = setInterval(update, 1000);
+      }
+
+      function disableControls(){
+        if (startStopBtn) startStopBtn.disabled = true;
+        if (cameraSelect) cameraSelect.disabled = true;
+        if (torchBtn) {
+          torchBtn.disabled = true;
+          torchBtn.textContent = 'Φλας μη διαθέσιμο';
+        }
+      }
+
+      function ensureSecureContext(){
+        if (!window.isSecureContext) {
+          setStatus('Απαιτείται ασφαλής σύνδεση (HTTPS) για πρόσβαση στην κάμερα.', 'error');
+          disableControls();
+          return false;
+        }
+        return true;
+      }
+
+      function escapeHtml(str){
+        return (str || '').replace(/[&<>"]+/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch] || ch));
+      }
+
+      async function listCameras(){
+        if (typeof window.Html5Qrcode === 'undefined'){
+          setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
+          cameras = [];
+        } else {
+          try {
+            cameras = await window.Html5Qrcode.getCameras();
+          } catch (err) {
+            console.warn('getCameras failed', err);
+            cameras = [];
+          }
+        }
+
+        if (!cameraSelect) return;
+        cameraSelect.innerHTML = '';
+        if (!cameras.length){
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'Δεν βρέθηκε κάμερα';
+          cameraSelect.appendChild(option);
+          cameraSelect.disabled = true;
+          return;
+        }
+
+        cameras.forEach((cam, idx) => {
+          const option = document.createElement('option');
+          option.value = cam.id;
+          option.textContent = cam.label || `Κάμερα ${idx + 1}`;
+          cameraSelect.appendChild(option);
+        });
+
+        cameraSelect.disabled = false;
+        if (!cameraSelect.value && cameras[0]) {
+          cameraSelect.value = cameras[0].id;
+        }
+      }
+
+      async function startScanner(preferredId){
+        if (!ensureSecureContext()) return;
+        if (typeof window.Html5Qrcode === 'undefined') {
+          setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
+          return;
+        }
+        try {
+          if (!html5QrCode) {
+            const supportedFormats = (window.Html5QrcodeSupportedFormats && window.Html5QrcodeSupportedFormats.QR_CODE)
+              ? [window.Html5QrcodeSupportedFormats.QR_CODE]
+              : undefined;
+            const ctorConfig = supportedFormats ? { formatsToSupport: supportedFormats } : undefined;
+            html5QrCode = new window.Html5Qrcode(readerId, ctorConfig);
+          }
+          const cameraConfig = preferredId ? { deviceId: { exact: preferredId } } : { facingMode: 'environment' };
+          const viewport = Math.max(220, Math.min(360, window.innerWidth - 48));
+          const config = {
+            fps: 12,
+            qrbox: { width: viewport, height: viewport },
+            disableFlip: true,
+          };
+          clearFrameHighlights();
+          await html5QrCode.start(cameraConfig, config, onScanSuccess, onScanFailure);
+          scanning = true;
+          setStatus('Η κάμερα είναι ενεργή. Σάρωσε έναν κωδικό QR.', 'success');
+          if (startStopBtn) {
+            startStopBtn.disabled = false;
+            startStopBtn.textContent = 'Παύση σάρωσης';
+          }
+          await evaluateTorchSupport();
+        } catch (err) {
+          console.error('startScanner failed', err);
+          setStatus('Αποτυχία εκκίνησης της κάμερας. Έλεγξε τα δικαιώματα.', 'error');
+        }
+      }
+
+      async function stopScanner(){
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
+        if (html5QrCode && scanning){
+          try {
+            await html5QrCode.stop();
+          } catch (err) {
+            console.warn('stopScanner', err);
+          }
+        }
+        scanning = false;
+        torchSupported = false;
+        torchOn = false;
+        clearFrameHighlights();
+        if (torchBtn){
+          torchBtn.disabled = true;
+          torchBtn.textContent = 'Φλας μη διαθέσιμο';
+        }
+        if (startStopBtn){
+          startStopBtn.textContent = 'Εκκίνηση σάρωσης';
+          startStopBtn.disabled = false;
+        }
+      }
+
+      async function evaluateTorchSupport(){
+        if (!html5QrCode || !torchBtn) return;
+        try {
+          const caps = await html5QrCode.getRunningTrackCapabilities();
+          torchSupported = !!(caps && caps.torch);
+        } catch (err) {
+          torchSupported = false;
+        }
+        torchBtn.disabled = !torchSupported;
+        torchBtn.textContent = torchSupported ? 'Ενεργοποίηση φλας' : 'Φλας μη διαθέσιμο';
+      }
+
+      async function toggleTorch(){
+        if (!html5QrCode || !torchSupported) return;
+        try {
+          await html5QrCode.applyVideoConstraints({ advanced: [{ torch: !torchOn }] });
+          torchOn = !torchOn;
+          torchBtn.textContent = torchOn ? 'Απενεργοποίηση φλας' : 'Ενεργοποίηση φλας';
+        } catch (err) {
+          console.warn('toggleTorch', err);
+          setStatus('Δεν ήταν δυνατή η αλλαγή του φλας.', 'error');
+        }
+      }
+
+      async function sendHeartbeat(){
+        try {
+          const res = await fetch('/api/qr/remote/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+          });
+          if (res.status === 410) {
+            setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
+            disableControls();
+            await stopScanner();
+            return;
+          }
+          const data = await res.json().catch(() => null);
+          if (data && data.expires_at) {
+            CFG.expiresAt = data.expires_at;
+            updateExpiryCountdown();
+          }
+          if (data && data.mode){
+            applyMode(data.mode);
+          }
+          if (data && Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
+          if (data && Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data && data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
+        } catch (err) {
+          console.warn('heartbeat failed', err);
+        }
+      }
+
+      async function attach(){
+        if (!CFG.sessionId || !CFG.token){
+          setStatus('Λείπουν στοιχεία συνεδρίας. Δημιούργησε νέο σύνδεσμο.', 'error');
+          disableControls();
+          return;
+        }
+        if (!ensureSecureContext()) return;
+        setStatus('Σύνδεση με τον υπολογιστή…', 'info');
+        try {
+          const res = await fetch('/api/qr/remote/attach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = (data && data.error) ? data.error : 'Δεν ήταν δυνατή η σύνδεση με τον υπολογιστή.';
+            setStatus(message, 'error');
+            disableControls();
+            return;
+          }
+          if (data.mode){
+            applyMode(data.mode);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
+          CFG.expiresAt = data.expires_at || CFG.expiresAt;
+          updateModeBadge();
+          updateExpiryCountdown();
+          if (Object.prototype.hasOwnProperty.call(data, 'summary_version')){
+            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+          }
+          if (data.summary_state){
+            applySummaryState(data.summary_state, CFG.summaryVersion);
+          }
+          updateResultBox(defaultResultText, null);
+          await listCameras();
+          await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          if (!heartbeatTimer){
+            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+          }
+        } catch (err) {
+          console.warn('attach failed', err);
+          setStatus('Αποτυχία σύνδεσης. Δοκίμασε να ανανεώσεις τον σύνδεσμο.', 'error');
+          disableControls();
+        }
+      }
+
+      async function pushPayload(text){
+        lastSentText = text;
+        setTimeout(() => { lastSentText = ''; }, 1800);
+        try {
+          const res = await fetch('/api/qr/remote/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data || data.ok === false){
+            const message = (data && data.error) ? data.error : 'Δεν στάλθηκε ο κωδικός. Προσπάθησε ξανά.';
+            setStatus(message, 'error');
+            pulseFrame('error');
+            updateResultBox(message, 'error');
+            return;
+          }
+          const mark = data.mark || '';
+          const info = mark ? `MARK ${mark}` : text;
+          updateResultBox(`<strong>Εστάλη:</strong> ${escapeHtml(info)}`, 'success');
+          setStatus('Ο κωδικός στάλθηκε στον υπολογιστή. Μπορείς να συνεχίσεις τη σάρωση.', 'success');
+          pulseFrame('success');
+          if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
+            applyRepeat(data.repeat_enabled);
+          }
+        } catch (err) {
+          console.warn('pushPayload failed', err);
+          setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+          pulseFrame('error');
+          updateResultBox('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+        }
+      }
+
+      function onScanSuccess(decodedText){
+        const clean = (decodedText || '').trim();
+        if (!clean) return;
+        if (clean === lastSentText) return;
+        pulseFrame('detected');
+        pushPayload(clean);
+      }
+
+      function onScanFailure(){
+        // intentionally ignored - the library fires this frequently
+      }
+
+      if (startStopBtn){
+        startStopBtn.addEventListener('click', async () => {
+          if (scanning){
+            await stopScanner();
+            setStatus('Η σάρωση έχει παύσει.', 'info');
+          } else {
+            await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          }
+        });
+      }
+
+      cameraSelect?.addEventListener('change', async (ev) => {
+        if (!cameraSelect) return;
+        if (scanning){
+          await stopScanner();
+          await startScanner(cameraSelect.value);
+        }
+      });
+
+      torchBtn?.addEventListener('click', toggleTorch);
+
+      window.addEventListener('beforeunload', stopScanner);
+      window.addEventListener('pagehide', stopScanner);
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'hidden') {
+          await stopScanner();
+        } else if (!scanning && CFG.sessionId && CFG.token) {
+          if (!heartbeatTimer) {
+            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+          }
+          if (!(startStopBtn && startStopBtn.disabled)) {
+            await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          }
+        }
+      });
+
+      modeButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const choice = btn.getAttribute('data-mode-option');
+          const { mode, changed } = applyMode(choice);
+          if (changed){
+            setStatus(mode === 'receipts' ? 'Η συσκευή θα στέλνει αποδείξεις.' : 'Η συσκευή θα στέλνει τιμολόγια.', 'info');
+          }
+          await sendModeUpdate(mode);
+        });
+      });
+
+      repeatToggle?.addEventListener('change', async () => {
+        const { repeat, changed } = applyRepeat(!!repeatToggle.checked);
+        if (changed){
+          setStatus(repeat ? 'Η επαναληπτική εισαγωγή ενεργοποιήθηκε.' : 'Η επαναληπτική εισαγωγή απενεργοποιήθηκε.', 'info');
+          await sendRepeatUpdate(repeat);
+        }
+      });
+
+      summarySaveBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή αποθήκευσης…', null);
+        sendControlCommand({ type: 'summary_save' });
+      });
+
+      summaryCloseBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή κλεισίματος…', null);
+        sendControlCommand({ type: 'summary_close' });
+      });
+
+      summaryConfirmBtn?.addEventListener('click', () => {
+        setSummaryStatus('Αποστολή επιβεβαίωσης επαναχαρακτηρισμού…', null);
+        sendControlCommand({ type: 'summary_confirm' });
+      });
+
+      updateModeBadge();
+      updateRepeatToggle();
+      attach();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+#!/usr/bin/env python3
+import re
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
+import xml.etree.ElementTree as ET
+from urllib.parse import urlparse, parse_qs, urljoin
+
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "el-GR,el;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Referer": "https://mydata.wedoconnect.com/",
+    "DNT": "1",
+}
+MARK_RE = re.compile(r"\b\d{15}\b")  # 15-digit MARK
+
+# -------------------- WEDOCONNECT --------------------
+def scrape_wedoconnect(url, timeout=20):
+    """
+    Επιστρέφει (marks_list, counterpart_vat).
+    Λογική:
+      - Κατεβάζει τη σελίδα Validation?AC=...
+      - Εντοπίζει επί τόπου anchors/iframe προς attachments (.xml / az-ubl / mydata / .pdf / blob links)
+      - Προτεραιότητα σε XML-like links: κατεβάζει το XML και διαβάζει <counterpart><vatNumber> και <mark>
+      - Fallback: regex search σε attachments (pdf/text) για 9-ψήφιο AFM ή 15-ψήφιο MARK
+    """
+    from urllib.parse import urljoin
+    import xml.etree.ElementTree as ET
+
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
+
+    try:
+        r = sess.get(url, timeout=timeout)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return [], None
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    # 1) αρχικά MARKs από τη σελίδα (π.χ. εμφανισμένα)
+    page_text = soup.get_text(" ", strip=True)
+    marks = MARK_RE.findall(page_text)
+    marks = list(dict.fromkeys(marks))  # unique
+
+    # 2) συλλογή candidate attachment URLs
+    candidate_urls = []
+
+    # anchors
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        full = urljoin(r.url, href)
+        low = href.lower()
+        # προτίμηση αν το href δείχνει σε xml/ubl/mydata/az-ubl
+        if any(token in low for token in (".xml", "az-ubl", "ubl", "mydata")):
+            candidate_urls.append(full)
+        # επίσης blob/pdf
+        elif any(token in low for token in (".pdf", "blob.core.windows.net")):
+            candidate_urls.append(full)
+        else:
+            # αν το link text ή title φαίνεται να αναφέρεται σε mydata/ubl/az-ubl
+            txt = (a.get("title") or a.get("download") or a.text or "").lower()
+            if any(token in txt for token in ("az-ubl", "mydata", "ubl", ".xml")):
+                candidate_urls.append(full)
+
+    # iframe (π.χ. pdf viewer με file=..)
+    for iframe in soup.find_all("iframe", src=True):
+        src = iframe["src"]
+        if "file=" in src:
+            # decode file= param
+            import urllib.parse as _up
+            qs = _up.urlparse(src).query
+            qd = _up.parse_qs(qs)
+            if "file" in qd:
+                file_url = _up.unquote(qd["file"][0])
+                candidate_urls.append(file_url)
+        candidate_urls.append(urljoin(r.url, src))
+
+    # πιθανό <embed src="...">
+    for emb in soup.find_all("embed", src=True):
+        candidate_urls.append(urljoin(r.url, emb["src"]))
+
+    # dedupe but preserve order
+    seen = set()
+    candidate_urls = [u for u in candidate_urls if not (u in seen or seen.add(u))]
+
+    # 3) προτίμηση: XML-like attachments (az-ubl / mydata / .xml)
+    counterpart_vat = None
+    for cu in candidate_urls:
+        low = cu.lower()
+        if any(tok in low for tok in (".xml", "az-ubl", "ubl", "mydata")):
+            try:
+                r2 = sess.get(cu, timeout=timeout)
+                r2.raise_for_status()
+            except Exception:
+                continue
+
+            # προσπάθεια XML parsing (namespace-agnostic)
+            try:
+                root = ET.fromstring(r2.content)
+                # search <counterpart>/<vatNumber>
+                cp = root.find(".//{*}counterpart") or root.find(".//counterpart")
+                if cp is not None:
+                    vat_el = cp.find(".//{*}vatNumber") or cp.find(".//vatNumber")
+                else:
+                    vat_el = None
+
+                if vat_el is not None and vat_el.text and re.match(r"^\d{9}$", vat_el.text.strip()):
+                    counterpart_vat = vat_el.text.strip()
+                    # αν υπάρχει <mark> μέσα στο xml, το προσθέτουμε
+                    mark_xml = root.find(".//{*}mark") or root.find(".//mark")
+                    if mark_xml is not None and mark_xml.text:
+                        marks.append(mark_xml.text.strip())
+                    break
+
+                # fallback αν δεν βρήκαμε με την παραπάνω μέθοδο: regex στο κείμενο XML
+                m = re.search(r"\b\d{9}\b", r2.text)
+                if m:
+                    counterpart_vat = m.group(0)
+                    break
+            except Exception:
+                # αν το αρχείο δεν είναι valid XML, ψάχνουμε με regex
+                m = re.search(r"\b\d{9}\b", r2.text)
+                if m:
+                    counterpart_vat = m.group(0)
+                    break
+
+    # 4) αν δεν βρέθηκε ακόμα, ψάχνουμε σε PDF / binary attachments (raw bytes search)
+    if not counterpart_vat:
+        for cu in candidate_urls:
+            low = cu.lower()
+            if ".pdf" in low or "blob.core.windows.net" in low:
+                try:
+                    r3 = sess.get(cu, timeout=timeout)
+                    r3.raise_for_status()
+                except Exception:
+                    continue
+                raw = r3.content
+                m = re.search(rb"\b\d{9}\b", raw)
+                if m:
+                    counterpart_vat = m.group(0).decode("ascii")
+                    break
+                # fallback decode latin1
+                s = raw.decode("latin1", errors="ignore")
+                m2 = re.search(r"\b\d{9}\b", s)
+                if m2:
+                    counterpart_vat = m2.group(0)
+                    break
+
+    # unique marks
+    marks = list(dict.fromkeys(marks))
+
+    return marks, counterpart_vat
+
+
+
+# -------------------- MYDATAPI --------------------
+def scrape_mydatapi(url):
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.encoding = 'utf-8'
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return {}
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    mark = soup.find("input", id="tmark")
+    doc_type = soup.find("input", id="dtype")
+    afm = soup.find("input", id="crvatnumber")
+    return {
+        "MARK": mark.get("value").strip() if mark else "N/A",
+        "Είδος Παραστατικού": doc_type.get("value").strip() if doc_type else "N/A",
+        "ΑΦΜ Πελάτη": afm.get("value").strip() if afm else "N/A"
+    }
+
+# -------------------- ECOS E-INVOICING --------------------
+# -------------------- ECOS E-INVOICING --------------------
+def scrape_einvoice(url):
+    """
+    Returns (marks_list, counterpart_vat)
+    - marks_list: list of found MARK strings (or [] if none)
+    - counterpart_vat: AFM found in the 'Στοιχεία Πελάτη' block, or None
+    """
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.encoding = 'utf-8'
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return [], None
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    # --- MARK extraction (existing logic) ---
+    mark = None
+    # 1) prefer explicit span.field-Mark structure
+    mark_tag = soup.find("span", class_=lambda c: c and "field-Mark" in c)
+    if mark_tag:
+        val = mark_tag.find("span", class_="value")
+        if val and val.get_text(strip=True):
+            mark = val.get_text(strip=True)
+
+    # 2) fallback: regex search in page text
+    if not mark:
+        txt = soup.get_text(" ", strip=True)
+        m = re.search(r"Μ\.?Αρ\.?Κ\.?\s*[:\u00A0\s-]*\s*(\d{15})", txt, re.I)
+        if m:
+            mark = m.group(1)
+
+    # --- Counterpart (Customer) VAT extraction ---
+    counterpart_vat = None
+
+    # 1) try to find the 'section-counterparties' block then the left column
+    cp_section = soup.find("div", class_=lambda c: c and "section-counterparties" in c)
+    if cp_section:
+        left_col = cp_section.find("div", class_=lambda c: c and "section-counterparties-leftcolumn" in c)
+        if left_col:
+            vat_span = left_col.find("span", class_=lambda c: c and ("field-Vat" in c or "field-Vat" in " ".join(c) if isinstance(c, list) else False))
+            # more robust: search for span whose class contains 'field' and 'Vat'
+            if not vat_span:
+                vat_span = left_col.find(lambda tag: tag.name == "span" and tag.get("class") and any("Vat" in cl for cl in tag.get("class")))
+            if vat_span:
+                val = vat_span.find("span", class_="value")
+                if val and val.get_text(strip=True):
+                    counterpart_vat = val.get_text(strip=True)
+
+    # 2) fallback: find any span.field-Vat on page (general)
+    if not counterpart_vat:
+        vat_tag = soup.find(lambda tag: tag.name == "span" and tag.get("class") and any("Vat" in cl for cl in tag.get("class")))
+        if vat_tag:
+            val = vat_tag.find("span", class_="value")
+            if val and val.get_text(strip=True):
+                counterpart_vat = val.get_text(strip=True)
+
+    return ([mark] if mark else []), counterpart_vat
+
+
+# -------------------- IMPACT E-INVOICING --------------------
+def scrape_impact(url):
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.encoding = 'utf-8'
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return []
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
+    if el and el.get_text(strip=True):
+        return [el.get_text(strip=True)]
+
+    for lbl in soup.find_all(string=re.compile(r"Μ\.?Αρ\.?Κ\.?", re.I)):
+        parent = lbl.parent
+        if parent:
+            block_text = parent.get_text(" ", strip=True)
+            m = MARK_RE.search(block_text)
+            if m:
+                return [m.group(0)]
+            sib_text = " ".join(
+                str(sib.get_text(" ", strip=True) if hasattr(sib, "get_text") else sib)
+                for sib in parent.next_siblings
+            )
+            m2 = MARK_RE.search(sib_text)
+            if m2:
+                return [m2.group(0)]
+    full_text = soup.get_text(" ", strip=True)
+    m = MARK_RE.search(full_text)
+    return [m.group(0)] if m else []
+
+# -------------------- EPSILON --------------------
+def scrape_epsilon(url):
+    parsed = urlparse(url)
+    base = f"{parsed.scheme}://{parsed.netloc}"
+
+    # documentId
+    docid = None
+    if "/DocViewer/" in parsed.path:
+        docid = parsed.path.split("/DocViewer/")[-1]
+    else:
+        q = parse_qs(parsed.query)
+        if "documentId" in q:
+            docid = q["documentId"][0]
+
+    if not docid:
+        return None, None, {"error": "documentId not found", "attempt_url": url}
+
+    getfile_url = f"{base}/filedocument/getfile?fileType=3&documentId={docid}"
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
+
+    try:
+        r = sess.get(getfile_url, timeout=20)
+        r.raise_for_status()
+    except Exception as e:
+        return None, None, {"error": f"Request failed: {e}", "attempt_url": getfile_url}
+
+    mark = None
+    counterpart_vat = None
+
+    # XML parsing
+    if "xml" in r.headers.get("Content-Type", "").lower() or r.text.strip().startswith("<"):
+        try:
+            ns = {"a": "http://www.aade.gr/myDATA/invoice/v1.0"}
+            root = ET.fromstring(r.content)
+            mark_el = root.find(".//a:mark", ns)
+            if mark_el is not None:
+                mark = mark_el.text.strip()
+            counterpart_vat_el = root.find(".//a:counterpart/a:vatNumber", ns)
+            if counterpart_vat_el is not None:
+                counterpart_vat = counterpart_vat_el.text.strip()
+        except Exception as e:
+            return None, None, {"error": f"XML parse failed: {e}", "attempt_url": getfile_url}
+    else:
+        # fallback HTML
+        soup = BeautifulSoup(r.text, "html.parser")
+        sel = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
+        if sel:
+            mark = sel.get_text(strip=True)
+        txt = soup.get_text(" ", strip=True)
+        if not mark:
+            m = re.search(r"\b\d{15}\b", txt)
+            if m:
+                mark = m.group(0)
+        m2 = re.search(r"(?:AFM|vatNumber|crvatnumber)[\"']?\s*[:=]?\s*[\"']?(\d{9})[\"']?", txt, re.I)
+        if m2:
+            counterpart_vat = m2.group(1)
+
+    return mark, counterpart_vat, {"attempt_url": getfile_url, "status_code": r.status_code}
+
+# -------------------- MAIN --------------------
+def main():
+    url = input("Εισάγετε το URL: ").strip()
+    domain = urlparse(url).netloc.lower()
+    data = {}
+    marks = []
+
+    if "wedoconnect" in domain:
+        source = "Wedoconnect"
+        marks = scrape_wedoconnect(url)
+    elif "mydatapi.aade.gr" in domain:
+        source = "MyData"
+        data = scrape_mydatapi(url)
+        marks = [data.get("MARK", "N/A")]
+    elif "einvoice.s1ecos.gr" in domain:
+        source = "ECOS E-Invoicing"
+        marks, counterpart_vat = scrape_einvoice(url)
+    elif "einvoice.impact.gr" in domain or "impact.gr" in domain:
+        source = "Impact E-Invoicing"
+        marks = scrape_impact(url)
+    elif "epsilonnet.gr" in domain:
+        source = "Epsilon (myData)"
+        mark,counterpart_vat, info = scrape_epsilon(url)
+        marks = [mark] if mark else []
+    else:
+        print("Άγνωστο URL. Δεν μπορεί να γίνει scrape.")
+        return
+
+    print(f"\nΠηγή: {source}")
+    if marks:
+        print("\nΒρέθηκαν MARK(s):")
+        for m in marks:
+            print(m)
+    else:
+        print("Δεν βρέθηκε MARK.")
+
+    if source == "MyData":
+        afm = data.get("ΑΦΜ Πελάτη", "")
+        if afm:
+            print("ΑΦΜ Πελάτη:", afm)
+        if "απόδειξη" in data.get("Είδος Παραστατικού", "").lower():
+            print("⚠️ Πρόκειται για απόδειξη!")
+
+    if source == "Epsilon (myData)":
+        
+        if counterpart_vat:
+            print("counterpart VAT:", counterpart_vat)
+
+    if source == "ECOS E-Invoicing":
+        if counterpart_vat:
+            print("counterpart VAT:", counterpart_vat)
+if __name__ == "__main__":
+    main()

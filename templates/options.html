@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <title>Options / Credentials</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa}
+    .card{background:#fff;padding:16px;margin:16px 0;border-radius:12px}
+    .success{background:#e6ffed;padding:10px;border-radius:8px}
+    .error{background:#fff5f5;padding:10px;border-radius:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left}
+    th{background:#0d6efd;color:#fff}
+    .small{font-size:0.9em;color:#666}
+    .del-btn{background:#dc3545;color:#fff;padding:6px 8px;border:none;border-radius:6px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Credentials / Διαχείριση</h1>
+    <p>Τα credentials αποθηκεύονται τοπικά στο server (data/credentials.json). Τα πλήρη κλειδιά δεν εμφανίζονται.</p>
+
+    {% if msg %}
+      <div class="success">{{ msg }}</div>
+    {% endif %}
+    {% if err %}
+      <div class="error">{{ err }}</div>
+    {% endif %}
+
+    <h3>Προσθήκη νέου credential</h3>
+    <form method="post">
+      <p>Όνομα (προβολή/επιλογή):<br><input name="name" required style="width:60%"></p>
+      <p>AADE User ID:<br><input name="user" style="width:60%"></p>
+      <p>AADE Subscription Key:<br><input name="key" style="width:60%"></p>
+      <p>Env:<br>
+        <select name="env">
+          <option value="sandbox">sandbox</option>
+          <option value="production">production</option>
+        </select>
+      </p>
+      <p>Default VAT (optional):<br><input name="vat" style="width:40%"></p>
+      <p><button type="submit">Αποθήκευση Credential</button></p>
+    </form>
+
+    <h3>Αποθηκευμένα Credentials</h3>
+    {% if credentials %}
+      <table>
+        <thead><tr><th>Όνομα</th><th>VAT</th><th>Env</th><th>AADE User</th><th>Key</th><th>Δράσεις</th></tr></thead>
+        <tbody>
+          {% for c in credentials %}
+            <tr>
+              <td>{{ c.name }}</td>
+              <td class="small">{{ c.vat or '' }}</td>
+              <td>{{ c.env }}</td>
+              <td class="small">{{ c.user or '' }}</td>
+              <td class="small">{{ c._key_masked }}</td>
+              <td>
+                <form method="post" action="{{ url_for('credentials_delete') }}" style="display:inline">
+                  <input type="hidden" name="name" value="{{ c.name }}">
+                  <button type="submit" class="del-btn" onclick="return confirm('Διαγραφή credential;')">Διαγραφή</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div>Δεν υπάρχουν αποθηκευμένα credentials.</div>
+    {% endif %}
+
+    <p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
+  </div>
+</body>
+</html>

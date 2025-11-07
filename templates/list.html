@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Λίστα Παραστατικών{% endblock %}
+
+{% block head_extra %}
+<style>
+.table-wrapper { width:100%; overflow:auto; max-height:70vh; border-radius:8px; background:#fff; padding:8px; }
+.summary-table { width:100%; border-collapse:collapse; min-width:900px; table-layout: fixed; }
+.summary-table th, .summary-table td { border:1px solid #e6e6e6; padding:8px; vertical-align:top; }
+.summary-table th { background:#0d6efd; color:white; cursor: move; position: sticky; top:0; z-index:3; }
+.cell-wrap { white-space:pre-wrap; word-break:break-word; max-width:360px; overflow:hidden; }
+.small-btn { padding:8px 12px; border-radius:8px; color:#fff; background:#0d6efd; text-decoration:none; display:inline-block; }
+.small-btn.secondary { background:#6c757d; }
+.small-btn.danger { background:#dc3545; }
+{{ css_numcols | safe }}
+
+/* Flash banner styling */
+.flash-banner {
+  position: relative;
+  padding: 12px 2.5rem 12px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.flash-banner.flash-error { background: #fef2f2; color: #b91c1c; }
+.flash-banner.flash-success { background: #ecfdf5; color: #065f46; }
+.flash-banner .close-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Download dropdown styles */
+.download-dropdown { position: relative; display: inline-block; }
+.download-toggle {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#0d6efd;
+  color:white;
+  cursor:pointer;
+  text-decoration:none;
+  border: none;
+}
+.download-menu {
+  position:absolute;
+  right:0;
+  margin-top:8px;
+  min-width:220px;
+  background:white;
+  border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.12);
+  z-index:50;
+  overflow:hidden;
+}
+.download-menu a, .download-menu button {
+  display:block;
+  width:100%;
+  padding:10px 12px;
+  text-align:left;
+  border:none;
+  background:transparent;
+  color:#111827;
+  text-decoration:none;
+  cursor:pointer;
+}
+.download-menu a:hover, .download-menu button:hover { background:#f3f4f6; }
+
+/* Pop-up modal */
+#deleteModal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5);
+}
+#deleteModal .modal-content {
+  background: #fff;
+  margin: 15% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 360px;
+  text-align: center;
+}
+#deleteModal .modal-buttons {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+#deleteModal .modal-buttons button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+#deleteModal .modal-buttons .cancel { background:#6c757d; color:#fff; }
+#deleteModal .modal-buttons .confirm { background:#dc3545; color:#fff; }
+</style>
+
+<!-- DataTables + ColReorder + ColResize -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/colreorder/1.6.2/css/colReorder.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables-colresize@1.0.0/dist/dataTables.colResize.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-semibold">Λίστα Παραστατικών</h2>
+    <div class="flex gap-2 items-center">
+      {% if file_exists %}
+        <div class="download-dropdown" id="downloadDropdown">
+          <button id="downloadToggle" class="download-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+            ⬇️ Κατέβασμα .xlsx
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/></svg>
+          </button>
+
+          <div id="downloadMenu" class="download-menu hidden" role="menu" aria-labelledby="downloadToggle">
+            <a href="{{ url_for('list_invoices', download=1) }}" role="menuitem">Εξοδολόγιο</a>
+            <button id="epsilonExport" role="menuitem" type="button">Epsilon Excel — Έρχεται (placeholder)</button>
+          </div>
+        </div>
+      {% endif %}
+      <a class="small-btn secondary" href="{{ url_for('fetch') }}">⬅ Bulk Fetch</a>
+    </div>
+  </div>
+
+  <div class="mb-3 flex gap-2">
+    <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border rounded w-64">
+    <button id="deleteBtn" class="small-btn danger">🗑️ Διαγραφή Επιλεγμένων</button>
+  </div>
+
+  {% if error %}
+    <div class="flash-banner flash-error">
+      {{ error }}
+      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endif %}
+  {% if message %}
+    <div class="flash-banner flash-success">
+      {{ message }}
+      <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endif %}
+
+  <div class="table-wrapper">
+    {% if table_html %}
+      {{ table_html | safe }}
+    {% else %}
+      <div class="p-3 text-gray-600">Δεν υπάρχουν εγγραφές προς εμφάνιση.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Pop-up Modal for Delete Confirmation -->
+<div id="deleteModal">
+  <div class="modal-content">
+    <div id="deleteModalMessage">Θέλεις σίγουρα να διαγράψεις τις επιλεγμένες εγγραφές;</div>
+    <div class="modal-buttons">
+      <button class="cancel">Ακύρωση</button>
+      <button class="confirm">Διαγραφή</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/colreorder/1.6.2/js/dataTables.colReorder.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables-colresize@1.0.0/dist/dataTables.colResize.min.js"></script>
+
+<script>
+$(document).ready(function(){
+  // DataTables setup
+  try {
+    if (!$.fn.DataTable.isDataTable('.summary-table')) {   // <-- μόνο αυτό προστέθηκε
+      const dt = $('.summary-table').DataTable({
+        paging: true,
+        scrollY: '55vh',
+        scrollX: true,
+        scrollCollapse: true,
+        fixedHeader: {
+          header: true,
+          headerOffset: 0
+        },
+        colReorder: true,
+        autoWidth: false,
+        columnDefs: [{ orderable: false, targets: 0 }] 
+      });
+      dt.colResize({ resizeMode: 'flex' });
+      $('#globalSearch').on('input', function(){ dt.search(this.value).draw(); });
+    }
+  } catch(e){
+    console.warn("DataTables not initialized:", e);
+    $('#globalSearch').on('input', function(){
+      const q = this.value.toLowerCase();
+      $('.summary-table tbody tr').each(function(){
+        $(this).toggle($(this).text().toLowerCase().indexOf(q) !== -1);
+      });
+    });
+    // Force redraw after DataTable initialization to fix alignment
+    setTimeout(function(){
+      $('.summary-table').DataTable().columns.adjust().draw();
+    }, 100);
+  }
+
+  // select-all checkbox
+  $('#selectAll').on('change', function(){
+    const checked = this.checked;
+    $('input[type="checkbox"][name="delete_mark"]').prop('checked', checked);
+  });
+
+  // Delete button -> open modal
+  const modal = $('#deleteModal');
+  let marksToDelete = [];
+  $('#deleteBtn').on('click', function(){
+    marksToDelete = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
+    if(!marksToDelete.length){
+      alert('Επίλεξε πρώτα γραμμές για διαγραφή.');
+      return;
+    }
+    $('#deleteModalMessage').text(`Θες σίγουρα να διαγράψεις ${marksToDelete.length} εγγραφή(ες);`);
+    modal.show();
+  });
+
+  // Modal buttons
+  modal.find('.cancel').on('click', function(){ modal.hide(); });
+  modal.find('.confirm').on('click', function(){
+    const form = $('<form method="POST" action="{{ url_for("delete_invoices") }}"></form>');
+    marksToDelete.forEach(function(s){
+      form.append($('<input>').attr('type','hidden').attr('name','delete_mark').val(s));
+    });
+    $('body').append(form);
+    form.submit();
+  });
+
+  // Auto fade-out flash banners
+  document.querySelectorAll('.flash-banner').forEach(b => {
+    setTimeout(() => { b.style.transition = "opacity 0.8s ease"; b.style.opacity = "0"; setTimeout(()=>b.remove(),800); }, 5000);
+  });
+
+  // Download dropdown behaviour
+  (function(){
+    const toggle = document.getElementById('downloadToggle');
+    const menu = document.getElementById('downloadMenu');
+    const epsilon = document.getElementById('epsilonExport');
+    if(!toggle || !menu) return;
+    function openMenu(){ menu.classList.remove('hidden'); toggle.setAttribute('aria-expanded','true'); }
+    function closeMenu(){ menu.classList.add('hidden'); toggle.setAttribute('aria-expanded','false'); }
+    toggle.addEventListener('click', function(e){ e.stopPropagation(); menu.classList.contains('hidden')?openMenu():closeMenu(); });
+    document.addEventListener('click', function(e){ if(!menu.classList.contains('hidden') && !menu.contains(e.target) && !toggle.contains(e.target)) closeMenu(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeMenu(); });
+    if(epsilon){
+      epsilon.addEventListener('click', function(e){
+        e.preventDefault(); closeMenu();
+        if(typeof showBanner==='function'){ showBanner('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.','info',6000); } 
+        else { alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); }
+      });
+    }
+  })();
+});
+</script>
+{% endblock %}

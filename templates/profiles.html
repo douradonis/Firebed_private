@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% block title %}Προφίλ Χαρακτηρισμών{% endblock %}
+
+{% block content %}
+<div id="flashBanners" class="max-w-6xl mx-auto mt-4 px-4"></div>
+<style>
+.flash-banner { border-radius:8px; padding:10px 14px; margin-bottom:10px; display:flex; align-items:center; gap:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); font-weight:500; }
+.flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
+.flash-error { background:#fff1f2; color:#7f1d1d; border:1px solid #fecaca; }
+.flash-info { background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe; }
+.flash-close { margin-left:auto; background:transparent; border:none; cursor:pointer; font-weight:700; font-size:16px; line-height:1; color:inherit; padding:0 6px; }
+</style>
+
+<div class="bg-white rounded shadow p-6">
+  <h2 class="text-lg font-semibold mb-4">Προφίλ Χαρακτηρισμών (Τιμολόγια)</h2>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <!-- Αριστερή στήλη: Δημιουργία/Ενημέρωση -->
+    <div>
+      <h3 class="font-medium mb-2">Δημιουργία / Ενημέρωση</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Όνομα προφίλ</label>
+          <input id="profName" class="border rounded px-3 py-2 w-full" placeholder="π.χ. Υλικά κατασκευής">
+        </div>
+
+        <div class="grid grid-cols-1 gap-2">
+          <label class="text-sm font-medium">Αντιστοίχιση κατηγοριών</label>
+
+          <div class="flex items-center gap-3">
+  <div class="w-24 text-sm font-medium">0%</div>
+  <select id="kat_fpa_a" class="border rounded px-2 py-1 flex-1" required></select>
+</div>
+<div class="flex items-center gap-3">
+  <div class="w-24 text-sm font-medium">6%</div>
+  <select id="kat_fpa_b" class="border rounded px-2 py-1 flex-1" required></select>
+</div>
+<div class="flex items-center gap-3">
+  <div class="w-24 text-sm font-medium">13%</div>
+  <select id="kat_fpa_g" class="border rounded px-2 py-1 flex-1" required></select>
+</div>
+<div class="flex items-center gap-3">
+  <div class="w-24 text-sm font-medium">17%</div>
+  <select id="kat_fpa_d" class="border rounded px-2 py-1 flex-1" required></select>
+</div>
+<div class="flex items-center gap-3">
+  <div class="w-24 text-sm font-medium">24%</div>
+  <select id="kat_fpa_e" class="border rounded px-2 py-1 flex-1" required></select>
+</div>
+
+
+        </div>
+
+        <div id="profMsg" class="text-sm"></div>
+
+        <div class="flex gap-2">
+          <button id="btnSaveProf" class="bg-sky-600 text-white px-3 py-2 rounded" type="button">Αποθήκευση</button>
+          <!-- (Μεταφέρθηκε το Επιστροφή πάνω-δεξιά στη λίστα) -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Δεξιά στήλη: Λίστα Προφίλ -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-medium">Αποθηκευμένα Προφίλ</h3>
+
+        <!-- ΕΠΙΣΤΡΟΦΗ: πάνω-δεξιά, ανοίγει το modal στο /search -->
+        <a id="backToRepeat"
+           href="{{ url_for('search', vat=vat, open_repeat='1') }}"
+           class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition">
+          <!-- βελάκι -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4A1 1 0 1110.707 6.707L8.414 9H16a1 1 0 110 2H8.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+          </svg>
+          Επιστροφή
+        </a>
+      </div>
+
+      <div class="border border-gray-200 rounded-lg bg-white shadow-sm p-4">
+        <div id="profList" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal επιβεβαίωσης διαγραφής -->
+<div id="confirmDeleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" data-role="modal-warning">
+  <div class="modal-warning-panel" role="dialog" aria-modal="true" aria-labelledby="deleteProfileTitle">
+    <button type="button" class="modal-warning-close" data-close-modal="confirmDeleteModal">×</button>
+    <div class="modal-warning-title" id="deleteProfileTitle">Διαγραφή προφίλ;</div>
+    <div class="modal-warning-body">Θέλεις σίγουρα να διαγράψεις το προφίλ <span id="delProfileName" class="font-medium"></span>; Η ενέργεια δεν μπορεί να αναιρεθεί.</div>
+    <div class="modal-warning-actions">
+      <button id="delCancel" class="modal-warning-btn modal-warning-btn--muted">Άκυρο</button>
+      <button id="delConfirm" class="modal-warning-btn modal-warning-btn--danger">Διαγραφή</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ID-first profiles: list from /api/profiles; save uses id when present
+(function(){
+  const VAT = "{{ vat }}";
+  const listEl = document.getElementById('profList');
+  const msgEl  = document.getElementById('profMsg');
+  const saveBtn = document.getElementById('btnSaveProf');
+
+  let currentSelected = null;
+  let currentSelectedId = null;
+
+  const CATEGORY_LABELS = (function(){
+    try {
+      return {{ (category_labels or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+
+  let VAT_CONSTRAINTS = (function(){
+    try {
+      return {{ (vat_constraints or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })();
+
+  const VAT_KEY_BY_SFX = { a: '0%', b: '6%', g: '13%', d: '17%', e: '24%' };
+
+  function labelForCategory(value){
+    if(!value) return '';
+    const key = String(value);
+    if(Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)){
+      return CATEGORY_LABELS[key];
+    }
+    return key;
+  }
+
+  function allowedForVat(cat, vatKey){
+    if(!cat) return true;
+    const key = String(cat);
+    const arr = VAT_CONSTRAINTS && VAT_CONSTRAINTS[key];
+    if(!arr || !arr.length) return true;
+    return arr.includes(vatKey);
+  }
+
+  function categoriesForVat(vatKey, allTags){
+    return (allTags || []).filter(cat => allowedForVat(cat, vatKey));
+  }
+
+  function ensureOption(select, value, vatKey){
+    if(!select || !value) return;
+    const exists = Array.from(select.options || []).some(opt => opt.value === value);
+    if(exists) return;
+    const extra = opt(value);
+    if(vatKey){
+      extra.textContent += ` (μη διαθέσιμο για ${vatKey})`;
+    }
+    extra.dataset.unavailable = '1';
+    select.appendChild(extra);
+    select.value = value;
+  }
+
+  function escapeHtml(unsafe){ return String(unsafe).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+  function showBanner(message, kind='success', ttl=6000) {
+    const container=document.getElementById('flashBanners'); if(!container) return;
+    let cls='flash-success'; if(kind==='error'||kind==='danger') cls='flash-error'; else if(kind==='info') cls='flash-info';
+    const el=document.createElement('div'); el.className='flash-banner '+cls; el.innerHTML=`<div class="flash-text">${escapeHtml(String(message))}</div>`;
+    const btn=document.createElement('button'); btn.className='flash-close'; btn.type='button'; btn.innerHTML='&times;'; btn.addEventListener('click',()=>{el.remove();});
+    el.appendChild(btn); container.insertBefore(el, container.firstChild);
+    if(ttl>0) setTimeout(()=>{try{el.remove();}catch(e){}},ttl);
+  }
+  function opt(x){
+    const o=document.createElement('option');
+    o.value = x;
+    o.textContent = labelForCategory(x);
+    return o;
+  }
+
+  function showMappingLabel(val){
+    const lbl = labelForCategory(val);
+    return lbl ? lbl : '-';
+  }
+
+  function updateSaveButton(){
+    const btn = document.getElementById('btnSaveProf');
+    if(!btn) return;
+    if(currentSelectedId){
+      btn.textContent = 'Ενημέρωση';
+      btn.classList.remove('bg-sky-600'); btn.classList.add('bg-green-600');
+    }else{
+      btn.textContent = 'Αποθήκευση';
+      btn.classList.remove('bg-green-600'); btn.classList.add('bg-sky-600');
+    }
+  }
+
+  function setSelection(name, id){
+    try{
+      currentSelected = name || null;
+      currentSelectedId = id || null;
+      document.querySelectorAll('#profList .profile-row').forEach(row=>{
+        const isSel = (row.dataset && row.dataset.name === currentSelected);
+        row.setAttribute('aria-selected', isSel ? 'true' : 'false');
+        if (isSel){
+          row.classList.add('border-sky-400','ring-2','ring-sky-100','bg-sky-50');
+        } else {
+          row.classList.remove('border-sky-400','ring-2','ring-sky-100','bg-sky-50');
+        }
+      });
+      updateSaveButton();
+    }catch(_){}
+  }
+
+  function clearSelection(){
+    try{
+      currentSelected = null;
+      currentSelectedId = null;
+      const nameEl = document.getElementById('profName'); if(nameEl) nameEl.value='';
+      ['a','b','g','e','d'].forEach(sfx=>{ const sel=document.getElementById(`kat_fpa_${sfx}`); if(sel){ try{sel.value='';}catch(_){ sel.selectedIndex=0; } }});
+      if(listEl){
+        listEl.querySelectorAll('.profile-row').forEach(el=>{
+          el.classList.remove('border-sky-400','ring-2','ring-sky-100','bg-sky-50','selected','active');
+          el.setAttribute('aria-selected','false'); el.removeAttribute('data-selected');
+        });
+      }
+      updateSaveButton();
+    }catch(_){}
+  }
+
+  async function fetchCharProfiles(){
+    const r = await fetch(`/api/char_profiles?vat=${encodeURIComponent(VAT)}`, {credentials:'same-origin'});
+    return r.json();
+  }
+  async function fetchCanonicalProfiles(){
+    try{
+      const r = await fetch('/api/profiles', {credentials:'same-origin'});
+      const j = await r.json();
+      return (j && j.profiles) ? j.profiles : [];
+    }catch(_){ return []; }
+  }
+
+  function buildMappingFromForm(){
+    return {
+      kat_fpa_a: document.getElementById('kat_fpa_a').value,
+      kat_fpa_b: document.getElementById('kat_fpa_b').value,
+      kat_fpa_g: document.getElementById('kat_fpa_g').value,
+      kat_fpa_e: document.getElementById('kat_fpa_e').value,
+      kat_fpa_d: document.getElementById('kat_fpa_d').value,
+    };
+  }
+
+  async function loadData(){
+    const [j, profs] = await Promise.all([ fetchCharProfiles(), fetchCanonicalProfiles() ]);
+
+    if(j && j.vat_constraints){
+      VAT_CONSTRAINTS = j.vat_constraints || {};
+    }
+
+    ['a','b','g','e','d'].forEach(sfx=>{
+      const sel = document.getElementById(`kat_fpa_${sfx}`);
+      if(!sel) return;
+      const previous = sel.value;
+      sel.innerHTML = '';
+      sel.appendChild(new Option('-επιλέξτε-',''));
+      const tags = (j && (j.options || j.expense_tags)) || [];
+      const vatKey = VAT_KEY_BY_SFX[sfx] || '';
+      const allowed = categoriesForVat(vatKey, tags);
+      allowed.forEach(t=> sel.appendChild(opt(t)));
+      if(previous){
+        if(allowed.includes(previous)){
+          sel.value = previous;
+        }else{
+          ensureOption(sel, previous, vatKey || 'το συγκεκριμένο ΦΠΑ');
+        }
+      }
+    });
+
+    listEl.innerHTML='';
+    (profs||[]).forEach(p=>{
+      const row = document.createElement('div');
+      row.className = "group profile-row relative border border-gray-200 rounded-md bg-white p-4 pr-12 hover:border-sky-400 hover:shadow-sm transition cursor-pointer focus-within:ring-2 focus-within:ring-sky-200";
+      row.dataset.name = p.name;
+      row.dataset.id   = p.id || '';
+      row.tabIndex = 0;
+      const mapping = p.map || {};
+      row.dataset.mapping = JSON.stringify(mapping || {});
+      row.innerHTML = `
+        <div class="flex flex-col gap-2">
+          <div class="font-semibold text-gray-800 truncate">${p.name}</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+            <div><span class="font-semibold text-gray-700">0%</span>: ${showMappingLabel(mapping.kat_fpa_a)}</div>
+            <div><span class="font-semibold text-gray-700">6%</span>: ${showMappingLabel(mapping.kat_fpa_b)}</div>
+            <div><span class="font-semibold text-gray-700">13%</span>: ${showMappingLabel(mapping.kat_fpa_g)}</div>
+            <div><span class="font-semibold text-gray-700">17%</span>: ${showMappingLabel(mapping.kat_fpa_d)}</div>
+            <div class="sm:col-span-2"><span class="font-semibold text-gray-700">24%</span>: ${showMappingLabel(mapping.kat_fpa_e)}</div>
+          </div>
+        </div>
+        <button class="deleteProfileBtn absolute top-3 right-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto inline-flex items-center gap-1 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-semibold text-red-700 transition hover:bg-red-600 hover:text-white hover:border-red-600"
+                data-act="del" data-name="${p.name}" title="Διαγραφή">
+          ✖
+        </button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    if(currentSelectedId){
+      const row = Array.from(listEl.children).find(el => (el.dataset.id||'') === currentSelectedId);
+      if(row){ setSelection(row.dataset.name, row.dataset.id); }
+    } else if(currentSelected){
+      const row = Array.from(listEl.children).find(el => el.dataset.name === currentSelected);
+      if(row){ setSelection(row.dataset.name, row.dataset.id||null); }
+    }
+  }
+
+  listEl.addEventListener('click', (e)=>{
+    const delBtn = e.target.closest('button[data-act="del"]');
+    if(delBtn){
+      openDelModal(delBtn.dataset.name);
+      return;
+    }
+    const row = e.target.closest('.profile-row');
+    if(!row) return;
+
+    const name = row.dataset.name;
+    const id   = row.dataset.id || null;
+    setSelection(name, id);
+
+    const m = JSON.parse(row.dataset.mapping || "{}");
+    document.getElementById('profName').value = name;
+    try{ document.getElementById('profName').dispatchEvent(new Event('input', {bubbles:true})); }catch(_){ }
+    const selectA = document.getElementById('kat_fpa_a');
+    const selectB = document.getElementById('kat_fpa_b');
+    const selectG = document.getElementById('kat_fpa_g');
+    const selectE = document.getElementById('kat_fpa_e');
+    const selectD = document.getElementById('kat_fpa_d');
+    if(selectA){ selectA.value = m.kat_fpa_a || ''; ensureOption(selectA, m.kat_fpa_a || '', '0%'); }
+    if(selectB){ selectB.value = m.kat_fpa_b || ''; ensureOption(selectB, m.kat_fpa_b || '', '6%'); }
+    if(selectG){ selectG.value = m.kat_fpa_g || ''; ensureOption(selectG, m.kat_fpa_g || '', '13%'); }
+    if(selectE){ selectE.value = m.kat_fpa_e || ''; ensureOption(selectE, m.kat_fpa_e || '', '24%'); }
+    if(selectD){ selectD.value = m.kat_fpa_d || ''; ensureOption(selectD, m.kat_fpa_d || '', '17%'); }
+  });
+
+  if(listEl){
+    listEl.addEventListener('dblclick', function(ev){
+      if(ev.target && ev.target.closest && ev.target.closest('button[data-act="del"]')) return;
+      const item = ev.target && ev.target.closest ? ev.target.closest('.profile-row') : null;
+      if(item){ clearSelection(); }
+    });
+  }
+
+  const delModal   = document.getElementById('confirmDeleteModal');
+  const delNameEl  = document.getElementById('delProfileName');
+  const delCancel  = document.getElementById('delCancel');
+  const delConfirm = document.getElementById('delConfirm');
+  const delCloseBtn = delModal?.querySelector('[data-close-modal="confirmDeleteModal"]');
+  let pendingDeleteName = null;
+  let pendingDeleteId   = null;
+
+  delModal?.addEventListener('click', function(ev){ if(ev.target === delModal) closeDelModal(); });
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' && delModal && !delModal.classList.contains('hidden')) closeDelModal(); });
+
+  function openDelModal(name){
+    pendingDeleteName = name;
+    const row = Array.from(document.querySelectorAll('#profList .profile-row')).find(r => r.dataset.name === name);
+    pendingDeleteId = row ? (row.dataset.id||null) : null;
+    delNameEl.textContent = '"' + name + '"';
+    delModal.classList.remove('hidden'); delModal.classList.add('flex');
+  }
+  function closeDelModal(){ pendingDeleteName=null; pendingDeleteId=null; delModal.classList.add('hidden'); delModal.classList.remove('flex'); }
+  delCancel.addEventListener('click', closeDelModal);
+  delCloseBtn?.addEventListener('click', closeDelModal);
+  delConfirm.addEventListener('click', async ()=>{
+    if(!pendingDeleteName) return;
+    try{
+      if(pendingDeleteId){
+        await fetch('/api/profiles/delete', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body: JSON.stringify({ id: pendingDeleteId }) });
+      }else{
+        await fetch('/api/char_profiles/delete', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body: JSON.stringify({ vat: VAT, name: pendingDeleteName }) });
+      }
+      closeDelModal();
+      if(currentSelected===pendingDeleteName){ clearSelection(); }
+      await loadData();
+      showBanner('Το προφίλ διαγράφηκε.', 'success', 4000);
+    }catch(e){ showBanner('Αποτυχία διαγραφής.', 'error', 6000); }
+  });
+
+  saveBtn.addEventListener('click', async ()=>{
+    const name = (document.getElementById('profName').value||'').trim();
+    const mapping = {
+      kat_fpa_a: document.getElementById('kat_fpa_a').value,
+      kat_fpa_b: document.getElementById('kat_fpa_b').value,
+      kat_fpa_g: document.getElementById('kat_fpa_g').value,
+      kat_fpa_e: document.getElementById('kat_fpa_e').value,
+      kat_fpa_d: document.getElementById('kat_fpa_d').value,
+    };
+    if(!name || !mapping.kat_fpa_a || !mapping.kat_fpa_b || !mapping.kat_fpa_g || !mapping.kat_fpa_e || !mapping.kat_fpa_d){
+      msgEl.className="text-sm text-red-600"; msgEl.textContent="Συμπλήρωσε όνομα και όλες τις τιμές ΦΠΑ."; return;
+    }
+    const mapByVat = {
+      '0%': mapping.kat_fpa_a,
+      '6%': mapping.kat_fpa_b,
+      '13%': mapping.kat_fpa_g,
+      '24%': mapping.kat_fpa_e,
+      '17%': mapping.kat_fpa_d,
+    };
+    const invalid = [];
+    Object.entries(mapByVat).forEach(([vatKey, cat]) => {
+      if(cat && !allowedForVat(cat, vatKey)){
+        invalid.push(`${labelForCategory(cat)} → ${vatKey}`);
+      }
+    });
+    if(invalid.length){
+      msgEl.className="text-sm text-red-600";
+      msgEl.textContent = `Μη έγκυρες αντιστοιχίσεις: ${invalid.join(', ')}.`;
+      return;
+    }
+    try{
+      const payload = currentSelectedId ? { id: currentSelectedId, name, map: mapping }
+                                        : { name, map: mapping };
+      const resp = await fetch('/api/profiles/save', {
+        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+        body: JSON.stringify(payload)
+      });
+      const j = await resp.json();
+      if(j && j.ok){
+        showBanner('Το προφίλ αποθηκεύτηκε επιτυχώς.', 'success', 6000);
+        clearSelection();
+        await loadData();
+      }else{
+        showBanner((j && j.error) || 'Σφάλμα αποθήκευσης.', 'error', 7000);
+      }
+    }catch(e){
+      showBanner('Σφάλμα αποθήκευσης.', 'error', 7000);
+    }
+  });
+
+  (function(){ const el=document.getElementById('profName'); if(el){ el.addEventListener('input', updateSaveButton); }})();
+
+  loadData();
+  updateSaveButton();
+})();
+</script>
+{% endblock %}

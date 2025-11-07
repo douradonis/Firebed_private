@@ -1,0 +1,12 @@
+καλυτερο ui για preview γεφυρας και credentials
+προσθηκη λοιπων δαπανων για τις αποδειξεις ( με δυνατοτητα on/off)
+γραμμογραφηση epsilon + αρχειο ect
+
+για να τρεξει 
+sudo apt-get update
+sudo apt-get install -y libzbar0
+# (προαιρετικό) αν δεν έχεις ήδη το pyzbar:
+pip install pyzbar
+
+
+

@@ -1,40 +1,36 @@
-# Use a more recent Python base image
-FROM python:3.9-slim-bookworm
+# Dockerfile (βελτιωμένη εκδοχή για Render Free)
+FROM python:3.12-slim
 
-# Update package lists and install system dependencies
-RUN apt-get update && apt-get install -y \
-    libzbar0 \
-    poppler-utils \
-    libgl1 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TZ=Europe/Athens
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file
-COPY requirements.txt .
+# ΜΟΝΟ τα απαραίτητα runtime deps:
+# - libzbar0 (pyzbar), poppler-utils (pdf2image), libjpeg-dev + zlib1g-dev (Pillow)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libzbar0 \
+    poppler-utils \
+    libjpeg-dev \
+    zlib1g-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Πρώτα τα requirements για caching
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip setuptools wheel \
+ && pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the rest of the application code
-COPY . .
+# Μετά όλος ο κώδικας
+COPY . /app
 
-# Create uploads directory with proper permissions (ONCE, before switching user)
-RUN mkdir -p uploads && chmod 777 uploads
+# Δημιουργία φακέλων runtime (ephemeral fs στο Render)
+RUN mkdir -p /app/uploads /app/data && chmod -R 777 /app/uploads /app/data
 
-# Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos '' myuser
-USER myuser
-
-# Expose the port the app runs on
 EXPOSE 5000
 
-# Define environment variable
-ENV FLASK_APP=app.py
-
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Free tier: 1 worker, 8 threads, logs στο STDOUT
+CMD gunicorn app:app \
+    --bind 0.0.0.0:${PORT:-5000} \
+    --workers 1 --threads 8 --timeout 180 \
+    --access-logfile - --error-logfile -

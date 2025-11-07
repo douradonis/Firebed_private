@@ -1,0 +1,111 @@
+<!-- templates/list_pandas.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="card p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Λίστα Παραστατικών</h5>
+    <div class="d-flex gap-2">
+      <button id="reloadBtn" class="btn btn-sm btn-outline-secondary">Ανανέωση</button>
+      <button id="deleteSelected" class="btn btn-sm btn-danger">Διαγραφή Επιλεγμένων</button>
+      {% if file_exists %}
+        <a class="btn btn-sm btn-success" href="{{ url_for('list_invoices') }}?download=1">Κατέβασμα .xlsx</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <div class="table-responsive">
+    {% if table_html %}
+      {{ table_html | safe }}
+    {% else %}
+      <div class="text-muted">Δεν υπάρχουν εγγραφές.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+  // convert pandas static table into DataTable
+  var $table = $('table.pandas-table');
+  if (!$table.length) return;
+
+  // Add an id to the table for DataTables
+  $table.attr('id','pandasTable').addClass('table-striped');
+
+  // Initialize DataTable with ColReorder
+  var dt = $('#pandasTable').DataTable({
+    stateSave: true,
+    colReorder: true,
+    paging: true,
+    searching: true,
+    info: true,
+    lengthMenu: [ 10, 25, 50, 100 ],
+    order: [],
+    autoWidth: false,
+    columnDefs: [
+      { orderable: false, targets: 0 },
+      { className: 'text-end', targets: [ -1, -2, -3 ] } // last numeric cols align right heuristically
+    ]
+  });
+
+  // colResizable on header
+  try {
+    $('#pandasTable').colResizable({ liveDrag: true, gripInnerHtml: "<div class='grip'></div>", draggingClass: "dragging" });
+  } catch(e){
+    console.warn("colResizable init failed", e);
+  }
+
+  // checkbox handling
+  $('#pandasTable').on('change', '.row-select', function(){ /* keep for future */ });
+
+  // selectAll header checkbox support (replace header first th if present)
+  $('#pandasTable thead th').each(function(i){
+    var $th = $(this);
+    if ($th.text().trim() === '✓' || $th.find('input.row-select').length){
+      // put select all checkbox
+      $th.html('<input type="checkbox" id="selectAllHeader">');
+    }
+  });
+  $(document).on('change', '#selectAllHeader', function(){
+    var checked = $(this).is(':checked');
+    $('.row-select').prop('checked', checked);
+  });
+
+  $('#reloadBtn').on('click', function(){ location.reload(); });
+
+  $('#deleteSelected').on('click', function(){
+    var marks = [];
+    $('.row-select:checked').each(function(){ marks.push($(this).val()); });
+    if (!marks.length) { alert('Επίλεξε πρώτα εγγραφές.'); return; }
+    if (!confirm('Θες σίγουρα να διαγράψεις τις επιλεγμένες εγγραφές;')) return;
+    $.ajax({
+      url: '/delete_ajax',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ marks: marks }),
+      success: function(res){
+        if (res && res.deleted !== undefined) {
+          alert('Διαγράφηκαν ' + res.deleted + ' γραμμές.');
+          location.reload();
+        } else if (res && res.error) {
+          alert('Σφάλμα: ' + res.error);
+        } else {
+          alert('Ολοκληρώθηκε.');
+          location.reload();
+        }
+      },
+      error: function(xhr){
+        alert('Σφάλμα διαγραφής: ' + xhr.responseText);
+      }
+    });
+  });
+
+  // make header draggable via DataTables ColReorder (already active)
+});
+</script>
+{% endblock %}

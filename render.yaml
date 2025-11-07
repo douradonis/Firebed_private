@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: mydata-app
+    env: docker
+    dockerfilePath: Dockerfile
+    branch: main
+    region: oregon
+    plan: free
+    buildCommand: ""
+    startCommand: ""

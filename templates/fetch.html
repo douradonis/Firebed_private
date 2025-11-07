@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Bulk Fetch MYDATA{% endblock %}
+
+{% block content %}
+<div class="max-w-14xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-800">Bulk Fetch MYDATA</h1>
+      <p class="text-sm text-gray-500">Κάνε fetch παραστατικών για διάστημα — preview των πρώτων 40 εγγραφών.</p>
+    </div>
+  </div>
+
+  <!-- Flash area for fetch messages -->
+  {% if error %}
+    <div class="flash-banner flash-error mb-4 relative px-4 py-2 rounded-lg bg-red-100 text-red-800">
+      {{ error }}
+      <button type="button" class="absolute top-1 right-2 text-red-800 hover:text-red-900 font-bold" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endif %}
+  {% if message %}
+    <div class="flash-banner flash-success mb-4 relative px-4 py-2 rounded-lg bg-green-100 text-green-800">
+      {{ message }}
+      <button type="button" class="absolute top-1 right-2 text-green-800 hover:text-green-900 font-bold" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endif %}
+
+  <div class="bg-white rounded-2xl shadow p-6 mb-6">
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end" autocomplete="off" novalidate>
+      <div class="flex flex-col">
+        <label for="use_credential" class="text-sm font-medium text-gray-700 mb-2">Χρήση Credential</label>
+        <select id="use_credential" name="use_credential" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
+          <option value="">-- Επιλογή --</option>
+          {% for c in credentials %}
+            {%- set selected_val = (request.form.get('use_credential') == c.name) or (not request.form.get('use_credential') and active_credential == c.name) -%}
+            {%- set label = c.name ~ (c.vat and (' (' ~ c.vat ~ ')') or '') -%}
+            <option value="{{ c.name }}" {% if selected_val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/yyyy)</label>
+        <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/yyyy)</label>
+        <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="vat_number" class="text-sm font-medium text-gray-700 mb-2">ΑΦΜ (προαιρετικό)</label>
+        <input id="vat_number" name="vat_number" type="text" value="" placeholder="π.χ. 123456789" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
+      </div>
+
+      <div class="flex items-center gap-2 md:col-span-4">
+        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Fetch</button>
+        <button type="button" id="togglePreviewBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-3 rounded-lg border">Εμφάνιση Preview</button>
+        <div class="text-sm text-gray-500 ml-2">Preview: πρώτες 40 εγγραφές</div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Preview area -->
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-lg font-medium text-gray-800">Preview (πρώτες 40 γραμμές)</h2>
+      <div class="text-sm text-gray-500">Οριζόντιο & κατακόρυφο scroll διαθέσιμο</div>
+    </div>
+
+    <div id="previewArea" class="w-full overflow-auto border border-gray-100 rounded p-2" style="max-height:520px; display: none;">
+      {% if preview and preview|length > 0 %}
+        <div class="min-w-full overflow-x-auto">
+          <table class="min-w-full text-sm divide-y divide-gray-200">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                {% for key in preview[0].keys() %}
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ key }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              {% for row in preview %}
+                <tr class="hover:bg-gray-50">
+                  {% for v in row.values() %}
+                    <td class="px-3 py-2 align-top whitespace-nowrap">
+                      {% if v is number %}
+                        {{ ("{0:,.2f}".format(v)).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                      {% else %}
+                        {{ v }}
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-sm text-gray-500 p-4">Χωρίς preview δεδομένα.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Flatpickr scripts -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/el.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Initialize Flatpickr with Greek locale
+  flatpickr("#date_from", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
+  flatpickr("#date_to", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
+
+  // preview toggle with localStorage memory (default minimized=true)
+  const PREVIEW_KEY = 'bulk_fetch_preview_minimized';
+  const btn = document.getElementById('togglePreviewBtn');
+  const preview = document.getElementById('previewArea');
+
+  let minimized = true;
+  try {
+    const stored = localStorage.getItem(PREVIEW_KEY);
+    minimized = stored === null ? true : stored === 'true';
+  } catch(e) {}
+
+  function render() {
+    if(minimized) {
+      preview.style.display = 'none';
+      btn.textContent = 'Εμφάνιση Preview';
+    } else {
+      preview.style.display = 'block';
+      btn.textContent = 'Απόκρυψη Preview';
+    }
+  }
+
+  btn.addEventListener('click', function() {
+    minimized = !minimized;
+    try { localStorage.setItem(PREVIEW_KEY, minimized ? 'true' : 'false'); } catch(e) {}
+    render();
+  });
+
+  render();
+
+  // Auto fade-out flash banners after 5 seconds
+  const flashBanners = document.querySelectorAll('.flash-banner');
+  flashBanners.forEach(b => {
+    setTimeout(() => {
+      b.style.transition = "opacity 0.8s ease";
+      b.style.opacity = "0";
+      setTimeout(()=>b.remove(), 800);
+    }, 5000);
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}myDATA{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    :root { --device-font-scale: 1; }
+    html { font-size: calc(16px * var(--device-font-scale, 1)); }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; }
+    .container { max-width: 1100px; margin: 28px auto; padding: 16px; }
+    .content-wrap { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    body[data-device='mobile'] .container {
+      max-width: 100%;
+      margin: 16px auto;
+      padding: 12px;
+    }
+
+    body[data-device='tablet'] .container {
+      max-width: 1000px;
+      padding: 16px;
+    }
+
+    body[data-device='mobile'] .content-wrap {
+      padding: 12px;
+      border-radius: 16px;
+    }
+
+    body[data-device='mobile'] h1 {
+      font-size: 1.75rem;
+    }
+
+    .layout-header__nav {
+      flex-wrap: wrap;
+    }
+
+    body[data-device='tablet'] .layout-header__right {
+      align-items: stretch;
+      width: 100%;
+    }
+
+    body[data-device='tablet'] .layout-header__nav {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    body[data-device='tablet'] .layout-header__top-row {
+      align-items: stretch;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    body[data-device='tablet'] .layout-header__year-row {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    body[data-device='mobile'] .layout-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+
+    body[data-device='mobile'] .layout-header__brand {
+      width: 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__right {
+      width: 100%;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+
+    body[data-device='mobile'] .layout-header__top-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__nav {
+      width: 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      gap: 0.5rem;
+    }
+
+    body[data-device='mobile'] .layout-header__nav a {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: 0.95rem;
+      padding: 0.55rem 0.75rem;
+    }
+
+    body[data-device='mobile'] .layout-header__nav::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    body[data-device='mobile'] .layout-header__nav::-webkit-scrollbar-thumb {
+      background: rgba(14,165,233,0.45);
+      border-radius: 999px;
+    }
+
+    body[data-device='mobile'] .layout-header__active {
+      justify-content: space-between;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: flex-start;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row label {
+      flex: 1 1 100%;
+    }
+
+    body[data-device='mobile'] .layout-header__year-row select,
+    body[data-device='mobile'] .layout-header__year-row button,
+    body[data-device='mobile'] .layout-header__year-row span {
+      flex: 1 1 calc(50% - 0.5rem);
+      min-width: 0;
+    }
+
+    .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
+    .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+
+    /* Warning modal styling (shared look & feel) */
+    [data-role="modal-warning"] { display: none; }
+    [data-role="modal-warning"].flex,
+    [data-role="modal-warning"].grid { display: flex; }
+
+    .modal-warning-panel {
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .modal-warning-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 1.125rem;
+      color: #b91c1c;
+    }
+
+    .modal-warning-body {
+      margin-top: 12px;
+      margin-bottom: 22px;
+      color: #374151;
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    .modal-warning-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .modal-warning-btn {
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+    }
+
+    .modal-warning-btn--muted {
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .modal-warning-btn--muted:hover {
+      background: #f3f4f6;
+    }
+
+    .modal-warning-btn--danger {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1px solid transparent;
+    }
+
+    .modal-warning-btn--danger:hover {
+      background: #b91c1c;
+    }
+
+    .modal-warning-btn--confirm {
+      background: #b91c1c;
+      color: #ffffff;
+      border: 1px solid transparent;
+    }
+
+    .modal-warning-btn--confirm:hover {
+      background: #9f1239;
+    }
+
+    .modal-warning-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .modal-warning-close:hover {
+      color: #6b7280;
+    }
+
+    /* optional, αν θέλεις και warning/info:
+    .flash-warning { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .flash-info    { background:#e0f2fe; color:#075985; border:1px solid #bae6fd; } */
+  </style>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="container">
+    <header class="mb-6">
+      <div class="layout-header flex items-center justify-between">
+        <div class="layout-header__brand">
+          <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
+          <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
+        </div>
+
+        <div class="layout-header__right flex flex-col items-end gap-2">
+          <!-- 1η γραμμή: Menu buttons + Active credential -->
+          <div class="layout-header__top-row flex items-center gap-4">
+            <nav class="layout-header__nav flex gap-3 items-center">
+              <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
+              <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
+              <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
+              <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
+              <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
+            </nav>
+
+            <!-- Active credential badge -->
+            <div class="layout-header__active flex items-center gap-2">
+              <span class="text-sm text-gray-500">Active:</span>
+              {% if active_credential %}
+                {% if active_credential_vat %}
+                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+                {% else %}
+                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+                {% endif %}
+              {% else %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- 2η γραμμή: Fiscal year selector -->
+          <div class="layout-header__year-row flex items-center gap-2 w-max">
+            <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
+            <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
+            <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
+            <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4" id="flashContainer">
+          {% for cat, msg in messages %}
+            <div class="flash-banner {% if cat == 'error' %}flash-error{% else %}flash-success{% endif %}" role="alert" data-flash data-ttl="6000">{{ msg|safe }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- WAIT OVERLAY (global) -->
+  <div id="globalWait"
+       class="fixed inset-0 z-[100000] hidden items-center justify-center"
+       style="background:rgba(0,0,0,.4);display:none;">
+    <div class="bg-white rounded-lg shadow-lg px-6 py-5 text-center">
+      <div class="text-base font-medium mb-2">Παρακαλώ περιμένετε…</div>
+      <div class="text-gray-400 animate-pulse" aria-hidden="true">● ● ●</div>
+    </div>
+  </div>
+
+  {% block scripts %}{% endblock %}
+
+  <script>
+    // Dismissable + auto-close (5-6s) ONLY for .flash-banner
+    document.addEventListener('DOMContentLoaded', function(){
+      const AUTO_TTL = 6000; // ms
+
+      function makeDismissable(el){
+        if (!el || el.dataset.dismissable === '1') return;
+        el.dataset.dismissable = '1';
+
+        // add small × button
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label','Close');
+        btn.textContent = '×';
+        btn.style.cssText = 'position:absolute;top:.4rem;right:.5rem;line-height:1;font-size:20px;opacity:.75;cursor:pointer;background:transparent;border:0;padding:0;z-index:1';
+
+        const cs = getComputedStyle(el);
+        if (cs.position === 'static') el.style.position = 'relative';
+        if (!el.style.paddingRight) {
+          const pr = parseFloat(cs.paddingRight || '0');
+          if (pr < 22) el.style.paddingRight = '28px';
+        }
+
+        btn.addEventListener('click', ()=> { try{ el.remove(); }catch(_){ } });
+        el.appendChild(btn);
+
+        const ttlAttr = parseInt(el.getAttribute('data-ttl') || AUTO_TTL, 10);
+        if (ttlAttr > 0) setTimeout(()=>{ try{ el.remove(); }catch(_){ } }, ttlAttr);
+      }
+
+      document.querySelectorAll('.flash-banner').forEach(makeDismissable);
+
+      // Also observe for dynamically added flashes
+      const mo = new MutationObserver(muts=>{
+        muts.forEach(m=> m.addedNodes && m.addedNodes.forEach(n=>{
+          if (n.nodeType===1) {
+            if (n.matches && n.matches('.flash-banner')) makeDismissable(n);
+            n.querySelectorAll && n.querySelectorAll('.flash-banner').forEach(makeDismissable);
+          }
+        }));
+      });
+      mo.observe(document.body, { childList:true, subtree:true });
+
+      // Support existing close buttons if present
+      document.addEventListener('click', function(e){
+        const b = e.target.closest && e.target.closest('[data-dismiss="flash"], .btn-close, .close');
+        if (!b) return;
+        const host = b.closest('.flash-banner') || b.parentElement;
+        if (host) { e.preventDefault(); try{ host.remove(); }catch(_){ } }
+      }, true);
+    });
+  </script>
+
+  <!-- ✅ Fiscal Year logic (ενσωμάτωση από την εκδοχή που «δούλευε τέλεια») -->
+  <script>
+    (function(){
+      const thisYear = new Date().getFullYear();
+
+      function populateFiscalSelect(selected){
+        const sel = document.getElementById('fiscalYearSelect');
+        if(!sel) return;
+        sel.innerHTML = '';
+        for(let y=thisYear-1; y<=thisYear+2; y++){
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          if(Number(selected) === y) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+
+      async function loadFiscalYearIntoUi(){
+        try{
+          const r = await fetch('/get_fiscal_year', { credentials:'same-origin' });
+          const j = await r.json();
+          populateFiscalSelect(j.fiscal_year || thisYear);
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = j.fiscal_year ? `Τρέχουσα χρήση: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
+        } catch {
+          populateFiscalSelect(thisYear);
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = 'Σφάλμα ανάγνωσης χρήσης';
+        }
+      }
+
+      async function saveFiscalYear(e){
+        e.preventDefault();
+        const year = Number(document.getElementById('fiscalYearSelect').value);
+        try{
+          const r = await fetch('/set_fiscal_year', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fiscal_year: year })
+          });
+          const j = await r.json();
+          if (j.success){
+            location.reload(); // ξαναφορτώνουμε με τη νέα χρήση
+          } else {
+            const msg = document.getElementById('fiscalYearMsg');
+            if (msg) msg.textContent = j.message || 'Αποτυχία αποθήκευσης χρήσης';
+          }
+        } catch {
+          const msg = document.getElementById('fiscalYearMsg');
+          if (msg) msg.textContent = 'Σφάλμα δικτύου';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadFiscalYearIntoUi();
+        const btn = document.getElementById('fiscalYearSaveBtn');
+        if (btn) btn.addEventListener('click', saveFiscalYear);
+      });
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const SCALE_MIN = 0.96;
+      const SCALE_MAX = 1.18;
+      const WIDTH_MIN = 360;
+      const WIDTH_MAX = 1600;
+      let lastType = null;
+      let lastScale = null;
+      let resizeTimer = null;
+
+      function detectDeviceType(){
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const width = window.innerWidth || document.documentElement.clientWidth || 0;
+        if (width <= 768 || /mobile|android|iphone|ipod/.test(ua)) return 'mobile';
+        if (width <= 1200 || /ipad|tablet/.test(ua)) return 'tablet';
+        return 'desktop';
+      }
+
+      function assignBody(type){
+        if (!document.body){
+          document.addEventListener('DOMContentLoaded', () => assignBody(type), { once:true });
+          return;
+        }
+        document.body.dataset.device = type;
+      }
+
+      function computeScale(width){
+        const w = Math.min(Math.max(width || WIDTH_MIN, WIDTH_MIN), WIDTH_MAX);
+        const ratio = (w - WIDTH_MIN) / (WIDTH_MAX - WIDTH_MIN);
+        const scale = SCALE_MAX - ratio * (SCALE_MAX - SCALE_MIN);
+        return Number(scale.toFixed(3));
+      }
+
+      function applyDeviceType(){
+        const type = detectDeviceType();
+        const width = window.innerWidth || document.documentElement.clientWidth || screen.width || WIDTH_MAX;
+        const scale = computeScale(width);
+        if (type !== lastType) {
+          lastType = type;
+          assignBody(type);
+        }
+        if (lastScale !== scale) {
+          lastScale = scale;
+          document.documentElement.style.setProperty('--device-font-scale', String(scale));
+        }
+      }
+
+      function schedule(){
+        if (resizeTimer){
+          clearTimeout(resizeTimer);
+        }
+        resizeTimer = setTimeout(applyDeviceType, 90);
+      }
+
+      if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', applyDeviceType, { once:true });
+      } else {
+        applyDeviceType();
+      }
+
+      window.addEventListener('resize', schedule);
+      window.addEventListener('orientationchange', schedule);
+      if (window.ResizeObserver){
+        try {
+          const ro = new ResizeObserver(() => schedule());
+          ro.observe(document.documentElement);
+        } catch(_){}
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){
+      // ====== WAIT OVERLAY ======
+      const waitEl = document.getElementById('globalWait');
+      let waitCount = 0;
+      let suspendWait = 0; // όταν >0, δεν θα εμφανίζεται το overlay
+
+      function showWait(){ if(!waitEl || suspendWait>0) return; waitCount++; waitEl.style.display='flex'; }
+      function hideWait(){ if(!waitEl) return; waitCount = Math.max(0, waitCount-1); if(!waitCount) waitEl.style.display='none'; }
+      function forceHide(){ if(!waitEl) return; waitCount = 0; waitEl.style.display='none'; }
+      function suspend(on){ suspendWait = Math.max(0, suspendWait + (on?1:-1)); if (suspendWait>0) forceHide(); }
+      window.WaitOverlay = { show: showWait, hide: hideWait, suspend, forceHide };
+
+      // Patch fetch (AJAX)
+      const _fetch = window.fetch;
+      window.fetch = async function(...args){
+        showWait();
+        try { return await _fetch(...args); }
+        finally { hideWait(); }
+      };
+
+      // Patch XHR (πιάνει jQuery/DataTables)
+      const XHROpen = XMLHttpRequest.prototype.open;
+      const XHRSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(...a){ this.__withWait = true; return XHROpen.apply(this,a); };
+      XMLHttpRequest.prototype.send = function(...a){
+        if (this.__withWait){ showWait(); this.addEventListener('loadend', hideWait, { once:true }); }
+        return XHRSend.apply(this,a);
+      };
+
+      // Form submits (πλοήγηση)
+      document.addEventListener('submit', function(){ showWait(); setTimeout(hideWait, 15000); }, true);
+
+      // ====== WARNING MODALS INTEGRATION ======
+      // IDs που χρησιμοποιείς για warning modals — πρόσθεσε κι άλλα αν έχεις:
+      const WARN_IDS = ['afmWarningModal','receiptWarn','receiptWarningModal','receiptWarning'];
+
+      function isVisible(el){
+        if(!el) return false;
+        const st = window.getComputedStyle(el);
+        return st.display!=='none' && st.visibility!=='hidden' && st.opacity!=='0';
+      }
+
+      function scanWarnsAndToggle(){
+        const anyOpen = WARN_IDS.some(id => isVisible(document.getElementById(id)));
+        suspend(anyOpen);  // όταν ανοίγει warning => παγώνουμε/κρύβουμε το overlay
+      }
+
+      // Παρακολούθηση DOM για άνοιγμα/κλείσιμο warning modals
+      const mo = new MutationObserver(scanWarnsAndToggle);
+      mo.observe(document.documentElement, { attributes:true, childList:true, subtree:true });
+
+      // Αρχικός έλεγχος
+      scanWarnsAndToggle();
+
+      // ====== RELOAD στο "Κατάλαβα" ΜΟΝΟ για αποδείξεις ======
+      const RECEIPT_WARN_IDS = ['receiptWarn', 'receiptWarningModal', 'receiptWarning'];
+
+      function normTxt(s){
+        return String(s||'').trim().toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      }
+      function isReloadOkButton(el){
+        if(!el) return false;
+        if (el.id === 'receiptWarnOk') return true;          // δικό σου id για αποδείξεις
+        if (el.dataset && el.dataset.reload === 'ok') return true;
+        const t = normTxt(el.textContent);
+        return (t==='καταλαβα' || t==='ενταξει' || t==='ok');
+      }
+      function isInsideReceiptWarning(el){
+        if (!el) return false;
+        const host = el.closest('.modal,[role="dialog"],.fixed,.absolute,[id]');
+        const id = (host && host.id) || '';
+        return RECEIPT_WARN_IDS.includes(id);
+      }
+
+      document.addEventListener('click', function(ev){
+        const btn = ev.target && ev.target.closest && ev.target.closest('button, [role="button"], a');
+        if(!btn) return;
+
+        // ΜΟΝΟ αν είναι OK/Κατάλαβα ΚΑΙ βρίσκεται μέσα σε receipt warning modal
+        if (isReloadOkButton(btn) && isInsideReceiptWarning(btn)) {
+          // προληπτικά κλείσιμο modal & απενεργοποίηση wait overlay
+          try {
+            const dlg = btn.closest('.modal,[role="dialog"],.fixed,.absolute');
+            if (dlg) dlg.style.display = 'none';
+          } catch(_) {}
+          if (window.WaitOverlay && typeof window.WaitOverlay.suspend === 'function') {
+            window.WaitOverlay.suspend(true);
+            setTimeout(()=>window.WaitOverlay.suspend(false), 200);
+          }
+          setTimeout(()=>{ location.reload(); }, 50);
+        }
+      }, true);
+    })();
+  </script>
+
+  <!-- Dismissable μόνο για flash/alerts (hook για δυναμικά) -->
+  <script>
+    (function(){
+      const SELECTORS = ['[data-flash]', '.flash', '.alert', '[role="alert"]'];
+      const AUTO_HIDE_MS = 0; // βάλε 6000 αν θέλεις αυτομάτως να κλείνουν
+
+      function makeDismissable(el){
+        if (!el || el.dataset.dismissable === '1') return;
+        el.dataset.dismissable = '1';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label','Close');
+        btn.textContent = '×';
+        btn.style.cssText =
+          'position:absolute;top:.4rem;right:.5rem;line-height:1;font-size:20px;' +
+          'opacity:.75;cursor:pointer;background:transparent;border:0;padding:0;z-index:1';
+
+        const cs = getComputedStyle(el);
+        if (cs.position === 'static') el.style.position = 'relative';
+        if (!el.style.paddingRight) {
+          const pr = parseFloat(cs.paddingRight || '0');
+          if (pr < 22) el.style.paddingRight = '28px';
+        }
+        btn.addEventListener('click', ()=> { try{ el.remove(); }catch(_){ } });
+        el.appendChild(btn);
+
+        if (AUTO_HIDE_MS > 0) setTimeout(()=>{ try{ el.remove(); }catch(_){ } }, AUTO_HIDE_MS);
+      }
+
+      function scan(root=document){
+        root.querySelectorAll(SELECTORS.join(',')).forEach(makeDismissable);
+      }
+
+      if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', ()=>scan(), { once:true });
+      } else {
+        scan();
+      }
+
+      const mo = new MutationObserver(muts=>{
+        for (const m of muts) m.addedNodes && m.addedNodes.forEach(n=>{
+          if (n.nodeType===1) scan(n);
+        });
+      });
+      mo.observe(document.body, { childList:true, subtree:true });
+
+      document.addEventListener('click', (e)=>{
+        const b = e.target.closest && e.target.closest('[data-dismiss="flash"], .btn-close, .close');
+        if (!b) return;
+        const host = b.closest(SELECTORS.join(',')) || b.parentElement;
+        if (host) { e.preventDefault(); try{ host.remove(); }catch(_){ } }
+      }, true);
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,216 @@
+[
+  {
+    "mark": "400011172559639",
+    "issueDate": "03/10/2025",
+    "series": "12Μ0ΤΔΑ",
+    "aa": "10768",
+    "AA": "10768",
+    "type": "1.1",
+    "vatCategory": "",
+    "totalNetValue": "13,83",
+    "totalVatAmount": "3,32",
+    "totalValue": "17,15",
+    "classification": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011172559639_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "13,83",
+        "vat": "3,32",
+        "category": "δαπανες_χωρις_φπα",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-10-29T10:50:26.904252+00:00"
+  },
+  {
+    "mark": "400011185872109",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8962",
+    "AA": "8962",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "8,75",
+    "totalVatAmount": "2,10",
+    "totalValue": "10,85",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011185872109_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "8,75",
+        "vat": "2,10",
+        "category": "αγορες_α_υλων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-11-07T12:32:57.362051+00:00"
+  },
+  {
+    "mark": "400011186892779",
+    "issueDate": "04/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "8970",
+    "AA": "8970",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "48,39",
+    "totalVatAmount": "11,61",
+    "totalValue": "60,00",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011186892779_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "48,39",
+        "vat": "11,61",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-10-27T18:37:49.188340+00:00"
+  },
+  {
+    "mark": "400011184830173",
+    "issueDate": "04/10/2025",
+    "series": "TΔA",
+    "aa": "60038",
+    "AA": "60038",
+    "type": "Πιστωτικό Τιμολόγιο / Συσχετιζόμενο",
+    "vatCategory": "",
+    "totalNetValue": "-18,30",
+    "totalVatAmount": "-4,39",
+    "totalValue": "-22,69",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "800916954",
+    "Name_issuer": "",
+    "AFM": "800916954",
+    "lines": [
+      {
+        "id": "400011184830173_inst0",
+        "description": "Instance #1",
+        "amount": "-18,30",
+        "vat": "-4,39",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400009073184486",
+    "issueDate": "10/04/2025",
+    "series": "TΔA",
+    "aa": "56096",
+    "AA": "56096",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "129,99",
+    "totalVatAmount": "29,66",
+    "totalValue": "159,65",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "800916954",
+    "Name_issuer": "",
+    "AFM": "800916954",
+    "lines": [
+      {
+        "id": "400009073184486_inst0",
+        "description": "Instance #1",
+        "amount": "121,47",
+        "vat": "29,15",
+        "category": "αγορες_α_υλων",
+        "vat_category": "ΦΠΑ 24%"
+      },
+      {
+        "id": "400009073184486_inst1",
+        "description": "Instance #2",
+        "amount": "8,52",
+        "vat": "0,51",
+        "category": "γενικες_δαπανες",
+        "vat_category": "ΦΠΑ 6%"
+      }
+    ],
+    "_updated_at": "2025-10-31T08:11:46.032531+00:00"
+  },
+  {
+    "mark": "400011213160102",
+    "issueDate": "07/10/2025",
+    "series": "8Μ0ΤΔΑ",
+    "aa": "9036",
+    "AA": "9036",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "64,52",
+    "totalVatAmount": "15,48",
+    "totalValue": "80,00",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011213160102_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "64,52",
+        "vat": "15,48",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
+    "mark": "400011219241352",
+    "issueDate": "10/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "36671",
+    "AA": "36671",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "8,00",
+    "totalVatAmount": "",
+    "totalValue": "8,00",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "115333562",
+    "Name_issuer": "ΤΕΡΖΟΠΟΥΛΟΣ ΚΩΝΣΤ",
+    "AFM": "115333562",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "8,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  }
+]
