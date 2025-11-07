@@ -86,6 +86,26 @@
 </div>
 
 <script>
+// Επιτρέπει ροή δημιουργίας συναλλασσομένων όταν υπάρχουν μόνο custid_missing
+function hasCustIdMissing(){
+  return Array.isArray(BRIDGE_ISSUES) && BRIDGE_ISSUES.some(i => String(i.code||'') === 'custid_missing');
+}
+
+// "Όλα έτοιμα" εκτός από CUSTID (δηλ. χαρακτηρισμοί & λογαριασμοί οκ)
+function allRowsValidExceptCust(api){
+  const data = api.rows({search:'applied'}).data();
+  if (data.length === 0) return false;
+  for (let i=0;i<data.length;i++){
+    const r = data[i];
+    const hasChar   = !r._missChar   && !!String(r.CHARACTS||'').trim();
+    const hasLcodes = !r._missLcodes && !!String(r.LCODES  ||'').trim();
+    if (!hasChar || !hasLcodes) return false;
+  }
+  return true;
+}
+</script>
+
+<script>
 const TABLE_DATA = {{ table_rows|tojson|safe }};
 const ACTIVE_VAT = "{{ vat or '' }}";
 const BRIDGE_ISSUES = {{ (bridge_issues or [])|tojson|safe }};
@@ -201,9 +221,23 @@ function updateTotalsAndExportState(api){
   document.getElementById('tRows').textContent = data.length;
 
   const btn = document.getElementById('exportBridgeBtn');
-  const ok = allRowsValid(api);
-  btn.disabled = !ok;
-  btn.title = ok ? "Όλα εντάξει — κάνε λήψη γέφυρας" : "Απενεργό: απαιτείται κάθε γραμμή να έχει CUSTID, Χαρακτηρισμούς & Λογαριασμούς";
+  const allowPartnersFlow = hasCustIdMissing();                    // υπάρχει custid_missing;
+  const okStrict           = allRowsValid(api);                    // όλα οκ (παραδοσιακά)
+  const okExceptCust       = allRowsValidExceptCust(api);          // τα πάντα οκ εκτός από CUSTID
+
+  const canExport = okStrict || (allowPartnersFlow && okExceptCust);
+  btn.disabled = !canExport;
+
+  if (allowPartnersFlow && okExceptCust && !okStrict){
+    // Μόνο τα CUSTID λείπουν -> θα εμφανιστεί modal για δημιουργία
+    btn.textContent = "Δημιουργία & Λήψη Γέφυρας";
+    btn.title = "Θα εμφανιστεί επιβεβαίωση για δημιουργία νέων συναλλασσομένων (AFM mode)";
+  } else {
+    btn.textContent = "Λήψη Γέφυρας (Strict)";
+    btn.title = canExport
+      ? "Όλα εντάξει — κάνε λήψη γέφυρας"
+      : "Απενεργό: απαιτείται κάθε γραμμή να έχει CUSTID, Χαρακτηρισμούς & Λογαριασμούς";
+  }
 }
 
 $(function(){

@@ -670,7 +670,7 @@ def export_multiclient_strict(
     base_exports_dir: str = "exports",
 ):
     """
-    ΜΟΝΟ export: κρατάει ΚΙΝΗΣΕΙΣ όπως είναι και χτίζει ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ
+    ΜΟΝΟ export: κρατάει ΚΙΝΗΣΕΙΣ όπως είναι και χτίζει ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ,
     χωρίς να αλλάξει τίποτα στη λογική εύρεσης λογαριασμών/κατηγοριών/ΦΠΑ.
     """
     preview = build_preview_strict_multiclient(
@@ -684,15 +684,20 @@ def export_multiclient_strict(
     if preview["issues"]:
         return False, "", preview["issues"]
 
-    paths = resolve_paths_for_vat(vat, invoices_json, client_db, out_xlsx, base_invoices_dir, base_exports_dir)
+    paths = resolve_paths_for_vat(
+        vat, invoices_json, client_db, out_xlsx, base_invoices_dir, base_exports_dir
+    )
     rows = preview["rows"]           # rows από τον builder (ΔΕΝ τα αλλάζουμε)
-    issues = []                      # δεν προσθέτουμε νέα issues εδώ
+    issues: List[Dict[str, Any]] = []  # δεν προσθέτουμε νέα issues εδώ
 
     # ---------- Φτιάξε ΚΙΝΗΣΕΙΣ όπως ΕΙΝΑΙ (δεν πειράζουμε mapping/λογικές) ----------
     flat: List[Dict[str, Any]] = []
     artid = 1
     for rec in rows:
-        is_receipt = any(k in str(rec.get("DOCTYPE","")).lower() for k in ["receipt","αποδείξ","αποδειξ","λιαν"])
+        is_receipt = any(
+            k in str(rec.get("DOCTYPE", "")).lower()
+            for k in ["receipt", "αποδείξ", "αποδειξ", "λιαν"]
+        )
         msign = 1
         sum_net = float(rec.get("NET", 0.0))
         if sum_net < 0:
@@ -700,7 +705,7 @@ def export_multiclient_strict(
         for ln in rec.get("LINES", []):
             flat.append({
                 "ARTID": artid,
-                "MTYPE": 1 if is_receipt or ("αγορ" in (ln.get("category","") or "") or "δαπ" in (ln.get("category","") or "")) else 0,
+                "MTYPE": 1 if is_receipt or ("αγορ" in (ln.get("category", "") or "") or "δαπ" in (ln.get("category", "") or "")) else 0,
                 "ISKEPYO": 1,
                 "ISAGRYP": 0,
                 "CUSTID": rec.get("CUSTID"),
@@ -729,34 +734,38 @@ def export_multiclient_strict(
         credentials = _safe_json_read(credentials_json, default=[])
     except Exception:
         credentials = []
-    settings_all = _safe_json_read(cred_settings_json, default={})
-
     cred_list = credentials if isinstance(credentials, list) else [credentials]
     active = next((c for c in cred_list if str(c.get("vat")) == str(vat)), (cred_list[0] if cred_list else {}))
     apod_type = (active or {}).get("apodeixakia_type", "")
-    apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier",""))
+    apod_supplier_id = _safe_int((active or {}).get("apodeixakia_supplier", ""))
 
     # ---------- Χτίσε ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ με ΜΟΝΗ προσαρμογή για supplier mode ----------
     # 1) used CUSTIDs από το df_moves
-    used_ids = []
-    if not df_moves.empty and "CUSTID" in df_moves.columns:
-        used_ids = [x for x in df_moves["CUSTID"].tolist() if x not in (None, "", float("nan"))]
-
+    import math as _math
     used_ids_unique: List[Any] = []
-    for x in used_ids:
-        try:
-            fx = float(x)
-            x = int(fx) if fx.is_integer() else x
-        except Exception:
-            pass
-        if x not in used_ids_unique:
-            used_ids_unique.append(x)
+    if not df_moves.empty and "CUSTID" in df_moves.columns:
+        for x in df_moves["CUSTID"].tolist():
+            if x is None:
+                continue
+            if isinstance(x, float):
+                try:
+                    if _math.isnan(x):
+                        continue
+                except Exception:
+                    pass
+            try:
+                fx = float(x)
+                x = int(fx) if fx.is_integer() else x
+            except Exception:
+                pass
+            if x not in used_ids_unique:
+                used_ids_unique.append(x)
 
     # 2) Χτίσε mapping CUSTID -> (AFM, NAME) από τα rows (χωρίς αλλαγές σε λογικές)
-    partners: Dict[Any, Tuple[str,str]] = {}
+    partners: Dict[Any, Tuple[str, str]] = {}
     for rec in rows:
         cid = rec.get("CUSTID")
-        if cid in (None, ""): 
+        if cid in (None, ""):
             continue
         afm = _norm_afm(rec.get("AFM_ISSUER") or rec.get("AFM") or "")
         nm  = str(rec.get("ISSUER_NAME") or rec.get("Name") or "").strip()
@@ -786,17 +795,21 @@ def export_multiclient_strict(
         # ΚΙΝΗΣΕΙΣ (ίδιο format όπως πριν)
         df_moves.to_excel(writer, index=False, sheet_name="ΚΙΝΗΣΕΙΣ")
         wb, ws = writer.book, writer.sheets["ΚΙΝΗΣΕΙΣ"]
-        fmt_num  = wb.add_format({"num_format":"0.00"})
-        fmt_int  = wb.add_format({"num_format":"0"})
-        fmt_date = wb.add_format({"num_format":"dd/mm/yyyy"})
-        idx = {n:i for i,n in enumerate(df_moves.columns)}
+        fmt_num  = wb.add_format({"num_format": "0.00"})
+        fmt_int  = wb.add_format({"num_format": "0"})
+        fmt_date = wb.add_format({"num_format": "dd/mm/yyyy"})
+        idx = {n: i for i, n in enumerate(df_moves.columns)}
         for n in ["ARTID","MTYPE","ISKEPYO","ISAGRYP","ISAGRYP_DETAIL","MSIGN","CUSTID","OTHEREXPEND"]:
-            if n in idx: ws.set_column(idx[n], idx[n], 10, fmt_int)
+            if n in idx:
+                ws.set_column(idx[n], idx[n], 10, fmt_int)
         for n in ["SUMKEPYOYP","KEPYOPARTY_DETAIL","NETAMT_DETAIL","VATAMT_DETAIL"]:
-            if n in idx: ws.set_column(idx[n], idx[n], 14, fmt_num)
-        if "MDATE" in idx: ws.set_column(idx["MDATE"], idx["MDATE"], 12, fmt_date)
-        for n,w in [("REASON",40),("INVOICE",18),("LCODE_DETAIL",16),("LCODE",16)]:
-            if n in idx: ws.set_column(idx[n], idx[n], w)
+            if n in idx:
+                ws.set_column(idx[n], idx[n], 14, fmt_num)
+        if "MDATE" in idx:
+            ws.set_column(idx["MDATE"], idx["MDATE"], 12, fmt_date)
+        for n, w in [("REASON", 40), ("INVOICE", 18), ("LCODE_DETAIL", 16), ("LCODE", 16)]:
+            if n in idx:
+                ws.set_column(idx[n], idx[n], w)
 
         # ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ
         if df_partners.empty:

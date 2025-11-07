@@ -29,7 +29,12 @@ import unicodedata
 import secrets
 import qrcode
 from epsilon_bridge_multiclient_strict import (
-    run_and_report_dynamic,  # <-- απαιτείται
+    run_and_report_dynamic,
+    export_multiclient_strict,
+    build_preview_strict_multiclient,
+    _load_client_map,           # για ανάγνωση client_db (υπάρχει ήδη στο αρχείο σου)
+    _safe_json_read,            # για ανάγνωση json εφόσον χρειαστεί
+    _norm_afm,   # <-- απαιτείται
     # προαιρετικά: export_multiclient_strict
 )
 from scraper_receipt import detect_and_scrape as scrape_receipt
@@ -966,6 +971,148 @@ def _coerce_id(val):
     except Exception:
         pass
     return s
+
+APP_DIR = os.path.abspath(os.path.dirname(__file__))
+if APP_DIR not in sys.path:
+    sys.path.append(APP_DIR)
+
+
+def _looks_like_receipt(rec: dict) -> bool:
+    t = f"{rec.get('DOCTYPE','')} {rec.get('type','')} {rec.get('category','')} {rec.get('series','')}".lower()
+    return any(k in t for k in ("receipt", "αποδειξ", "λιαν"))
+
+def _collect_missing_afm_from_preview(rows):
+    missing = {}
+    for r in rows or []:
+        if not _looks_like_receipt(r):
+            continue
+        cid = r.get("CUSTID")
+        if cid not in (None, "", 0):
+            continue
+        afm = _norm_afm(r.get("AFM_ISSUER") or r.get("AFM") or "")
+        if not afm:
+            continue
+        name = (r.get("ISSUER_NAME") or r.get("Name") or "").strip()
+        aa = r.get("AA") or r.get("aa")
+        if afm not in missing:
+            missing[afm] = {"afm": afm, "name": name, "count": 0, "examples": []}
+        missing[afm]["count"] += 1
+        if aa and len(missing[afm]["examples"]) < 5:
+            missing[afm]["examples"].append(str(aa))
+    return missing
+def _resolve_client_db_path(vat: str) -> str:
+    # 1) προτίμησε το global .xls όπως το έχεις
+    candidates = [
+        "data/client_db.xls",
+        "data/client_db.xlsx",
+        f"data/{vat}_client_db.xls",
+        f"data/{vat}_client_db.xlsx",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    # αν δεν υπάρχει τίποτα, default στο δικό σου global όνομα
+    return "data/client_db.xls"
+
+def _make_temp_client_db_with_new_ids(
+    vat: str,
+    base_client_db_path: str,
+    missing_map: dict,
+    invoices_fallback_json: str | None = None
+) -> str:
+    import os as _os, math as _math, tempfile as _tmp
+    import pandas as _pd
+
+    # --- Διάβασε ΟΠΩΣ ΕΙΝΑΙ το υπάρχον αρχείο (xls/xlsx) κρατώντας φύλλο & στήλες ---
+    if not _os.path.exists(base_client_db_path):
+        df = _pd.DataFrame(columns=["Κωδ. Συναλλασσόμενου","ΑΦΜ","Επωνυμία"])
+        sheet_name = "ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ"
+    else:
+        x = _pd.ExcelFile(base_client_db_path)  # διαβάζει .xls/.xlsx
+        # πάρε πρώτο φύλλο όπως είναι — ή ένα από τα γνωστά
+        preferred = ["ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΙ","Συναλλασσόμενοι","Clients","clients","Συναλλ/νοι"]
+        sheet_name = next((s for s in preferred if s in x.sheet_names), x.sheet_names[0])
+        df = _pd.read_excel(base_client_db_path, sheet_name=sheet_name, dtype=str).fillna("")
+
+    # βρες ΠΡΑΓΜΑΤΙΚΑ ονόματα για code/afm/name με βάση τους ελληνικούς τίτλους σου
+    def _find_col(df, aliases):
+        low = {c: str(c).strip().lower() for c in df.columns}
+        for c, lc in low.items():
+            for a in aliases:
+                if a in lc:
+                    return c
+        return None
+
+    code_col = _find_col(df, ["κωδ. συναλλασσόμενου", "κωδ", "custid", "code"]) or "Κωδ. Συναλλασσόμενου"
+    afm_col  = _find_col(df, ["αφμ", "afm"]) or "ΑΦΜ"
+    name_col = _find_col(df, ["επωνυμία", "επων", "name", "ονομα"]) or "Επωνυμία"
+
+    # εξασφάλισε ότι υπάρχουν οι τρεις βασικές στήλες
+    for col in (code_col, afm_col, name_col):
+        if col not in df.columns:
+            df[col] = ""
+
+    # υπάρχοντα AFM & χρησιμοποιημένοι κωδικοί
+    def _norm9(s: str) -> str:
+        s = "".join(ch for ch in str(s) if ch.isdigit())
+        return s.zfill(9) if s else ""
+
+    existing_afm = set(_norm9(v) for v in df[afm_col].astype(str).tolist() if str(v).strip())
+
+    used_ids = set()
+    for v in df[code_col].astype(str).tolist():
+        try:
+            fv = float(str(v).replace(",", "."))
+            if not _math.isnan(fv) and fv.is_integer():
+                used_ids.add(int(fv))
+        except Exception:
+            continue
+    next_id = (max(used_ids) + 1) if used_ids else 1
+
+    # fallback ονόματα από τα raw invoices
+    afm_to_name = {}
+    if invoices_fallback_json and _os.path.exists(invoices_fallback_json):
+        try:
+            invs = _safe_json_read(invoices_fallback_json, default=[])
+            if isinstance(invs, list):
+                for r in invs:
+                    iafm = _norm_afm(r.get("AFM_issuer") or r.get("AFM") or "")
+                    nm = (r.get("Name_issuer") or r.get("issuerName") or r.get("issuer_name") or "").strip()
+                    if iafm and nm and iafm not in afm_to_name:
+                        afm_to_name[iafm] = nm
+        except Exception:
+            pass
+
+    # μόνο οι όντως νέοι AFM
+    new_rows = []
+    for afm, info in (missing_map or {}).items():
+        afm_norm = _norm9(afm)
+        if not afm_norm or afm_norm in existing_afm:
+            continue
+        nm = (info or {}).get("name") or afm_to_name.get(afm_norm) or ""
+        # Γράψε ΓΡΑΜΜΗ με ΟΛΕΣ τις ΥΠΑΡΧΟΥΣΕΣ στήλες του αρχείου χωρίς να αλλάξεις layout
+        row = {col: "" for col in df.columns}
+        row[code_col] = str(next_id)
+        row[afm_col]  = afm_norm
+        row[name_col] = nm
+        new_rows.append(row)
+        existing_afm.add(afm_norm)
+        next_id += 1
+
+    if not new_rows:
+        return base_client_db_path  # τίποτα να προσθέσουμε
+
+    df_out = _pd.concat([df, _pd.DataFrame(new_rows, columns=df.columns)], ignore_index=True)
+
+    # φόρμαρε τα AFM σαν 9-ψήφια string
+    df_out[afm_col] = df_out[afm_col].astype(str).str.replace(r"\D+", "", regex=True).str.zfill(9)
+
+    # γράψε προσωρινό αρχείο ΚΡΑΤΩΝΤΑΣ ΤΟ ΙΔΙΟ sheet_name
+    fd, tmp_path = _tmp.mkstemp(prefix=f"{vat}_client_db_tmp_", suffix=".xlsx")
+    _os.close(fd)
+    with _pd.ExcelWriter(tmp_path, engine="xlsxwriter") as w:
+        df_out.to_excel(w, index=False, sheet_name=sheet_name)
+    return tmp_path
 
 def _load_client_map_smart(path: str) -> dict:
     """
@@ -7495,58 +7642,91 @@ def epsilon_preview():
 
 
 @app.route("/export/fastimport/kinitseis")
-def export_kinitseis():
-    # 1) resolve VAT (query ➜ active credential ➜ fallback)
-    vat = (request.args.get("vat") or "").strip()
+def export_fastimport_kinitseis():
+    vat = request.args.get("vat") or ""
+    confirm = request.args.get("confirm_new_partners") == "1"
+
+    # Διάβασε active credential για να δούμε αν είμαστε σε AFM mode
+    apod_type = ""
     try:
-        active = get_active_credential_from_session()  # δικός σου helper
-        if not vat:
-            vat = str(active.get("vat") or "").strip()
+        creds = _safe_json_read("data/credentials.json", default=[])
+        cl = creds if isinstance(creds, list) else [creds]
+        active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
+        apod_type = str((active or {}).get("apodeixakia_type", "")).lower()
     except Exception:
         pass
-    if not vat:
-        flash("Λείπει VAT για εξαγωγή γέφυρας.", "error")
-        return redirect(url_for("epsilon_preview"))
 
-    # 2) τρέξε strict export
-    res = run_and_report_dynamic(
+    base_client_db = _resolve_client_db_path(vat)
+
+    invoices_fallback = os.path.join("data", "epsilon", vat, f"{vat}_epsilon_invoices.json")
+
+    # 1) Preview για να εντοπίσουμε receipts χωρίς CUSTID
+    preview = build_preview_strict_multiclient(
         vat=vat,
         credentials_json="data/credentials.json",
         cred_settings_json="data/credentials_settings.json",
-        invoices_json=None,      # αφήνουμε τον resolver να βρει το σωστό JSON
-        client_db=None,          # και το client_db από data/
-        out_xlsx=None,           # exports/{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx
+        invoices_json=None,
+        client_db=base_client_db,
+        base_invoices_dir="data/epsilon",
+    )
+
+    if apod_type == "afm" and not confirm:
+        missing_map = _collect_missing_afm_from_preview(preview.get("rows"))
+        if missing_map:
+            # Δείξε modal επιβεβαίωσης
+            return render_template(
+                "export_confirm_partners.html",
+                vat=vat,
+                missing=list(missing_map.values()),
+                confirm_url=url_for("export_fastimport_kinitseis", vat=vat, confirm_new_partners="1"),
+                cancel_url=url_for("search", vat=vat),
+            )
+
+    # 2) Αν επιβεβαιώθηκε (AFM mode) -> φτιάξε προσωρινό client_db με νέους CUSTID
+    client_db_path = base_client_db
+    if apod_type == "afm" and confirm:
+        missing_map = _collect_missing_afm_from_preview(preview.get("rows"))
+        if missing_map:
+            client_db_path = _make_temp_client_db_with_new_ids(
+                vat=vat,
+                base_client_db_path=base_client_db,
+                missing_map=missing_map,
+                invoices_fallback_json=invoices_fallback,
+            )
+
+    # 3) Κανονικό export (ΧΩΡΙΣ να πειράζουμε τις υπόλοιπες λογικές)
+    ok, out_path, issues = export_multiclient_strict(
+        vat=vat,
+        credentials_json="data/credentials.json",
+        cred_settings_json="data/credentials_settings.json",
+        invoices_json=None,
+        client_db=client_db_path,
+        out_xlsx=None,
         base_invoices_dir="data/epsilon",
         base_exports_dir="exports",
     )
 
-    # 3) χειρισμός σφαλμάτων / προειδοποιήσεων
-    if not res.get("ok"):
-        issues = res.get("issues") or []
-        # δείξε μερικά, χωρίς να «πνίξεις» τη σελίδα
-        for i in issues[:8]:
-            msg = i.get("message") or str(i)
-            flash(msg, "error")
-        if len(issues) > 8:
-            flash(f"...(+{len(issues)-8} ακόμη θέματα)", "error")
-        return redirect(url_for("epsilon_preview", vat=vat))
+    if ok and out_path:
+        return send_file(out_path, as_attachment=True)
 
-    xlsx_path = res.get("path")
-    if not xlsx_path or not os.path.exists(xlsx_path):
-        flash("Η εξαγωγή ολοκληρώθηκε χωρίς να βρεθεί το αρχείο XLSX.", "error")
-        return redirect(url_for("epsilon_preview", vat=vat))
-
-    # 4) κατέβασμα XLSX (ίδιο tab)
-    download_name = f"{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx"
-    return send_file(
-        xlsx_path,
-        as_attachment=True,
-        download_name=download_name,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        max_age=0,
-    )
+    # fallback: δείξε ό,τι άλλο πρόβλημα επιστρέφει
+    for it in (issues or []):
+        flash(it.get("message") or "Αποτυχία εξαγωγής.", "error")
+    return redirect(url_for("search", vat=vat))
 
 
+# --- μικρά helpers για parsing από μηνύματα (προαιρετικά) ---
+def _extract_afm_from_msg(msg: str) -> str:
+    m = re.search(r"(?:AFM|ΑΦΜ)\s+(\d{9})", msg or "", flags=re.I)
+    return m.group(1) if m else ""
+
+def _extract_aa_from_msg(msg: str) -> str:
+    m = re.search(r"(?:AA=|ΑΑ=)\s*(\d+)", msg or "", flags=re.I)
+    return m.group(1) if m else ""
+
+def _looks_like_receipt(rec: dict) -> bool:
+    t = f"{rec.get('DOCTYPE','')} {rec.get('type','')} {rec.get('category','')}".lower()
+    return any(k in t for k in ("receipt", "αποδειξ", "λιαν"))
 # ---------------- Delete invoices ----------------
 @app.route("/delete", methods=["POST"])
 def delete_invoices():

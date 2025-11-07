@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Επιβεβαίωση δημιουργίας συναλλασσομένων{% endblock %}
+{% block content %}
+<div class="bg-white rounded shadow p-6 max-w-3xl mx-auto">
+  <h2 class="text-lg font-semibold mb-4">Δημιουργία νέων συναλλασσομένων (Αποδείξεις - AFM)</h2>
+  <p class="text-sm text-gray-600 mb-4">
+    Βρέθηκαν αποδείξεις με ΑΦΜ εκδότη που δεν υπάρχουν στο <code>client_db</code>.
+    Αν συνεχίσεις, θα δημιουργηθούν νέοι κωδικοί (αύξοντες) μόνο για το τρέχον export.
+  </p>
+  <div class="border rounded overflow-hidden">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left">ΑΦΜ</th>
+          <th class="px-3 py-2 text-left">Επωνυμία</th>
+          <th class="px-3 py-2 text-left">Πλήθος</th>
+          <th class="px-3 py-2 text-left">Ενδ. ΑΑ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in missing %}
+        <tr class="border-t">
+          <td class="px-3 py-2 font-mono">{{ r.afm }}</td>
+          <td class="px-3 py-2">{{ r.name or "—" }}</td>
+          <td class="px-3 py-2">{{ r.count }}</td>
+          <td class="px-3 py-2">{{ ", ".join(r.examples or []) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-6 flex gap-3">
+    <a href="{{ confirm_url }}" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded">Ναι, δημιουργία & εξαγωγή</a>
+    <a href="{{ cancel_url }}" class="px-4 py-2 rounded border">Άκυρο</a>
+  </div>
+</div>
+{% endblock %}
