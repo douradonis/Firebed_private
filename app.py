@@ -7978,16 +7978,6 @@ def delete_invoices():
 
 
 
-
-
-
-
-
-# ---------------- Health ----------------
-@app.route("/health")
-def health():
-    return "OK"
-
 # ---------------- Global error handler ----------------
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
