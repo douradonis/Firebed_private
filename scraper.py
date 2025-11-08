@@ -347,11 +347,8 @@ def scrape_mydatapi(url):
 # -------------------- ECOS E-INVOICING --------------------
 def scrape_einvoice(url):
     """
-    Επιστρέφει (marks_list, counterpart_vat)
-
-    Νέα λογική:
-    - Αν υπάρχει κουμπί/σύνδεσμος #erpQrBtn που οδηγεί σε mydatapi, το ακολουθά
-      και παίρνει MARK/ΑΦΜ από scrape_mydatapi (προτιμητέο).
+    Επιστρέφει (mark, counterpart_vat)
+    - Αν υπάρχει #erpQrBtn που οδηγεί σε mydatapi, παίρνει MARK/ΑΦΜ από scrape_mydatapi (προτιμητέο).
     - Αλλιώς, συνεχίζει με την υπάρχουσα λογική εξαγωγής (πίνακες/attachments).
     """
     sess = requests.Session()
@@ -362,7 +359,7 @@ def scrape_einvoice(url):
         r.encoding = 'utf-8'
     except Exception as e:
         print(f"[RequestError] {e}")
-        return [], None
+        return None, None
 
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -376,12 +373,11 @@ def scrape_einvoice(url):
         mark = (data.get("MARK") or "").strip()
         afm = (data.get("ΑΦΜ Πελάτη") or "").strip()
         afm = re.sub(r"\D", "", afm) if afm else None
-        marks_list = [mark] if mark and mark != "N/A" else []
-        return marks_list, afm
+        mark_str = mark if mark and mark != "N/A" else None
+        return mark_str, afm
 
-    # 2) Fallback στην παλιά λογική (όπως είχες)
-    # --- αρχή υπάρχουσας λογικής ---
-    # 1) MARK extraction (προτίμηση explicit span.field-Mark)
+    # 2) Fallback στην παλιά λογική
+    # 1) MARK extraction
     mark = None
     mark_tag = soup.find("span", class_=lambda c: c and "field-Mark" in c)
     if mark_tag:
@@ -425,7 +421,7 @@ def scrape_einvoice(url):
         except Exception:
             counterpart_vat = None
 
-    # 3) ... (ό,τι υπήρχε ήδη μετά) ...
+    # 3) ...ό,τι είχες ήδη για εύρεση ΑΦΜ (κρατημένο όπως πριν)...
     if not counterpart_vat:
         heading = soup.find(string=re.compile(r"ΣΤΟΙΧΕΙΑ\s+ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟΥ|ΣΤΟΙΧΕΙΑ\s+ΠΕΛΑΤΗ", re.I))
         if heading:
@@ -553,14 +549,13 @@ def scrape_einvoice(url):
     if counterpart_vat:
         counterpart_vat = re.sub(r"\D", "", counterpart_vat)
 
-    marks_list = [mark] if mark else []
-    return marks_list, counterpart_vat
-
+    # ΕΠΙΣΤΡΟΦΗ: string (ή None), όχι λίστα
+    return mark, counterpart_vat
 
 # -------------------- IMPACT E-INVOICING --------------------
 def scrape_impact(url):
     """
-    Επιστρέφει (marks_list, counterpart_vat)
+    Επιστρέφει (mark, counterpart_vat) — όπου mark είναι str ή None.
     1) Αν υπάρχει #erpQrBtn που οδηγεί σε mydatapi → διαβάζει MARK/ΑΦΜ από scrape_mydatapi.
     2) Αλλιώς, fallback στην παλιά εξαγωγή του MARK μόνο.
     """
@@ -572,7 +567,7 @@ def scrape_impact(url):
         r.raise_for_status()
     except Exception as e:
         print(f"[RequestError] {e}")
-        return [], None
+        return None, None
 
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -586,13 +581,13 @@ def scrape_impact(url):
         mark = (data.get("MARK") or "").strip()
         afm = (data.get("ΑΦΜ Πελάτη") or "").strip()
         afm = re.sub(r"\D", "", afm) if afm else None
-        marks_list = [mark] if mark and mark != "N/A" else []
-        return marks_list, afm
+        mark_str = mark if mark and mark != "N/A" else None
+        return mark_str, afm
 
     # 2) Fallback: παλιά λογική εύρεσης MARK από τη σελίδα
     el = soup.select_one("span.field.field-Mark span.value, span.field-Mark span.value")
     if el and el.get_text(strip=True):
-        return [el.get_text(strip=True)], None
+        return el.get_text(strip=True), None
 
     for lbl in soup.find_all(string=re.compile(r"Μ\.?Αρ\.?Κ\.?", re.I)):
         parent = lbl.parent
@@ -600,19 +595,18 @@ def scrape_impact(url):
             block_text = parent.get_text(" ", strip=True)
             m = MARK_RE.search(block_text)
             if m:
-                return [m.group(0)], None
+                return m.group(0), None
             sib_text = " ".join(
                 str(sib.get_text(" ", strip=True) if hasattr(sib, "get_text") else sib)
                 for sib in parent.next_siblings
             )
             m2 = MARK_RE.search(sib_text)
             if m2:
-                return [m2.group(0)], None
+                return m2.group(0), None
 
     full_text = soup.get_text(" ", strip=True)
     m = MARK_RE.search(full_text)
-    return ([m.group(0)] if m else []), None
-
+    return (m.group(0) if m else None), None
 
 # -------------------- EPSILON --------------------
 def scrape_epsilon(url):

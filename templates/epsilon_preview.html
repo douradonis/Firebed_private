@@ -103,6 +103,49 @@ function allRowsValidExceptCust(api){
   }
   return true;
 }
+
+function ensureFlashContainer(){
+  let container = document.getElementById('flashContainer');
+  if (container) return container;
+  const root = document.querySelector('.container') || document.body;
+  container = document.createElement('div');
+  container.id = 'flashContainer';
+  container.className = 'space-y-2 mb-4';
+  if (root.firstChild){
+    root.insertBefore(container, root.firstChild);
+  } else {
+    root.appendChild(container);
+  }
+  return container;
+}
+
+function showFlash(message, type='info', timeout=3000){
+  try {
+    const container = ensureFlashContainer();
+    if (!container) return;
+    const selector = `[data-flash-dynamic="1"][data-message="${message}"][data-type="${type}"]`;
+    const duplicate = container.querySelector(selector);
+    if (duplicate) duplicate.remove();
+    const el = document.createElement('div');
+    el.className = 'flash-banner text-sm';
+    if (type === 'success') el.classList.add('flash-success');
+    else if (type === 'error') el.classList.add('flash-error');
+    else {
+      el.classList.add('flash-info');
+      el.style.background = '#eff6ff';
+      el.style.color = '#1e3a8a';
+      el.style.border = '1px solid #bfdbfe';
+    }
+    el.dataset.flashDynamic = '1';
+    el.dataset.message = message;
+    el.dataset.type = type;
+    if (timeout) el.setAttribute('data-ttl', String(timeout));
+    el.textContent = message;
+    container.appendChild(el);
+  } catch (err) {
+    console.warn('showFlash failed', err);
+  }
+}
 </script>
 
 <script>
@@ -227,6 +270,10 @@ function updateTotalsAndExportState(api){
 
   const canExport = okStrict || (allowPartnersFlow && okExceptCust);
   btn.disabled = !canExport;
+  if (btn){
+    btn.dataset.exportMode = (allowPartnersFlow && okExceptCust && !okStrict) ? 'partners' : 'strict';
+    btn.dataset.exportReady = canExport ? '1' : '0';
+  }
 
   if (allowPartnersFlow && okExceptCust && !okStrict){
     // Μόνο τα CUSTID λείπουν -> θα εμφανιστεί modal για δημιουργία
@@ -237,6 +284,114 @@ function updateTotalsAndExportState(api){
     btn.title = canExport
       ? "Όλα εντάξει — κάνε λήψη γέφυρας"
       : "Απενεργό: απαιτείται κάθε γραμμή να έχει CUSTID, Χαρακτηρισμούς & Λογαριασμούς";
+  }
+}
+
+function extractFilenameFromDisposition(disposition){
+  if (!disposition) return null;
+  let match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (match && match[1]){
+    try { return decodeURIComponent(match[1]); }
+    catch (_) {}
+  }
+  match = disposition.match(/filename="?([^";]+)"?/i);
+  if (match && match[1]){
+    return match[1];
+  }
+  return null;
+}
+
+function extractMessageFromHtml(html){
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const flash = doc.querySelector('[data-flash], .flash-banner, .alert');
+    if (flash && flash.textContent){
+      return flash.textContent.trim();
+    }
+    const title = doc.querySelector('title');
+    if (title && title.textContent){
+      return title.textContent.trim();
+    }
+  } catch (err){
+    console.warn('extractMessageFromHtml failed', err);
+  }
+  return '';
+}
+
+async function performBridgeDownload(url, options){
+  options = options || {};
+  const btn = document.getElementById('exportBridgeBtn');
+  const wasDisabled = btn ? btn.disabled : false;
+  if (btn){
+    btn.disabled = true;
+    btn.dataset.busy = '1';
+  }
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok){
+      let message = 'Αποτυχία εξαγωγής γέφυρας.';
+      if (contentType.includes('application/json')){
+        try {
+          const data = await res.json();
+          if (data && (data.error || data.message)){
+            message = data.error || data.message;
+          }
+        } catch (err){ console.warn('bridge json error', err); }
+      } else {
+        const text = await res.text();
+        const extracted = extractMessageFromHtml(text) || text.slice(0, 180).trim();
+        if (extracted) message = extracted;
+      }
+      showFlash(message, 'error', 6000);
+      return false;
+    }
+
+    if (contentType.includes('text/html')){
+      const html = await res.text();
+      const message = extractMessageFromHtml(html) || 'Η εξαγωγή δεν ολοκληρώθηκε. Ελέγξτε τυχόν σφάλματα.';
+      showFlash(message, 'error', 6000);
+      return false;
+    }
+
+    const blob = await res.blob();
+    let filename = extractFilenameFromDisposition(res.headers.get('content-disposition') || '');
+    if (!filename){
+      const ext = contentType.includes('zip') ? '.zip' : '.xlsx';
+      filename = 'epsilon_bridge' + ext;
+    }
+
+    const link = document.createElement('a');
+    const blobUrl = URL.createObjectURL(blob);
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+      try { link.remove(); } catch (_) {}
+    }, 0);
+
+    const mode = options.mode || 'strict';
+    const baseMsg = mode === 'partners'
+      ? 'Η γέφυρα δημιουργήθηκε και λήφθηκε (με νέους συναλλασσόμενους).'
+      : 'Η γέφυρα λήφθηκε με επιτυχία.';
+    if (filename.toLowerCase().endsWith('.zip')){
+      showFlash(baseMsg + ' Συμπεριλαμβάνεται το αρχείο b_kat.ect.', 'success', 6000);
+    } else {
+      showFlash(baseMsg, 'success', 5000);
+    }
+    return true;
+  } catch (err){
+    console.error('performBridgeDownload failed', err);
+    showFlash('Προέκυψε σφάλμα κατά τη λήψη της γέφυρας.', 'error', 6000);
+    return false;
+  } finally {
+    if (btn){
+      btn.disabled = wasDisabled;
+      delete btn.dataset.busy;
+    }
   }
 }
 
@@ -350,9 +505,18 @@ $(function(){
   }
 
   // Export
-  document.getElementById('exportBridgeBtn')?.addEventListener('click', function(){
-    if(this.disabled) return;
-    window.location.href = "/export/fastimport/kinitseis?vat=" + encodeURIComponent(ACTIVE_VAT);
+  const exportBtn = document.getElementById('exportBridgeBtn');
+  exportBtn?.addEventListener('click', async function(){
+    if (this.disabled || this.dataset.busy === '1') return;
+    const baseUrl = "/export/fastimport/kinitseis?vat=" + encodeURIComponent(ACTIVE_VAT);
+    const mode = this.dataset.exportMode || 'strict';
+    let targetUrl = baseUrl;
+    if (mode === 'partners'){
+      const proceed = window.confirm('Θα δημιουργηθούν προσωρινοί συναλλασσόμενοι για αποδείξεις χωρίς CUSTID. Θέλεις να συνεχίσεις;');
+      if (!proceed) return;
+      targetUrl += '&confirm_new_partners=1';
+    }
+    await performBridgeDownload(targetUrl, { mode });
   });
 
   // Show issues modal immediately if there are issues

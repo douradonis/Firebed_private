@@ -212,5 +212,34 @@
         "vat_category": ""
       }
     ]
+  },
+  {
+    "mark": "400011576793993",
+    "issueDate": "31/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "130739",
+    "AA": "130739",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "2,60",
+    "totalVatAmount": "",
+    "totalValue": "2,60",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "998345385",
+    "Name_issuer": "",
+    "AFM": "998345385",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "2,60",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
   }
 ]
