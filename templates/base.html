@@ -638,7 +638,21 @@
             window.WaitOverlay.suspend(true);
             setTimeout(()=>window.WaitOverlay.suspend(false), 200);
           }
-          setTimeout(()=>{ location.reload(); }, 50);
+          let reloadTarget = null;
+          if (typeof window.handleWarningModalReload === 'function') {
+            try {
+              reloadTarget = window.handleWarningModalReload();
+            } catch (err) {
+              console.warn('handleWarningModalReload failed', err);
+            }
+          }
+          setTimeout(()=>{
+            if (reloadTarget && typeof reloadTarget === 'string') {
+              window.location.replace(reloadTarget);
+              return;
+            }
+            window.location.reload();
+          }, 50);
         }
       }, true);
     })();

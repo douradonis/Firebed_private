@@ -1194,11 +1194,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, payload: text, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled, auto_submit_enabled: CFG.autoSubmit })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
-            const message = (data && data.error) ? data.error : 'Δεν στάλθηκε ο κωδικός. Προσπάθησε ξανά.';
+            const message = (data && data.error) ? data.error : 'Δεν επιβεβαιώθηκε η αποστολή στον υπολογιστή. Έλεγξε αν εμφανίστηκε και προσπάθησε ξανά.';
             setStatus(message, 'error');
             pulseFrame('error');
             updateResultBox(message, 'error');
@@ -1211,6 +1211,9 @@
           pulseFrame('success');
           if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+            applyAutoSubmit(data.auto_submit_enabled);
           }
         } catch (err) {
           console.warn('pushPayload failed', err);

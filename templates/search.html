@@ -6379,24 +6379,62 @@ document.addEventListener('click', function(e){
 </script>
 
 <script>
-/* Reload όταν ο χρήστης πατάει "Κατάλαβα" στα warning modals */
+/* Reset & reload όταν εμφανίζονται warning modals στη σελίδα αναζήτησης */
 (function(){
-  // AFM warning (server-rendered modal with #afmModalConfirm)
-  const afmOk = document.getElementById('afmModalConfirm'); // υπάρχει ήδη στο search.html
+  function clearSearchInputs(){
+    try {
+      const markEl = document.getElementById('markInput');
+      if (markEl){
+        markEl.value = '';
+        markEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } catch (_) {}
+    try {
+      const urlEl = document.getElementById('scrapeUrlInput');
+      if (urlEl){
+        urlEl.value = '';
+        urlEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } catch (_) {}
+    try {
+      const hiddenUrl = document.getElementById('scrapeUrlField');
+      if (hiddenUrl){
+        hiddenUrl.value = '';
+        hiddenUrl.removeAttribute('data-mark');
+      }
+    } catch (_) {}
+  }
+
+  function buildCleanUrl(){
+    try {
+      const url = new URL(window.location.href);
+      ['mark','url','payload','scrape_url','mark_id'].forEach(param => url.searchParams.delete(param));
+      return url.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function resetSearchAndReload(){
+    clearSearchInputs();
+    return buildCleanUrl();
+  }
+
+  window.handleWarningModalReload = function(){
+    return resetSearchAndReload();
+  };
+
+  const afmOk = document.getElementById('afmModalConfirm');
   if (afmOk) {
     afmOk.addEventListener('click', function(){
       try { document.getElementById('afmWarningModal').style.display = 'none'; } catch(_){}
-      location.reload();
+      const target = resetSearchAndReload();
+      setTimeout(() => {
+        if (target){ window.location.replace(target); }
+        else { window.location.reload(); }
+      }, 40);
     });
   }
-
-  // Receipt warning (dynamic modal που φτιάχνεται με openReceiptWarning, κουμπί #receiptWarnOk)
-  document.addEventListener('click', function(e){
-    if (e.target && e.target.id === 'receiptWarnOk') {
-      try { document.getElementById('receiptWarn').style.display = 'none'; } catch(_){}
-      location.reload();
-    }
-  }, true);
 })();
 </script>
 
