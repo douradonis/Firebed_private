@@ -463,6 +463,34 @@ def _account_detail_for_line(settings: Dict[str, Any], category: str, is_receipt
     }
     return chosen, dbg
 
+
+
+# ----------------------- fiscal-year helpers -----------------------
+def _read_active_fiscal_year(base_invoices_dir: str) -> Optional[int]:
+    """Try to read the active fiscal year from a sibling fiscal_meta.json next to base_invoices_dir.
+    Falls back to None if not found or invalid.
+    """
+    try:
+        base_dir = os.path.dirname(base_invoices_dir) if base_invoices_dir else "data"
+        # If base_invoices_dir = "data/epsilon", parent is "data"
+        p = os.path.join(base_dir, "fiscal_meta.json")
+        if not os.path.exists(p):
+            # also try plain "data/fiscal_meta.json"
+            p2 = os.path.join("data", "fiscal_meta.json")
+            p = p2 if os.path.exists(p2) else p
+        if not os.path.exists(p):
+            return None
+        with open(p, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        fy = data.get("fiscal_year")
+        if fy is None:
+            return None
+        try:
+            return int(fy)
+        except Exception:
+            return None
+    except Exception:
+        return None
 # ----------------------- preview/export -----------------------
 def characts_from_lines(rec: Dict[str, Any]) -> str:
     cats: List[str] = []
@@ -481,6 +509,7 @@ def build_preview_rows_for_ui(
     invoices_json: Optional[str] = None,
     client_db: Optional[str] = None,
     base_invoices_dir: str = "data/epsilon",
+    fiscal_year: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], bool]:
 
     paths = resolve_paths_for_vat(vat, invoices_json, client_db, None, base_invoices_dir)
@@ -488,8 +517,27 @@ def build_preview_rows_for_ui(
 
     try:
         invoices = load_epsilon_invoices(paths["invoices"])
+
     except Exception as e:
         return [], [{"code":"invoices_read_error","modal":True,"message":f"Σφάλμα invoices: {e}"}], False
+
+    
+    # --- Fiscal year filter (bridge only for the selected fiscal year) ---
+    fy = fiscal_year if (locals().get("fiscal_year", None) is not None) else _read_active_fiscal_year(base_invoices_dir)
+    if fy is not None:
+        _filtered = []
+        for _rec in invoices:
+            _dt = _to_date(_rec.get("issueDate") or _rec.get("ΗΜΕΡΟΜΗΝΙΑ"))
+            if _dt is None or _dt.year != int(fy):
+                try:
+                    _aa = _rec.get("AA") or _rec.get("aa") or ""
+                    _mark = _rec.get("MARK") or _rec.get("mark") or ""
+                    
+                except Exception:
+                    pass
+                continue
+            _filtered.append(_rec)
+        invoices = _filtered
 
     credentials = _safe_json_read(credentials_json, default=[])
     settings_all = _safe_json_read(cred_settings_json, default={})
@@ -624,6 +672,7 @@ def build_preview_strict_multiclient(
     invoices_json: Optional[str] = None,
     client_db: Optional[str] = None,
     base_invoices_dir: str = "data/epsilon",
+    fiscal_year: Optional[int] = None,
 ) -> Dict[str, Any]:
     rows, issues, ok = build_preview_rows_for_ui(
         vat=vat,
@@ -632,6 +681,7 @@ def build_preview_strict_multiclient(
         invoices_json=invoices_json,
         client_db=client_db,
         base_invoices_dir=base_invoices_dir,
+        fiscal_year=fiscal_year
     )
     paths = resolve_paths_for_vat(vat, invoices_json, client_db, None, base_invoices_dir)
     return {"ok": ok and not issues, "rows": rows, "issues": issues, "paths": paths}
@@ -668,7 +718,7 @@ def export_multiclient_strict(
     out_xlsx: Optional[str] = None,
     base_invoices_dir: str = "data/epsilon",
     base_exports_dir: str = "exports",
-):
+    fiscal_year: Optional[int] = None):
     """
     ΜΟΝΟ export: κρατάει ΚΙΝΗΣΕΙΣ όπως είναι και χτίζει ΣΥΝΑΛΛΑΣΣΟΜΕΝΟΥΣ,
     χωρίς να αλλάξει τίποτα στη λογική εύρεσης λογαριασμών/κατηγοριών/ΦΠΑ.
@@ -680,15 +730,24 @@ def export_multiclient_strict(
         invoices_json=invoices_json,
         client_db=client_db,
         base_invoices_dir=base_invoices_dir,
-    )
-    if preview["issues"]:
-        return False, "", preview["issues"]
+        fiscal_year=fiscal_year)
+    nonfatal_codes = {"filtered_out_by_year"}
+    fatals = [i for i in preview["issues"] if str(i.get("code","")) not in nonfatal_codes]
+    if fatals:
+        return False, "", fatals
+    # capture non-fatal issues (e.g., filtered_out_by_year); we will return them alongside success
+    nonfatal_issues = [i for i in preview["issues"] if str(i.get("code","")) in nonfatal_codes]
 
     paths = resolve_paths_for_vat(
         vat, invoices_json, client_db, out_xlsx, base_invoices_dir, base_exports_dir
     )
     rows = preview["rows"]           # rows από τον builder (ΔΕΝ τα αλλάζουμε)
     issues: List[Dict[str, Any]] = []  # δεν προσθέτουμε νέα issues εδώ
+    try:
+        issues.extend(nonfatal_issues)
+    except NameError:
+        pass
+
 
     # ---------- Φτιάξε ΚΙΝΗΣΕΙΣ όπως ΕΙΝΑΙ (δεν πειράζουμε mapping/λογικές) ----------
     flat: List[Dict[str, Any]] = []
