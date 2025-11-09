@@ -103,6 +103,30 @@
       color: #ffffff;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
     }
+    .auto-submit-toggle {
+      display: inline-flex;
+      gap: 0;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #fbbf24;
+      background: #fef3c7;
+      margin-bottom: 16px;
+    }
+    .auto-submit-toggle button {
+      flex: 1 1 auto;
+      border: none;
+      background: transparent;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 12px;
+      color: #92400e;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .auto-submit-toggle button.active {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      color: #fff7ed;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+    }
     .repeat-toggle {
       display: flex;
       justify-content: flex-start;
@@ -421,6 +445,12 @@
       .mode-toggle button {
         width: 100%;
       }
+      .auto-submit-toggle {
+        width: 100%;
+      }
+      .auto-submit-toggle button {
+        width: 100%;
+      }
       .repeat-toggle {
         justify-content: center;
       }
@@ -454,6 +484,11 @@
       <div class="mode-toggle" role="group" aria-label="Επιλογή λειτουργίας αποστολής" id="modeToggle">
         <button type="button" data-mode-option="invoices">Τιμολόγια</button>
         <button type="button" data-mode-option="receipts">Αποδείξεις</button>
+      </div>
+
+      <div class="auto-submit-toggle" role="group" aria-label="Ρύθμιση auto-submit" id="autoSubmitToggle">
+        <button type="button" data-auto-option="off">Auto-submit Off</button>
+        <button type="button" data-auto-option="on">Auto-submit On</button>
       </div>
 
       <div class="repeat-toggle">
@@ -514,6 +549,7 @@
       "mode": mode,
       "expiresAt": expires_at,
       "repeatEnabled": repeat_enabled,
+      "autoSubmit": auto_submit_enabled,
       "error": error
     } | tojson | safe }};
   </script>
@@ -533,6 +569,8 @@
       const expiresEl = document.getElementById('expiresInfo');
       const modeBadge = document.getElementById('modeBadge');
       const modeButtons = Array.from(document.querySelectorAll('[data-mode-option]'));
+      const autoSubmitToggle = document.getElementById('autoSubmitToggle');
+      const autoButtons = Array.from(document.querySelectorAll('[data-auto-option]'));
       const repeatToggle = document.getElementById('repeatToggle');
       const summaryPanel = document.getElementById('summaryControlPanel');
       const summaryStatus = document.getElementById('summaryStatusText');
@@ -550,6 +588,7 @@
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
       CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
       CFG.summaryVersion = CFG.summaryVersion || 0;
+      CFG.autoSubmit = CFG.autoSubmit === true || CFG.autoSubmit === 'true' || CFG.autoSubmit === 1 ? true : !!CFG.autoSubmit;
 
       let html5QrCode = null;
       let cameras = [];
@@ -757,6 +796,9 @@
         if (!CFG.sessionId || !CFG.token) return null;
         try {
           const body = Object.assign({ session_id: CFG.sessionId, token: CFG.token }, payload || {});
+          if (!Object.prototype.hasOwnProperty.call(body, 'auto_submit_enabled')){
+            body.auto_submit_enabled = CFG.autoSubmit;
+          }
           const res = await fetch('/api/qr/remote/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -774,6 +816,9 @@
           }
           if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
+          }
+          if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+            applyAutoSubmit(data.auto_submit_enabled);
           }
           if (data.expires_at){
             CFG.expiresAt = data.expires_at;
@@ -837,6 +882,16 @@
         });
       }
 
+      function updateAutoSubmitControls(){
+        if (!autoButtons || !autoButtons.length) return;
+        autoButtons.forEach(btn => {
+          if (!btn) return;
+          const choice = btn.getAttribute('data-auto-option');
+          const active = choice === 'on' ? !!CFG.autoSubmit : !CFG.autoSubmit;
+          btn.classList.toggle('active', active);
+        });
+      }
+
       function updateRepeatToggle(){
         if (repeatToggle){
           repeatToggle.checked = !!CFG.repeatEnabled;
@@ -849,6 +904,14 @@
         CFG.repeatEnabled = normalized;
         updateRepeatToggle();
         return { repeat: normalized, changed };
+      }
+
+      function applyAutoSubmit(next){
+        const normalized = next === true || next === 'true' || next === 1 ? true : !!next;
+        const changed = normalized !== !!CFG.autoSubmit;
+        CFG.autoSubmit = normalized;
+        updateAutoSubmitControls();
+        return { enabled: normalized, changed };
       }
 
       function updateExpiryCountdown(){
@@ -1038,7 +1101,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled, auto_submit_enabled: CFG.autoSubmit })
           });
           if (res.status === 410) {
             setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
@@ -1056,6 +1119,9 @@
           }
           if (data && Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
+          }
+          if (data && Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+            applyAutoSubmit(data.auto_submit_enabled);
           }
           if (data && Object.prototype.hasOwnProperty.call(data, 'summary_version')){
             CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
@@ -1081,7 +1147,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled })
+            body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled, auto_submit_enabled: CFG.autoSubmit })
           });
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
@@ -1214,6 +1280,17 @@
         });
       });
 
+      autoButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          const choice = btn.getAttribute('data-auto-option');
+          const desired = choice === 'on';
+          applyAutoSubmit(desired);
+          setStatus(desired ? 'Το auto-submit ενεργοποιήθηκε.' : 'Το auto-submit απενεργοποιήθηκε.', 'info');
+          sendControlCommand({ type: 'auto_submit_set', value: desired });
+        });
+      });
+
       repeatToggle?.addEventListener('change', async () => {
         const { repeat, changed } = applyRepeat(!!repeatToggle.checked);
         if (changed){
@@ -1238,6 +1315,7 @@
       });
 
       updateModeBadge();
+      updateAutoSubmitControls();
       updateRepeatToggle();
       attach();
     })();

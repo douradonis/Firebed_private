@@ -437,6 +437,8 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
         "summary_save",
         "summary_close",
         "summary_confirm",
+        "auto_submit_set",
+        "auto_submit_toggle",
     }
     if normalized_type not in allowed:
         return None
@@ -455,6 +457,32 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
             return None
         control["line_id"] = line_id[: 80]
         control["category"] = category[: 200]
+    elif normalized_type == "auto_submit_set":
+        candidates = (
+            value.get("enabled"),
+            value.get("value"),
+            value.get("state"),
+            value.get("target"),
+        )
+        flag: Optional[bool] = None
+        for candidate in candidates:
+            if flag is not None:
+                break
+            parsed = _parse_bool(candidate)
+            if parsed is not None:
+                flag = parsed
+        if flag is None:
+            try:
+                text = str(next((c for c in candidates if c is not None), "")).strip().lower()
+            except Exception:
+                text = ""
+            if text in {"on", "yes"}:
+                flag = True
+            elif text in {"off", "no"}:
+                flag = False
+        if flag is None:
+            return None
+        control["enabled"] = bool(flag)
     return control
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -3739,6 +3767,8 @@ def api_qr_remote_start():
 
     repeat_flag = _parse_bool(payload.get("repeat_enabled"))
     repeat_enabled = bool(repeat_flag) if repeat_flag is not None else False
+    auto_flag = _parse_bool(payload.get("auto_submit_enabled"))
+    auto_submit_enabled = bool(auto_flag) if auto_flag is not None else False
 
     now = _remote_qr_now()
     session_id = secrets.token_urlsafe(9)
@@ -3760,6 +3790,7 @@ def api_qr_remote_start():
         "last_delivered_version": 0,
         "owner_ip": request.remote_addr,
         "repeat_enabled": repeat_enabled,
+        "auto_submit_enabled": auto_submit_enabled,
         "remote_last_seen": None,
         "summary_state": None,
         "summary_version": 0,
@@ -3788,6 +3819,7 @@ def api_qr_remote_start():
         "mode": mode,
         "version": entry["version"],
         "repeat_enabled": repeat_enabled,
+        "auto_submit_enabled": auto_submit_enabled,
     })
 
 
@@ -3853,6 +3885,7 @@ def api_qr_remote_status():
             "version": version,
             "expires_at": expires_at.isoformat() if expires_at else None,
             "repeat_enabled": bool(entry.get("repeat_enabled")),
+            "auto_submit_enabled": bool(entry.get("auto_submit_enabled")),
         }
 
     if payload_data:
@@ -3908,6 +3941,7 @@ def api_qr_remote_attach():
     token = data.get("token") or data.get("secret")
     mode = data.get("mode")
     repeat_flag = _parse_bool(data.get("repeat_enabled"))
+    auto_flag = _parse_bool(data.get("auto_submit_enabled"))
 
     if not session_id or not token:
         return jsonify(ok=False, error="Λείπουν παράμετροι."), 400
@@ -3930,7 +3964,8 @@ def api_qr_remote_attach():
 
         if repeat_flag is not None:
             entry["repeat_enabled"] = repeat_flag
-
+        if auto_flag is not None:
+            entry["auto_submit_enabled"] = auto_flag
         entry["attached"] = True
         entry["attached_at"] = now
         entry["last_seen"] = now
@@ -3944,6 +3979,7 @@ def api_qr_remote_attach():
             "mode": entry.get("mode") or "invoices",
             "expires_at": expires_at.isoformat() if expires_at else None,
             "repeat_enabled": bool(entry.get("repeat_enabled")),
+            "auto_submit_enabled": bool(entry.get("auto_submit_enabled")),
         }
 
         summary_version = entry.get("summary_version") or 0
@@ -3998,6 +4034,7 @@ def api_qr_remote_heartbeat():
             "expires_at": expires_at.isoformat() if expires_at else None,
             "mode": entry.get("mode") or "invoices",
             "repeat_enabled": bool(entry.get("repeat_enabled")),
+            "auto_submit_enabled": bool(entry.get("auto_submit_enabled")),
         }
 
         summary_version = entry.get("summary_version") or 0
@@ -4023,6 +4060,7 @@ def api_qr_remote_update():
 
     mode_present = "mode" in data
     repeat_flag = _parse_bool(data.get("repeat_enabled"))
+    auto_flag = _parse_bool(data.get("auto_submit_enabled"))
     summary_present = "summary_state" in data
     if not mode_present and repeat_flag is None and not summary_present:
         return jsonify(ok=False, error="Δεν ελήφθη ενημέρωση.", field="missing"), 400
@@ -4054,6 +4092,8 @@ def api_qr_remote_update():
             entry["mode"] = desired_mode
         if repeat_flag is not None:
             entry["repeat_enabled"] = repeat_flag
+        if auto_flag is not None:
+            entry["auto_submit_enabled"] = auto_flag
         if summary_present and summary_state is not None:
             entry["summary_state"] = summary_state
             entry["summary_version"] = (entry.get("summary_version") or 0) + 1
@@ -4066,6 +4106,7 @@ def api_qr_remote_update():
         ok=True,
         mode=(entry.get("mode") if desired_mode is None else desired_mode),
         repeat_enabled=bool(entry.get("repeat_enabled")),
+        auto_submit_enabled=bool(entry.get("auto_submit_enabled")),
         expires_at=expires_at.isoformat() if expires_at else None,
         summary_version=entry.get("summary_version"),
     )
@@ -4128,6 +4169,7 @@ def api_qr_remote_push():
         is_url=is_url,
         version=version,
         repeat_enabled=bool(repeat_flag if repeat_flag is not None else entry.get("repeat_enabled")),
+        auto_submit_enabled=bool(auto_flag if auto_flag is not None else entry.get("auto_submit_enabled")),
     )
 
 
@@ -4188,6 +4230,7 @@ def mobile_qr_scanner():
                 mode="invoices",
                 expires_at="",
                 repeat_enabled=False,
+                auto_submit_enabled=False,
                 error="Η συνεδρία δεν είναι διαθέσιμη.",
             ),
             400,
@@ -4206,6 +4249,7 @@ def mobile_qr_scanner():
                     mode="invoices",
                     expires_at="",
                     repeat_enabled=False,
+                    auto_submit_enabled=False,
                     error="Η συνεδρία δεν βρέθηκε ή έληξε.",
                 ),
                 404,
@@ -4219,6 +4263,7 @@ def mobile_qr_scanner():
                     mode="invoices",
                     expires_at="",
                     repeat_enabled=False,
+                    auto_submit_enabled=False,
                     error="Ο σύνδεσμος δεν είναι πλέον έγκυρος.",
                 ),
                 403,
@@ -4235,6 +4280,7 @@ def mobile_qr_scanner():
                     mode="invoices",
                     expires_at="",
                     repeat_enabled=False,
+                    auto_submit_enabled=False,
                     error="Η συνεδρία έληξε. Δημιούργησε νέο σύνδεσμο από τον υπολογιστή.",
                 ),
                 410,
@@ -4255,6 +4301,7 @@ def mobile_qr_scanner():
         mode=mode,
         expires_at=expires_iso,
         repeat_enabled=repeat_enabled,
+        auto_submit_enabled=bool(entry.get("auto_submit_enabled")),
         error=None,
     )
 

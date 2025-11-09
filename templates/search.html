@@ -379,6 +379,19 @@ function currentScannerMode(){
   return isReceiptsOn() ? 'receipts' : 'invoices';
 }
 
+function readAutoSubmitState(){
+  try {
+    if (window.RC && window.RC.autoSubmitControls && typeof window.RC.autoSubmitControls.get === 'function'){
+      return !!window.RC.autoSubmitControls.get();
+    }
+  } catch (_) {}
+  try {
+    return localStorage.getItem('rc:autoSubmitEnabled') === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
 function applyScannedPayload(payload, options){
   options = options || {};
   const rawVal = payload && payload.raw != null ? String(payload.raw).trim() : '';
@@ -1902,6 +1915,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
     let expiresAt = null;
     let remoteMode = currentScannerMode();
     let remoteRepeatEnabled = !!(repeatSwitch && repeatSwitch.checked);
+    let remoteAutoSubmitEnabled = readAutoSubmitState();
     let qrImageData = '';
     let suppressPageNotify = false;
     let suppressRepeatNotify = false;
@@ -1937,12 +1951,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           sessionId,
           version: pollVersion || 0,
           attached: !!isAttached,
-          hasRemoteDevice: !!hasRemoteDevice,
-          lastRemoteActivity,
-          mode: remoteMode,
-          repeat: remoteRepeatEnabled,
-          summaryVersion: lastSummaryVersion || 0,
-        };
+        hasRemoteDevice: !!hasRemoteDevice,
+        lastRemoteActivity,
+        mode: remoteMode,
+        repeat: remoteRepeatEnabled,
+        autoSubmit: !!remoteAutoSubmitEnabled,
+        summaryVersion: lastSummaryVersion || 0,
+      };
         if (expiresAt){
           const expIso = new Date(expiresAt).toISOString();
           if (expIso) state.expiresAt = expIso;
@@ -2174,9 +2189,50 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       }
     }
 
+    function handleRemoteAutoSubmit(control){
+      const controls = window.RC && window.RC.autoSubmitControls;
+      if (!controls){
+        const btn = document.getElementById('autoSubmitBtnOn') || document.getElementById('autoSubmitBtnOff');
+        if (!btn) return;
+      }
+
+      const type = (control.type || '').toString().toLowerCase();
+      if (type === 'auto_submit_toggle'){
+        if (controls && typeof controls.toggle === 'function'){
+          controls.toggle();
+        } else {
+          const btn = remoteAutoSubmitEnabled ? document.getElementById('autoSubmitBtnOff') : document.getElementById('autoSubmitBtnOn');
+          try { btn && btn.click(); } catch(_){}
+        }
+        return;
+      }
+
+      if (type === 'auto_submit_set'){
+        let desired = control.enabled;
+        if (desired === undefined) desired = control.value;
+        if (desired === undefined) desired = control.state;
+        if (desired === undefined) desired = control.target;
+        let normalized = desired;
+        if (typeof normalized === 'string'){
+          normalized = /^(1|true|on|yes)$/i.test(normalized);
+        }
+        normalized = !!normalized;
+        if (controls && typeof controls.set === 'function'){
+          controls.set(normalized, { silent: false });
+        } else {
+          const btn = normalized ? document.getElementById('autoSubmitBtnOn') : document.getElementById('autoSubmitBtnOff');
+          try { btn && btn.click(); } catch(_){}
+        }
+      }
+    }
+
     function handleRemoteControl(control){
       if (!control || typeof control !== 'object') return;
       const type = (control.type || '').toString().toLowerCase();
+      if (type === 'auto_submit_set' || type === 'auto_submit_toggle'){
+        handleRemoteAutoSubmit(control);
+        return;
+      }
       if (type === 'summary_set_category'){
         applyRemoteSummaryCategory(control.line_id || control.lineId || control.id, control.category || control.value || '');
         return;
@@ -2199,6 +2255,11 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       resumeAttempted = true;
       const stored = loadPersistedSession();
       if (!stored || !stored.sessionId) return;
+      if (Object.prototype.hasOwnProperty.call(stored, 'autoSubmit')){
+        remoteAutoSubmitEnabled = !!stored.autoSubmit;
+      } else {
+        remoteAutoSubmitEnabled = readAutoSubmitState();
+      }
       try {
         setStatus('Επαναφορά υπάρχουσας συνεδρίας…', 'info');
         updateIndicator('starting', 'Επαναφορά υπάρχουσας συνεδρίας…');
@@ -2226,6 +2287,12 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
         if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
           setRemoteRepeat(data.repeat_enabled, { syncPage: true });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+          setRemoteAutoSubmit(data.auto_submit_enabled, { syncPage: false });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+          setRemoteAutoSubmit(data.auto_submit_enabled, { syncPage: false });
         }
         if (data.expires_at){
           const ts = Date.parse(data.expires_at);
@@ -2403,6 +2470,23 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         suppressRepeatNotify = false;
       }
       return { repeat: normalized, changed };
+    }
+
+    function setRemoteAutoSubmit(value, options){
+      options = options || {};
+      const normalized = value === true || value === 'true' || value === 1 ? true : !!value;
+      const changed = normalized !== remoteAutoSubmitEnabled;
+      remoteAutoSubmitEnabled = normalized;
+      if (options.syncPage){
+        const controls = window.RC && window.RC.autoSubmitControls;
+        if (controls && typeof controls.set === 'function'){
+          controls.set(normalized, { silent: !!options.silent });
+        } else if (!options.silent) {
+          const targetBtn = normalized ? document.getElementById('autoSubmitBtnOn') : document.getElementById('autoSubmitBtnOff');
+          try { targetBtn && targetBtn.click(); } catch(_){}
+        }
+      }
+      return { enabled: normalized, changed };
     }
 
     function clearCode(){
@@ -2679,6 +2763,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
       remoteMode = currentScannerMode();
       remoteRepeatEnabled = !!(repeatSwitch && repeatSwitch.checked);
+      remoteAutoSubmitEnabled = readAutoSubmitState();
       hasRemoteDevice = false;
       lastRemoteActivity = 0;
       isAttached = false;
@@ -2697,7 +2782,7 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ mode: remoteMode, repeat_enabled: remoteRepeatEnabled })
+          body: JSON.stringify({ mode: remoteMode, repeat_enabled: remoteRepeatEnabled, auto_submit_enabled: remoteAutoSubmitEnabled })
         });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || data.ok === false){
@@ -2723,6 +2808,9 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
         if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
           setRemoteRepeat(data.repeat_enabled, { syncPage: true });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+          setRemoteAutoSubmit(data.auto_submit_enabled, { syncPage: false });
         }
         if (data.expires_at){
           const ts = Date.parse(data.expires_at);
@@ -2772,6 +2860,9 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       if (!sessionId) return null;
       try {
         const payload = Object.assign({ session_id: sessionId }, fields || {});
+        if (!Object.prototype.hasOwnProperty.call(payload, 'auto_submit_enabled')){
+          payload.auto_submit_enabled = !!remoteAutoSubmitEnabled;
+        }
         const res = await fetch('/api/qr/remote/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2789,6 +2880,9 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
         if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
           setRemoteRepeat(data.repeat_enabled, { syncPage: options.syncRepeat !== false });
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'auto_submit_enabled')){
+          setRemoteAutoSubmit(data.auto_submit_enabled, { syncPage: false });
         }
         if (data.expires_at){
           const ts = Date.parse(data.expires_at);
@@ -2811,6 +2905,14 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         return null;
       }
     }
+
+    window.__RC_onAutoSubmitChange = function(next){
+      remoteAutoSubmitEnabled = !!next;
+      persistSessionState({ autoSubmit: remoteAutoSubmitEnabled });
+      if (sessionId){
+        sendSessionUpdate({ auto_submit_enabled: remoteAutoSubmitEnabled }, { syncPage: false, syncRepeat: false });
+      }
+    };
 
     async function sendModeUpdate(nextMode, options){
       options = options || {};
@@ -5151,27 +5253,46 @@ document.addEventListener('submit', function(ev){
 
     // State helpers
     function getAuto(){ try { return localStorage.getItem(AUTO_KEY) === '1'; } catch(_) { return false; } }
-    function setAuto(v){
-  try { localStorage.setItem(AUTO_KEY, v ? '1' : '0'); } catch(_) {}
-  window.__RC_FLAGS.auto_submit_enabled = !!v;
-  updateUi();
+    function applyAutoValue(v, options){
+      const opts = options || {};
+      const silent = !!opts.silent;
+      const normalized = !!v;
+      const current = getAuto();
+      if (current === normalized && !opts.force){
+        updateUi();
+        return normalized;
+      }
+      try { localStorage.setItem(AUTO_KEY, normalized ? '1' : '0'); } catch(_) {}
+      window.__RC_FLAGS.auto_submit_enabled = normalized;
+      updateUi();
+      if (typeof window.__RC_onAutoSubmitChange === 'function'){
+        try { window.__RC_onAutoSubmitChange(normalized, opts); } catch(_){}
+      }
+      if (silent) {
+        return normalized;
+      }
 
-  // reload με συγχρονισμό querystring
-  try {
-    const p = new URLSearchParams(location.search);
-    if (v) p.set('auto_submit','1'); else p.delete('auto_submit');
-    const newQS = p.toString();
-    const cur  = location.pathname + location.search;
-    const next = location.pathname + (newQS ? '?' + newQS : '');
-    if (next === cur) {
-      location.reload();          // αν δεν αλλάζει το URL, αναγκαστικό reload
-    } else {
-      location.search = newQS;    // αλλάζοντας το query κάνει reload μόνο του
+      // reload με συγχρονισμό querystring
+      try {
+        const p = new URLSearchParams(location.search);
+        if (normalized) p.set('auto_submit','1'); else p.delete('auto_submit');
+        const newQS = p.toString();
+        const cur  = location.pathname + location.search;
+        const next = location.pathname + (newQS ? '?' + newQS : '');
+        if (next === cur) {
+          location.reload();          // αν δεν αλλάζει το URL, αναγκαστικό reload
+        } else {
+          location.search = newQS;    // αλλάζοντας το query κάνει reload μόνο του
+        }
+      } catch (e) {
+        location.reload();
+      }
+      return normalized;
     }
-  } catch (e) {
-    location.reload();
-  }
-}
+
+    function setAuto(v){
+      return applyAutoValue(v, { silent: false });
+    }
 
     function updateUi(){
       const on = getAuto();
@@ -5222,35 +5343,99 @@ document.addEventListener('submit', function(ev){
       const uv = (document.getElementById('scrapeUrlInput')?.value || '').trim(); // requery in case it was injected after
       const receipts = !!(receiptsSwitch && receiptsSwitch.checked);
 
-      // For receipts: prefer a URL, but accept MARK inside URL as fallback
+      const keys = [];
+      const pushKey = (k) => {
+        if (!k) return;
+        if (!keys.includes(k)) keys.push(k);
+      };
+
+      const appendUrlVariants = (value) => {
+        if (!value) return;
+        if (!isUrl(value)) return;
+        const normalizedUrl = value.replace(/\/+$/,'');
+        pushKey('url:'+normalizedUrl);
+        const extracted = extractMark(value);
+        if (extracted) pushKey('mark:'+normMark(extracted));
+      };
+
+      const appendMarkVariant = (value) => {
+        if (!value) return;
+        if (!isMark(value)) return;
+        pushKey('mark:'+normMark(value));
+      };
+
       if (receipts) {
-        if (isUrl(uv)) return 'url:'+uv.replace(/\/+$/,'');
-        const ex = extractMark(uv); if (ex) return 'mark:'+ex;
-        // also allow mark typed in markInput if user didn't switch field
-        if (isMark(mv)) return 'mark:'+normMark(mv);
-        return null;
+        appendUrlVariants(uv);
+        appendMarkVariant(uv);
+        appendMarkVariant(mv);
+      } else {
+        appendMarkVariant(mv);
+        appendUrlVariants(mv);
+        appendUrlVariants(uv);
       }
 
-      // For invoices: prefer MARK; but accept URL too
-      if (isMark(mv)) return 'mark:'+normMark(mv);
-      if (isUrl(mv)) return 'url:'+mv.replace(/\/+$/,'');
-      return null;
+      return {
+        primary: keys.length ? keys[0] : null,
+        keys
+      };
     }
 
     let pending = false;
-    const KEY_LAST = 'rc:lastSubmitKey';
+    const KEY_RECENT = 'rc:recentSubmitKeys';
     const TTL_MS   = 20000;
-    function readLast(){
+    const MAX_RECENT = 20;
+
+    function loadRecentKeys(){
+      const now = Date.now();
       try {
-        const raw = sessionStorage.getItem(KEY_LAST);
-        if(!raw) return null;
-        const o = JSON.parse(raw);
-        if(!o || !o.ts || (Date.now()-o.ts)>TTL_MS) return null;
-        return o.k || null;
-      }catch(_){ return null; }
+        const raw = sessionStorage.getItem(KEY_RECENT);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(entry => entry && typeof entry.k === 'string' && entry.k && typeof entry.ts === 'number' && (now - entry.ts) <= TTL_MS);
+      } catch (_) {
+        return [];
+      }
     }
-    function writeLast(k){
-      try { sessionStorage.setItem(KEY_LAST, JSON.stringify({k, ts: Date.now()})); } catch(_) {}
+
+    function saveRecentKeys(list){
+      try {
+        const payload = Array.isArray(list) ? list.slice(-MAX_RECENT) : [];
+        sessionStorage.setItem(KEY_RECENT, JSON.stringify(payload));
+      } catch (_) {}
+    }
+
+    function wasRecentlySubmitted(keys){
+      const arr = Array.isArray(keys) ? keys : [keys];
+      if (!arr.length) return false;
+      const recent = loadRecentKeys();
+      if (!recent.length) return false;
+      const seen = new Set(recent.map(entry => entry.k));
+      for (const key of arr) {
+        if (key && seen.has(key)) return true;
+      }
+      return false;
+    }
+
+    function markSubmitted(keys){
+      const arr = Array.isArray(keys) ? keys.filter(Boolean) : (keys ? [keys] : []);
+      if (!arr.length) return;
+      const now = Date.now();
+      const recent = loadRecentKeys();
+      const merged = new Map();
+      for (const entry of recent) {
+        if (entry && typeof entry.k === 'string' && entry.k) {
+          merged.set(entry.k, entry.ts);
+        }
+      }
+      for (const key of arr) {
+        merged.set(key, now);
+      }
+      const ordered = Array.from(merged.entries())
+        .sort((a,b) => a[1] - b[1])
+        .slice(-MAX_RECENT)
+        .map(([k, ts]) => ({ k, ts }));
+      saveRecentKeys(ordered);
     }
 
     const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
@@ -5258,18 +5443,18 @@ document.addEventListener('submit', function(ev){
     function trySubmit(){
       if (!form || !getAuto()) return;
       if (warningOpen()) return;
-      const k = currentKey();
-      if (!k) return;
+      const info = currentKey();
+      if (!info || !info.primary) return;
+      const keys = info.keys || [info.primary];
 
       // prevent collisions with existing receipts lock if present
       if (window.__RC_LOCKS && window.__RC_LOCKS.scrape) return;
 
       // prevent duplicate submits on same key
-      const last = readLast();
-      if (last && last === k) return;
+      if (wasRecentlySubmitted(keys)) return;
 
       // submit once
-      writeLast(k);
+      markSubmitted(keys);
       if (pending) return;
       pending = true;
       try {
@@ -5307,6 +5492,14 @@ document.addEventListener('submit', function(ev){
     if (typeof window.autoSubmitReceipt !== 'function') {
       window.autoSubmitReceipt = function(){ /* stub to avoid ReferenceError; actual flow handled elsewhere */ };
     }
+
+    window.RC = window.RC || {};
+    window.RC.autoSubmitControls = {
+      get: getAuto,
+      set: (value, opts) => applyAutoValue(value, opts || {}),
+      toggle: (opts) => applyAutoValue(!getAuto(), Object.assign({ silent: false }, opts || {})),
+      refresh: updateUi
+    };
   } catch (err) {
     console.warn('Auto-submit toggle patch failed', err);
   }

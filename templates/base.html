@@ -507,10 +507,65 @@
 
       // Patch fetch (AJAX)
       const _fetch = window.fetch;
+
+      function shouldSkipWait(args){
+        try {
+          const [input, init] = args || [];
+
+          function readUrl(target){
+            if (!target) return '';
+            if (typeof target === 'string') return target;
+            if (typeof Request !== 'undefined' && target instanceof Request) return target.url || '';
+            if (typeof target.url === 'string') return target.url;
+            return '';
+          }
+
+          function hasSkipHeader(options){
+            if (!options || !options.headers) return false;
+            const headers = options.headers;
+
+            try {
+              if (typeof headers.get === 'function'){
+                const direct = headers.get('X-Wait-Overlay') || headers.get('x-wait-overlay');
+                if (typeof direct === 'string' && direct.toLowerCase() === 'skip') return true;
+              }
+            } catch (_) {}
+
+            if (headers && typeof headers === 'object'){
+              const entries = Array.isArray(headers) ? headers : Object.entries(headers);
+              for (const entry of entries){
+                if (!entry) continue;
+                let key, value;
+                if (Array.isArray(entry)){
+                  [key, value] = entry;
+                } else {
+                  key = entry[0];
+                  value = entry[1];
+                }
+                if (typeof key === 'string' && key.toLowerCase() === 'x-wait-overlay'){
+                  if (String(value).toLowerCase() === 'skip') return true;
+                }
+              }
+            }
+            return false;
+          }
+
+          const url = readUrl(input);
+          if (url && /\/api\/qr\/remote\//.test(url)) return true;
+          if (hasSkipHeader(init)) return true;
+          if (input && typeof input === 'object'){
+            const maybeRequestHeaders = input.headers;
+            if (hasSkipHeader({ headers: maybeRequestHeaders })) return true;
+          }
+        } catch (_) {}
+        return false;
+      }
+
       window.fetch = async function(...args){
-        showWait();
+        const skip = shouldSkipWait(args);
+        if (!skip) showWait();
         try { return await _fetch(...args); }
-        finally { hideWait(); }
+        finally { if (!skip) hideWait(); }
       };
 
       // Patch XHR (πιάνει jQuery/DataTables)
