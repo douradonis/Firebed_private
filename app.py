@@ -380,6 +380,18 @@ def _sanitize_summary_state(value: Any) -> Optional[Dict[str, Any]]:
             "total": _clip_text(totals.get("total"), 80),
         }
 
+    details = value.get("details")
+    if isinstance(details, dict):
+        cleaned_details: Dict[str, str] = {}
+        for key, raw in list(details.items())[:20]:
+            try:
+                key_text = str(key)
+            except Exception:
+                continue
+            cleaned_details[key_text] = _clip_text(raw, 200)
+        if cleaned_details:
+            state["details"] = cleaned_details
+
     banner = value.get("reclassification_banner") or {}
     if isinstance(banner, dict):
         state["reclassification_banner"] = {
@@ -431,6 +443,58 @@ def _sanitize_summary_state(value: Any) -> Optional[Dict[str, Any]]:
     state["lines"] = lines
     state["updated_at"] = _clip_text(value.get("updated_at") or value.get("timestamp") or "", 160)
 
+    warnings: List[Dict[str, Any]] = []
+    for entry in value.get("warnings", []):
+        if not isinstance(entry, dict):
+            continue
+        warning: Dict[str, Any] = {
+            "visible": bool(entry.get("visible", True)),
+        }
+        modal_id = entry.get("id") or entry.get("modal_id") or entry.get("modalId")
+        if modal_id is not None:
+            warning["id"] = _clip_text(modal_id, 160)
+        title = entry.get("title") or entry.get("heading")
+        if title is not None:
+            warning["title"] = _clip_text(title, 200)
+        body = entry.get("body") or entry.get("message")
+        if body is not None:
+            warning["body"] = _clip_text(body, 600)
+        severity = entry.get("severity")
+        if severity is not None:
+            warning["severity"] = _clip_text(severity, 40)
+
+        actions: List[Dict[str, Any]] = []
+        for action in entry.get("actions", []):
+            if not isinstance(action, dict):
+                continue
+            label = action.get("label") or action.get("text")
+            if label is None:
+                continue
+            button: Dict[str, Any] = {
+                "label": _clip_text(label, 160)
+            }
+            action_id = action.get("id") or action.get("button_id") or action.get("buttonId")
+            if action_id is not None:
+                button["id"] = _clip_text(action_id, 160)
+            action_key = action.get("action") or action.get("action_id") or action.get("actionId")
+            if action_key is not None:
+                button["action"] = _clip_text(action_key, 160)
+            role = action.get("role")
+            if role is not None:
+                button["role"] = _clip_text(role, 80)
+            actions.append(button)
+            if len(actions) >= 6:
+                break
+        if actions:
+            warning["actions"] = actions
+
+        warnings.append(warning)
+        if len(warnings) >= 6:
+            break
+
+    if warnings:
+        state["warnings"] = warnings
+
     return state
 
 
@@ -449,9 +513,19 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
         "summary_confirm",
         "auto_submit_set",
         "auto_submit_toggle",
+        "warning_action",
     }
     if normalized_type not in allowed:
         return None
+
+    def _clip(value: Any, limit: int) -> str:
+        try:
+            text = str(value or "").strip()
+        except Exception:
+            text = ""
+        if len(text) > limit:
+            return text[:limit]
+        return text
 
     control: Dict[str, Any] = {"type": normalized_type}
     if normalized_type == "summary_set_category":
@@ -493,7 +567,179 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
         if flag is None:
             return None
         control["enabled"] = bool(flag)
+    elif normalized_type == "warning_action":
+        control["modal_id"] = _clip(value.get("modal_id") or value.get("modalId") or value.get("id"), 160)
+        control["button_id"] = _clip(value.get("button_id") or value.get("buttonId"), 160)
+        control["action"] = _clip(value.get("action") or value.get("action_id") or value.get("actionId"), 160)
+        control["role"] = _clip(value.get("role"), 80)
+        control["label"] = _clip(value.get("label") or value.get("text"), 160)
     return control
+
+
+def _prime_remote_summary_state(
+    mark_value: str,
+    modal_summary: Optional[Dict[str, Any]],
+    invoice_lines: Optional[List[Dict[str, Any]]],
+    categories: Optional[List[Any]],
+    category_labels: Optional[Dict[str, Any]],
+    warning_text: Optional[str],
+    allow_edit_existing: bool,
+    force_edit_active: bool,
+):
+    owner = session.get("_remote_qr_owner")
+    if not owner:
+        return
+
+    with REMOTE_QR_LOCK:
+        targets = [
+            entry
+            for entry in REMOTE_QR_SESSIONS.values()
+            if entry.get("owner_token") == owner
+        ]
+    if not targets:
+        return
+
+    def _text(value: Any) -> str:
+        try:
+            return str(value or "").strip()
+        except Exception:
+            return ""
+
+    def _label_for_category(value: Any) -> str:
+        key = _text(value)
+        if not key:
+            return ""
+        labels = category_labels or {}
+        if isinstance(labels, dict) and key in labels:
+            return _text(labels.get(key)) or key
+        if key.startswith("custom_"):
+            return key.replace("custom_", "").replace("_", " ")
+        return key.replace("_", " ")
+
+    mark_text = ""
+    if isinstance(modal_summary, dict):
+        for candidate in ("mark", "MARK", "Mark"):
+            if modal_summary.get(candidate):
+                mark_text = _text(modal_summary.get(candidate))
+                if mark_text:
+                    break
+    if not mark_text:
+        mark_text = _text(mark_value)
+
+    options: List[Dict[str, str]] = []
+    for cat in categories or []:
+        value = _text(cat)
+        if not value:
+            continue
+        options.append({"value": value, "label": _label_for_category(value)})
+
+    lines_source: List[Dict[str, Any]] = []
+    if isinstance(modal_summary, dict) and isinstance(modal_summary.get("lines"), list):
+        lines_source = modal_summary.get("lines", [])
+    elif isinstance(invoice_lines, list):
+        lines_source = invoice_lines
+
+    details: Dict[str, str] = {}
+    if isinstance(modal_summary, dict):
+        mapping = {
+            "Α/Α": modal_summary.get("AA") or modal_summary.get("aa") or modal_summary.get("number"),
+            "ΑΦΜ": modal_summary.get("AFM") or modal_summary.get("AFM_issuer"),
+            "Επωνυμία": modal_summary.get("Name") or modal_summary.get("Name_issuer"),
+            "Ημερομηνία": modal_summary.get("issueDate") or modal_summary.get("issue_date"),
+            "Τύπος": modal_summary.get("type_name") or modal_summary.get("type"),
+            "Σειρά": modal_summary.get("series"),
+        }
+        for key, value in mapping.items():
+            text = _text(value)
+            if text:
+                details[key] = text
+
+    totals = {}
+    if isinstance(modal_summary, dict):
+        totals = {
+            "net": _text(modal_summary.get("totalNetValue")),
+            "vat": _text(modal_summary.get("totalVatAmount")),
+            "total": _text(modal_summary.get("totalValue")),
+        }
+
+    line_payload: List[Dict[str, Any]] = []
+    for idx, line in enumerate(lines_source):
+        if not isinstance(line, dict):
+            continue
+        line_id = _text(line.get("id") or line.get("line_id") or f"l{idx}")
+        if not line_id:
+            continue
+        category_value = _text(line.get("category") or line.get("cat"))
+        entry = {
+            "id": line_id,
+            "index": idx,
+            "description": _text(line.get("description") or line.get("desc")),
+            "amount": _text(line.get("amount") or line.get("total") or line.get("lineTotal")),
+            "vat": _text(line.get("vat") or line.get("vatRate")),
+            "category": category_value,
+        }
+        if category_value:
+            entry["selected_label"] = _label_for_category(category_value)
+        if options:
+            entry["options"] = options
+        line_payload.append(entry)
+
+    payload: Dict[str, Any] = {
+        "visible": bool(modal_summary),
+        "mark": mark_text,
+        "lines": line_payload,
+        "can_save": bool(modal_summary),
+        "can_close": True,
+    }
+
+    if totals:
+        payload["totals"] = totals
+    if details:
+        payload["details"] = details
+
+    if allow_edit_existing and not force_edit_active and mark_text:
+        payload["reclassification_banner"] = {
+            "visible": True,
+            "text": f"Το MARK {mark_text} υπάρχει ήδη στο Excel. Θέλεις να τροποποιήσεις τον χαρακτηρισμό;",
+        }
+
+    warnings: List[Dict[str, Any]] = []
+    warning_body = _text(warning_text)
+    if warning_body:
+        warnings.append(
+            {
+                "id": "afmWarningModal",
+                "title": "Προειδοποίηση",
+                "body": warning_body,
+                "visible": True,
+                "actions": [
+                    {
+                        "id": "afmModalConfirm",
+                        "label": "Κατάλαβα",
+                        "role": "ack",
+                        "action": "warning_ack",
+                    }
+                ],
+            }
+        )
+    if warnings:
+        payload["warnings"] = warnings
+
+    sanitized = _sanitize_summary_state(payload)
+    if sanitized is None:
+        sanitized = {}
+
+    now = _remote_qr_now()
+    with REMOTE_QR_LOCK:
+        for entry in REMOTE_QR_SESSIONS.values():
+            if entry.get("owner_token") != owner:
+                continue
+            entry["summary_state"] = sanitized
+            entry["summary_version"] = (entry.get("summary_version") or 0) + 1
+            entry["summary_last_delivered"] = 0
+            entry["last_seen"] = now
+            entry["expires_at"] = now + REMOTE_QR_SESSION_TTL
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -6023,6 +6269,25 @@ def search():
     except Exception:
         log.exception("Failed building table_html for search page")
         table_html = ""
+
+    try:
+        force_edit_active = (
+            request.args.get("force_edit") == "1"
+            or request.form.get("force_edit") == "1"
+        )
+    except Exception:
+        force_edit_active = False
+
+    _prime_remote_summary_state(
+        mark_value=mark,
+        modal_summary=modal_summary if isinstance(modal_summary, dict) else None,
+        invoice_lines=invoice_lines,
+        categories=customer_categories,
+        category_labels=customer_category_labels,
+        warning_text=modal_warning,
+        allow_edit_existing=allow_edit_existing,
+        force_edit_active=force_edit_active,
+    )
 
     return safe_render(
         "search.html",

@@ -355,6 +355,35 @@
       color: #475569;
       margin-bottom: 12px;
     }
+    .summary-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px 12px;
+      margin-bottom: 14px;
+    }
+    .summary-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      min-height: 60px;
+    }
+    .summary-detail-item span.label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .summary-detail-item span.value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #0f172a;
+      word-break: break-word;
+    }
     .summary-lines {
       display: flex;
       flex-direction: column;
@@ -405,6 +434,91 @@
       background: #e2e8f0;
       color: #0f172a;
       border: none;
+    }
+
+    .warning-panel {
+      margin-top: 24px;
+      padding: 18px 16px;
+      border-radius: 16px;
+      border: 1px solid #fdba74;
+      background: #fff7ed;
+      box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
+    }
+    .warning-panel.hidden { display: none; }
+    .warning-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .warning-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+    .warning-header h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #9a3412;
+    }
+    .warning-status {
+      font-size: 0.82rem;
+      color: #b45309;
+      margin-top: 4px;
+    }
+    .warning-status.error { color: #b91c1c; }
+    .warning-status.success { color: #15803d; }
+    .warning-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .warning-card {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #fed7aa;
+      padding: 14px 16px;
+      box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.08);
+    }
+    .warning-title {
+      font-weight: 600;
+      font-size: 0.98rem;
+      color: #b45309;
+      margin: 0 0 6px;
+    }
+    .warning-body {
+      font-size: 0.9rem;
+      color: #7c2d12;
+      line-height: 1.45;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+    .warning-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .warning-actions button {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .warning-actions button.primary {
+      background: linear-gradient(135deg, #f97316, #fb923c);
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(249, 115, 22, 0.22);
+    }
+    .warning-actions button.secondary {
+      background: #fffbeb;
+      color: #9a3412;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+    }
+    .warning-actions button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
     }
     .alert {
       border-radius: 16px;
@@ -530,12 +644,23 @@
         <div id="summaryStatusText" class="summary-status"></div>
         <div id="summaryBanner" class="summary-banner"></div>
         <div id="summaryTotals" class="summary-totals"></div>
+        <div id="summaryDetails" class="summary-details"></div>
         <div id="summaryLines" class="summary-lines"></div>
         <div class="summary-actions">
           <button type="button" id="summaryConfirmBtn" class="secondary" style="display:none;">Επιβεβαίωση επαναχαρακτηρισμού</button>
           <button type="button" id="summarySaveBtn" class="primary">Αποθήκευση</button>
           <button type="button" id="summaryCloseBtn" class="secondary">Κλείσιμο</button>
         </div>
+      </div>
+      <div id="warningControlPanel" class="warning-panel hidden">
+        <div class="warning-header">
+          <div class="warning-icon" aria-hidden="true">⚠️</div>
+          <div>
+            <h2>Προειδοποιήσεις</h2>
+            <div id="warningStatus" class="warning-status"></div>
+          </div>
+        </div>
+        <div id="warningList" class="warning-list"></div>
       </div>
       {% endif %}
     </div>
@@ -577,10 +702,14 @@
       const summaryMark = document.getElementById('summaryMarkBadge');
       const summaryBanner = document.getElementById('summaryBanner');
       const summaryTotals = document.getElementById('summaryTotals');
+      const summaryDetails = document.getElementById('summaryDetails');
       const summaryLines = document.getElementById('summaryLines');
       const summarySaveBtn = document.getElementById('summarySaveBtn');
       const summaryCloseBtn = document.getElementById('summaryCloseBtn');
       const summaryConfirmBtn = document.getElementById('summaryConfirmBtn');
+      const warningPanel = document.getElementById('warningControlPanel');
+      const warningStatusEl = document.getElementById('warningStatus');
+      const warningList = document.getElementById('warningList');
       const scanFrame = document.getElementById('scanFrame');
       const scanFlash = document.getElementById('scanFlash');
       const defaultResultText = resultEl ? resultEl.innerHTML : '';
@@ -595,6 +724,7 @@
       let scanning = false;
       let torchSupported = false;
       let torchOn = false;
+      const HEARTBEAT_INTERVAL = 5000;
       let heartbeatTimer = null;
       let lastSentText = '';
       let countdownTimer = null;
@@ -624,6 +754,57 @@
         summaryStatus.classList.remove('error','success');
         if (tone === 'error') summaryStatus.classList.add('error');
         else if (tone === 'success') summaryStatus.classList.add('success');
+      }
+
+      function setWarningStatus(text, tone){
+        if (!warningStatusEl) return;
+        warningStatusEl.textContent = text || '';
+        warningStatusEl.classList.remove('error','success');
+        if (tone === 'error') warningStatusEl.classList.add('error');
+        else if (tone === 'success') warningStatusEl.classList.add('success');
+      }
+
+      function renderSummaryDetails(details){
+        if (!summaryDetails) return;
+        summaryDetails.innerHTML = '';
+        const items = [];
+        const skipKeys = new Set(['total_net','total_vat','total_value']);
+        if (details && typeof details === 'object'){
+          const preferred = ['aa','afm','name','issue_date','type'];
+          preferred.forEach(key => {
+            if (details[key]) items.push({ key, value: details[key] });
+          });
+          Object.keys(details).forEach(key => {
+            if (!preferred.includes(key) && !skipKeys.has(key) && details[key]){
+              items.push({ key, value: details[key] });
+            }
+          });
+        }
+        if (!items.length){
+          summaryDetails.classList.add('hidden');
+          return;
+        }
+        summaryDetails.classList.remove('hidden');
+        const labels = {
+          aa: 'Α/Α',
+          afm: 'ΑΦΜ',
+          name: 'Επωνυμία',
+          issue_date: 'Ημερομηνία',
+          type: 'Τύπος',
+        };
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'summary-detail-item';
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = labels[item.key] || item.key.replace(/_/g, ' ').toUpperCase();
+          const value = document.createElement('span');
+          value.className = 'value';
+          value.textContent = item.value;
+          card.appendChild(label);
+          card.appendChild(value);
+          summaryDetails.appendChild(card);
+        });
       }
 
       function renderSummaryLines(lines){
@@ -691,6 +872,75 @@
         });
       }
 
+      function renderWarnings(items){
+        if (!warningPanel || !warningList) return;
+        warningList.innerHTML = '';
+        if (!Array.isArray(items) || !items.length){
+          warningPanel.classList.add('hidden');
+          setWarningStatus('', null);
+          return;
+        }
+
+        warningPanel.classList.remove('hidden');
+        setWarningStatus('', null);
+
+        items.forEach((warn, idx) => {
+          if (!warn) return;
+          const card = document.createElement('div');
+          card.className = 'warning-card';
+
+          const titleText = warn.title != null ? String(warn.title) : '';
+          const title = document.createElement('div');
+          title.className = 'warning-title';
+          title.textContent = titleText || `Προειδοποίηση ${idx + 1}`;
+          card.appendChild(title);
+
+          const bodyText = warn.body != null ? String(warn.body) : '';
+          if (bodyText){
+            const body = document.createElement('div');
+            body.className = 'warning-body';
+            body.textContent = bodyText;
+            card.appendChild(body);
+          }
+
+          const actionsWrap = document.createElement('div');
+          actionsWrap.className = 'warning-actions';
+          const actions = Array.isArray(warn.actions) ? warn.actions : [];
+          if (actions.length){
+            actions.forEach(action => {
+              if (!action) return;
+              const label = action.label != null ? String(action.label) : '';
+              if (!label) return;
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = label;
+              const role = action.role != null ? String(action.role) : '';
+              btn.className = role === 'ack' ? 'primary' : 'secondary';
+              btn.addEventListener('click', () => {
+                sendControlCommand({
+                  type: 'warning_action',
+                  modal_id: warn.id != null ? String(warn.id) : '',
+                  action: action.action != null ? String(action.action) : '',
+                  button_id: action.id != null ? String(action.id) : '',
+                  role,
+                  label
+                }, { scope: 'warning' });
+              });
+              actionsWrap.appendChild(btn);
+            });
+          }
+          if (!actionsWrap.childNodes.length){
+            const fallback = document.createElement('div');
+            fallback.className = 'warning-body';
+            fallback.textContent = 'Δεν υπάρχουν απομακρυσμένες ενέργειες για αυτή την προειδοποίηση.';
+            actionsWrap.appendChild(fallback);
+          }
+
+          card.appendChild(actionsWrap);
+          warningList.appendChild(card);
+        });
+      }
+
       function applySummaryState(state, version){
         if (!summaryPanel) return;
         const payload = state ? JSON.stringify(state) : '';
@@ -700,7 +950,11 @@
           CFG.summaryVersion = version;
         }
 
-        if (!state || (!state.visible && (!state.lines || !state.lines.length) && !(state.reclassification_banner && state.reclassification_banner.visible))){
+        const warnings = state && Array.isArray(state.warnings) ? state.warnings : [];
+        renderWarnings(warnings);
+
+        const hasSummaryContent = state && (state.visible || (state.lines && state.lines.length) || (state.reclassification_banner && state.reclassification_banner.visible));
+        if (!hasSummaryContent){
           summaryPanel.classList.add('hidden');
           setSummaryStatus('', null);
           if (summaryBanner){ summaryBanner.classList.remove('show'); summaryBanner.textContent = ''; }
@@ -717,6 +971,8 @@
           const total = totals.total || '-';
           summaryTotals.innerHTML = `<span>Καθαρή: ${escapeHtml(net)}</span><span>ΦΠΑ: ${escapeHtml(vat)}</span><span>Σύνολο: ${escapeHtml(total)}</span>`;
         }
+
+        renderSummaryDetails(state && state.details ? state.details : null);
 
         if (state && state.reclassification_banner && state.reclassification_banner.visible){
           if (summaryBanner){
@@ -847,9 +1103,15 @@
         await sendSessionUpdate({ repeat_enabled: CFG.repeatEnabled });
       }
 
-      async function sendControlCommand(command){
+      async function sendControlCommand(command, options){
         if (!CFG.sessionId || !CFG.token) return;
-        setSummaryStatus('Παρακαλώ περιμένετε…', null);
+        options = options || {};
+        const scope = options.scope || 'summary';
+        if (scope === 'warning') {
+          setWarningStatus('Αποστολή εντολής…', null);
+        } else {
+          setSummaryStatus('Παρακαλώ περιμένετε…', null);
+        }
         try {
           const res = await fetch('/api/qr/remote/control', {
             method: 'POST',
@@ -860,13 +1122,17 @@
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || data.ok === false){
             const message = data && data.error ? data.error : 'Δεν στάλθηκε η εντολή.';
-            setSummaryStatus(message, 'error');
+            if (scope === 'warning') setWarningStatus(message, 'error');
+            else setSummaryStatus(message, 'error');
             return;
           }
-          setSummaryStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+          if (scope === 'warning') setWarningStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+          else setSummaryStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+          await sendHeartbeat();
         } catch (err){
           console.warn('sendControlCommand failed', err);
-          setSummaryStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
+          if (scope === 'warning') setWarningStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
+          else setSummaryStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
         }
       }
 
@@ -1174,8 +1440,9 @@
           updateResultBox(defaultResultText, null);
           await listCameras();
           await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          await sendHeartbeat();
           if (!heartbeatTimer){
-            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+            heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
           }
         } catch (err) {
           console.warn('attach failed', err);
@@ -1263,7 +1530,8 @@
           await stopScanner();
         } else if (!scanning && CFG.sessionId && CFG.token) {
           if (!heartbeatTimer) {
-            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+            heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+            await sendHeartbeat();
           }
           if (!(startStopBtn && startStopBtn.disabled)) {
             await startScanner(cameraSelect ? cameraSelect.value : undefined);

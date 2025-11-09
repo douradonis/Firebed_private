@@ -208,16 +208,16 @@
 
 
 {% if modal_warning %}
-<div id="afmWarningModal" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
+<div id="afmWarningModal" data-modal-type="warning" class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 overflow-auto p-4" style="display:none;">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-red-600">Προειδοποίηση</h3>
         </div>
-        <div id="afmWarningBody" class="mb-4 text-gray-700">
+        <div id="afmWarningBody" data-warning-body class="mb-4 text-gray-700">
             {{ modal_warning }}
         </div>
         <div class="flex justify-end gap-2">
-            <button id="afmModalConfirm" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
+            <button id="afmModalConfirm" data-ack="1" data-remote-action="warning_ack" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">Κατάλαβα</button>
         </div>
     </div>
 </div>
@@ -429,7 +429,8 @@ function applyScannedPayload(payload, options){
   } else {
     const markInput = document.getElementById('markInput');
     if (markInput) {
-      markInput.value = isUrl ? effectiveRaw : chosen;
+      const nextValue = markVal ? markVal : (isUrl ? effectiveRaw : chosen);
+      markInput.value = nextValue;
       try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
       appliedTo = 'mark';
     }
@@ -1002,6 +1003,21 @@ const labelForCategory = (val) => {
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
+const RC_CLEAR_FLAG_KEY = 'rc:clearSearchAfterReload';
+
+function rcRememberSearchClear(){
+  try { sessionStorage.setItem(RC_CLEAR_FLAG_KEY, '1'); } catch(_){}
+}
+
+function rcConsumeSearchClear(){
+  try {
+    if (sessionStorage.getItem(RC_CLEAR_FLAG_KEY) === '1'){
+      sessionStorage.removeItem(RC_CLEAR_FLAG_KEY);
+      return true;
+    }
+  } catch(_){ }
+  return false;
+}
 const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
 async function getActiveFiscalYear() {
   // Προτίμησε την τιμή που ήρθε από server-side render (Jinja)
@@ -1016,6 +1032,62 @@ async function getActiveFiscalYear() {
   } catch(_) {}
   return null;
 }
+
+function rcClearWarningSearchFields(options){
+  const skipExtended = (options === false) || (options && options.partial === true);
+  try {
+    const ids = ['markInput','scrapeUrlInput'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = '';
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+    });
+    const markField = document.querySelector('input[name="mark"]');
+    if (markField) {
+      markField.value = '';
+      try { markField.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+    }
+    if (!skipExtended){
+      const hiddenUrl = document.getElementById('scrapeUrlField');
+      const hiddenCategory = document.getElementById('scrapeCategoryField');
+      const summaryInput = document.getElementById('summaryJsonInput');
+      if (hiddenUrl) hiddenUrl.value = '';
+      if (hiddenCategory) hiddenCategory.value = '';
+      if (summaryInput) summaryInput.value = '{}';
+    }
+  } catch(err){ console.warn('rcClearWarningSearchFields failed', err); }
+}
+
+function rcReloadAfterWarning(){
+  try {
+    const current = new URL(window.location.href);
+    const keys = new Set(['mark','scrape_url','force_edit']);
+    Array.from(current.searchParams.keys()).forEach(key => {
+      if (keys.has(key) || /^(warn|warning|modal|open_)/i.test(key)){
+        current.searchParams.delete(key);
+      }
+    });
+    const target = current.pathname + (current.search ? `?${current.searchParams.toString()}` : '') + current.hash;
+    window.location.replace(target);
+  } catch (_){
+    window.location.reload();
+  }
+}
+
+function rcHandleWarningAcknowledge(){
+  rcRememberSearchClear();
+  rcClearWarningSearchFields();
+  setTimeout(rcReloadAfterWarning, 80);
+}
+
+window.__RC_handleWarningAck = rcHandleWarningAcknowledge;
+
+document.addEventListener('DOMContentLoaded', function(){
+  if (rcConsumeSearchClear()){
+    setTimeout(() => { rcClearWarningSearchFields(false); }, 40);
+  }
+});
 
 
 (function(){
@@ -1035,13 +1107,66 @@ async function getActiveFiscalYear() {
         + '</div>';
       document.body.appendChild(el);
       el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
-      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
+      el.querySelector('#receiptWarnOk').addEventListener('click', function(){
+        el.style.display='none';
+        try { window.__RC_handleWarningAck(); } catch(_){}
+      });
       m = el;
     }
     var body = m.querySelector('#receiptWarnBody');
     if(body) body.textContent = message || 'Προειδοποίηση.';
     m.style.display='flex';
   };
+})();
+
+// Μπλόκο διπλών submit στην φόρμα MARK (ειδικά με auto-submit)
+(function(){
+  const form = document.getElementById('markSearchForm');
+  if (!form) return;
+
+  let submitLocked = false;
+  let lastSubmitTs = 0;
+
+  function releaseLock(tag){
+    if (tag && form.dataset.rcSubmitTag && form.dataset.rcSubmitTag !== tag) return;
+    submitLocked = false;
+    lastSubmitTs = 0;
+    delete form.dataset.rcSubmitTag;
+  }
+
+  function armLock(){
+    const now = Date.now();
+    if (submitLocked && now - lastSubmitTs < 1200){
+      return false;
+    }
+    submitLocked = true;
+    lastSubmitTs = now;
+    const tag = String(now);
+    form.dataset.rcSubmitTag = tag;
+    setTimeout(() => releaseLock(tag), 1600);
+    return true;
+  }
+
+  const originalSubmit = typeof form.submit === 'function' ? form.submit : null;
+  if (originalSubmit){
+    form.submit = function(){
+      if (!armLock()) return;
+      return originalSubmit.apply(this, arguments);
+    };
+  }
+
+  form.addEventListener('submit', function(evt){
+    if (!armLock()){
+      evt.preventDefault();
+      evt.stopImmediatePropagation();
+      return false;
+    }
+    return true;
+  }, true);
+
+  const resetHandler = () => releaseLock();
+  form.addEventListener('reset', resetHandler);
+  form.addEventListener('formdata', resetHandler);
 })();
 
     // Καθαρισμός ανά γραμμή (πολλαπλές γραμμές)
@@ -1090,6 +1215,25 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
 
   container.innerHTML = '';
   const lines = Array.isArray(obj.lines) ? obj.lines : [];
+
+  try {
+    const markCandidates = [obj && (obj.mark || obj.MARK || obj.Mark), obj && obj.number];
+    const rawMark = markCandidates.find(val => val != null && String(val).trim() !== '');
+    if (rawMark) {
+      const digits = String(rawMark).replace(/[^0-9]/g, '');
+      if (digits) {
+        window.__RC_pendingSummaryMarks = Array.isArray(window.__RC_pendingSummaryMarks)
+          ? window.__RC_pendingSummaryMarks
+          : [];
+        if (!window.__RC_pendingSummaryMarks.includes(digits)) {
+          window.__RC_pendingSummaryMarks.push(digits);
+        }
+        if (typeof window.__RC_autoSubmitRememberMark === 'function') {
+          try { window.__RC_autoSubmitRememberMark(digits); } catch(_) {}
+        }
+      }
+    }
+  } catch(_) {}
 
   // helper to persist back to the hidden input
     (function(){
@@ -2043,6 +2187,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         updated_at: new Date().toISOString(),
       };
 
+      try {
+        const markDigits = (base.mark || '').replace(/[^0-9]/g, '');
+        if (markDigits.length === 15 && typeof window.__RC_autoSubmitRememberMark === 'function') {
+          window.__RC_autoSubmitRememberMark(markDigits);
+        }
+      } catch(_) {}
+
       const container = document.getElementById('summaryLinesContainer') || modal;
       const rows = [];
       if (container){
@@ -2107,6 +2258,86 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       if (summaryInput){
         base.summary_present = !!summaryInput.value;
       }
+
+      const detailIds = {
+        aa: 'summary_AA',
+        afm: 'summary_AFM',
+        name: 'summary_Name',
+        issue_date: 'summary_issueDate',
+        type: 'summary_type_name',
+        total_net: 'summary_totalNetValue',
+        total_vat: 'summary_totalVatAmount',
+        total_value: 'summary_totalValue',
+      };
+      const details = {};
+      Object.entries(detailIds).forEach(([key, id]) => {
+        const node = document.getElementById(id);
+        if (!node) return;
+        const text = (node.textContent || '').trim();
+        if (text) details[key] = text;
+      });
+      if (Object.keys(details).length){
+        base.details = details;
+      }
+
+      const warningNodes = Array.from(document.querySelectorAll('[data-modal-type="warning"], [id$="WarningModal"], .warning-modal'));
+      const warnings = [];
+      warningNodes.forEach(node => {
+        if (!node || !isElementVisible(node)) return;
+        const warning = {
+          id: (node.id || '').toString(),
+          title: '',
+          body: '',
+          severity: '',
+          visible: true,
+          actions: [],
+        };
+        try {
+          const titleEl = node.querySelector('[data-warning-title], h1, h2, h3, h4, h5, h6');
+          if (titleEl) warning.title = titleEl.textContent.trim();
+        } catch(_){}
+        try {
+          const bodyEl = node.querySelector('[data-warning-body], .modal-body, .warning-body, [data-role="warning-body"]');
+          if (bodyEl) warning.body = bodyEl.textContent.trim();
+        } catch(_){}
+        try {
+          const sev = node.getAttribute('data-warning-severity') || (node.dataset ? node.dataset.warningSeverity : '');
+          if (sev) warning.severity = String(sev).trim();
+        } catch(_){}
+
+        const seen = new Set();
+        const actionElements = Array.from(node.querySelectorAll('button, a'));
+        actionElements.forEach(btn => {
+          if (!btn || btn.disabled) return;
+          if (btn.closest('[data-ignore-remote="1"]')) return;
+          if (btn.hasAttribute('aria-hidden') && btn.getAttribute('aria-hidden') === 'true') return;
+          const label = (btn.textContent || '').trim();
+          if (!label) return;
+          const actionKey = btn.dataset ? (btn.dataset.remoteAction || btn.dataset.action || '') : '';
+          const buttonId = btn.id || '';
+          const dedupeKey = actionKey || buttonId || label;
+          if (!dedupeKey || seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+          const role = btn.dataset ? (btn.dataset.role || (btn.dataset.ack === '1' ? 'ack' : '')) : '';
+          warning.actions.push({
+            id: buttonId,
+            label,
+            action: actionKey,
+            role,
+          });
+        });
+
+        if (!warning.title && warning.body) warning.title = 'Προειδοποίηση';
+        if (warning.body || warning.actions.length){
+          warning.actions = warning.actions.slice(0, 6);
+          warnings.push(warning);
+        }
+      });
+
+      if (warnings.length){
+        base.warnings = warnings.slice(0, 6);
+      }
+
       return base;
     }
 
@@ -2226,9 +2457,89 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       }
     }
 
+    function handleRemoteWarningAction(control){
+      if (!control || typeof control !== 'object') return;
+      const modalId = (control.modal_id || control.modalId || control.id || '').toString().trim();
+      const actionKey = (control.action || control.action_id || control.actionId || '').toString().trim();
+      const buttonId = (control.button_id || control.buttonId || '').toString().trim();
+      const label = (control.label || '').toString().trim();
+      const role = (control.role || '').toString().trim();
+
+      const modals = [];
+      if (modalId){
+        const byId = document.getElementById(modalId);
+        if (byId) modals.push(byId);
+      }
+      if (!modals.length){
+        document.querySelectorAll('[data-modal-type="warning"], [id$="WarningModal"], .warning-modal').forEach(node => {
+          if (node && isElementVisible(node)) modals.push(node);
+        });
+      }
+      if (!modals.length) return;
+
+      function matchBySelector(modal, selector, predicate){
+        const nodes = Array.from(modal.querySelectorAll(selector));
+        return nodes.find(node => !node.disabled && (!predicate || predicate(node))) || null;
+      }
+
+      function findButton(modal){
+        if (!modal) return null;
+        if (buttonId){
+          const byId = modal.querySelector('#' + cssEscape(buttonId)) || document.getElementById(buttonId);
+          if (byId && !byId.disabled) return byId;
+        }
+        if (actionKey){
+          const byAction = matchBySelector(modal, '[data-remote-action]', (node) => {
+            const data = node.dataset || {};
+            return (data.remoteAction || data.action || '') === actionKey;
+          });
+          if (byAction) return byAction;
+        }
+        if (role){
+          const byRole = matchBySelector(modal, '[data-role], [data-ack]', (node) => {
+            const data = node.dataset || {};
+            const nodeRole = data.role || (data.ack === '1' ? 'ack' : '');
+            return nodeRole === role;
+          });
+          if (byRole) return byRole;
+        }
+        if (label){
+          const normalized = label.toLowerCase();
+          const byLabel = matchBySelector(modal, 'button, a', (node) => {
+            if (!isElementVisible(node)) return false;
+            const text = (node.textContent || '').trim().toLowerCase();
+            return text === normalized;
+          });
+          if (byLabel) return byLabel;
+        }
+        const ackBtn = matchBySelector(modal, '[data-ack="1"]');
+        if (ackBtn) return ackBtn;
+        return matchBySelector(modal, 'button, a');
+      }
+
+      let targetBtn = null;
+      for (const modal of modals){
+        targetBtn = findButton(modal);
+        if (targetBtn) break;
+      }
+
+      if (!targetBtn){
+        showFlash('Δεν βρέθηκε διαθέσιμη ενέργεια προειδοποίησης για απομακρυσμένο έλεγχο.', 'error', 3200);
+        return;
+      }
+
+      try { targetBtn.focus({ preventScroll: true }); } catch(_){}
+      try { targetBtn.click(); } catch(err){ console.warn('remote warning action click failed', err); }
+      showFlash('Η φορητή συσκευή ολοκλήρωσε την προειδοποίηση.', 'info', 2600);
+    }
+
     function handleRemoteControl(control){
       if (!control || typeof control !== 'object') return;
       const type = (control.type || '').toString().toLowerCase();
+      if (type === 'warning_action'){
+        handleRemoteWarningAction(control);
+        return;
+      }
       if (type === 'auto_submit_set' || type === 'auto_submit_toggle'){
         handleRemoteAutoSubmit(control);
         return;
@@ -3682,7 +3993,11 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   const afmModalBtn = document.getElementById('afmModalConfirm');
   if (afmModal && afmModalBtn){
     setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    afmModalBtn.addEventListener('click', function(){ afmModal.style.display = 'none'; });
+    afmModalBtn.addEventListener('click', function(evt){
+      evt.preventDefault();
+      afmModal.style.display = 'none';
+      try { window.__RC_handleWarningAck(); } catch(_){}
+    });
   }
   {% endif %}
 
@@ -5438,6 +5753,22 @@ document.addEventListener('submit', function(ev){
       saveRecentKeys(ordered);
     }
 
+    function rememberMark(value){
+      const digits = typeof value === 'string' || typeof value === 'number'
+        ? String(value).replace(/[^0-9]/g, '')
+        : '';
+      if (digits.length !== 15) return;
+      markSubmitted(['mark:' + digits]);
+    }
+
+    window.__RC_autoSubmitRememberMark = function rememberAutoSubmitMark(value){
+      rememberMark(value);
+    };
+
+    window.__RC_autoSubmitRememberKeys = function rememberAutoSubmitKeys(keys){
+      markSubmitted(keys);
+    };
+
     const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 
     function trySubmit(){
@@ -5500,6 +5831,13 @@ document.addEventListener('submit', function(ev){
       toggle: (opts) => applyAutoValue(!getAuto(), Object.assign({ silent: false }, opts || {})),
       refresh: updateUi
     };
+
+    try {
+      if (Array.isArray(window.__RC_pendingSummaryMarks)){
+        window.__RC_pendingSummaryMarks.forEach(rememberMark);
+      }
+    } catch(_) {}
+    window.__RC_pendingSummaryMarks = [];
   } catch (err) {
     console.warn('Auto-submit toggle patch failed', err);
   }
@@ -6122,7 +6460,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveForm = document.getElementById('saveSummaryForm');
     if (saveForm) {
       let reloaded = false;
-      const reloadSoon = () => { if (!reloaded) { reloaded = true; setTimeout(() => location.reload(), 300); } };
+      const reloadSoon = () => {
+        if (!reloaded) {
+          reloaded = true;
+          rcRememberSearchClear();
+          setTimeout(() => location.reload(), 300);
+        }
+      };
       saveForm.addEventListener('ajax:done', reloadSoon, { once:true });
       saveForm.addEventListener('submit', () => setTimeout(reloadSoon, 1200), { once:true });
     }
