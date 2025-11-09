@@ -6478,4 +6478,103 @@ document.addEventListener('click', function(e){
   }
 })();
 </script>
+<script>
+(function () {
+  // ---- 1) Τί θεωρούμε "warning modal"; ----
+  // Πιάνει modal containers με id που τελειώνει σε "WarningModal"
+  // ή έχουν κλάση .warning-modal ή data-modal-type="warning".
+  function findWarningModal(el) {
+    return el.closest('[id$="WarningModal"], .warning-modal, [data-modal-type="warning"]');
+  }
+
+  // ---- 2) Βοηθητικά ----
+  function wipeSearchInputs() {
+    // ids που έχεις αναφέρει
+    const mark  = document.getElementById('markInput');
+    const url   = document.getElementById('scrapeUrlInput');
+    // πιθανά hidden πεδία που “κουβαλάνε” κατάσταση
+    const hUrl  = document.getElementById('scrapeUrlField');
+    const hCat  = document.getElementById('scrapeCategoryField');
+    const sumJs = document.getElementById('summaryJsonInput');
+
+    if (mark) { mark.value = ''; try { mark.dispatchEvent(new Event('input',{bubbles:true})); } catch(_){} }
+    if (url)  { url.value  = ''; try { url.dispatchEvent(new Event('input',{bubbles:true})); } catch(_){} }
+    if (hUrl) hUrl.value = '';
+    if (hCat) hCat.value = '';
+    if (sumJs) sumJs.value = '{}';
+  }
+
+  function clearUrlFlags() {
+    try {
+      const u = new URL(window.location.href);
+      for (const k of Array.from(u.searchParams.keys())) {
+        if (/^(warn|warning|modal|open_)/i.test(k)) u.searchParams.delete(k);
+        if (k === 'mark' || k === 'scrape_url') u.searchParams.delete(k);
+      }
+      history.replaceState(null, '', u.toString());
+    } catch (_) {}
+  }
+
+  function doReload() {
+    // καθάρισε flags ώστε να μην ξανανοίξει modal
+    clearUrlFlags();
+    window.location.reload();
+  }
+
+  // ---- 3) Bootstrap-aware reload: αφού κλείσει το modal ----
+  function reloadAfterModalHides(modalEl) {
+    // Αν υπάρχει Bootstrap 5 modal API, άκου το hidden.bs.modal
+    const hasBootstrap = typeof bootstrap !== 'undefined' && modalEl && modalEl.addEventListener;
+    if (hasBootstrap) {
+      const onHidden = () => {
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        doReload();
+      };
+      modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+      // αν το κουμπί έχει data-bs-dismiss="modal", θα κλείσει μόνο του.
+      // Αν ΟΧΙ, κλείστο χειροκίνητα (fallback):
+      try {
+        const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+        inst.hide();
+      } catch (_) {
+        // αν δεν είναι πραγματικό Bootstrap modal, πήγαινε σε timeout fallback
+        setTimeout(doReload, 80);
+      }
+    } else {
+      // custom modal → απλό fallback
+      setTimeout(doReload, 80);
+    }
+  }
+
+  // ---- 4) Πιάσε το click στο “Κατάλαβα” με capture (για να μην το φάνε άλλοι handlers) ----
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('button, a');
+    if (!btn) return;
+
+    // Αναγνώρισε το “Κατάλαβα” με 3 τρόπους:
+    // α) data-ack="1"  β) class .js-warning-ack  γ) κείμενο "Το κατάλαβα"
+    const isAck =
+      btn.matches('[data-ack="1"], .js-warning-ack') ||
+      /το\s*κατάλαβα/i.test((btn.textContent || '').trim());
+
+    if (!isAck) return;
+
+    // Πρέπει να είναι μέσα σε warning modal
+    const modal = findWarningModal(btn);
+    if (!modal) return;
+
+    // Μη συνεχίσει default (π.χ. href, submit) — κρατάμε πλήρη έλεγχο
+    e.preventDefault();
+
+    // Καθάρισε πεδία τώρα, και κάνε reload αφού κλείσει το modal
+    wipeSearchInputs();
+    reloadAfterModalHides(modal);
+  }, true); // <— CAPTURE PHASE
+
+  // ---- 5) Προαιρετικά: αν έχεις συγκεκριμένα IDs στα κουμπιά, πρόσθεσε data-ack="1" στο HTML τους ----
+  // π.χ. <button id="afmModalConfirm" data-ack="1" data-bs-dismiss="modal">Το κατάλαβα</button>
+  //      <button id="receiptWarnOk"  data-ack="1" data-bs-dismiss="modal">Το κατάλαβα</button>
+})();
+</script>
+
 <!-- === /QR WaitOverlay suppressor === -->
