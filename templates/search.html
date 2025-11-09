@@ -1017,6 +1017,52 @@ async function getActiveFiscalYear() {
   return null;
 }
 
+function rcClearWarningSearchFields(){
+  try {
+    const ids = ['markInput','scrapeUrlInput'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = '';
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+    });
+    const markField = document.querySelector('input[name="mark"]');
+    if (markField) {
+      markField.value = '';
+      try { markField.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+    }
+    const hiddenUrl = document.getElementById('scrapeUrlField');
+    const hiddenCategory = document.getElementById('scrapeCategoryField');
+    const summaryInput = document.getElementById('summaryJsonInput');
+    if (hiddenUrl) hiddenUrl.value = '';
+    if (hiddenCategory) hiddenCategory.value = '';
+    if (summaryInput) summaryInput.value = '{}';
+  } catch(err){ console.warn('rcClearWarningSearchFields failed', err); }
+}
+
+function rcReloadAfterWarning(){
+  try {
+    const current = new URL(window.location.href);
+    const keys = new Set(['mark','scrape_url','force_edit']);
+    Array.from(current.searchParams.keys()).forEach(key => {
+      if (keys.has(key) || /^(warn|warning|modal|open_)/i.test(key)){
+        current.searchParams.delete(key);
+      }
+    });
+    const target = current.pathname + (current.search ? `?${current.searchParams.toString()}` : '') + current.hash;
+    window.location.replace(target);
+  } catch (_){
+    window.location.reload();
+  }
+}
+
+function rcHandleWarningAcknowledge(){
+  rcClearWarningSearchFields();
+  setTimeout(rcReloadAfterWarning, 80);
+}
+
+window.__RC_handleWarningAck = rcHandleWarningAcknowledge;
+
 
 (function(){
   // Ανεξάρτητο modal μόνο για Αποδείξεις (δεν ακουμπά το afmWarningModal)
@@ -1035,13 +1081,66 @@ async function getActiveFiscalYear() {
         + '</div>';
       document.body.appendChild(el);
       el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
-      el.querySelector('#receiptWarnOk').addEventListener('click', function(){ el.style.display='none'; });
+      el.querySelector('#receiptWarnOk').addEventListener('click', function(){
+        el.style.display='none';
+        try { window.__RC_handleWarningAck(); } catch(_){}
+      });
       m = el;
     }
     var body = m.querySelector('#receiptWarnBody');
     if(body) body.textContent = message || 'Προειδοποίηση.';
     m.style.display='flex';
   };
+})();
+
+// Μπλόκο διπλών submit στην φόρμα MARK (ειδικά με auto-submit)
+(function(){
+  const form = document.getElementById('markSearchForm');
+  if (!form) return;
+
+  let submitLocked = false;
+  let lastSubmitTs = 0;
+
+  function releaseLock(tag){
+    if (tag && form.dataset.rcSubmitTag && form.dataset.rcSubmitTag !== tag) return;
+    submitLocked = false;
+    lastSubmitTs = 0;
+    delete form.dataset.rcSubmitTag;
+  }
+
+  function armLock(){
+    const now = Date.now();
+    if (submitLocked && now - lastSubmitTs < 1200){
+      return false;
+    }
+    submitLocked = true;
+    lastSubmitTs = now;
+    const tag = String(now);
+    form.dataset.rcSubmitTag = tag;
+    setTimeout(() => releaseLock(tag), 1600);
+    return true;
+  }
+
+  const originalSubmit = typeof form.submit === 'function' ? form.submit : null;
+  if (originalSubmit){
+    form.submit = function(){
+      if (!armLock()) return;
+      return originalSubmit.apply(this, arguments);
+    };
+  }
+
+  form.addEventListener('submit', function(evt){
+    if (!armLock()){
+      evt.preventDefault();
+      evt.stopImmediatePropagation();
+      return false;
+    }
+    return true;
+  }, true);
+
+  const resetHandler = () => releaseLock();
+  form.addEventListener('reset', resetHandler);
+  form.addEventListener('formdata', resetHandler);
 })();
 
     // Καθαρισμός ανά γραμμή (πολλαπλές γραμμές)
@@ -2106,6 +2205,27 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
       base.lines = lines;
       if (summaryInput){
         base.summary_present = !!summaryInput.value;
+      }
+
+      const detailIds = {
+        aa: 'summary_AA',
+        afm: 'summary_AFM',
+        name: 'summary_Name',
+        issue_date: 'summary_issueDate',
+        type: 'summary_type_name',
+        total_net: 'summary_totalNetValue',
+        total_vat: 'summary_totalVatAmount',
+        total_value: 'summary_totalValue',
+      };
+      const details = {};
+      Object.entries(detailIds).forEach(([key, id]) => {
+        const node = document.getElementById(id);
+        if (!node) return;
+        const text = (node.textContent || '').trim();
+        if (text) details[key] = text;
+      });
+      if (Object.keys(details).length){
+        base.details = details;
       }
 
       const warningNodes = Array.from(document.querySelectorAll('[data-modal-type="warning"], [id$="WarningModal"], .warning-modal'));
@@ -3821,49 +3941,10 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   const afmModalBtn = document.getElementById('afmModalConfirm');
   if (afmModal && afmModalBtn){
     setTimeout(()=>{ afmModal.style.display = 'flex'; }, 50);
-    function clearWarningSearchFields(){
-      const markInput = document.getElementById('markInput');
-      const markField = document.querySelector('input[name="mark"]');
-      const urlInput = document.getElementById('scrapeUrlInput');
-      const hiddenUrl = document.getElementById('scrapeUrlField');
-      const hiddenCategory = document.getElementById('scrapeCategoryField');
-      const summaryInput = document.getElementById('summaryJsonInput');
-
-      [markInput, markField].forEach(el => {
-        if (!el) return;
-        el.value = '';
-        try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
-      });
-      if (urlInput){
-        urlInput.value = '';
-        try { urlInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
-      }
-      if (hiddenUrl) hiddenUrl.value = '';
-      if (hiddenCategory) hiddenCategory.value = '';
-      if (summaryInput) summaryInput.value = '{}';
-    }
-
-    function reloadAfterWarning(){
-      try {
-        const current = new URL(window.location.href);
-        const keys = new Set(['mark','scrape_url','force_edit']);
-        Array.from(current.searchParams.keys()).forEach(key => {
-          if (keys.has(key) || /^(warn|warning|modal|open_)/i.test(key)){
-            current.searchParams.delete(key);
-          }
-        });
-        const target = current.pathname + (current.search ? `?${current.searchParams.toString()}` : '') + current.hash;
-        window.location.replace(target);
-      } catch (_){
-        window.location.reload();
-      }
-    }
-
     afmModalBtn.addEventListener('click', function(evt){
       evt.preventDefault();
       afmModal.style.display = 'none';
-      clearWarningSearchFields();
-      setTimeout(reloadAfterWarning, 80);
+      try { window.__RC_handleWarningAck(); } catch(_){}
     });
   }
   {% endif %}

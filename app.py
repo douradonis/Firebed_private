@@ -380,6 +380,18 @@ def _sanitize_summary_state(value: Any) -> Optional[Dict[str, Any]]:
             "total": _clip_text(totals.get("total"), 80),
         }
 
+    details = value.get("details")
+    if isinstance(details, dict):
+        cleaned_details: Dict[str, str] = {}
+        for key, raw in list(details.items())[:20]:
+            try:
+                key_text = str(key)
+            except Exception:
+                continue
+            cleaned_details[key_text] = _clip_text(raw, 200)
+        if cleaned_details:
+            state["details"] = cleaned_details
+
     banner = value.get("reclassification_banner") or {}
     if isinstance(banner, dict):
         state["reclassification_banner"] = {

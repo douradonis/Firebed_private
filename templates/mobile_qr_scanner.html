@@ -355,6 +355,35 @@
       color: #475569;
       margin-bottom: 12px;
     }
+    .summary-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px 12px;
+      margin-bottom: 14px;
+    }
+    .summary-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      min-height: 60px;
+    }
+    .summary-detail-item span.label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .summary-detail-item span.value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #0f172a;
+      word-break: break-word;
+    }
     .summary-lines {
       display: flex;
       flex-direction: column;
@@ -615,6 +644,7 @@
         <div id="summaryStatusText" class="summary-status"></div>
         <div id="summaryBanner" class="summary-banner"></div>
         <div id="summaryTotals" class="summary-totals"></div>
+        <div id="summaryDetails" class="summary-details"></div>
         <div id="summaryLines" class="summary-lines"></div>
         <div class="summary-actions">
           <button type="button" id="summaryConfirmBtn" class="secondary" style="display:none;">Επιβεβαίωση επαναχαρακτηρισμού</button>
@@ -672,6 +702,7 @@
       const summaryMark = document.getElementById('summaryMarkBadge');
       const summaryBanner = document.getElementById('summaryBanner');
       const summaryTotals = document.getElementById('summaryTotals');
+      const summaryDetails = document.getElementById('summaryDetails');
       const summaryLines = document.getElementById('summaryLines');
       const summarySaveBtn = document.getElementById('summarySaveBtn');
       const summaryCloseBtn = document.getElementById('summaryCloseBtn');
@@ -730,6 +761,49 @@
         warningStatusEl.classList.remove('error','success');
         if (tone === 'error') warningStatusEl.classList.add('error');
         else if (tone === 'success') warningStatusEl.classList.add('success');
+      }
+
+      function renderSummaryDetails(details){
+        if (!summaryDetails) return;
+        summaryDetails.innerHTML = '';
+        const items = [];
+        const skipKeys = new Set(['total_net','total_vat','total_value']);
+        if (details && typeof details === 'object'){
+          const preferred = ['aa','afm','name','issue_date','type'];
+          preferred.forEach(key => {
+            if (details[key]) items.push({ key, value: details[key] });
+          });
+          Object.keys(details).forEach(key => {
+            if (!preferred.includes(key) && !skipKeys.has(key) && details[key]){
+              items.push({ key, value: details[key] });
+            }
+          });
+        }
+        if (!items.length){
+          summaryDetails.classList.add('hidden');
+          return;
+        }
+        summaryDetails.classList.remove('hidden');
+        const labels = {
+          aa: 'Α/Α',
+          afm: 'ΑΦΜ',
+          name: 'Επωνυμία',
+          issue_date: 'Ημερομηνία',
+          type: 'Τύπος',
+        };
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'summary-detail-item';
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = labels[item.key] || item.key.replace(/_/g, ' ').toUpperCase();
+          const value = document.createElement('span');
+          value.className = 'value';
+          value.textContent = item.value;
+          card.appendChild(label);
+          card.appendChild(value);
+          summaryDetails.appendChild(card);
+        });
       }
 
       function renderSummaryLines(lines){
@@ -896,6 +970,8 @@
           const total = totals.total || '-';
           summaryTotals.innerHTML = `<span>Καθαρή: ${escapeHtml(net)}</span><span>ΦΠΑ: ${escapeHtml(vat)}</span><span>Σύνολο: ${escapeHtml(total)}</span>`;
         }
+
+        renderSummaryDetails(state && state.details ? state.details : null);
 
         if (state && state.reclassification_banner && state.reclassification_banner.visible){
           if (summaryBanner){
