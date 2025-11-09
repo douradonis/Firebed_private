@@ -724,6 +724,7 @@
       let scanning = false;
       let torchSupported = false;
       let torchOn = false;
+      const HEARTBEAT_INTERVAL = 5000;
       let heartbeatTimer = null;
       let lastSentText = '';
       let countdownTimer = null;
@@ -1127,6 +1128,7 @@
           }
           if (scope === 'warning') setWarningStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
           else setSummaryStatus('Η εντολή στάλθηκε στον υπολογιστή.', 'success');
+          await sendHeartbeat();
         } catch (err){
           console.warn('sendControlCommand failed', err);
           if (scope === 'warning') setWarningStatus('Προσωρινό σφάλμα αποστολής εντολής.', 'error');
@@ -1438,8 +1440,9 @@
           updateResultBox(defaultResultText, null);
           await listCameras();
           await startScanner(cameraSelect ? cameraSelect.value : undefined);
+          await sendHeartbeat();
           if (!heartbeatTimer){
-            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+            heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
           }
         } catch (err) {
           console.warn('attach failed', err);
@@ -1527,7 +1530,8 @@
           await stopScanner();
         } else if (!scanning && CFG.sessionId && CFG.token) {
           if (!heartbeatTimer) {
-            heartbeatTimer = setInterval(sendHeartbeat, 15000);
+            heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+            await sendHeartbeat();
           }
           if (!(startStopBtn && startStopBtn.disabled)) {
             await startScanner(cameraSelect ? cameraSelect.value : undefined);

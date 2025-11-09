@@ -1002,6 +1002,21 @@ const labelForCategory = (val) => {
 const SEARCH_BASE_URL = "{{ url_for('search') }}";
 const VAT = "{{ vat or '' }}"; // active vat from server
 const INITIAL_MARK = "{{ mark|e }}"; // αρχική τιμή mark (αν υπήρχε)
+const RC_CLEAR_FLAG_KEY = 'rc:clearSearchAfterReload';
+
+function rcRememberSearchClear(){
+  try { sessionStorage.setItem(RC_CLEAR_FLAG_KEY, '1'); } catch(_){}
+}
+
+function rcConsumeSearchClear(){
+  try {
+    if (sessionStorage.getItem(RC_CLEAR_FLAG_KEY) === '1'){
+      sessionStorage.removeItem(RC_CLEAR_FLAG_KEY);
+      return true;
+    }
+  } catch(_){ }
+  return false;
+}
 const ACTIVE_YEAR = (function(){ try { return {{ active_year|default('null') }}; } catch(e){ return null; } })();
 async function getActiveFiscalYear() {
   // Προτίμησε την τιμή που ήρθε από server-side render (Jinja)
@@ -1017,7 +1032,8 @@ async function getActiveFiscalYear() {
   return null;
 }
 
-function rcClearWarningSearchFields(){
+function rcClearWarningSearchFields(options){
+  const skipExtended = (options === false) || (options && options.partial === true);
   try {
     const ids = ['markInput','scrapeUrlInput'];
     ids.forEach(id => {
@@ -1031,12 +1047,14 @@ function rcClearWarningSearchFields(){
       markField.value = '';
       try { markField.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
     }
-    const hiddenUrl = document.getElementById('scrapeUrlField');
-    const hiddenCategory = document.getElementById('scrapeCategoryField');
-    const summaryInput = document.getElementById('summaryJsonInput');
-    if (hiddenUrl) hiddenUrl.value = '';
-    if (hiddenCategory) hiddenCategory.value = '';
-    if (summaryInput) summaryInput.value = '{}';
+    if (!skipExtended){
+      const hiddenUrl = document.getElementById('scrapeUrlField');
+      const hiddenCategory = document.getElementById('scrapeCategoryField');
+      const summaryInput = document.getElementById('summaryJsonInput');
+      if (hiddenUrl) hiddenUrl.value = '';
+      if (hiddenCategory) hiddenCategory.value = '';
+      if (summaryInput) summaryInput.value = '{}';
+    }
   } catch(err){ console.warn('rcClearWarningSearchFields failed', err); }
 }
 
@@ -1057,11 +1075,18 @@ function rcReloadAfterWarning(){
 }
 
 function rcHandleWarningAcknowledge(){
+  rcRememberSearchClear();
   rcClearWarningSearchFields();
   setTimeout(rcReloadAfterWarning, 80);
 }
 
 window.__RC_handleWarningAck = rcHandleWarningAcknowledge;
+
+document.addEventListener('DOMContentLoaded', function(){
+  if (rcConsumeSearchClear()){
+    setTimeout(() => { rcClearWarningSearchFields(false); }, 40);
+  }
+});
 
 
 (function(){
@@ -6385,7 +6410,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveForm = document.getElementById('saveSummaryForm');
     if (saveForm) {
       let reloaded = false;
-      const reloadSoon = () => { if (!reloaded) { reloaded = true; setTimeout(() => location.reload(), 300); } };
+      const reloadSoon = () => {
+        if (!reloaded) {
+          reloaded = true;
+          rcRememberSearchClear();
+          setTimeout(() => location.reload(), 300);
+        }
+      };
       saveForm.addEventListener('ajax:done', reloadSoon, { once:true });
       saveForm.addEventListener('submit', () => setTimeout(reloadSoon, 1200), { once:true });
     }
