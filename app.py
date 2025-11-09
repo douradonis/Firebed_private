@@ -431,6 +431,58 @@ def _sanitize_summary_state(value: Any) -> Optional[Dict[str, Any]]:
     state["lines"] = lines
     state["updated_at"] = _clip_text(value.get("updated_at") or value.get("timestamp") or "", 160)
 
+    warnings: List[Dict[str, Any]] = []
+    for entry in value.get("warnings", []):
+        if not isinstance(entry, dict):
+            continue
+        warning: Dict[str, Any] = {
+            "visible": bool(entry.get("visible", True)),
+        }
+        modal_id = entry.get("id") or entry.get("modal_id") or entry.get("modalId")
+        if modal_id is not None:
+            warning["id"] = _clip_text(modal_id, 160)
+        title = entry.get("title") or entry.get("heading")
+        if title is not None:
+            warning["title"] = _clip_text(title, 200)
+        body = entry.get("body") or entry.get("message")
+        if body is not None:
+            warning["body"] = _clip_text(body, 600)
+        severity = entry.get("severity")
+        if severity is not None:
+            warning["severity"] = _clip_text(severity, 40)
+
+        actions: List[Dict[str, Any]] = []
+        for action in entry.get("actions", []):
+            if not isinstance(action, dict):
+                continue
+            label = action.get("label") or action.get("text")
+            if label is None:
+                continue
+            button: Dict[str, Any] = {
+                "label": _clip_text(label, 160)
+            }
+            action_id = action.get("id") or action.get("button_id") or action.get("buttonId")
+            if action_id is not None:
+                button["id"] = _clip_text(action_id, 160)
+            action_key = action.get("action") or action.get("action_id") or action.get("actionId")
+            if action_key is not None:
+                button["action"] = _clip_text(action_key, 160)
+            role = action.get("role")
+            if role is not None:
+                button["role"] = _clip_text(role, 80)
+            actions.append(button)
+            if len(actions) >= 6:
+                break
+        if actions:
+            warning["actions"] = actions
+
+        warnings.append(warning)
+        if len(warnings) >= 6:
+            break
+
+    if warnings:
+        state["warnings"] = warnings
+
     return state
 
 
@@ -449,9 +501,19 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
         "summary_confirm",
         "auto_submit_set",
         "auto_submit_toggle",
+        "warning_action",
     }
     if normalized_type not in allowed:
         return None
+
+    def _clip(value: Any, limit: int) -> str:
+        try:
+            text = str(value or "").strip()
+        except Exception:
+            text = ""
+        if len(text) > limit:
+            return text[:limit]
+        return text
 
     control: Dict[str, Any] = {"type": normalized_type}
     if normalized_type == "summary_set_category":
@@ -493,6 +555,12 @@ def _sanitize_remote_control(value: Any) -> Optional[Dict[str, Any]]:
         if flag is None:
             return None
         control["enabled"] = bool(flag)
+    elif normalized_type == "warning_action":
+        control["modal_id"] = _clip(value.get("modal_id") or value.get("modalId") or value.get("id"), 160)
+        control["button_id"] = _clip(value.get("button_id") or value.get("buttonId"), 160)
+        control["action"] = _clip(value.get("action") or value.get("action_id") or value.get("actionId"), 160)
+        control["role"] = _clip(value.get("role"), 80)
+        control["label"] = _clip(value.get("label") or value.get("text"), 160)
     return control
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
