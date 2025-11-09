@@ -429,7 +429,8 @@ function applyScannedPayload(payload, options){
   } else {
     const markInput = document.getElementById('markInput');
     if (markInput) {
-      markInput.value = isUrl ? effectiveRaw : chosen;
+      const nextValue = markVal ? markVal : (isUrl ? effectiveRaw : chosen);
+      markInput.value = nextValue;
       try { markInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
       appliedTo = 'mark';
     }
@@ -1214,6 +1215,25 @@ let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | toj
 
   container.innerHTML = '';
   const lines = Array.isArray(obj.lines) ? obj.lines : [];
+
+  try {
+    const markCandidates = [obj && (obj.mark || obj.MARK || obj.Mark), obj && obj.number];
+    const rawMark = markCandidates.find(val => val != null && String(val).trim() !== '');
+    if (rawMark) {
+      const digits = String(rawMark).replace(/[^0-9]/g, '');
+      if (digits) {
+        window.__RC_pendingSummaryMarks = Array.isArray(window.__RC_pendingSummaryMarks)
+          ? window.__RC_pendingSummaryMarks
+          : [];
+        if (!window.__RC_pendingSummaryMarks.includes(digits)) {
+          window.__RC_pendingSummaryMarks.push(digits);
+        }
+        if (typeof window.__RC_autoSubmitRememberMark === 'function') {
+          try { window.__RC_autoSubmitRememberMark(digits); } catch(_) {}
+        }
+      }
+    }
+  } catch(_) {}
 
   // helper to persist back to the hidden input
     (function(){
@@ -2166,6 +2186,13 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         },
         updated_at: new Date().toISOString(),
       };
+
+      try {
+        const markDigits = (base.mark || '').replace(/[^0-9]/g, '');
+        if (markDigits.length === 15 && typeof window.__RC_autoSubmitRememberMark === 'function') {
+          window.__RC_autoSubmitRememberMark(markDigits);
+        }
+      } catch(_) {}
 
       const container = document.getElementById('summaryLinesContainer') || modal;
       const rows = [];
@@ -5726,6 +5753,22 @@ document.addEventListener('submit', function(ev){
       saveRecentKeys(ordered);
     }
 
+    function rememberMark(value){
+      const digits = typeof value === 'string' || typeof value === 'number'
+        ? String(value).replace(/[^0-9]/g, '')
+        : '';
+      if (digits.length !== 15) return;
+      markSubmitted(['mark:' + digits]);
+    }
+
+    window.__RC_autoSubmitRememberMark = function rememberAutoSubmitMark(value){
+      rememberMark(value);
+    };
+
+    window.__RC_autoSubmitRememberKeys = function rememberAutoSubmitKeys(keys){
+      markSubmitted(keys);
+    };
+
     const debounce = (fn,ms)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 
     function trySubmit(){
@@ -5788,6 +5831,13 @@ document.addEventListener('submit', function(ev){
       toggle: (opts) => applyAutoValue(!getAuto(), Object.assign({ silent: false }, opts || {})),
       refresh: updateUi
     };
+
+    try {
+      if (Array.isArray(window.__RC_pendingSummaryMarks)){
+        window.__RC_pendingSummaryMarks.forEach(rememberMark);
+      }
+    } catch(_) {}
+    window.__RC_pendingSummaryMarks = [];
   } catch (err) {
     console.warn('Auto-submit toggle patch failed', err);
   }
