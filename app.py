@@ -768,12 +768,88 @@ ALLOWED_CLIENT_EXT = {'.xlsx', '.xls', '.csv'}
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
+# --- Initialize DB and authentication ---
+try:
+    # local imports to avoid circulars during module import
+    from models import db
+    from auth import login_manager, auth_bp
+
+    app.config.setdefault('SQLALCHEMY_DATABASE_URI', os.getenv('DATABASE_URL') or 'sqlite:///' + os.path.join(BASE_DIR, 'firebed.db'))
+    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+
+    db.init_app(app)
+    login_manager.init_app(app)
+    app.register_blueprint(auth_bp)
+
+    # create tables if missing (safe during startup)
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception:
+            # ignore DB creation errors during import; app can still run
+            pass
+except Exception:
+    # if SQLAlchemy or auth is not available, continue without auth
+    pass
+# --- end auth init ---
+try:
+    # If Flask-Login is available, enforce login for non-auth endpoints
+    from flask_login import current_user
+    @app.before_request
+    def require_login_before_request():
+        # allow static and auth endpoints
+        endpoint = request.endpoint or ''
+        if endpoint.startswith('auth.') or endpoint.startswith('static'):
+            return None
+        # allow public API endpoints (if any) - keep a whitelist here if needed
+        public = {'home', 'index', 'healthcheck'}
+        if endpoint in public:
+            return None
+
+        try:
+            if not getattr(current_user, 'is_authenticated', False):
+                # API requests: return 401 JSON
+                if request.path.startswith('/api/') or request.is_json:
+                    return jsonify({'error': 'authentication required'}), 401
+                return redirect(url_for('auth.login', next=request.path))
+        except Exception:
+            # if anything goes wrong, do not block app startup
+            return None
+except Exception:
+    pass
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
 REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
 CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 
+
+def get_group_base_dir():
+    """Return absolute path to the data directory for the currently active group (or user's single group).
+    Falls back to the global DATA_DIR if no group selected or available.
+    """
+    try:
+        # avoid top-level import cycles
+        from auth import get_active_group
+        grp = get_active_group()
+    except Exception:
+        grp = None
+
+    if grp and getattr(grp, 'data_folder', None):
+        base = os.path.join(BASE_DIR, 'data', grp.data_folder)
+    else:
+        base = DATA_DIR
+
+    try:
+        os.makedirs(base, exist_ok=True)
+    except Exception:
+        pass
+    return base
+
+
+def credentials_path_for_request():
+    return os.path.join(get_group_base_dir(), 'credentials.json')
+
 def _load_credentials():
-    p = Path(CREDENTIALS_PATH)
+    p = Path(credentials_path_for_request())
     if not p.exists():
         return []
     try:
@@ -788,8 +864,9 @@ def _load_credentials():
         return []
 
 def _save_credentials(items):
-    CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+    p = Path(credentials_path_for_request())
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
 
 def _find_client(creds, vat=None, name=None):
@@ -805,7 +882,8 @@ def _find_client(creds, vat=None, name=None):
 
 def _load_all_credentials():
     try:
-        with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
+        p = Path(credentials_path_for_request())
+        with p.open("r", encoding="utf-8") as f:
             return json.load(f) or []
     except FileNotFoundError:
         return []
@@ -813,8 +891,10 @@ def _load_all_credentials():
         return []
 
 def _save_all_credentials(creds):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+    base = get_group_base_dir()
+    os.makedirs(base, exist_ok=True)
+    p = os.path.join(base, 'credentials.json')
+    with open(p, "w", encoding="utf-8") as f:
         json.dump(creds, f, ensure_ascii=False, indent=2)
 
 def _active_cred_index(creds):
@@ -838,6 +918,51 @@ def _profiles_get_for_active():
     c.setdefault("char_profiles", [])  # [{id,name,map}]
     tags = _list_invoice_categories(c)
     return c["char_profiles"], tags
+
+
+# ---------------- Per-group path helpers ----------------
+def group_path(*parts: str) -> str:
+    """Return an absolute path inside the active group's data folder (or global DATA_DIR fallback)."""
+    try:
+        base = get_group_base_dir()
+    except Exception:
+        base = DATA_DIR
+    if not parts:
+        return base
+    return os.path.join(base, *parts)
+
+
+def invoices_cache_path() -> str:
+    return group_path('invoices_cache.json')
+
+
+def summary_path() -> str:
+    return group_path('summary.json')
+
+
+def error_log_path() -> str:
+    return group_path('error.log')
+
+
+def activity_log_path() -> str:
+    return group_path('activity.log')
+
+
+def epsilon_json_path() -> str:
+    return group_path('epsilon_invoices.json')
+
+
+def epsilon_excel_path() -> str:
+    return group_path('epsilon_invoices.xlsx')
+
+
+def mark_counter_path() -> str:
+    return group_path('mark_counter.json')
+
+
+def settings_file_path() -> str:
+    return group_path('credentials_settings.json')
+
 
 def _profiles_set_for_active(profiles):
     creds = _load_all_credentials()
@@ -1965,7 +2090,7 @@ def append_receipt_to_excel(entry, excel_path=EPSILON_EXCEL_PATH):
 
 def _repeat_state_path():
     # DATA_DIR υπάρχει ήδη στο app σου
-    return os.path.join(DATA_DIR, "repeat_state.json")
+    return group_path("repeat_state.json")
 
 def _repeat_state_load():
     p = _repeat_state_path()
@@ -2012,10 +2137,40 @@ def get_existing_client_ids() -> set:
     """
     client_ids = set()
     try:
-        # αναζήτηση τρέχοντος client_db
-        for existing in os.listdir(DATA_DIR):
+        # If Flask-Login is present and there's a current_user, restrict to their folders.
+        try:
+            from flask_login import current_user
+            from auth import get_user_data_folders
+            if getattr(current_user, 'is_authenticated', False):
+                folders = get_user_data_folders(current_user) or []
+                # if user has no folders, return empty set
+                for folder in folders:
+                    folder_path = os.path.join(BASE_DIR, 'data', folder)
+                    if not os.path.isdir(folder_path):
+                        continue
+                    for existing in os.listdir(folder_path):
+                        if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
+                            path = os.path.join(folder_path, existing)
+                            ext = os.path.splitext(path)[1].lower()
+                            if ext in ['.xls', '.xlsx']:
+                                df = pd.read_excel(path, dtype=str)
+                            else:
+                                df = pd.read_csv(path, dtype=str)
+                            df.fillna('', inplace=True)
+                            for afm in df.get("ΑΦΜ", []):
+                                afm_str = str(afm).strip()
+                                if afm_str:
+                                    client_ids.add(afm_str)
+                            break
+                return client_ids
+        except Exception:
+            # fallback to global behaviour if login not available
+            pass
+
+        # αναζήτηση τρέχοντος client_db (global or per-group base)
+        for existing in os.listdir(get_group_base_dir()):
             if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
-                path = os.path.join(DATA_DIR, existing)
+                path = os.path.join(get_group_base_dir(), existing)
                 ext = os.path.splitext(path)[1].lower()
                 if ext in ['.xls', '.xlsx']:
                     df = pd.read_excel(path, dtype=str)
@@ -2028,7 +2183,10 @@ def get_existing_client_ids() -> set:
                         client_ids.add(afm_str)
                 break  # παίρνουμε μόνο το πρώτο υπάρχον client_db
     except Exception:
-        log.exception("Failed to get existing client IDs from client_db")
+        try:
+            log.exception("Failed to get existing client IDs from client_db")
+        except Exception:
+            pass
     return client_ids
 
 def _get_mark_from_epsilon_item(item):
@@ -2144,7 +2302,7 @@ def create_empty_excel_for_vat(vat, fiscal_year=None):
 import re
 def _fiscal_meta_path():
     """Return path to fiscal meta file inside DATA_DIR."""
-    return os.path.join(DATA_DIR, "fiscal_meta.json")
+    return group_path("fiscal_meta.json")
 def epsilon_item_has_detail(item):
     """
     True αν το item φαίνεται 'πραγματικό' (περιέχει αρκετά πεδία).
@@ -2184,7 +2342,7 @@ def _safe_save_epsilon_cache(vat_code, epsilon_list):
     Returns the path of the saved file on success.
     Raises on failure.
     """
-    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+    epsilon_dir = group_path("epsilon")
     os.makedirs(epsilon_dir, exist_ok=True)
     safe_vat = secure_filename(str(vat_code))
     epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
@@ -2298,8 +2456,8 @@ def get_active_fiscal_year():
 def set_active_fiscal_year(year):
     """Persist fiscal year (int). Returns True on success, False on failure."""
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
         p = _fiscal_meta_path()
+        os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w", encoding="utf-8") as fh:
             json.dump({"fiscal_year": int(year)}, fh)
         try:
@@ -2529,7 +2687,7 @@ def _find_afm_in_epsilon(mark: str = None, aa: str = None) -> str:
     Return AFM_issuer or AFM if found, else empty string.
     """
     try:
-        epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+        epsilon_dir = group_path("epsilon")
         if not os.path.isdir(epsilon_dir):
             return ""
         for fname in os.listdir(epsilon_dir):
@@ -2690,8 +2848,8 @@ def _append_to_excel(rec_dict, vat: Optional[str] = None, cred_name: Optional[st
 def set_active_fiscal_year(year):
     """Persist fiscal year (int)."""
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
         p = _fiscal_meta_path()
+        os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, 'w', encoding='utf-8') as fh:
             json.dump({'fiscal_year': int(year)}, fh)
         log.info("Set active fiscal year: %s", year)
@@ -2699,13 +2857,16 @@ def set_active_fiscal_year(year):
     except Exception:
         log.exception("Failed to write fiscal meta")
         return False
-def _client_meta_path():
-    """Full path to metadata JSON for client_db inside DATA_DIR."""
-    return os.path.join(DATA_DIR, 'client_db.meta.json')
+def _client_meta_path(base_dir=None):
+    """Full path to metadata JSON for client_db inside a base dir (defaults to DATA_DIR)."""
+    if base_dir is None:
+        base_dir = get_group_base_dir()
+    return os.path.join(base_dir, 'client_db.meta.json')
 
-def read_client_meta():
-    """Read metadata if exists, return dict or None."""
-    meta_path = _client_meta_path()
+
+def read_client_meta(base_dir=None):
+    """Read metadata if exists from the given base_dir (or DATA_DIR). Return dict or None."""
+    meta_path = _client_meta_path(base_dir)
     try:
         if os.path.exists(meta_path):
             with open(meta_path, 'r', encoding='utf-8') as fh:
@@ -2714,14 +2875,16 @@ def read_client_meta():
         log.exception("Failed reading client_db.meta.json")
     return None
 
-def write_client_meta(filename, uploaded_at_iso):
-    """Write metadata (filename, uploaded_at iso) to meta file."""
+
+def write_client_meta(filename, uploaded_at_iso, base_dir=None):
+    """Write metadata (filename, uploaded_at iso) to meta file inside base_dir (or DATA_DIR)."""
     meta = {
         'filename': filename,
         'uploaded_at': uploaded_at_iso
     }
-    meta_path = _client_meta_path()
+    meta_path = _client_meta_path(base_dir)
     try:
+        os.makedirs(os.path.dirname(meta_path), exist_ok=True)
         with open(meta_path, 'w', encoding='utf-8') as fh:
             json.dump(meta, fh, ensure_ascii=False, indent=2)
     except Exception:
@@ -2915,24 +3078,44 @@ def json_write(path, obj):
 
 
 def load_credentials():
-    if os.path.exists(CREDENTIALS_FILE):
-        with open(CREDENTIALS_FILE,'r',encoding='utf-8') as f:
-            return json.load(f)
-    return []
+    # use per-group credentials loader
+    try:
+        return _load_all_credentials()
+    except Exception:
+        return []
 
 def save_credentials(credentials):
-    with open(CREDENTIALS_FILE,'w',encoding='utf-8') as f:
-        json.dump(credentials, f, ensure_ascii=False, indent=2)
+    try:
+        _save_all_credentials(credentials)
+    except Exception:
+        # fallback: atomic write to global credentials path
+        try:
+            p = Path(CREDENTIALS_FILE)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            with p.open('w', encoding='utf-8') as f:
+                json.dump(credentials, f, ensure_ascii=False, indent=2)
+        except Exception:
+            log.exception('Failed to save credentials')
 
 def load_settings():
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE,'r',encoding='utf-8') as f:
-            return json.load(f)
+    try:
+        p = settings_file_path()
+        if os.path.exists(p):
+            with open(p, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        log.exception('load_settings failed')
     return {}
 
 def save_settings(settings):
-    with open(SETTINGS_FILE,'w',encoding='utf-8') as f:
-        json.dump(settings, f, ensure_ascii=False, indent=2)
+    try:
+        p = settings_file_path()
+        dirp = os.path.dirname(p)
+        os.makedirs(dirp, exist_ok=True)
+        with open(p, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, ensure_ascii=False, indent=2)
+    except Exception:
+        log.exception('save_settings failed')
 
 def get_active_credential():
     creds = load_credentials()
@@ -2966,11 +3149,17 @@ def delete_credential(name):
     return True
 
 def load_cache():
-    data = json_read(CACHE_FILE)
-    return data if isinstance(data, list) else []
+    try:
+        data = json_read(invoices_cache_path())
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
 
 def save_cache(docs):
-    json_write(CACHE_FILE, docs)
+    try:
+        json_write(invoices_cache_path(), docs)
+    except Exception:
+        log.exception('save_cache failed')
 
 def append_doc_to_cache(doc, aade_user=None, aade_key=None):
     docs = load_cache()
@@ -2992,7 +3181,7 @@ def append_doc_to_cache(doc, aade_user=None, aade_key=None):
 def save_summary_list(summary_list: List[Dict]):
     """Save summary_list to SUMMARY_FILE (overwrites)."""
     try:
-        json_write(SUMMARY_FILE, summary_list)
+        json_write(summary_path(), summary_list)
     except Exception:
         log.exception("Could not write summary file")
 
@@ -3137,7 +3326,7 @@ def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -
     Return path to per-vat excel file: DATA_DIR/excel/<safe_vat>_<fiscal_year>_invoices.xlsx
     Fallback: if vat/cred_name missing return DEFAULT_EXCEL_FILE.
     """
-    excel_dir = os.path.join(DATA_DIR, "excel")
+    excel_dir = group_path("excel")
     os.makedirs(excel_dir, exist_ok=True)
 
     # resolve fiscal year
@@ -3228,7 +3417,7 @@ def get_active_credential_from_session() -> Optional[Dict]:
 
 # NEW helper: epsilon per-vat path
 def epsilon_file_path_for(vat: str) -> str:
-    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+    epsilon_dir = group_path("epsilon")
     os.makedirs(epsilon_dir, exist_ok=True)
     return os.path.join(epsilon_dir, secure_filename(f"{vat}_epsilon_invoices.json"))
 
@@ -3287,29 +3476,26 @@ def load_epsilon_cache_for_vat(vat: str):
     ΔΕΝ κάνει auto-build από Excel ή άλλα αρχεία.
     """
     try:
-        eps_dir = os.path.join(DATA_DIR, "epsilon")
+        eps_dir = group_path("epsilon")
         os.makedirs(eps_dir, exist_ok=True)
         path = os.path.join(eps_dir, f"{vat}_epsilon_invoices.json")
         if not os.path.exists(path):
             return []
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                txt = f.read().strip()
-                if not txt:
-                    return []
-                data = json.loads(txt)
-                if isinstance(data, list):
-                    return data
-                # παλιό shape dict => γύρνα το σε λίστα όσο γίνεται
-                out = []
-                if isinstance(data, dict):
-                    for v in data.values():
-                        if isinstance(v, dict):
-                            out.append(v)
-                return out
-        except Exception:
-            log.exception("load_epsilon_cache_for_vat: JSON decode error -> return []")
-            return []
+        with open(path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+            except Exception:
+                log.exception("load_epsilon_cache_for_vat: JSON decode error -> return []")
+                return []
+        if isinstance(data, list):
+            return data
+        # old shape dict -> convert to list of dict values
+        out = []
+        if isinstance(data, dict):
+            for v in data.values():
+                if isinstance(v, dict):
+                    out.append(v)
+        return out
     except Exception:
         log.exception("load_epsilon_cache_for_vat: unexpected error")
         return []
@@ -3449,7 +3635,7 @@ def _upsert_epsilon_invoice(new_doc: dict):
     - If not found, it creates a per-vat file using AFM_issuer/AFM (if available) or 'unknown'.
     Returns (path_written, id_inv).
     """
-    epsilon_dir = os.path.join(DATA_DIR, "epsilon")
+    epsilon_dir = group_path("epsilon")
     os.makedirs(epsilon_dir, exist_ok=True)
 
     mark = _normalize_val(new_doc.get("mark") or new_doc.get("MARK"))
@@ -3692,13 +3878,12 @@ def api_repeat_entry_get_v2():
     Query param: ?vat=...
     """
     try:
-        creds = read_credentials_list()  # δική σου helper
+        creds = read_credentials_list() or []
     except Exception:
-        creds = None
+        creds = []
 
     vat = (request.args.get('vat') or "").strip() or None
     session_cred = (get_active_credential_from_session() if 'get_active_credential_from_session' in globals() else {}) or {}
-
     if not vat and isinstance(session_cred, dict):
         vat = (session_cred.get('vat') or session_cred.get('afm') or "").strip() or None
 
@@ -3706,56 +3891,41 @@ def api_repeat_entry_get_v2():
                  "repeat_entry": {"enabled": False, "mapping": {}, "profile_name": ""},
                  "expense_tags": []}
 
-    # αν δεν υπάρχουν credentials, επέστρεψε ό,τι μπορείς από το session
     if not creds:
-        guess = ""
-        try:
-            if isinstance(session_cred, dict):
-                guess = (session_cred.get('afm') or session_cred.get('vat') or "") or ""
-                guess = str(guess).strip()
-        except Exception:
-            pass
-        if guess:
-            base_resp["afm"] = guess
-            base_resp["vat"] = guess
+        if vat:
+            base_resp["afm"] = vat
+            base_resp["vat"] = vat
         return jsonify(base_resp)
 
-    # βρες ενεργό πελάτη
-    idx = find_active_client_index(creds, vat=vat) if 'find_active_client_index' in globals() else None
+    # find client record
     client_rec = None
-    if idx is not None and 0 <= idx < len(creds) and isinstance(creds[idx], dict):
-        client_rec = creds[idx]
-    else:
-        # fallback: απλή αναζήτηση
-        if vat:
-            for rec in creds:
-                if isinstance(rec, dict):
-                    v = str(rec.get('vat') or rec.get('afm') or "").strip()
-                    if v and v == str(vat).strip():
-                        client_rec = rec
-                        break
-        if client_rec is None:
-            # έσχατο fallback: τίποτα
-            return jsonify(base_resp)
+    if 'find_active_client_index' in globals():
+        try:
+            idx = find_active_client_index(creds, vat=vat)
+            if idx is not None and 0 <= idx < len(creds) and isinstance(creds[idx], dict):
+                client_rec = creds[idx]
+        except Exception:
+            client_rec = None
 
-    # repeat_entry (με profile_name)
-    repeat_raw = (client_rec.get('repeat_entry') or {}) if isinstance(client_rec, dict) else {}
-    repeat = {
-        "enabled": bool(repeat_raw.get("enabled")),
-        "mapping": repeat_raw.get("mapping") or {},
-        "profile_name": (repeat_raw.get("profile_name") or "").strip(),
-    }
+    if client_rec is None:
+        for c in creds:
+            try:
+                if str((c.get('vat') or c.get('afm') or '')).strip() == (vat or '').strip():
+                    client_rec = c
+                    break
+            except Exception:
+                continue
+
+    if not client_rec:
+        return jsonify(base_resp)
+
+    try:
+        repeat = client_rec.get('repeat_entry') or {}
+    except Exception:
+        repeat = {}
 
     tags = _list_invoice_categories(client_rec)
     labels = _category_labels_for_client(client_rec)
-
-    # afm/vat για πληρότητα
-    afm_guess = ""
-    for k in ("afm", "AFM", "vat", "VAT", "vat_number", "vatNumber"):
-        val = client_rec.get(k)
-        if val:
-            afm_guess = str(val).strip()
-            break
 
     resp = {
         "ok": True,
@@ -3763,9 +3933,9 @@ def api_repeat_entry_get_v2():
         "expense_tags": tags,
         "category_labels": labels,
     }
-    if afm_guess:
-        resp["afm"] = afm_guess
-        resp["vat"] = afm_guess
+    if vat:
+        resp["afm"] = vat
+        resp["vat"] = vat
     return jsonify(resp)
 
 
@@ -4846,51 +5016,77 @@ def upload_client_db():
                     new_clients_set.add(afm_str)
 
         # --- Backup: keep only one backup ---
-        dest_name = f'client_db{ext}'
-        dest_path = os.path.join(DATA_DIR, dest_name)
-
+        # save into the user's group folder when possible
         try:
-            # 1) remove any previous backups (files that contain ".bak." or end with ".bak")
-            for existing in os.listdir(DATA_DIR):
+            from flask_login import current_user
+            target_base = DATA_DIR
+            requested_group = (request.form.get('group') or '').strip()
+            if getattr(current_user, 'is_authenticated', False):
+                user_groups = getattr(current_user, 'groups', [])
+                if requested_group:
+                    grp = None
+                    for g in user_groups:
+                        if g.name == requested_group:
+                            grp = g
+                            break
+                    if not grp:
+                        return jsonify(success=False, message='Δεν έχετε πρόσβαση στην επιλεγμένη ομάδα.'), 403
+                    target_base = os.path.join(BASE_DIR, 'data', grp.data_folder or '')
+                else:
+                    if len(user_groups) == 1:
+                        target_base = os.path.join(BASE_DIR, 'data', user_groups[0].data_folder or '')
+                    else:
+                        return jsonify(success=False, message='Έχετε πολλές ομάδες. Συμπληρώστε το πεδίο group στο αίτημα.'), 400
+            os.makedirs(target_base, exist_ok=True)
+
+            dest_name = f'client_db{ext}'
+            dest_path = os.path.join(target_base, dest_name)
+
+            # 1) remove any previous backups in target_base
+            for existing in os.listdir(target_base):
                 if not existing.startswith('client_db'):
                     continue
-                # consider files like client_db.xlsx.bak.20250101T000000Z or client_db.bak
                 if '.bak.' in existing or existing.endswith('.bak'):
                     try:
-                        os.remove(os.path.join(DATA_DIR, existing))
+                        os.remove(os.path.join(target_base, existing))
                         log.info("Removed old client_db backup: %s", existing)
                     except Exception:
                         log.exception("Failed to remove old backup %s (continuing)", existing)
 
             # 2) move current client_db.* (if any) to a new single backup (timestamped)
-            for existing in os.listdir(DATA_DIR):
+            for existing in os.listdir(target_base):
                 if existing.startswith('client_db'):
                     existing_ext = os.path.splitext(existing)[1].lower()
                     if existing_ext in ALLOWED_CLIENT_EXT:
-                        existing_path = os.path.join(DATA_DIR, existing)
+                        existing_path = os.path.join(target_base, existing)
                         ts = _dt.utcnow().strftime('%Y%m%dT%H%M%SZ')
                         backup_name = f"{existing}.bak.{ts}"
-                        backup_path = os.path.join(DATA_DIR, backup_name)
+                        backup_path = os.path.join(target_base, backup_name)
                         try:
                             os.rename(existing_path, backup_path)
                             log.info("Backed up previous client_db: %s -> %s", existing, backup_name)
                         except Exception:
                             log.exception("Failed to backup previous client_db %s (continuing)", existing)
+
+            # --- Save uploaded file to destination path ---
+            try:
+                f.stream.seek(0)
+                f.save(dest_path)
+            except Exception:
+                log.exception("Failed to save uploaded client_db to %s", dest_path)
+                return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
+
         except Exception:
             log.exception("Failed while rotating client_db backups (continuing)")
-
-        # --- Save uploaded file to destination path ---
-        try:
-            f.stream.seek(0)
-            f.save(dest_path)
-        except Exception:
-            log.exception("Failed to save uploaded client_db to %s", dest_path)
-            return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
 
         # --- Meta info ---
         try:
             uploaded_at_iso = _dt.utcnow().replace(microsecond=0).isoformat() + 'Z'
-            write_client_meta(filename, uploaded_at_iso)
+            try:
+                write_client_meta(filename, uploaded_at_iso, base_dir=target_base)
+            except Exception:
+                # fallback to global meta write
+                write_client_meta(filename, uploaded_at_iso)
         except Exception:
             log.exception("Failed to write client_db metadata (continuing)")
 
@@ -4971,12 +5167,33 @@ def client_db_info():
     { exists: bool, filename: str|null, uploaded_at: str|null, total_rows: int, new_rows: int, updated_rows: int }
     """
     try:
-        meta = read_client_meta()
+        # prefer per-user group meta when authenticated
+        try:
+            from flask_login import current_user
+            target_base = DATA_DIR
+            requested_group = (request.args.get('group') or '').strip()
+            if getattr(current_user, 'is_authenticated', False):
+                user_groups = getattr(current_user, 'groups', [])
+                if requested_group:
+                    grp = None
+                    for g in user_groups:
+                        if g.name == requested_group:
+                            grp = g
+                            break
+                    if not grp:
+                        return jsonify({'ok': False, 'error': 'Δεν έχετε πρόσβαση στην επιλεγμένη ομάδα.'}), 403
+                    target_base = os.path.join(BASE_DIR, 'data', grp.data_folder or '')
+                else:
+                    if len(user_groups) == 1:
+                        target_base = os.path.join(BASE_DIR, 'data', user_groups[0].data_folder or '')
+            meta = read_client_meta(base_dir=target_base)
+        except Exception:
+            meta = read_client_meta()
         counts = {'total_rows': 0, 'new_rows': 0, 'updated_rows': 0}
 
         if meta:
             # αν υπάρχει client_db, διαβάζουμε για μέτρηση
-            p = os.path.join(DATA_DIR, f"client_db{os.path.splitext(meta.get('filename',''))[1]}")
+            p = os.path.join(target_base, f"client_db{os.path.splitext(meta.get('filename',''))[1]}")
             if os.path.exists(p):
                 try:
                     ext = os.path.splitext(p)[1].lower()
@@ -5006,9 +5223,9 @@ def client_db_info():
                            **counts), 200
 
         # fallback: if any client_db.* exists but no meta file
-        for existing in os.listdir(DATA_DIR):
+        for existing in os.listdir(get_group_base_dir()):
             if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
-                p = os.path.join(DATA_DIR, existing)
+                p = os.path.join(get_group_base_dir(), existing)
                 try:
                     mtime = _dt.utcfromtimestamp(os.path.getmtime(p)).replace(microsecond=0).isoformat() + 'Z'
                     counts.update({'total_rows': 0, 'new_rows': 0, 'updated_rows': 0})
@@ -5254,7 +5471,7 @@ def append_summary_to_customer_file(summary, vat):
     """
     if not vat:
         return False
-    summary_file = os.path.join(DATA_DIR, f"{vat}_summary.json")
+    summary_file = group_path(f"{vat}_summary.json")
     summaries = json_read(summary_file)
     # avoid duplicate by MARK
     mark = str(summary.get("mark", "")).strip()
@@ -5265,10 +5482,10 @@ def append_summary_to_customer_file(summary, vat):
     return True
 
 def get_customer_summary_file(vat):
-    return os.path.join(DATA_DIR, f"{vat}_summary.json")
+    return group_path(f"{vat}_summary.json")
 
 def get_customer_docs_file(vat):
-    return os.path.join(DATA_DIR, f"{vat}_invoices.json")
+    return group_path(f"{vat}_invoices.json")
 
 
 
@@ -5397,7 +5614,7 @@ def api_check_mark():
 
         # προσπαθούμε να βρούμε χαρακτηρισμό:
         # 1) πρώτα ψάχνουμε στο epsilon cache αν υπάρχει (καλύτερο για authoritative value)
-        epsilon_path = os.path.join("data", "epsilon", f"{safe_vat}_epsilon_invoices.json")
+        epsilon_path = os.path.join(group_path("epsilon"), f"{safe_vat}_epsilon_invoices.json")
         epsilon_list = _load_json(epsilon_path) or []
         # αναζητάμε στην epsilon λίστα για το ίδιο mark
         def _match_in_epsilon(item):
@@ -5451,7 +5668,7 @@ def api_update_epsilon_characteristic():
             return jsonify({"ok": False, "error": "missing vat or mark"}), 400
 
         safe_vat = secure_filename(vat)
-        epsilon_dir = os.path.join("data", "epsilon")
+        epsilon_dir = group_path("epsilon")
         os.makedirs(epsilon_dir, exist_ok=True)
         epsilon_path = os.path.join(epsilon_dir, f"{safe_vat}_epsilon_invoices.json")
         epsilon_list = _load_json(epsilon_path) or []
@@ -5589,7 +5806,11 @@ def search():
 
     # ---------- credentials helpers ----------
     def credentials_path():
-        return os.path.join(DATA_DIR, "credentials.json")
+        # prefer per-group credentials file
+        try:
+            return credentials_path_for_request()
+        except Exception:
+            return os.path.join(DATA_DIR, "credentials.json")
 
     def read_credentials_list_local():
         try:
@@ -5782,7 +6003,7 @@ def search():
 
         if not error:
             # --- φορτώνουμε cache invoices ---
-            customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+            customer_file = group_path(f"{vat}_invoices.json")
             try:
                 cache = json_read(customer_file) or []
             except Exception:
@@ -6032,7 +6253,7 @@ def search():
 
                                     # prefill from epsilon if exists
                                     try:
-                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        epsilon_path = os.path.join(group_path("epsilon"), f"{vat}_epsilon_invoices.json")
                                         eps_list = json_read(epsilon_path) or []
                                         matched = None
                                         for it in (eps_list or []):
@@ -6120,7 +6341,7 @@ def search():
 
                                     # epsilon prefill (όπως πριν)
                                     try:
-                                        epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                                        epsilon_path = os.path.join(group_path("epsilon"), f"{vat}_epsilon_invoices.json")
                                         eps_list = json_read(epsilon_path) or []
 
                                         if not eps_list:
@@ -6633,7 +6854,7 @@ def api_next_receipt_mark():
         # 2) read epsilon json for vat
         try:
             if vat:
-                eps_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                eps_path = os.path.join(group_path("epsilon"), f"{vat}_epsilon_invoices.json")
                 if os.path.exists(eps_path):
                     try:
                         with open(eps_path, "r", encoding="utf-8") as f:
@@ -6668,7 +6889,7 @@ def api_next_receipt_mark():
         # 3) read cached invoices file
         try:
             if vat:
-                cust_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+                cust_file = group_path(f"{vat}_invoices.json")
                 if os.path.exists(cust_file):
                     try:
                         j = json_read(cust_file) or []
@@ -6698,7 +6919,7 @@ def api_next_receipt_mark():
             except Exception:
                 continue
 
-        DEFAULT_BASE_MARK = 400000000000000  # safe starting point if none found
+        DEFAULT_BASE_MARK = 500000000000000  # safe starting point if none found
 
         if numeric_marks:
             next_num = max(numeric_marks) + 1
@@ -6999,7 +7220,7 @@ def save_summary():
     def _load_repeat_entry_for_vat(vat: str):
         """Διαβάζει credentials.json και επιστρέφει repeat_entry για συγκεκριμένο ΑΦΜ."""
         try:
-            creds_path = os.path.join(DATA_DIR, "credentials.json")
+            creds_path = credentials_path_for_request()
             if not os.path.exists(creds_path):
                 return {"enabled": False, "mapping": {}}
             with open(creds_path, "r", encoding="utf-8") as f:
@@ -7074,7 +7295,7 @@ def save_summary():
     if not lines:
         try:
             mark = str(summary.get("mark","")).strip()
-            docs_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+            docs_file = group_path(f"{vat}_invoices.json")
             all_docs = json_read(docs_file) or []
             docs_for_mark = [d for d in all_docs if str(d.get("mark","")).strip() == mark]
             reconstructed = []
@@ -7823,8 +8044,8 @@ def _analyze_backup_zip(file_like) -> Dict[str, Any]:
 
 
 def _apply_backup_zip(zip_path: str) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    base = os.path.normpath(DATA_DIR)
+    os.makedirs(get_group_base_dir(), exist_ok=True)
+    base = os.path.normpath(get_group_base_dir())
     has_credentials = False
 
     with zipfile.ZipFile(zip_path) as zf:
@@ -7837,7 +8058,7 @@ def _apply_backup_zip(zip_path: str) -> None:
                 continue
             if rel == "credentials.json":
                 has_credentials = True
-            dest = os.path.normpath(os.path.join(DATA_DIR, rel))
+            dest = os.path.normpath(os.path.join(get_group_base_dir(), rel))
             if not dest.startswith(base + os.sep) and dest != base:
                 raise ValueError(f"Μη έγκυρη διαδρομή στο backup: {info.filename}")
             dest_dir = os.path.dirname(dest)
@@ -7855,10 +8076,11 @@ def data_backup_download():
     try:
         mem = io.BytesIO()
         with zipfile.ZipFile(mem, "w", zipfile.ZIP_DEFLATED) as zf:
-            for root, _, files in os.walk(DATA_DIR):
+            base = get_group_base_dir()
+            for root, _, files in os.walk(base):
                 for fname in files:
                     path = os.path.join(root, fname)
-                    arc = os.path.relpath(path, DATA_DIR)
+                    arc = os.path.relpath(path, base)
                     zf.write(path, arc)
         mem.seek(0)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -8267,7 +8489,7 @@ def delete_invoices():
             try:
                 epsilon_path = epsilon_file_path_for(vat)
             except Exception:
-                epsilon_path = os.path.join(DATA_DIR, "epsilon", f"{vat}_epsilon_invoices.json")
+                epsilon_path = os.path.join(group_path("epsilon"), f"{vat}_epsilon_invoices.json")
 
             if os.path.exists(epsilon_path):
                 try:
@@ -8318,7 +8540,7 @@ def delete_invoices():
         # --- Fallback: if nothing was removed (or no active VAT), also scan all epsilon caches and remove these MARKs ---
     try:
         if deleted_from_epsilon == 0:
-            eps_dir = os.path.join(DATA_DIR, "epsilon")
+            eps_dir = group_path("epsilon")
             if os.path.isdir(eps_dir):
                 for fname in os.listdir(eps_dir):
                     if not fname.endswith("_epsilon_invoices.json"):
