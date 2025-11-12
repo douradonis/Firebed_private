@@ -168,3 +168,594 @@
 2025-11-12 14:56:15+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login?next=/credentials
 2025-11-12 14:56:28+0200 INFO Starting app - MYDATA_ENV=production
 2025-11-12 14:56:29+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:01:11+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login?next=/credentials
+2025-11-12 15:01:11+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login?next=/credentials
+2025-11-12 15:01:12+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:01:12+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:04:02+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:04:03+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:04:57+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:04:57+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:05:11+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:05:12+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:06:07+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:06:08+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:06:23+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 15:41:48+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 15:41:49+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:42:59+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5.github.dev/
+2025-11-12 15:42:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:42:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:43:01+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:43:01+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:02+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:05+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:05+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:05+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:05+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:07+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:07+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:43:07+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:43:28+0200 INFO Incoming request: method=GET path=/lookup_user remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:43:33+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:43:34+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:34+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:36+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:38+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:38+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:43:38+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:43:38+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:21+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:44:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:44:32+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:44:32+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:44:32+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:44:32+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:44:34+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:44:34+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:34+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:40+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:40+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:44:40+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:40+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:42+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:44:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:44:55+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:44:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:44:55+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:45:02+0200 INFO Incoming request: method=POST path=/api/data_backup/inspect remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:45:09+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:45:10+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:45:10+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:46:51+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:46:51+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:46:51+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:46:52+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:01+0200 INFO Incoming request: method=GET path=/signup remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:02+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/signup
+2025-11-12 15:47:02+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/signup
+2025-11-12 15:47:20+0200 INFO Incoming request: method=POST path=/signup remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/signup
+2025-11-12 15:47:20+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/signup
+2025-11-12 15:47:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:26+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:26+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:47:26+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:47:26+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:47:30+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:47:30+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:30+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:32+0200 INFO Incoming request: method=POST path=/set_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:32+0200 INFO Set active fiscal year: 2025
+2025-11-12 15:47:32+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:32+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:32+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:40+0200 INFO Incoming request: method=POST path=/api/data_backup/inspect remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:42+0200 INFO Incoming request: method=POST path=/api/data_backup/restore remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:43+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:48+0200 INFO Incoming request: method=POST path=/credentials/delete/ΒΑΨΙΜΟ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:48+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:49+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:49+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:49+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:51+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:51+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:52+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:47:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:47:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:48:04+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:48:05+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:05+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:11+0200 INFO Incoming request: method=POST path=/credentials/edit/pan remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:12+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:12+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:12+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:15+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:15+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:15+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:18+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:18+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:18+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:20+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:20+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:20+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:48:20+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:48:24+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:48:25+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:48:25+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:48:25+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:48:27+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:48:27+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:27+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:29+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:29+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:29+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:29+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:33+0200 INFO Incoming request: method=POST path=/set_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:33+0200 INFO Set active fiscal year: 2025
+2025-11-12 15:48:33+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:35+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:37+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:37+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:37+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:37+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:43+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:48+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:53+0200 INFO Incoming request: method=POST path=/credentials/edit/pan remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:53+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:55+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:57+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:48:57+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:57+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:59+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:48:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:48:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:08+0200 INFO Incoming request: method=GET path=/lookup_user remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:13+0200 INFO Incoming request: method=POST path=/groups/assign remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:13+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups/assign
+2025-11-12 15:49:15+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:17+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:49:17+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:17+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:18+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:49:18+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:18+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:20+0200 INFO Incoming request: method=POST path=/groups/assign remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:20+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups/assign
+2025-11-12 15:49:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:26+0200 INFO Incoming request: method=GET path=/lookup_user remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:33+0200 INFO Incoming request: method=POST path=/groups/assign remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:33+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups/assign
+2025-11-12 15:49:36+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:49:37+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:37+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:38+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/epsilon/preview?vat=12345679
+2025-11-12 15:49:38+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:38+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:41+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:41+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:42+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:49:42+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:49:48+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:49:48+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/login
+2025-11-12 15:49:49+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:49:49+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:49:51+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/
+2025-11-12 15:49:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:54+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:54+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:54+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:58+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:49:59+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:00+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:00+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=POST path=/set_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Set active fiscal year: 2025
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:02+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:03+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/search
+2025-11-12 15:50:03+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:50:03+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:50:06+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/credentials
+2025-11-12 15:50:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:50:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5001.app.github.dev/groups
+2025-11-12 15:53:23+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:54:15+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:54:23+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:54:33+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:54:59+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 15:57:14+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 15:59:45+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 15:59:59+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 16:00:08+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 16:00:16+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 16:00:18+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-12 16:00:19+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-12 16:00:26+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5.github.dev/
+2025-11-12 16:00:26+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:00:26+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:00:28+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:00:28+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:00:28+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:00:36+0200 INFO Incoming request: method=POST path=/groups/remove_member remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:00:41+0200 INFO Incoming request: method=POST path=/groups/remove_member remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:00:52+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:00:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:00:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:01:08+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:01:08+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:11+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:11+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:11+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:11+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:17+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:17+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:17+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:17+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:20+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:20+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:01:20+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:01:22+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:01:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:28+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:28+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:29+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:29+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:33+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:33+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:33+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:33+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:35+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:43+0200 INFO Incoming request: method=GET path=/lookup_user remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:47+0200 INFO Incoming request: method=POST path=/groups/assign remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:47+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups/assign
+2025-11-12 16:01:49+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:51+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=None
+2025-11-12 16:01:52+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:52+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:53+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:01:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:58+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:58+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login
+2025-11-12 16:01:58+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:01:58+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:02:01+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
+2025-11-12 16:02:01+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:02+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:03+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:07+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:07+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:07+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:09+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:09+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:09+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:10+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:12+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:02:12+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:12+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:13+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:14+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:16+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:02:17+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:02:17+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:31+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:32+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:32+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:35+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:39+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:42+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:49+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:04:50+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:50+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:51+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:52+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:56+0200 INFO Incoming request: method=POST path=/credentials/delete/pan remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:57+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:58+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:58+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:04:58+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:04+0200 INFO Incoming request: method=POST path=/credentials/delete/pan remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:04+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:05+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:05+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:05+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:07+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:05:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:05:08+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:08:53+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/groups
+2025-11-12 16:08:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:54+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:55+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:55+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:59+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:08:59+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:08:59+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:02+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:02+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:02+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:02+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:03+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
+2025-11-12 16:09:03+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:03+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:03+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:08+0200 INFO Incoming request: method=POST path=/api/qr/remote/start remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:09+0200 INFO remote.start session=RnZkDxDhs2A1 mode=invoices repeat=False auto=True owner=IN4zxJcq… ip=127.0.0.1
+2025-11-12 16:09:09+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:09+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:10+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:10+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:11+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:11+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:12+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:12+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:14+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:14+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:14+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:17+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:17+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:17+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:17+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:19+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:20+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:20+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:22+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:22+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:23+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:23+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:24+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:24+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:26+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:26+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:27+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:27+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:29+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:29+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:29+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:29+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:32+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:32+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:32+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:32+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:34+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:34+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:34+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:34+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:36+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:36+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:36+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:36+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:36+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=None
+2025-11-12 16:09:37+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-12 16:09:37+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-12 16:09:38+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:38+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:39+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:39+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:40+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:40+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:41+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:41+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:42+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:42+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:44+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:44+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:44+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:44+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:46+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:46+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:46+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:46+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:48+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:48+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:49+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:49+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:50+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:50+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:51+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:51+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:53+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:53+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=None
+2025-11-12 16:09:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-12 16:09:53+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-12 16:09:54+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:54+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:55+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:55+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:56+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:56+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:09:57+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:57+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:09:59+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:09:59+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:00+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:00+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:02+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:02+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:03+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:03+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:04+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:04+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:06+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:06+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:07+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:07+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:09+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:09+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:09+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:09+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:12+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:12+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:12+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:12+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:14+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:15+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:15+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:17+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:17+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:18+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:18+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:19+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:21+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:21+0200 INFO remote.status session=RnZkDxDhs2A1 owner=IN4zxJcq… since=0 version=0 attached=False
+2025-11-12 16:10:22+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/search
+2025-11-12 16:10:22+0200 INFO remote.update session=RnZkDxDhs2A1 owner=IN4zxJcq… mode=invoices repeat=False auto=True summary=True
+2025-11-12 16:10:45+0200 INFO Starting app - MYDATA_ENV=production

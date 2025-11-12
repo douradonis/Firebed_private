@@ -4221,9 +4221,28 @@ def api_qr_remote_start():
     push_secret = secrets.token_urlsafe(32)
     expires_at = now + REMOTE_QR_SESSION_TTL
 
+    # attach current desktop user & active group if available so mobile does not need to login
+    owner_user_id = None
+    owner_group_name = None
+    try:
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False):
+            owner_user_id = current_user.id
+            try:
+                from auth import get_active_group
+                g = get_active_group()
+                if g:
+                    owner_group_name = g.name
+            except Exception:
+                owner_group_name = None
+    except Exception:
+        owner_user_id = None
+
     entry = {
         "id": session_id,
         "owner_token": owner,
+        "owner_user_id": owner_user_id,
+        "owner_group": owner_group_name,
         "push_secret": push_secret,
         "mode": mode,
         "created_at": now,
@@ -4825,6 +4844,21 @@ def mobile_qr_scanner():
 
 @app.route('/credentials/add', methods=['POST'])
 def credentials_add():
+    # Only group admin may add credentials
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            flash('No active group selected', 'error')
+            return redirect(url_for('credentials'))
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            flash('Admin privileges required to add credentials', 'error')
+            return redirect(url_for('credentials'))
+    except Exception:
+        flash('Permission check failed', 'error')
+        return redirect(url_for('credentials'))
+
     credentials = load_credentials()
     name = request.form.get('name')
     vat = request.form.get('vat')
@@ -4880,6 +4914,21 @@ def _delete_credential_and_related_data(name: str):
 
 @app.route('/credentials/delete/<name>', methods=['POST'])
 def credentials_delete_post(name):
+    # Only group admin may delete credentials
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            flash('No active group selected', 'error')
+            return redirect(url_for('credentials'))
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            flash('Admin privileges required to delete credentials', 'error')
+            return redirect(url_for('credentials'))
+    except Exception:
+        flash('Permission check failed', 'error')
+        return redirect(url_for('credentials'))
+
     credential, was_active, cleanup = _delete_credential_and_related_data(name)
     if not credential:
         flash(f"Credential '{name}' not found", "error")
@@ -4910,6 +4959,18 @@ def credentials_set_active():
 
 @app.route('/credentials/save_settings', methods=['POST'])
 def credentials_save_settings():
+    # Only group admin may update settings
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'status':'error','error':'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'status':'error','error':'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'status':'error','error':'permission check failed'}), 500
+
     data = request.get_json()
     if data:
         save_settings(data)
@@ -8086,6 +8147,18 @@ def _apply_backup_zip(zip_path: str) -> None:
 
 @app.get("/api/data_backup/download")
 def data_backup_download():
+    # only group admin may download backups
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
     try:
         mem = io.BytesIO()
         with zipfile.ZipFile(mem, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -8110,6 +8183,18 @@ def data_backup_download():
 
 @app.post("/api/data_backup/inspect")
 def data_backup_inspect():
+    # only group admin may inspect backup contents
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
     uploaded = request.files.get("backup_file")
     if not uploaded:
         return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
@@ -8130,6 +8215,18 @@ def data_backup_inspect():
 
 @app.post("/api/data_backup/restore")
 def data_backup_restore():
+    # only group admin may restore backups
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
     uploaded = request.files.get("backup_file")
     if not uploaded:
         return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
@@ -8651,6 +8748,6 @@ def health():
     return "OK"
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5001"))
+    port = int(os.getenv("PORT", "5000"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
