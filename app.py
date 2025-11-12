@@ -768,6 +768,55 @@ ALLOWED_CLIENT_EXT = {'.xlsx', '.xls', '.csv'}
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = os.getenv("FLASK_SECRET", "change-me")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
+# --- Initialize DB and authentication ---
+try:
+    # local imports to avoid circulars during module import
+    from models import db
+    from auth import login_manager, auth_bp
+
+    app.config.setdefault('SQLALCHEMY_DATABASE_URI', os.getenv('DATABASE_URL') or 'sqlite:///' + os.path.join(BASE_DIR, 'firebed.db'))
+    app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+
+    db.init_app(app)
+    login_manager.init_app(app)
+    app.register_blueprint(auth_bp)
+
+    # create tables if missing (safe during startup)
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception:
+            # ignore DB creation errors during import; app can still run
+            pass
+except Exception:
+    # if SQLAlchemy or auth is not available, continue without auth
+    pass
+# --- end auth init ---
+try:
+    # If Flask-Login is available, enforce login for non-auth endpoints
+    from flask_login import current_user
+    @app.before_request
+    def require_login_before_request():
+        # allow static and auth endpoints
+        endpoint = request.endpoint or ''
+        if endpoint.startswith('auth.') or endpoint.startswith('static'):
+            return None
+        # allow public API endpoints (if any) - keep a whitelist here if needed
+        public = {'home', 'index', 'healthcheck'}
+        if endpoint in public:
+            return None
+
+        try:
+            if not getattr(current_user, 'is_authenticated', False):
+                # API requests: return 401 JSON
+                if request.path.startswith('/api/') or request.is_json:
+                    return jsonify({'error': 'authentication required'}), 401
+                return redirect(url_for('auth.login', next=request.path))
+        except Exception:
+            # if anything goes wrong, do not block app startup
+            return None
+except Exception:
+    pass
 FISCAL_META = 'fiscal.meta.json'   # αποθηκεύεται μέσα στο DATA_DIR
 REQUIRED_CLIENT_COLUMNS = {"ΑΦΜ", "Επωνυμία", "Διεύθυνση", "Πόλη", "ΤΚ", "Τηλέφωνο"}  # προσάρμοσε αν χρειάζεται
 CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
@@ -2012,7 +2061,37 @@ def get_existing_client_ids() -> set:
     """
     client_ids = set()
     try:
-        # αναζήτηση τρέχοντος client_db
+        # If Flask-Login is present and there's a current_user, restrict to their folders.
+        try:
+            from flask_login import current_user
+            from auth import get_user_data_folders
+            if getattr(current_user, 'is_authenticated', False):
+                folders = get_user_data_folders(current_user) or []
+                # if user has no folders, return empty set
+                for folder in folders:
+                    folder_path = os.path.join(DATA_DIR, folder)
+                    if not os.path.isdir(folder_path):
+                        continue
+                    for existing in os.listdir(folder_path):
+                        if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
+                            path = os.path.join(folder_path, existing)
+                            ext = os.path.splitext(path)[1].lower()
+                            if ext in ['.xls', '.xlsx']:
+                                df = pd.read_excel(path, dtype=str)
+                            else:
+                                df = pd.read_csv(path, dtype=str)
+                            df.fillna('', inplace=True)
+                            for afm in df.get("ΑΦΜ", []):
+                                afm_str = str(afm).strip()
+                                if afm_str:
+                                    client_ids.add(afm_str)
+                            break
+                return client_ids
+        except Exception:
+            # fallback to global behaviour if login not available
+            pass
+
+        # αναζήτηση τρέχοντος client_db (global)
         for existing in os.listdir(DATA_DIR):
             if existing.startswith('client_db') and os.path.splitext(existing)[1].lower() in ALLOWED_CLIENT_EXT:
                 path = os.path.join(DATA_DIR, existing)
@@ -2028,7 +2107,10 @@ def get_existing_client_ids() -> set:
                         client_ids.add(afm_str)
                 break  # παίρνουμε μόνο το πρώτο υπάρχον client_db
     except Exception:
-        log.exception("Failed to get existing client IDs from client_db")
+        try:
+            log.exception("Failed to get existing client IDs from client_db")
+        except Exception:
+            pass
     return client_ids
 
 def _get_mark_from_epsilon_item(item):
@@ -2699,13 +2781,16 @@ def set_active_fiscal_year(year):
     except Exception:
         log.exception("Failed to write fiscal meta")
         return False
-def _client_meta_path():
-    """Full path to metadata JSON for client_db inside DATA_DIR."""
-    return os.path.join(DATA_DIR, 'client_db.meta.json')
+def _client_meta_path(base_dir=None):
+    """Full path to metadata JSON for client_db inside a base dir (defaults to DATA_DIR)."""
+    if base_dir is None:
+        base_dir = DATA_DIR
+    return os.path.join(base_dir, 'client_db.meta.json')
 
-def read_client_meta():
-    """Read metadata if exists, return dict or None."""
-    meta_path = _client_meta_path()
+
+def read_client_meta(base_dir=None):
+    """Read metadata if exists from the given base_dir (or DATA_DIR). Return dict or None."""
+    meta_path = _client_meta_path(base_dir)
     try:
         if os.path.exists(meta_path):
             with open(meta_path, 'r', encoding='utf-8') as fh:
@@ -2714,14 +2799,16 @@ def read_client_meta():
         log.exception("Failed reading client_db.meta.json")
     return None
 
-def write_client_meta(filename, uploaded_at_iso):
-    """Write metadata (filename, uploaded_at iso) to meta file."""
+
+def write_client_meta(filename, uploaded_at_iso, base_dir=None):
+    """Write metadata (filename, uploaded_at iso) to meta file inside base_dir (or DATA_DIR)."""
     meta = {
         'filename': filename,
         'uploaded_at': uploaded_at_iso
     }
-    meta_path = _client_meta_path()
+    meta_path = _client_meta_path(base_dir)
     try:
+        os.makedirs(os.path.dirname(meta_path), exist_ok=True)
         with open(meta_path, 'w', encoding='utf-8') as fh:
             json.dump(meta, fh, ensure_ascii=False, indent=2)
     except Exception:
@@ -4846,51 +4933,77 @@ def upload_client_db():
                     new_clients_set.add(afm_str)
 
         # --- Backup: keep only one backup ---
-        dest_name = f'client_db{ext}'
-        dest_path = os.path.join(DATA_DIR, dest_name)
-
+        # save into the user's group folder when possible
         try:
-            # 1) remove any previous backups (files that contain ".bak." or end with ".bak")
-            for existing in os.listdir(DATA_DIR):
+            from flask_login import current_user
+            target_base = DATA_DIR
+            requested_group = (request.form.get('group') or '').strip()
+            if getattr(current_user, 'is_authenticated', False):
+                user_groups = getattr(current_user, 'groups', [])
+                if requested_group:
+                    grp = None
+                    for g in user_groups:
+                        if g.name == requested_group:
+                            grp = g
+                            break
+                    if not grp:
+                        return jsonify(success=False, message='Δεν έχετε πρόσβαση στην επιλεγμένη ομάδα.'), 403
+                    target_base = os.path.join(DATA_DIR, grp.data_folder or '')
+                else:
+                    if len(user_groups) == 1:
+                        target_base = os.path.join(DATA_DIR, user_groups[0].data_folder or '')
+                    else:
+                        return jsonify(success=False, message='Έχετε πολλές ομάδες. Συμπληρώστε το πεδίο group στο αίτημα.'), 400
+            os.makedirs(target_base, exist_ok=True)
+
+            dest_name = f'client_db{ext}'
+            dest_path = os.path.join(target_base, dest_name)
+
+            # 1) remove any previous backups in target_base
+            for existing in os.listdir(target_base):
                 if not existing.startswith('client_db'):
                     continue
-                # consider files like client_db.xlsx.bak.20250101T000000Z or client_db.bak
                 if '.bak.' in existing or existing.endswith('.bak'):
                     try:
-                        os.remove(os.path.join(DATA_DIR, existing))
+                        os.remove(os.path.join(target_base, existing))
                         log.info("Removed old client_db backup: %s", existing)
                     except Exception:
                         log.exception("Failed to remove old backup %s (continuing)", existing)
 
             # 2) move current client_db.* (if any) to a new single backup (timestamped)
-            for existing in os.listdir(DATA_DIR):
+            for existing in os.listdir(target_base):
                 if existing.startswith('client_db'):
                     existing_ext = os.path.splitext(existing)[1].lower()
                     if existing_ext in ALLOWED_CLIENT_EXT:
-                        existing_path = os.path.join(DATA_DIR, existing)
+                        existing_path = os.path.join(target_base, existing)
                         ts = _dt.utcnow().strftime('%Y%m%dT%H%M%SZ')
                         backup_name = f"{existing}.bak.{ts}"
-                        backup_path = os.path.join(DATA_DIR, backup_name)
+                        backup_path = os.path.join(target_base, backup_name)
                         try:
                             os.rename(existing_path, backup_path)
                             log.info("Backed up previous client_db: %s -> %s", existing, backup_name)
                         except Exception:
                             log.exception("Failed to backup previous client_db %s (continuing)", existing)
+
+            # --- Save uploaded file to destination path ---
+            try:
+                f.stream.seek(0)
+                f.save(dest_path)
+            except Exception:
+                log.exception("Failed to save uploaded client_db to %s", dest_path)
+                return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
+
         except Exception:
             log.exception("Failed while rotating client_db backups (continuing)")
-
-        # --- Save uploaded file to destination path ---
-        try:
-            f.stream.seek(0)
-            f.save(dest_path)
-        except Exception:
-            log.exception("Failed to save uploaded client_db to %s", dest_path)
-            return jsonify(success=False, message='Σφάλμα κατά την αποθήκευση του αρχείου.'), 500
 
         # --- Meta info ---
         try:
             uploaded_at_iso = _dt.utcnow().replace(microsecond=0).isoformat() + 'Z'
-            write_client_meta(filename, uploaded_at_iso)
+            try:
+                write_client_meta(filename, uploaded_at_iso, base_dir=target_base)
+            except Exception:
+                # fallback to global meta write
+                write_client_meta(filename, uploaded_at_iso)
         except Exception:
             log.exception("Failed to write client_db metadata (continuing)")
 
@@ -4971,7 +5084,28 @@ def client_db_info():
     { exists: bool, filename: str|null, uploaded_at: str|null, total_rows: int, new_rows: int, updated_rows: int }
     """
     try:
-        meta = read_client_meta()
+        # prefer per-user group meta when authenticated
+        try:
+            from flask_login import current_user
+            target_base = DATA_DIR
+            requested_group = (request.args.get('group') or '').strip()
+            if getattr(current_user, 'is_authenticated', False):
+                user_groups = getattr(current_user, 'groups', [])
+                if requested_group:
+                    grp = None
+                    for g in user_groups:
+                        if g.name == requested_group:
+                            grp = g
+                            break
+                    if not grp:
+                        return jsonify({'ok': False, 'error': 'Δεν έχετε πρόσβαση στην επιλεγμένη ομάδα.'}), 403
+                    target_base = os.path.join(DATA_DIR, grp.data_folder or '')
+                else:
+                    if len(user_groups) == 1:
+                        target_base = os.path.join(DATA_DIR, user_groups[0].data_folder or '')
+            meta = read_client_meta(base_dir=target_base)
+        except Exception:
+            meta = read_client_meta()
         counts = {'total_rows': 0, 'new_rows': 0, 'updated_rows': 0}
 
         if meta:

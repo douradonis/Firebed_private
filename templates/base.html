@@ -267,6 +267,16 @@
                 <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
               {% endif %}
             </div>
+            <div class="ml-4">
+              {% if current_user.is_authenticated %}
+                <span class="text-sm text-gray-700 mr-2">{{ current_user.username }}</span>
+                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Groups</a>
+                <a href="{{ url_for('auth.logout') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Logout</a>
+              {% else %}
+                <a href="{{ url_for('auth.login') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Login</a>
+                <a href="{{ url_for('auth.signup') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Sign up</a>
+              {% endif %}
+            </div>
           </div>
 
           <!-- 2η γραμμή: Fiscal year selector -->

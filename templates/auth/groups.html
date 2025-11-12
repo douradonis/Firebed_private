@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+  <div class="content-wrap">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-semibold">Groups</h1>
+      <div>Logged in as <strong>{{ current_user.username }}</strong></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+          {% for category, msg in messages %}
+            <div class="flash-banner {{ 'flash-error' if category=='error' else 'flash-success' }}" role="alert">{{ msg|safe }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <h2 class="font-medium mb-2">Create group</h2>
+        <form method="post" action="{{ url_for('auth.create_group') }}" class="grid gap-3">
+          <input type="text" name="name" placeholder="Group name" class="px-3 py-2 border rounded" />
+          <input type="text" name="data_folder" placeholder="Data folder (under data/)" class="px-3 py-2 border rounded" />
+          <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Create</button>
+        </form>
+      </div>
+
+      <div>
+        <h2 class="font-medium mb-2">Assign user to group</h2>
+        <form method="post" action="{{ url_for('auth.assign_user_to_group') }}" class="grid gap-3">
+          <input type="text" name="username" placeholder="Username" class="px-3 py-2 border rounded" />
+          <input type="text" name="group" placeholder="Group name" class="px-3 py-2 border rounded" />
+          <select name="role" class="px-3 py-2 border rounded">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Assign</button>
+        </form>
+      </div>
+    </div>
+
+    <h3 class="mt-6 font-medium">Existing groups</h3>
+    <ul class="mt-2 space-y-2">
+      {% for g in groups %}
+        <li class="px-3 py-2 border rounded">{{ g.name }} → <code>{{ g.data_folder }}</code></li>
+      {% else %}
+        <li class="text-gray-500">No groups yet</li>
+      {% endfor %}
+    </ul>
+
+    <p class="mt-6"><a href="{{ url_for('auth.logout') }}" class="text-sky-600">Logout</a></p>
+  </div>
+{% endblock %}
