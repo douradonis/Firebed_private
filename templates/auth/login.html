@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Σύνδεση{% endblock %}
 
 {% block content %}
   <div class="content-wrap">
@@ -16,15 +16,15 @@
     {% endwith %}
 
     <form method="post" action="{{ url_for('auth.login') }}" class="grid gap-3 max-w-md">
-      <label class="block">Username
+      <label class="block">Όνομα χρήστη
         <input type="text" name="username" class="mt-1 px-3 py-2 border rounded w-full" />
       </label>
-      <label class="block">Password
+      <label class="block">Κωδικός
         <input type="password" name="password" class="mt-1 px-3 py-2 border rounded w-full" />
       </label>
       <div class="flex items-center gap-3">
-        <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Login</button>
-        <a href="{{ url_for('auth.signup') }}" class="text-sm text-sky-600">Create account</a>
+        <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Σύνδεση</button>
+        <a href="{{ url_for('auth.signup') }}" class="text-sm text-sky-600">Δημιουργία λογαριασμού</a>
       </div>
     </form>
   </div>

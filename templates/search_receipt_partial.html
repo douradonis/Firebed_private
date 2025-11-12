@@ -196,13 +196,13 @@
             credentials: 'include',
             body: JSON.stringify(payload)
           });
-          if(!res.ok){ const text = await res.text().catch(()=>null); alert('Σφάλμα server'); console.error('confirm single', res.status, text); return; }
+          if(!res.ok){ const text = await res.text().catch(()=>null); await showModalAlert('Σφάλμα', 'Σφάλμα server'); console.error('confirm single', res.status, text); return; }
           const json = await res.json().catch(()=>null);
-          alert((json && json.message) ? json.message : 'Αποθηκεύτηκε.');
+          await showModalAlert('Επιτυχία', (json && json.message) ? json.message : 'Αποθηκεύτηκε.');
           tr.style.opacity = '0.5';
           // optionally refresh or get next mark
           setTimeout(()=>{ try{ window.location.reload(); }catch(e){} }, 600);
-        } catch(e){ console.error(e); alert('Δίκτυο - αποτυχία'); }
+        } catch(e){ console.error(e); await showModalAlert('Σφάλμα', 'Δίκτυο - αποτυχία'); }
       });
       actionsCell.appendChild(confirmBtn);
       tr.querySelectorAll('td')[9].appendChild(actionsCell);
@@ -237,7 +237,7 @@
     let parsed = {};
     try{ parsed = hidden && hidden.value ? JSON.parse(hidden.value) : {}; } catch(e){ parsed = {}; }
     const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
-    if(lines.length === 0){ alert('Δεν υπάρχουν γραμμές προς επιβεβαίωση'); return; }
+    if(lines.length === 0){ await showModalAlert('Ενημέρωση', 'Δεν υπάρχουν γραμμές προς επιβεβαίωση'); return; }
 
     // normalize outgoing lines
     const markVal = parsed.mark || (lines[0] && lines[0].id) || (document.getElementById('markInput') && document.getElementById('markInput').value) || '';
@@ -259,7 +259,7 @@
     };
 
     if(!payload.afm){
-      alert('Λείπει ΑΦΜ ενεργού πελάτη — δεν μπορεί να αποθηκευτεί');
+      await showModalAlert('Ενημέρωση', 'Λείπει ΑΦΜ ενεργού πελάτη — δεν μπορεί να αποθηκευτεί');
       return;
     }
 
@@ -268,9 +268,9 @@
         method: 'POST', headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
         credentials: 'include', body: JSON.stringify(payload)
       });
-      if(!res.ok){ const txt = await res.text().catch(()=>null); alert('Σφάλμα server'); console.error('bulk confirm', res.status, txt); return; }
+      if(!res.ok){ const txt = await res.text().catch(()=>null); await showModalAlert('Σφάλμα', 'Σφάλμα server'); console.error('bulk confirm', res.status, txt); return; }
       const j = await res.json().catch(()=>null);
-      alert((j && j.message) ? j.message : 'Αποθηκεύτηκαν οι αποδείξεις.');
+      await showModalAlert('Επιτυχία', (j && j.message) ? j.message : 'Αποθηκεύτηκαν οι αποδείξεις.');
       doCloseModal();
       setTimeout(()=>window.location.reload(), 500);
     } catch(e){ console.error(e); alert('Δίκτυο - αποτυχία'); }
@@ -288,7 +288,7 @@
           evt.preventDefault();
           (async function(){
             const markVal = (markInput.value || '').trim();
-            if(!markVal){ alert('Δώσε MARK ή URL'); return; }
+            if(!markVal){ await showModalAlert('Ενημέρωση', 'Δώσε MARK ή URL'); return; }
             const looksLikeUrl = /^(https?:\/\/)|\/DocViewer\//i.test(markVal) || markVal.indexOf('/') !== -1;
             const payloadObj = looksLikeUrl ? { url: markVal } : { mark: markVal };
             try {
@@ -296,7 +296,7 @@
                 method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
                 credentials:'include', body: JSON.stringify(payloadObj)
               });
-              if(!r.ok){ const t=await r.text().catch(()=>null); alert('Σφάλμα ανάκτησης αποδείξεων'); console.error('scrape error', r.status, t); return; }
+              if(!r.ok){ const t=await r.text().catch(()=>null); await showModalAlert('Σφάλμα', 'Σφάλμα ανάκτησης αποδείξεων'); console.error('scrape error', r.status, t); return; }
               const payload = await r.json().catch(()=>null) || {};
               const lines = canonicalize(payload);
               // ensure at least fallback
@@ -325,7 +325,7 @@
               document.getElementById('receiptsJsonInput').value = JSON.stringify(storeVal);
               populateReceiptsModal(lines);
               doOpenModal();
-            } catch(e){ console.error(e); alert('Σφάλμα κατά την ανάκτηση αποδείξεων'); }
+            } catch(e){ console.error(e); await showModalAlert('Σφάλμα', 'Σφάλμα κατά την ανάκτηση αποδείξεων'); }
           })();
         }
       });

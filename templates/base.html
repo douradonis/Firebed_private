@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="{{ url_for('static', filename='modal_utils.js') }}"></script>
 
   <style>
     :root { --device-font-scale: 1; }
@@ -270,11 +271,11 @@
             <div class="ml-4">
               {% if current_user.is_authenticated %}
                 <span class="text-sm text-gray-700 mr-2">{{ current_user.username }}</span>
-                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Groups</a>
-                <a href="{{ url_for('auth.logout') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Logout</a>
+                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Ομάδες</a>
+                <a href="{{ url_for('auth.logout') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Αποσύνδεση</a>
               {% else %}
-                <a href="{{ url_for('auth.login') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Login</a>
-                <a href="{{ url_for('auth.signup') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Sign up</a>
+                <a href="{{ url_for('auth.login') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Σύνδεση</a>
+                <a href="{{ url_for('auth.signup') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Δημιουργία λογαριασμού</a>
               {% endif %}
             </div>
           </div>

@@ -2959,3 +2959,5 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) attempt to write a r
 2025-11-12T14:00:36.259741+00:00 - douradonis removed member tony225
 2025-11-12T14:00:41.127696+00:00 - douradonis removed member nakakis
 2025-11-12T14:01:47.502270+00:00 - douradonis assigned nakakis as member
+2025-11-12T19:35:47.793264+00:00 - douradonis removed member nakakis
+2025-11-12T19:38:00.056782+00:00 - douradonis assigned nakakis as member
