@@ -442,16 +442,3 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) attempt to write a r
 [parameters: ('tony225', 'scrypt:32768:8:1$vVJDJONQv0p8gUl0$9d4386cb93cffa792ab240b30d560e5efe5e15a494d18267c5332dbb76b767f3601bf2a72bd76c3d3623e331e48257ec44c853dd4cd5ee73f0e75b5fa5f389dd', 1)]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
 
-2025-11-12 13:44:37+0200 ERROR Unhandled exception: name 'auto_flag' is not defined
-Traceback (most recent call last):
-  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
-    rv = self.dispatch_request()
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/Firebed_private/app.py", line 4489, in api_qr_remote_heartbeat
-    if auto_flag is not None:
-       ^^^^^^^^^
-NameError: name 'auto_flag' is not defined
-

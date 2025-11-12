@@ -1,4 +1,6 @@
-from flask import Blueprint, request, render_template, redirect, url_for, flash, current_app, jsonify
+from flask import Blueprint, request, render_template, redirect, url_for, flash, current_app, jsonify, session
+from werkzeug.utils import secure_filename
+import os
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Group
 
@@ -47,15 +49,26 @@ def signup():
                 flash('Group name already exists; choose another or join it.', 'warning')
                 db.session.rollback()
                 return redirect(url_for('auth.signup'))
-            grp = Group(name=new_group_name, data_folder=new_group_folder)
+            # sanitize folder name to avoid path traversal and ensure filesystem-safe name
+            safe_folder = secure_filename(new_group_folder)
+            if not safe_folder:
+                flash('Invalid folder name for group', 'danger')
+                db.session.rollback()
+                return redirect(url_for('auth.signup'))
+            # ensure no other group uses the same data_folder
+            if Group.query.filter_by(data_folder=safe_folder).first():
+                flash('Folder name already in use; choose another', 'warning')
+                db.session.rollback()
+                return redirect(url_for('auth.signup'))
+
+            grp = Group(name=new_group_name, data_folder=safe_folder)
             db.session.add(grp)
             db.session.flush()
             # attach user as admin
             user.add_to_group(grp, role='admin')
             # ensure folder exists under data/
             try:
-                import os
-                folder_path = os.path.join(current_app.root_path, 'data', new_group_folder)
+                folder_path = os.path.join(current_app.root_path, 'data', safe_folder)
                 os.makedirs(folder_path, exist_ok=True)
             except Exception:
                 pass
@@ -83,11 +96,16 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
 
-    login_user(user)
-    flash('Logged in', 'success')
-    next_url = request.args.get('next') or url_for('home')
-    return redirect(next_url)
+        # Successful login: clear any previous active credential selection
+        session.pop('active_credential', None)
+        session.pop('_remote_qr_owner', None)
 
+        login_user(user)
+        flash('Logged in', 'success')
+        next_url = request.args.get('next') or url_for('home')
+        return redirect(next_url)
+
+    # GET -> render login form
     return render_template('auth/login.html')
 
 
@@ -96,13 +114,20 @@ def login():
 def logout():
     logout_user()
     flash('Logged out', 'info')
+    # clear any active client/credential selection from session to avoid stale state
+    session.pop('active_credential', None)
+    session.pop('_remote_qr_owner', None)
     return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/groups', methods=['GET'])
 @login_required
 def list_groups():
-    groups = Group.query.all()
+    # Only show groups the current user belongs to or has been granted access to
+    try:
+        groups = current_user.groups
+    except Exception:
+        groups = []
     return render_template('auth/groups.html', groups=groups)
 
 
@@ -119,7 +144,16 @@ def create_group():
         flash('Group already exists', 'warning')
         return redirect(url_for('auth.list_groups'))
 
-    grp = Group(name=name, data_folder=data_folder)
+    # sanitize folder name and validate uniqueness
+    safe_folder = secure_filename(data_folder)
+    if not safe_folder:
+        flash('Invalid data folder name', 'danger')
+        return redirect(url_for('auth.list_groups'))
+    if Group.query.filter_by(data_folder=safe_folder).first():
+        flash('Data folder already in use by another group', 'warning')
+        return redirect(url_for('auth.list_groups'))
+
+    grp = Group(name=name, data_folder=safe_folder)
     db.session.add(grp)
     db.session.flush()
     # make current_user admin of the newly created group
@@ -130,8 +164,7 @@ def create_group():
 
     # ensure folder exists
     try:
-        import os
-        folder_path = os.path.join(current_app.root_path, 'data', data_folder)
+        folder_path = os.path.join(current_app.root_path, 'data', safe_folder)
         os.makedirs(folder_path, exist_ok=True)
     except Exception:
         pass
@@ -181,6 +214,52 @@ def get_user_data_folders(user):
     return [g.data_folder for g in user.groups if g.data_folder]
 
 
+def get_active_group():
+    """Return the Group object for the currently-selected active group stored in session.
+    If none is selected and the current user belongs to exactly one group, return that group.
+    Returns None if no applicable group is found.
+    """
+    name = session.get('active_group')
+    if name:
+        try:
+            return Group.query.filter_by(name=name).first()
+        except Exception:
+            return None
+
+    # fallback: if user is authenticated and belongs to exactly one group, use it
+    try:
+        if getattr(current_user, 'is_authenticated', False):
+            groups = current_user.groups
+            if groups and len(groups) == 1:
+                return groups[0]
+    except Exception:
+        pass
+    return None
+
+
+@auth_bp.route('/groups/select', methods=['POST'])
+@login_required
+def select_group():
+    """Set the active group for the session. Expects form param 'group' (group name).
+    Only allows selecting groups the current user belongs to.
+    """
+    group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or ''
+    group_name = (group_name or '').strip()
+    if not group_name:
+        return jsonify({'ok': False, 'error': 'group required'}), 400
+
+    grp = Group.query.filter_by(name=group_name).first()
+    if not grp:
+        return jsonify({'ok': False, 'error': 'group not found'}), 404
+
+    # verify membership
+    if grp not in current_user.groups:
+        return jsonify({'ok': False, 'error': 'not a member of group'}), 403
+
+    session['active_group'] = grp.name
+    return jsonify({'ok': True, 'group': grp.name})
+
+
 # --- JSON API endpoints for frontend-driven login/logout/status ---
 @auth_bp.route('/api/login', methods=['POST'])
 def api_login():
@@ -194,6 +273,10 @@ def api_login():
     if not user or not user.check_password(password):
         return jsonify({'ok': False, 'error': 'invalid credentials'}), 401
 
+    # clear previous active credential for the session
+    session.pop('active_credential', None)
+    session.pop('_remote_qr_owner', None)
+
     login_user(user)
     return jsonify({'ok': True, 'username': user.username})
 
@@ -204,6 +287,9 @@ def api_logout():
         logout_user()
     except Exception:
         pass
+    # clear session state related to active credential
+    session.pop('active_credential', None)
+    session.pop('_remote_qr_owner', None)
     return jsonify({'ok': True})
 
 
