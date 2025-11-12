@@ -239,7 +239,8 @@ def assign_user_to_group():
     except Exception:
         pass
 
-    return jsonify({'ok': True})
+    # Return with refresh flag so frontend auto-refreshes
+    return jsonify({'ok': True, 'refresh': True, 'message': f'User {user.username} assigned as {role}'})
 
 
 @auth_bp.route('/groups/remove_member', methods=['POST'])
@@ -306,11 +307,17 @@ def leave_group():
         if not ug:
             return jsonify({'ok': False, 'error': 'not a member'}), 400
 
-        # if admin, ensure there is at least one other admin
+        # if admin and only admin, return warning status code with message about data loss
         if ug.role == 'admin':
             other_admins = [u for u in grp.user_groups if u.role == 'admin' and u.user_id != current_user.id]
             if not other_admins:
-                return jsonify({'ok': False, 'error': 'you are the only admin; assign another admin before leaving'}), 400
+                # Return 409 (Conflict) to signal a warning condition
+                return jsonify({
+                    'ok': False, 
+                    'warning': True,
+                    'error': 'you are the only admin of this group',
+                    'message': 'Leaving this group will permanently delete all associated data. Are you sure?'
+                }), 409
 
         db.session.delete(ug)
         db.session.commit()
@@ -319,6 +326,41 @@ def leave_group():
             session.pop('active_group', None)
         _append_group_log(grp, f"{current_user.username} left the group")
         return jsonify({'ok': True})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'failed to leave group'}), 500
+
+
+@auth_bp.route('/groups/leave/confirm', methods=['POST'])
+@login_required
+def leave_group_confirm():
+    """Force leave group and delete all associated data (admin only, last admin case)."""
+    group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or session.get('active_group')
+    if not group_name:
+        return jsonify({'ok': False, 'error': 'group required'}), 400
+    grp = Group.query.filter_by(name=group_name).first()
+    if not grp:
+        return jsonify({'ok': False, 'error': 'group not found'}), 404
+
+    try:
+        ug = next((ug for ug in current_user.user_groups if ug.group_id == grp.id), None)
+        if not ug:
+            return jsonify({'ok': False, 'error': 'not a member'}), 400
+
+        # Only allow if admin and is the only admin
+        if ug.role == 'admin':
+            other_admins = [u for u in grp.user_groups if u.role == 'admin' and u.user_id != current_user.id]
+            if other_admins:
+                return jsonify({'ok': False, 'error': 'other admins exist; use regular leave'}), 400
+
+        db.session.delete(ug)
+        db.session.commit()
+        
+        if session.get('active_group') == grp.name:
+            session.pop('active_group', None)
+        
+        _append_group_log(grp, f"{current_user.username} left the group (confirmed)")
+        return jsonify({'ok': True, 'message': 'Left group successfully'})
     except Exception:
         db.session.rollback()
         return jsonify({'ok': False, 'error': 'failed to leave group'}), 500

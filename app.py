@@ -3528,17 +3528,39 @@ def inject_active_credential():
       - active_credential: όνομα credential ή None
       - active_credential_vat: ΑΦΜ του active credential (ή empty string)
       - app_settings: γενικές ρυθμίσεις εφαρμογής (φορτώνονται από SETTINGS_FILE)
+      - user_role: ρόλος του τρέχοντος χρήστη (admin ή member) στο active group
     """
     active = get_active_credential_from_session()
     name = active.get("name") if active else None
     vat = active.get("vat") if active else ""
+    
     # Load settings (fall back to empty dict)
     try:
         settings = load_settings() or {}
     except Exception:
         log.exception("Could not load settings for context processor")
         settings = {}
-    return dict(active_credential=name, active_credential_vat=vat, app_settings=settings)
+    
+    # Get user role from active group
+    user_role = "member"  # default
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False):
+            grp = get_active_group()
+            if grp:
+                role = current_user.role_for_group(grp)
+                if role:
+                    user_role = role
+    except Exception:
+        pass
+    
+    return dict(
+        active_credential=name, 
+        active_credential_vat=vat, 
+        app_settings=settings,
+        user_role=user_role
+    )
 
 
 # ---------------- Validation helper ----------------
@@ -5030,6 +5052,18 @@ def upload_client_db():
     Returns JSON { success: bool, message: str, missing_columns: [...], detected_columns: [...],
                    uploaded_at: str, total_rows: int, new_clients: int, existing_clients: int }
     """
+    # Permission check: only admins can upload client_db
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify(success=False, message='Δεν επιλέχθηκε ενεργή ομάδα.'), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify(success=False, message='Απαιτούνται δικαιώματα διαχειριστή για αυτή την ενέργεια.'), 403
+    except Exception:
+        return jsonify(success=False, message='Ο έλεγχος δικαιωμάτων απέτυχε.'), 403
+
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
 
