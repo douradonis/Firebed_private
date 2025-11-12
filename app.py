@@ -106,7 +106,7 @@ def _client_map_for_vat(vat: str):
       {"by_afm": {...}, "by_id": set([...]), "cols": [...]}
     """
     try:
-        paths = resolve_paths_for_vat(str(vat), base_invoices_dir="data/epsilon")
+        paths = resolve_paths_for_vat(str(vat), base_invoices_dir=group_path("epsilon"))
         return bridge_load_client_map(paths["client_db"])
     except Exception as e:
         current_app.logger.warning("client_db load failed for VAT %s: %s", vat, e)
@@ -1283,25 +1283,38 @@ def _custom_categories_payload(client: Optional[Dict[str, Any]]) -> List[Dict[st
     return payload
 def _resolve_client_db_path(vat: str) -> str | None:
     """
-    Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
-    Αναζήτηση με προτεραιότητα per-VAT και μετά global.
+    Επιστρέφει per-group διαδρομή για client_db.* με έξυπνα fallbacks.
+    Προτεραιότητα: data/<group>/... -> global data/.
+    Δεκτά: .xlsx/.xls/.csv και per-VAT ονομασίες.
     """
     vat = str(vat or "").strip()
+    base = get_group_base_dir()  # π.χ. .../data/<group>
+
+    # 1) Κοίτα πρώτα στον φάκελο της ομάδας
     candidates = [
-        f"data/epsilon/client_db_{vat}.xlsx",
-        f"data/epsilon/client_db_{vat}.xls",
-        "data/epsilon/client_db.xlsx",
-        "data/epsilon/client_db.xls",
-        "client_db.xlsx",
-        "client_db.xls",
+        os.path.join(base, f"client_db_{vat}.xlsx"),
+        os.path.join(base, f"{vat}_client_db.xlsx"),
+        os.path.join(base, "client_db.xlsx"),
+        os.path.join(base, f"client_db_{vat}.xls"),
+        os.path.join(base, f"{vat}_client_db.xls"),
+        os.path.join(base, "client_db.xls"),
+        os.path.join(base, "client_db.csv"),
     ]
     for p in candidates:
         if os.path.exists(p):
             return p
-    current_app.logger.warning(
-        "client_db not found for VAT %s; tried: %s", vat, candidates
-    )
+
+    # 2) Fallback: «έξυπνη» ανακάλυψη στο global data/
+    try:
+        from epsilon_bridge_multiclient_strict import _discover_client_db_in_data_dir
+        fb = _discover_client_db_in_data_dir(os.path.join(BASE_DIR, "data"), vat=vat)
+        if fb:
+            return fb
+    except Exception:
+        pass
+
     return None
+
 
 def _normalize(s: str) -> str:
     """
@@ -8253,13 +8266,14 @@ def epsilon_preview():
             category_labels.update(_category_labels_for_client(cred_for_labels))
         except Exception:
             current_app.logger.exception("Failed to build category labels for epsilon preview")
+    client_db_path = _resolve_client_db_path(vat)
     rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,         # θα λυθεί path αυτόματα: data/epsilon/{vat}_epsilon_invoices.json
-        client_db=None,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
-        base_invoices_dir="data/epsilon",
+        client_db=client_db_path,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
+        base_invoices_dir=group_path("epsilon"),
     )
     # πέρασέ τα στο template
     return render_template("epsilon_preview.html",
@@ -8279,7 +8293,7 @@ def export_fastimport_kinitseis():
     apod_type = ""
     active_cred = None
     try:
-        creds = _safe_json_read("data/credentials.json", default=[])
+        creds = _safe_json_read(credentials_path_for_request(), default=[])
         cl = creds if isinstance(creds, list) else [creds]
         active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
         active_cred = active if isinstance(active, dict) else {}
@@ -8302,11 +8316,11 @@ def export_fastimport_kinitseis():
     # 1) Preview για να εντοπίσουμε receipts χωρίς CUSTID
     preview = build_preview_strict_multiclient(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,
         client_db=base_client_db,
-        base_invoices_dir="data/epsilon",
+        base_invoices_dir=group_path("epsilon"),
     )
 
     if apod_type == "afm" and not confirm:
@@ -8336,13 +8350,13 @@ def export_fastimport_kinitseis():
     # 3) Κανονικό export (ΧΩΡΙΣ να πειράζουμε τις υπόλοιπες λογικές)
     ok, out_path, issues = export_multiclient_strict(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,
         client_db=client_db_path,
         out_xlsx=None,
-        base_invoices_dir="data/epsilon",
-        base_exports_dir="exports",
+        base_invoices_dir=group_path("epsilon"),
+        base_exports_dir=group_path("exports"),
     )
 
     if ok and out_path:
@@ -8637,6 +8651,6 @@ def health():
     return "OK"
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
