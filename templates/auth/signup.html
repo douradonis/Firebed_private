@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign up{% endblock %}
+{% block title %}Δημιουργία λογαριασμού{% endblock %}
 
 {% block content %}
   <div class="content-wrap">
-    <h1 class="text-xl font-semibold mb-4">Create account</h1>
+    <h1 class="text-xl font-semibold mb-4">Δημιουργία λογαριασμού</h1>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-2 mb-4">
@@ -16,27 +16,27 @@
     {% endwith %}
 
     <form method="post" action="{{ url_for('auth.signup') }}" class="grid gap-3 max-w-md">
-      <label class="block">Username
+      <label class="block">Όνομα χρήστη
         <input type="text" name="username" class="mt-1 px-3 py-2 border rounded w-full" />
       </label>
-      <label class="block">Password
+      <label class="block">Κωδικός
         <input type="password" name="password" class="mt-1 px-3 py-2 border rounded w-full" />
       </label>
 
       <div class="mt-2 p-3 border rounded">
-        <div class="text-sm font-medium mb-2">Join an existing group</div>
-        <input type="text" name="group" placeholder="Group name to join (optional)" class="px-3 py-2 border rounded w-full" />
+        <div class="text-sm font-medium mb-2">Ένταξη σε υπάρχουσα ομάδα</div>
+        <input type="text" name="group" placeholder="Όνομα ομάδας για ένταξη (προαιρετικό)" class="px-3 py-2 border rounded w-full" />
       </div>
 
       <div class="mt-2 p-3 border rounded">
-        <div class="text-sm font-medium mb-2">Or create a new group (you will become its admin)</div>
-        <input type="text" name="new_group_name" placeholder="New group name" class="px-3 py-2 border rounded w-full mb-2" />
-        <input type="text" name="new_group_folder" placeholder="Folder name under data/ (e.g. client_xyz)" class="px-3 py-2 border rounded w-full" />
+        <div class="text-sm font-medium mb-2">Ή δημιουργία νέας ομάδας (θα γίνεις admin)</div>
+        <input type="text" name="new_group_name" placeholder="Όνομα νέας ομάδας" class="px-3 py-2 border rounded w-full mb-2" />
+        <input type="text" name="new_group_folder" placeholder="Όνομα φακέλου κάτω από data/ (π.χ. client_xyz)" class="px-3 py-2 border rounded w-full" />
       </div>
 
       <div class="flex items-center gap-3">
-        <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Sign up</button>
-        <a href="{{ url_for('auth.login') }}" class="text-sm text-sky-600">Log in</a>
+        <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Δημιουργία λογαριασμού</button>
+        <a href="{{ url_for('auth.login') }}" class="text-sm text-sky-600">Σύνδεση</a>
       </div>
     </form>
   </div>

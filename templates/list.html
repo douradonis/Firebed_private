@@ -227,7 +227,7 @@ $(document).ready(function(){
   $('#deleteBtn').on('click', function(){
     marksToDelete = $('input[type="checkbox"][name="delete_mark"]:checked').map(function(){ return $(this).val(); }).get();
     if(!marksToDelete.length){
-      alert('Επίλεξε πρώτα γραμμές για διαγραφή.');
+      showModalAlert('Ενημέρωση', 'Επίλεξε πρώτα γραμμές για διαγραφή.');
       return;
     }
     $('#deleteModalMessage').text(`Θες σίγουρα να διαγράψεις ${marksToDelete.length} εγγραφή(ες);`);
@@ -265,7 +265,7 @@ $(document).ready(function(){
       epsilon.addEventListener('click', function(e){
         e.preventDefault(); closeMenu();
         if(typeof showBanner==='function'){ showBanner('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.','info',6000); } 
-        else { alert('Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); }
+        else { showModalAlert('Πληροφορία', 'Η εξαγωγή Epsilon θα υλοποιηθεί σύντομα.'); }
       });
     }
   })();

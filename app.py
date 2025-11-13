@@ -106,7 +106,7 @@ def _client_map_for_vat(vat: str):
       {"by_afm": {...}, "by_id": set([...]), "cols": [...]}
     """
     try:
-        paths = resolve_paths_for_vat(str(vat), base_invoices_dir="data/epsilon")
+        paths = resolve_paths_for_vat(str(vat), base_invoices_dir=group_path("epsilon"))
         return bridge_load_client_map(paths["client_db"])
     except Exception as e:
         current_app.logger.warning("client_db load failed for VAT %s: %s", vat, e)
@@ -878,6 +878,16 @@ def _find_client(creds, vat=None, name=None):
         for c in creds:
             if str(c.get("name","")).strip() == str(name).strip():
                 return c
+    # Fallback: if session has an active credential, prefer that
+    try:
+        from flask import session
+        active = session.get('active_credential')
+        if active:
+            for c in creds:
+                if str(c.get('name') or '').strip() == str(active).strip() or str(c.get('vat') or '').strip() == str(active).strip():
+                    return c
+    except Exception:
+        pass
     return creds[0] if creds else None
 
 def _load_all_credentials():
@@ -1283,25 +1293,38 @@ def _custom_categories_payload(client: Optional[Dict[str, Any]]) -> List[Dict[st
     return payload
 def _resolve_client_db_path(vat: str) -> str | None:
     """
-    Επιστρέφει διαδρομή του client_db για το συγκεκριμένο VAT με λογική fallback.
-    Αναζήτηση με προτεραιότητα per-VAT και μετά global.
+    Επιστρέφει per-group διαδρομή για client_db.* με έξυπνα fallbacks.
+    Προτεραιότητα: data/<group>/... -> global data/.
+    Δεκτά: .xlsx/.xls/.csv και per-VAT ονομασίες.
     """
     vat = str(vat or "").strip()
+    base = get_group_base_dir()  # π.χ. .../data/<group>
+
+    # 1) Κοίτα πρώτα στον φάκελο της ομάδας
     candidates = [
-        f"data/epsilon/client_db_{vat}.xlsx",
-        f"data/epsilon/client_db_{vat}.xls",
-        "data/epsilon/client_db.xlsx",
-        "data/epsilon/client_db.xls",
-        "client_db.xlsx",
-        "client_db.xls",
+        os.path.join(base, f"client_db_{vat}.xlsx"),
+        os.path.join(base, f"{vat}_client_db.xlsx"),
+        os.path.join(base, "client_db.xlsx"),
+        os.path.join(base, f"client_db_{vat}.xls"),
+        os.path.join(base, f"{vat}_client_db.xls"),
+        os.path.join(base, "client_db.xls"),
+        os.path.join(base, "client_db.csv"),
     ]
     for p in candidates:
         if os.path.exists(p):
             return p
-    current_app.logger.warning(
-        "client_db not found for VAT %s; tried: %s", vat, candidates
-    )
+
+    # 2) Fallback: «έξυπνη» ανακάλυψη στο global data/
+    try:
+        from epsilon_bridge_multiclient_strict import _discover_client_db_in_data_dir
+        fb = _discover_client_db_in_data_dir(os.path.join(BASE_DIR, "data"), vat=vat)
+        if fb:
+            return fb
+    except Exception:
+        pass
+
     return None
+
 
 def _normalize(s: str) -> str:
     """
@@ -2471,6 +2494,71 @@ def set_active_fiscal_year(year):
         except Exception:
             pass
         return False
+
+
+def get_last_fetch_date(credential_name: str) -> Optional[str]:
+    """
+    Get the last fetch date for a credential (stored in fiscal_meta.json).
+    Returns ISO 8601 date string or None if not found.
+    """
+    try:
+        p = _fiscal_meta_path()
+        if not os.path.exists(p):
+            return None
+        with open(p, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        if not data:
+            return None
+        fetches = data.get("last_fetches", {})
+        if isinstance(fetches, dict):
+            return fetches.get(credential_name)
+        return None
+    except Exception:
+        return None
+
+
+def set_last_fetch_date(credential_name: str, date_str: Optional[str] = None) -> bool:
+    """
+    Set the last fetch date for a credential in fiscal_meta.json.
+    If date_str is None, uses current UTC time in ISO 8601 format.
+    Returns True on success, False on failure.
+    """
+    try:
+        if date_str is None:
+            date_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        
+        p = _fiscal_meta_path()
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        
+        # Read existing data
+        data = {}
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as fh:
+                    data = json.load(fh) or {}
+            except Exception:
+                data = {}
+        
+        # Update last_fetches dict
+        if "last_fetches" not in data:
+            data["last_fetches"] = {}
+        data["last_fetches"][credential_name] = date_str
+        
+        # Write back
+        with open(p, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+        
+        try:
+            log.info("Set last fetch date for credential '%s': %s", credential_name, date_str)
+        except Exception:
+            pass
+        return True
+    except Exception:
+        try:
+            log.exception("Failed to set last fetch date")
+        except Exception:
+            pass
+        return False
 # ---------------- normalize helper (paste/replace existing) ----------------
 def _normalize_afm(raw):
     """Καθαρίζει AFM: κρατά μόνο digits, κόβει περιττά και επιστρέφει None αν άδειο."""
@@ -3515,17 +3603,39 @@ def inject_active_credential():
       - active_credential: όνομα credential ή None
       - active_credential_vat: ΑΦΜ του active credential (ή empty string)
       - app_settings: γενικές ρυθμίσεις εφαρμογής (φορτώνονται από SETTINGS_FILE)
+      - user_role: ρόλος του τρέχοντος χρήστη (admin ή member) στο active group
     """
     active = get_active_credential_from_session()
     name = active.get("name") if active else None
     vat = active.get("vat") if active else ""
+    
     # Load settings (fall back to empty dict)
     try:
         settings = load_settings() or {}
     except Exception:
         log.exception("Could not load settings for context processor")
         settings = {}
-    return dict(active_credential=name, active_credential_vat=vat, app_settings=settings)
+    
+    # Get user role from active group
+    user_role = "member"  # default
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False):
+            grp = get_active_group()
+            if grp:
+                role = current_user.role_for_group(grp)
+                if role:
+                    user_role = role
+    except Exception:
+        pass
+    
+    return dict(
+        active_credential=name, 
+        active_credential_vat=vat, 
+        app_settings=settings,
+        user_role=user_role
+    )
 
 
 # ---------------- Validation helper ----------------
@@ -4208,9 +4318,28 @@ def api_qr_remote_start():
     push_secret = secrets.token_urlsafe(32)
     expires_at = now + REMOTE_QR_SESSION_TTL
 
+    # attach current desktop user & active group if available so mobile does not need to login
+    owner_user_id = None
+    owner_group_name = None
+    try:
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False):
+            owner_user_id = current_user.id
+            try:
+                from auth import get_active_group
+                g = get_active_group()
+                if g:
+                    owner_group_name = g.name
+            except Exception:
+                owner_group_name = None
+    except Exception:
+        owner_user_id = None
+
     entry = {
         "id": session_id,
         "owner_token": owner,
+        "owner_user_id": owner_user_id,
+        "owner_group": owner_group_name,
         "push_secret": push_secret,
         "mode": mode,
         "created_at": now,
@@ -4812,6 +4941,21 @@ def mobile_qr_scanner():
 
 @app.route('/credentials/add', methods=['POST'])
 def credentials_add():
+    # Only group admin may add credentials
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            flash('No active group selected', 'error')
+            return redirect(url_for('credentials'))
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            flash('Admin privileges required to add credentials', 'error')
+            return redirect(url_for('credentials'))
+    except Exception:
+        flash('Permission check failed', 'error')
+        return redirect(url_for('credentials'))
+
     credentials = load_credentials()
     name = request.form.get('name')
     vat = request.form.get('vat')
@@ -4867,6 +5011,21 @@ def _delete_credential_and_related_data(name: str):
 
 @app.route('/credentials/delete/<name>', methods=['POST'])
 def credentials_delete_post(name):
+    # Only group admin may delete credentials
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            flash('No active group selected', 'error')
+            return redirect(url_for('credentials'))
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            flash('Admin privileges required to delete credentials', 'error')
+            return redirect(url_for('credentials'))
+    except Exception:
+        flash('Permission check failed', 'error')
+        return redirect(url_for('credentials'))
+
     credential, was_active, cleanup = _delete_credential_and_related_data(name)
     if not credential:
         flash(f"Credential '{name}' not found", "error")
@@ -4897,6 +5056,18 @@ def credentials_set_active():
 
 @app.route('/credentials/save_settings', methods=['POST'])
 def credentials_save_settings():
+    # Only group admin may update settings
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'status':'error','error':'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'status':'error','error':'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'status':'error','error':'permission check failed'}), 500
+
     data = request.get_json()
     if data:
         save_settings(data)
@@ -4956,6 +5127,18 @@ def upload_client_db():
     Returns JSON { success: bool, message: str, missing_columns: [...], detected_columns: [...],
                    uploaded_at: str, total_rows: int, new_clients: int, existing_clients: int }
     """
+    # Permission check: only admins can upload client_db
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify(success=False, message='Δεν επιλέχθηκε ενεργή ομάδα.'), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify(success=False, message='Απαιτούνται δικαιώματα διαχειριστή για αυτή την ενέργεια.'), 403
+    except Exception:
+        return jsonify(success=False, message='Ο έλεγχος δικαιωμάτων απέτυχε.'), 403
+
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -5159,6 +5342,37 @@ def api_profiles_delete():
     _profiles_set_for_active(profs)
     return jsonify({"ok": True})
 
+
+@app.route("/api/last_fetch_date", methods=["GET"])
+def api_last_fetch_date():
+    """
+    Get the last fetch date for a credential.
+    Query params: credential (credential name)
+    Returns: { last_fetch_date: str|null (ISO 8601) }
+    """
+    try:
+        credential_name = (request.args.get("credential") or "").strip()
+        if not credential_name:
+            return jsonify({"last_fetch_date": None}), 400
+        
+        last_date = get_last_fetch_date(credential_name)
+        
+        # Format for display if available
+        if last_date:
+            try:
+                # Parse ISO 8601 and format as Greek date
+                dt = datetime.datetime.fromisoformat(last_date)
+                formatted = dt.strftime("%d/%m/%Y %H:%M")
+            except Exception:
+                formatted = last_date
+        else:
+            formatted = None
+        
+        return jsonify({"last_fetch_date": formatted})
+    except Exception as e:
+        log.exception("api_last_fetch_date error")
+        return jsonify({"error": str(e)}), 500
+
 # --- client_db_info route ---
 @app.route('/client_db_info', methods=['GET'])
 def client_db_info():
@@ -5285,6 +5499,14 @@ def credentials():
             }
             ok, err = add_credential(entry)
             if ok:
+                # Log credential addition
+                try:
+                    from auth import _append_group_log, get_active_group
+                    grp = get_active_group()
+                    if grp:
+                        _append_group_log(grp, f"Credential '{name}' added by {current_user.username if getattr(current_user, 'is_authenticated', False) else 'anonymous'}")
+                except Exception:
+                    pass
                 flash("Saved", "success")
             else:
                 flash(err or "Could not save", "error")
@@ -5397,6 +5619,15 @@ def credentials_delete(name):
             return jsonify({'status': 'error', 'error': 'not found'}), 404
         flash(f"Credential '{name}' not found", "error")
         return redirect(url_for("credentials"))
+
+    # Log credential deletion
+    try:
+        from auth import _append_group_log, get_active_group
+        grp = get_active_group()
+        if grp:
+            _append_group_log(grp, f"Credential '{name}' deleted by {current_user.username if getattr(current_user, 'is_authenticated', False) else 'anonymous'}")
+    except Exception:
+        pass
 
     # Αν request από AJAX, επιστρέφουμε JSON ώστε το frontend fetch να το χειριστεί
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -5543,7 +5774,6 @@ def fetch():
                 debug=True,
                 save_excel=False
             )
-
             added_docs = 0
             added_summaries = 0
             for d in all_rows:
@@ -5555,6 +5785,19 @@ def fetch():
             for s in summary_list:
                 if append_summary_to_customer_file(s, vat):
                     added_summaries += 1
+
+            # Track last fetch date for this credential
+            if selected:
+                set_last_fetch_date(selected)
+            
+            # Log fetch operation
+            try:
+                from auth import _append_group_log, get_active_group
+                grp = get_active_group()
+                if grp:
+                    _append_group_log(grp, f"Bulk fetch performed: {d1} to {d2}, VAT {vat}, {added_docs} docs + {added_summaries} summaries by {current_user.username if getattr(current_user, 'is_authenticated', False) else 'anonymous'}")
+            except Exception:
+                pass
 
             message = (f"Fetched {len(all_rows)} items, newly saved for VAT {vat}: "
                        f"{added_docs} docs, {added_summaries} summaries.")
@@ -6692,7 +6935,16 @@ def api_char_profiles_get():
     """Επιστρέφει profiles + expense_tags για τον ενεργό πελάτη"""
     vat = request.args.get("vat","").strip()
     creds = _load_credentials()
-    client = _find_client(creds, vat=vat) or {}
+    client = _find_client(creds, vat=vat) or None
+    # Fallback: use session active credential if explicit lookup failed
+    if not client:
+        try:
+            active = get_active_credential_from_session() or None
+            if active:
+                client = active
+        except Exception:
+            client = None
+    client = client or {}
     profiles = client.get("char_profiles", [])
     expense_tags = _list_invoice_categories(client)
     labels = _category_labels_for_client(client)
@@ -6712,19 +6964,32 @@ def api_char_profiles_save():
     Αν υπάρχει προφίλ με το ίδιο όνομα -> update, αλλιώς append.
     """
     data = request.get_json(force=True, silent=True) or {}
-    vat = str(data.get("vat","")).strip()
+    vat = str(data.get("vat", "")).strip()
     name = (data.get("name") or "").strip()
     mapping = data.get("mapping") or {}
 
+    # If vat not provided, try to use session active credential
+    if not vat:
+        try:
+            active = get_active_credential_from_session() or {}
+            vat = (active.get("vat") or "").strip()
+        except Exception:
+            vat = ""
+
     if not (
-        vat
-        and name
+        name
         and all(mapping.get(k) for k in ("kat_fpa_a", "kat_fpa_b", "kat_fpa_g", "kat_fpa_d", "kat_fpa_e"))
     ):
         return jsonify(ok=False, error="Παράμετροι λείπουν"), 400
 
     creds = _load_credentials()
-    client = _find_client(creds, vat=vat)
+    client = _find_client(creds, vat=vat) if vat else None
+    # Fallback: if lookup by vat failed, use session active credential object
+    if not client:
+        try:
+            client = get_active_credential_from_session() or None
+        except Exception:
+            client = None
     if not client:
         return jsonify(ok=False, error="Δεν βρέθηκε πελάτης"), 404
 
@@ -8073,22 +8338,55 @@ def _apply_backup_zip(zip_path: str) -> None:
 
 @app.get("/api/data_backup/download")
 def data_backup_download():
+    # only group admin may download backups
     try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
+    try:
+        # Get backup mode and customer list from query params
+        mode = request.args.get('mode', 'group').strip().lower()
+        customers_str = request.args.get('customers', '').strip()
+        selected_customers = set(v.strip() for v in customers_str.split(',') if v.strip()) if customers_str else set()
+        
         mem = io.BytesIO()
         with zipfile.ZipFile(mem, "w", zipfile.ZIP_DEFLATED) as zf:
             base = get_group_base_dir()
-            for root, _, files in os.walk(base):
-                for fname in files:
-                    path = os.path.join(root, fname)
-                    arc = os.path.relpath(path, base)
-                    zf.write(path, arc)
+            
+            if mode == 'customer' and selected_customers:
+                # Only backup files related to selected customers
+                for root, _, files in os.walk(base):
+                    for fname in files:
+                        # Include files if they match customer VATs or if they're metadata files
+                        if any(vat in fname for vat in selected_customers) or fname in {
+                            'credentials.json', 'credentials_settings.json', 'activity.log', 'fiscal_meta.json'
+                        }:
+                            path = os.path.join(root, fname)
+                            arc = os.path.relpath(path, base)
+                            zf.write(path, arc)
+            else:
+                # Backup entire group directory (default: mode='group')
+                for root, _, files in os.walk(base):
+                    for fname in files:
+                        path = os.path.join(root, fname)
+                        arc = os.path.relpath(path, base)
+                        zf.write(path, arc)
+        
         mem.seek(0)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_label = f"backup_{mode}" if mode == 'customer' else "backup"
         return send_file(
             mem,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=f"data_backup_{ts}.zip",
+            download_name=f"data_{backup_label}_{ts}.zip",
         )
     except Exception as exc:
         current_app.logger.exception("data_backup_download failed")
@@ -8097,6 +8395,18 @@ def data_backup_download():
 
 @app.post("/api/data_backup/inspect")
 def data_backup_inspect():
+    # only group admin may inspect backup contents
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
     uploaded = request.files.get("backup_file")
     if not uploaded:
         return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
@@ -8117,6 +8427,18 @@ def data_backup_inspect():
 
 @app.post("/api/data_backup/restore")
 def data_backup_restore():
+    # only group admin may restore backups
+    try:
+        from auth import get_active_group
+        from flask_login import current_user
+        grp = get_active_group()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'no active group selected'}), 403
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
     uploaded = request.files.get("backup_file")
     if not uploaded:
         return jsonify({"ok": False, "error": "Δεν επιλέχθηκε αρχείο."}), 400
@@ -8253,13 +8575,14 @@ def epsilon_preview():
             category_labels.update(_category_labels_for_client(cred_for_labels))
         except Exception:
             current_app.logger.exception("Failed to build category labels for epsilon preview")
+    client_db_path = _resolve_client_db_path(vat)
     rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,         # θα λυθεί path αυτόματα: data/epsilon/{vat}_epsilon_invoices.json
-        client_db=None,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
-        base_invoices_dir="data/epsilon",
+        client_db=client_db_path,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
+        base_invoices_dir=group_path("epsilon"),
     )
     # πέρασέ τα στο template
     return render_template("epsilon_preview.html",
@@ -8279,7 +8602,7 @@ def export_fastimport_kinitseis():
     apod_type = ""
     active_cred = None
     try:
-        creds = _safe_json_read("data/credentials.json", default=[])
+        creds = _safe_json_read(credentials_path_for_request(), default=[])
         cl = creds if isinstance(creds, list) else [creds]
         active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
         active_cred = active if isinstance(active, dict) else {}
@@ -8302,11 +8625,11 @@ def export_fastimport_kinitseis():
     # 1) Preview για να εντοπίσουμε receipts χωρίς CUSTID
     preview = build_preview_strict_multiclient(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,
         client_db=base_client_db,
-        base_invoices_dir="data/epsilon",
+        base_invoices_dir=group_path("epsilon"),
     )
 
     if apod_type == "afm" and not confirm:
@@ -8336,13 +8659,13 @@ def export_fastimport_kinitseis():
     # 3) Κανονικό export (ΧΩΡΙΣ να πειράζουμε τις υπόλοιπες λογικές)
     ok, out_path, issues = export_multiclient_strict(
         vat=vat,
-        credentials_json="data/credentials.json",
-        cred_settings_json="data/credentials_settings.json",
+        credentials_json=credentials_path_for_request(),
+        cred_settings_json=settings_file_path(),
         invoices_json=None,
         client_db=client_db_path,
         out_xlsx=None,
-        base_invoices_dir="data/epsilon",
-        base_exports_dir="exports",
+        base_invoices_dir=group_path("epsilon"),
+        base_exports_dir=group_path("exports"),
     )
 
     if ok and out_path:

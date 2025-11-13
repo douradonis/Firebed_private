@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Group
+import datetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -153,6 +154,16 @@ def create_group():
         flash('Data folder already in use by another group', 'warning')
         return redirect(url_for('auth.list_groups'))
 
+    # Enforce: a user may be admin in at most one group
+    try:
+        if getattr(current_user, 'is_authenticated', False):
+            for ug in current_user.user_groups:
+                if ug.role == 'admin':
+                    flash('You are already admin of another group; cannot create another.', 'danger')
+                    return redirect(url_for('auth.list_groups'))
+    except Exception:
+        pass
+
     grp = Group(name=name, data_folder=safe_folder)
     db.session.add(grp)
     db.session.flush()
@@ -170,6 +181,11 @@ def create_group():
         pass
 
     db.session.commit()
+    # append to group activity log
+    try:
+        _append_group_log(grp, f"Group created by {user.username}")
+    except Exception:
+        pass
     flash('Group created', 'success')
     return redirect(url_for('auth.list_groups'))
 
@@ -186,7 +202,12 @@ def assign_user_to_group():
     if not username or not group_name:
         return jsonify({'ok': False, 'error': 'username and group required'}), 400
 
-    user = User.query.filter_by(username=username).first()
+    # support either username or user_id
+    user = None
+    if username and username.isdigit():
+        user = User.query.get(int(username))
+    if not user and username:
+        user = User.query.filter_by(username=username).first()
     grp = Group.query.filter_by(name=group_name).first()
     if not user or not grp:
         return jsonify({'ok': False, 'error': 'user or group not found'}), 404
@@ -200,11 +221,166 @@ def assign_user_to_group():
     except Exception:
         return jsonify({'ok': False, 'error': 'permission check failed'}), 500
 
+    # If assigning admin role, ensure the target user is not already admin in another group
+    if role == 'admin':
+        for ug in user.user_groups:
+            if ug.role == 'admin' and ug.group_id != grp.id:
+                return jsonify({'ok': False, 'error': 'target user is already admin of another group'}), 400
+
+    # assign role
+    db.session.commit()
     # assign role
     user.add_to_group(grp, role=role)
     db.session.commit()
 
-    return jsonify({'ok': True})
+    # log the assignment in the group's activity log
+    try:
+        _append_group_log(grp, f"{current_user.username} assigned {user.username} as {role}")
+    except Exception:
+        pass
+
+    # Return with refresh flag so frontend auto-refreshes
+    return jsonify({'ok': True, 'refresh': True, 'message': f'User {user.username} assigned as {role}'})
+
+
+@auth_bp.route('/groups/remove_member', methods=['POST'])
+@login_required
+def remove_member():
+    """Admin-only: remove a user from a group. Expects form/json: username OR user_id and group (name)."""
+    username = (request.form.get('username') or request.json.get('username') if request.is_json else request.form.get('username')) or ''
+    group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or ''
+    if not username or not group_name:
+        return jsonify({'ok': False, 'error': 'username and group required'}), 400
+
+    grp = Group.query.filter_by(name=group_name).first()
+    if not grp:
+        return jsonify({'ok': False, 'error': 'group not found'}), 404
+
+    # permission: only admins of the group may remove
+    try:
+        if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
+            return jsonify({'ok': False, 'error': 'admin privileges required for this group'}), 403
+    except Exception:
+        return jsonify({'ok': False, 'error': 'permission check failed'}), 500
+
+    # resolve user
+    target = None
+    if username.isdigit():
+        target = User.query.get(int(username))
+    if not target:
+        target = User.query.filter_by(username=username).first()
+    if not target:
+        return jsonify({'ok': False, 'error': 'user not found'}), 404
+
+    # cannot remove self via this endpoint; use leave
+    if target.id == current_user.id:
+        return jsonify({'ok': False, 'error': 'use leave endpoint to leave group'}), 400
+
+    # remove membership
+    try:
+        ug = next((ug for ug in target.user_groups if ug.group_id == grp.id), None)
+        if not ug:
+            return jsonify({'ok': False, 'error': 'user is not a member of group'}), 400
+        db.session.delete(ug)
+        db.session.commit()
+        _append_group_log(grp, f"{current_user.username} removed member {target.username}")
+        return jsonify({'ok': True})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'failed to remove member'}), 500
+
+
+@auth_bp.route('/groups/leave', methods=['POST'])
+@login_required
+def leave_group():
+    """Allow the current user to leave a group. Expects 'group' param (name) or uses session active_group."""
+    group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or session.get('active_group')
+    if not group_name:
+        return jsonify({'ok': False, 'error': 'group required'}), 400
+    grp = Group.query.filter_by(name=group_name).first()
+    if not grp:
+        return jsonify({'ok': False, 'error': 'group not found'}), 404
+
+    # find membership
+    try:
+        ug = next((ug for ug in current_user.user_groups if ug.group_id == grp.id), None)
+        if not ug:
+            return jsonify({'ok': False, 'error': 'not a member'}), 400
+
+        # if admin and only admin, return warning status code with message about data loss
+        if ug.role == 'admin':
+            other_admins = [u for u in grp.user_groups if u.role == 'admin' and u.user_id != current_user.id]
+            if not other_admins:
+                # Return 409 (Conflict) to signal a warning condition
+                return jsonify({
+                    'ok': False, 
+                    'warning': True,
+                    'error': 'you are the only admin of this group',
+                    'message': 'Leaving this group will permanently delete all associated data. Are you sure?'
+                }), 409
+
+        db.session.delete(ug)
+        db.session.commit()
+        # if active_group matches, clear it
+        if session.get('active_group') == grp.name:
+            session.pop('active_group', None)
+        _append_group_log(grp, f"{current_user.username} left the group")
+        return jsonify({'ok': True})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'failed to leave group'}), 500
+
+
+@auth_bp.route('/groups/leave/confirm', methods=['POST'])
+@login_required
+def leave_group_confirm():
+    """Force leave group and delete all associated data (admin only, last admin case)."""
+    group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or session.get('active_group')
+    if not group_name:
+        return jsonify({'ok': False, 'error': 'group required'}), 400
+    grp = Group.query.filter_by(name=group_name).first()
+    if not grp:
+        return jsonify({'ok': False, 'error': 'group not found'}), 404
+
+    try:
+        ug = next((ug for ug in current_user.user_groups if ug.group_id == grp.id), None)
+        if not ug:
+            return jsonify({'ok': False, 'error': 'not a member'}), 400
+
+        # Only allow if admin and is the only admin
+        if ug.role == 'admin':
+            other_admins = [u for u in grp.user_groups if u.role == 'admin' and u.user_id != current_user.id]
+            if other_admins:
+                return jsonify({'ok': False, 'error': 'other admins exist; use regular leave'}), 400
+
+        db.session.delete(ug)
+        db.session.commit()
+        
+        if session.get('active_group') == grp.name:
+            session.pop('active_group', None)
+        
+        _append_group_log(grp, f"{current_user.username} left the group (confirmed)")
+        return jsonify({'ok': True, 'message': 'Left group successfully'})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'failed to leave group'}), 500
+
+
+@auth_bp.route('/lookup_user', methods=['GET'])
+@login_required
+def lookup_user():
+    q = (request.args.get('q') or '').strip()
+    if not q:
+        return jsonify({'ok': False, 'error': 'missing query'}), 400
+    # allow lookup by username or id
+    user = None
+    if q.isdigit():
+        user = User.query.get(int(q))
+    if not user:
+        user = User.query.filter_by(username=q).first()
+    if not user:
+        return jsonify({'ok': False, 'found': False}), 200
+    return jsonify({'ok': True, 'found': True, 'username': user.username, 'id': user.id})
 
 
 # helper: get data folders current user has access to (list)
@@ -235,6 +411,28 @@ def get_active_group():
     except Exception:
         pass
     return None
+
+
+def _append_group_log(group: Group, message: str) -> None:
+    """Append a timestamped message to the group's activity.log inside data/<data_folder>/activity.log
+    Fall back to current_app.root_path/data/<folder>.
+    """
+    try:
+        folder = (group.data_folder if getattr(group, 'data_folder', None) else None)
+        if not folder:
+            return
+        base = os.path.join(current_app.root_path, 'data', folder)
+        os.makedirs(base, exist_ok=True)
+        p = os.path.join(base, 'activity.log')
+        ts = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+        entry = f"{ts} - {message}\n"
+        with open(p, 'a', encoding='utf-8') as fh:
+            fh.write(entry)
+    except Exception:
+        try:
+            current_app.logger.exception('Failed to append group log')
+        except Exception:
+            pass
 
 
 @auth_bp.route('/groups/select', methods=['POST'])
@@ -298,3 +496,36 @@ def api_user():
     if getattr(current_user, 'is_authenticated', False):
         return jsonify({'authenticated': True, 'username': current_user.username, 'groups': [g.name for g in current_user.groups]})
     return jsonify({'authenticated': False})
+
+
+@auth_bp.route('/api/user_groups', methods=['GET'])
+def api_user_groups():
+    """Get list of groups for the authenticated user, including active group."""
+    if not getattr(current_user, 'is_authenticated', False):
+        return jsonify({'groups': [], 'active_group': None}), 401
+    
+    try:
+        groups = []
+        active_group = None
+        
+        for g in current_user.groups:
+            groups.append({
+                'name': g.name,
+                'data_folder': g.data_folder,
+            })
+        
+        # Get active group from session
+        try:
+            active_group_name = session.get('active_group')
+            if active_group_name:
+                # Verify user has access to this group
+                if any(g.name == active_group_name for g in current_user.groups):
+                    active_group = active_group_name
+        except Exception:
+            pass
+        
+        return jsonify({'groups': groups, 'active_group': active_group})
+    except Exception as e:
+        current_app.logger.exception("api_user_groups failed")
+        return jsonify({'error': str(e)}), 500
+

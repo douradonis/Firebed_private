@@ -512,7 +512,12 @@ $(function(){
     const mode = this.dataset.exportMode || 'strict';
     let targetUrl = baseUrl;
     if (mode === 'partners'){
-      const proceed = window.confirm('Θα δημιουργηθούν προσωρινοί συναλλασσόμενοι για αποδείξεις χωρίς CUSTID. Θέλεις να συνεχίσεις;');
+      const proceed = await showModalConfirm(
+        'Επιβεβαίωση δημιουργίας συναλλασσόμενων',
+        'Θα δημιουργηθούν προσωρινοί συναλλασσόμενοι για αποδείξεις χωρίς CUSTID. Θέλεις να συνεχίσεις;',
+        'Επιβεβαίωση',
+        'Άκυρο'
+      );
       if (!proceed) return;
       targetUrl += '&confirm_new_partners=1';
     }

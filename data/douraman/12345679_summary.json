@@ -1,0 +1,166 @@
+[
+  {
+    "mark": "400000000000000",
+    "AA": "142362",
+    "AFM_issuer": "101401017",
+    "Name": "ΣΤΡΙΚΟΣ ΙΩΑΝΝ",
+    "issueDate": "31/10/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "30,00",
+    "totalNetValue": "30,00",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "30,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "142362",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400000000000000",
+    "aa": "142362",
+    "progressive_aa": "142362",
+    "AFM": "101401017",
+    "created_at": "2025-11-07T13:37:00",
+    "series": "ΑΛΠ"
+  },
+  {
+    "mark": "400000000000001",
+    "AA": "2221034",
+    "AFM_issuer": "094475066",
+    "Name": "ΜΥΡΤΕΑ 106",
+    "issueDate": "14/10/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "40",
+    "totalNetValue": "40",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "40",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "2221034",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400000000000001",
+    "aa": "2221034",
+    "progressive_aa": "2221034",
+    "AFM": "094475066",
+    "created_at": "2025-11-07T13:37:18",
+    "series": "ΑΛΠ"
+  },
+  {
+    "mark": "400000000000002",
+    "AA": "1412560",
+    "AFM_issuer": "999644611",
+    "Name": "ΕΚΟ ΗΛΙΟΥΠΟΛΗΣ (R020)",
+    "issueDate": "14/10/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "70",
+    "totalNetValue": "70",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "70",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "1412560",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400000000000002",
+    "aa": "1412560",
+    "progressive_aa": "1412560",
+    "AFM": "999644611",
+    "created_at": "2025-11-07T13:37:22",
+    "series": "ΑΛΠ"
+  },
+  {
+    "mark": "400000000000003",
+    "AA": "87920",
+    "AFM_issuer": "082657798",
+    "Name": "ΝΙΚΟΛΑΟΥ ΙΩΑΝΝΗΣ ΚΑΙ ΣΙΑ ΟΕ",
+    "issueDate": "08/10/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "70,00",
+    "totalNetValue": "70,00",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "70,00",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "87920",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400000000000003",
+    "aa": "87920",
+    "progressive_aa": "87920",
+    "AFM": "082657798",
+    "created_at": "2025-11-07T13:38:02",
+    "series": "ΑΛΠ"
+  },
+  {
+    "mark": "400000000000004",
+    "AA": "215770",
+    "AFM_issuer": "121160800",
+    "Name": "ΔΕΛΛΗΣ ΔΗΜΗΤ",
+    "issueDate": "24/07/2024",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "7,12",
+    "totalNetValue": "7,12",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "7,12",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "215770",
+    "MARK": "400000000000004",
+    "aa": "215770",
+    "progressive_aa": "215770",
+    "AFM": "121160800",
+    "χαρακτηρισμός": "αποδειξακια",
+    "created_at": "2025-11-09T18:44:46",
+    "series": "ΑΛΠ"
+  }
+]

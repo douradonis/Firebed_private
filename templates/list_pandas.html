@@ -78,29 +78,29 @@ $(document).ready(function(){
 
   $('#reloadBtn').on('click', function(){ location.reload(); });
 
-  $('#deleteSelected').on('click', function(){
+  $('#deleteSelected').on('click', async function(){
     var marks = [];
     $('.row-select:checked').each(function(){ marks.push($(this).val()); });
-    if (!marks.length) { alert('Επίλεξε πρώτα εγγραφές.'); return; }
-    if (!confirm('Θες σίγουρα να διαγράψεις τις επιλεγμένες εγγραφές;')) return;
+    if (!marks.length) { await showModalAlert('Ενημέρωση', 'Επίλεξε πρώτα εγγραφές.'); return; }
+    if (!await showModalConfirm('Επιβεβαίωση', 'Θες σίγουρα να διαγράψεις τις επιλεγμένες εγγραφές;')) return;
     $.ajax({
       url: '/delete_ajax',
       method: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({ marks: marks }),
-      success: function(res){
+      success: async function(res){
         if (res && res.deleted !== undefined) {
-          alert('Διαγράφηκαν ' + res.deleted + ' γραμμές.');
+          await showModalAlert('Επιτυχία', 'Διαγράφηκαν ' + res.deleted + ' γραμμές.');
           location.reload();
         } else if (res && res.error) {
-          alert('Σφάλμα: ' + res.error);
+          await showModalAlert('Σφάλμα', 'Σφάλμα: ' + res.error);
         } else {
-          alert('Ολοκληρώθηκε.');
+          await showModalAlert('Ενημέρωση', 'Ολοκληρώθηκε.');
           location.reload();
         }
       },
-      error: function(xhr){
-        alert('Σφάλμα διαγραφής: ' + xhr.responseText);
+      error: async function(xhr){
+        await showModalAlert('Σφάλμα', 'Σφάλμα διαγραφής: ' + xhr.responseText);
       }
     });
   });

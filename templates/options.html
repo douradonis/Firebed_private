@@ -2,7 +2,7 @@
 <html lang="el">
 <head>
   <meta charset="utf-8">
-  <title>Options / Credentials</title>
+  <title>Επιλογές / Διαπιστευτήρια</title>
   <style>
     body{font-family:Arial,sans-serif;max-width:900px;margin:20px auto;background:#fafafa}
     .card{background:#fff;padding:16px;margin:16px 0;border-radius:12px}
@@ -32,13 +32,13 @@
       <p>Όνομα (προβολή/επιλογή):<br><input name="name" required style="width:60%"></p>
       <p>AADE User ID:<br><input name="user" style="width:60%"></p>
       <p>AADE Subscription Key:<br><input name="key" style="width:60%"></p>
-      <p>Env:<br>
+      <p>Περιβάλλον:<br>
         <select name="env">
           <option value="sandbox">sandbox</option>
           <option value="production">production</option>
         </select>
       </p>
-      <p>Default VAT (optional):<br><input name="vat" style="width:40%"></p>
+      <p>Προεπιλεγμένο ΑΦΜ (προαιρετικό):<br><input name="vat" style="width:40%"></p>
       <p><button type="submit">Αποθήκευση Credential</button></p>
     </form>
 
@@ -55,9 +55,9 @@
               <td class="small">{{ c.user or '' }}</td>
               <td class="small">{{ c._key_masked }}</td>
               <td>
-                <form method="post" action="{{ url_for('credentials_delete') }}" style="display:inline">
+                <form method="post" action="{{ url_for('credentials_delete') }}" style="display:inline" class="delete-cred-form">
                   <input type="hidden" name="name" value="{{ c.name }}">
-                  <button type="submit" class="del-btn" onclick="return confirm('Διαγραφή credential;')">Διαγραφή</button>
+                  <button type="button" class="del-btn delete-cred-btn">Διαγραφή</button>
                 </form>
               </td>
             </tr>
@@ -70,5 +70,17 @@
 
     <p><a href="{{ url_for('home') }}">⬅ Επιστροφή</a></p>
   </div>
+
+  <script>
+    document.querySelectorAll('.delete-cred-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const name = btn.closest('form').querySelector('input[name="name"]').value;
+        if (await showModalConfirm('Επιβεβαίωση', 'Θες σίγουρα να διαγράψεις το credential "' + name + '";')) {
+          btn.closest('form').submit();
+        }
+      });
+    });
+  </script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Groups{% endblock %}
+{% block title %}Ομάδες{% endblock %}
 
 {% block content %}
   <div class="content-wrap">
     <div class="flex items-center justify-between mb-4">
-      <h1 class="text-xl font-semibold">Groups</h1>
-      <div>Logged in as <strong>{{ current_user.username }}</strong></div>
+      <h1 class="text-xl font-semibold">Ομάδες</h1>
+      <div>Συνδεδεμένος ως <strong>{{ current_user.username }}</strong></div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,39 +19,180 @@
       {% endif %}
     {% endwith %}
 
+    <style>
+      ul li.selected { background: #e6f7ff; border-color: #38bdf8; }
+      .member-pill button { border: none; background: transparent; cursor: pointer; color: #c53030; }
+    </style>
+
     <div class="grid grid-cols-2 gap-6">
       <div>
-        <h2 class="font-medium mb-2">Create group</h2>
-        <form method="post" action="{{ url_for('auth.create_group') }}" class="grid gap-3">
-          <input type="text" name="name" placeholder="Group name" class="px-3 py-2 border rounded" />
-          <input type="text" name="data_folder" placeholder="Data folder (under data/)" class="px-3 py-2 border rounded" />
-          <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Create</button>
-        </form>
+        <h2 class="font-medium mb-2">Δημιουργία ομάδας</h2>
+        <button id="open-create" class="px-4 py-2 rounded bg-sky-600 text-white">Δημιουργία ομάδας</button>
       </div>
 
       <div>
-        <h2 class="font-medium mb-2">Assign user to group</h2>
-        <form method="post" action="{{ url_for('auth.assign_user_to_group') }}" class="grid gap-3">
-          <input type="text" name="username" placeholder="Username" class="px-3 py-2 border rounded" />
-          <input type="text" name="group" placeholder="Group name" class="px-3 py-2 border rounded" />
-          <select name="role" class="px-3 py-2 border rounded">
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Assign</button>
+        <h2 class="font-medium mb-2">Ανάθεση χρήστη σε ομάδα</h2>
+        <button id="open-assign" class="px-4 py-2 rounded bg-sky-600 text-white">Ανάθεση χρήστη</button>
+      </div>
+    </div>
+
+    <!-- Create modal -->
+    <div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:20px;border-radius:6px;max-width:480px;margin:40px auto;">
+        <h3>Δημιουργία ομάδας</h3>
+        <form method="post" action="{{ url_for('auth.create_group') }}" class="grid gap-3">
+          <input type="text" name="name" placeholder="Όνομα ομάδας" class="px-3 py-2 border rounded" required />
+          <input type="text" name="data_folder" placeholder="Φάκελος δεδομένων (κάτω από data/)" class="px-3 py-2 border rounded" required />
+          <div class="mt-3">
+            <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Δημιουργία</button>
+            <button type="button" id="close-create" class="px-4 py-2 rounded bg-gray-200">Άκυρο</button>
+          </div>
         </form>
       </div>
     </div>
 
-    <h3 class="mt-6 font-medium">Existing groups</h3>
+    <!-- Assign modal -->
+    <div id="modal-assign" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:20px;border-radius:6px;max-width:640px;margin:40px auto;">
+        <h3>Ανάθεση χρήστη σε ομάδα</h3>
+        <form id="assign-form" method="post" action="{{ url_for('auth.assign_user_to_group') }}" class="grid gap-3">
+          <div class="flex items-center gap-2">
+            <input id="assign-username" type="text" name="username" placeholder="Όνομα χρήστη ή ID" class="px-3 py-2 border rounded flex-1" />
+            <button id="check-user" type="button" class="px-3 py-2 rounded bg-gray-200">Έλεγχος</button>
+          </div>
+          <div id="user-check-result" class="text-sm text-gray-600"></div>
+          <input id="assign-group" type="text" name="group" placeholder="Όνομα ομάδας" class="px-3 py-2 border rounded" />
+          <select name="role" class="px-3 py-2 border rounded">
+            <option value="member">Μέλος</option>
+            <option value="admin">Διαχειριστής</option>
+          </select>
+          <div class="mt-3">
+            <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Ανάθεση</button>
+            <button type="button" id="close-assign" class="px-4 py-2 rounded bg-gray-200">Άκυρο</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <h3 class="mt-6 font-medium">Υπάρχουσες ομάδες</h3>
     <ul class="mt-2 space-y-2">
       {% for g in groups %}
-        <li class="px-3 py-2 border rounded">{{ g.name }} → <code>{{ g.data_folder }}</code></li>
+        <li class="px-3 py-2 border rounded {% if session.get('active_group') == g.name %}selected{% endif %}">
+          <div class="flex justify-between items-center">
+            <div><strong>{{ g.name }}</strong> → <code>{{ g.data_folder }}</code></div>
+            <div class="text-sm text-gray-600">Διαχειριστές: {% for u in g.admins() %}<span class="px-2 py-1 bg-gray-100 rounded">{{ u.username }}</span>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div>
+          </div>
+          <div class="mt-2 text-sm">Μέλη:
+            {% for ug in g.user_groups %}
+              <span class="member-pill inline-block px-2 py-1 border rounded mr-1" style="display:inline-flex;align-items:center;gap:6px;">
+                <span>{{ ug.user.username }}</span>
+                <em class="text-xs text-gray-500">({{ ug.role }})</em>
+                {% if current_user.is_authenticated and current_user.role_for_group(g) == 'admin' %}
+                  <button class="remove-member-btn" data-username="{{ ug.user.username }}" data-group="{{ g.name }}" style="margin-left:6px;">✖</button>
+                {% endif %}
+              </span>
+            {% else %}
+              <span class="text-gray-500">Χωρίς μέλη</span>
+            {% endfor %}
+          </div>
+          <div class="mt-2">
+            {% if current_user.is_authenticated and (g in current_user.groups) %}
+              <button class="leave-group-btn px-2 py-1 border rounded" data-group="{{ g.name }}">Αποχώρηση</button>
+            {% endif %}
+          </div>
+        </li>
       {% else %}
-        <li class="text-gray-500">No groups yet</li>
+        <li class="text-gray-500">Δεν υπάρχουν ομάδες ακόμη</li>
       {% endfor %}
     </ul>
 
-    <p class="mt-6"><a href="{{ url_for('auth.logout') }}" class="text-sky-600">Logout</a></p>
+    <script>
+      document.getElementById('check-user').addEventListener('click', async function(){
+        const q = document.getElementById('assign-username').value.trim();
+        const out = document.getElementById('user-check-result');
+        out.textContent = 'Έλεγχος...';
+        try{
+          const resp = await fetch("{{ url_for('auth.lookup_user') }}?q=" + encodeURIComponent(q));
+          const data = await resp.json();
+          if(data.ok && data.found){
+            out.innerHTML = `<span style="color:green">Βρέθηκε χρήστης: ${data.username} (id=${data.id})</span>`;
+          } else {
+            out.innerHTML = `<span style="color:orange">Χρήστης δεν βρέθηκε</span>`;
+          }
+        }catch(e){
+          out.textContent = 'Ο έλεγχος απέτυχε';
+        }
+      });
+
+      // modal wiring
+      document.getElementById('open-create').addEventListener('click', function(){ document.getElementById('modal-create').style.display='flex'; });
+      document.getElementById('close-create').addEventListener('click', function(){ document.getElementById('modal-create').style.display='none'; });
+      document.getElementById('open-assign').addEventListener('click', function(){ document.getElementById('modal-assign').style.display='flex'; });
+      document.getElementById('close-assign').addEventListener('click', function(){ document.getElementById('modal-assign').style.display='none'; });
+
+      // group selection on double-click and highlight the selected group
+      document.querySelectorAll('ul li').forEach(function(li){
+        li.addEventListener('dblclick', async function(){
+          const name = li.querySelector('strong')?.textContent?.trim();
+          if(!name) return;
+          try{
+            const resp = await fetch("{{ url_for('auth.select_group') }}", {method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: 'group=' + encodeURIComponent(name)});
+            const data = await resp.json();
+            if(data.ok){
+              // clear existing highlights
+              document.querySelectorAll('ul li').forEach(x=>x.classList.remove('selected'));
+              li.classList.add('selected');
+              // selection done silently (no modal)
+            } else {
+              await showModalAlert('Σφάλμα', 'Αποτυχία επιλογής ομάδας: ' + (data.error || 'άγνωστο σφάλμα'));
+            }
+          }catch(e){
+            await showModalAlert('Σφάλμα', 'Η επιλογή ομάδας απέτυχε');
+          }
+        });
+      });
+
+      // remove member buttons (delegated via data-attrs)
+      document.querySelectorAll('.remove-member-btn').forEach(function(btn){
+        btn.addEventListener('click', async function(ev){
+          ev.preventDefault();
+          const username = btn.dataset.username;
+          const group = btn.dataset.group;
+          const confirmed = await showModalConfirm('Αφαίρεση μέλους', 'Θέλεις να αφαιρέσεις τον ' + username + ' από την ομάδα ' + group + ';', 'Αφαίρεση', 'Άκυρο');
+          if(!confirmed) return;
+          try{
+            const resp = await fetch("{{ url_for('auth.remove_member') }}", {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: 'username='+encodeURIComponent(username)+'&group='+encodeURIComponent(group)});
+            const data = await resp.json();
+            if(data.ok){
+              btn.closest('.member-pill').remove();
+            } else {
+              await showModalAlert('Σφάλμα', 'Αποτυχία αφαίρεσης: '+(data.error||'άγνωστο σφάλμα'));
+            }
+          }catch(e){ await showModalAlert('Σφάλμα', 'Σφάλμα αιτήματος'); }
+        });
+      });
+
+      // leave group buttons
+      document.querySelectorAll('.leave-group-btn').forEach(function(btn){
+        btn.addEventListener('click', async function(ev){
+          ev.preventDefault();
+          const group = btn.dataset.group;
+          const confirmed = await showModalConfirm('Αποχώρηση ομάδας', 'Θέλεις να αποχωρήσεις την ομάδα ' + group + '; Αυτό δεν μπορεί να αναιρεθεί.', 'Αποχώρηση', 'Άκυρο');
+          if(!confirmed) return;
+          try{
+            const resp = await fetch("{{ url_for('auth.leave_group') }}", {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: 'group='+encodeURIComponent(group)});
+            const data = await resp.json();
+            if(data.ok){
+              // remove the group li from DOM
+              btn.closest('li').remove();
+            } else {
+              await showModalAlert('Σφάλμα', 'Αποχώρηση απέτυχε: '+(data.error||'άγνωστο σφάλμα'));
+            }
+          }catch(e){ await showModalAlert('Σφάλμα', 'Σφάλμα αιτήματος'); }
+        });
+      });
+    </script>
+
+    <p class="mt-6"><a href="{{ url_for('auth.logout') }}" class="text-sky-600">Αποσύνδεση</a></p>
   </div>
 {% endblock %}

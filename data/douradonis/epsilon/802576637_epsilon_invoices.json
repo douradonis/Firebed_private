@@ -1,0 +1,31 @@
+[
+  {
+    "mark": "500000000000000",
+    "issueDate": "11/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "8350",
+    "AA": "8350",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "3,50",
+    "totalVatAmount": "",
+    "totalValue": "3,50",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "3,50",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  }
+]
