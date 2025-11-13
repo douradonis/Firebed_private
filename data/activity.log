@@ -1444,3 +1444,7 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-11-13 14:23:17+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
 2025-11-13 14:23:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
 2025-11-13 14:23:19+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:20+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:20+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:21+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:21+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
