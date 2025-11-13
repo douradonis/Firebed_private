@@ -389,6 +389,7 @@ def _discover_client_db_in_data_dir(data_dir: str = "data", vat: Optional[str] =
     candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
     return candidates[0][2]
 
+# ----------------------- paths (robust client_db discovery) -----------------------
 def resolve_paths_for_vat(
     vat: str,
     invoices_json: Optional[str] = None,
@@ -398,20 +399,34 @@ def resolve_paths_for_vat(
     base_exports_dir: str = "exports",
 ) -> Dict[str, str]:
     vat = str(vat).strip()
+
+    # Το group base dir είναι ο "γονέας" του base_invoices_dir (π.χ. .../data/<group>)
+    base_dir = os.path.abspath(os.path.dirname(base_invoices_dir)) if base_invoices_dir else "data"
+
+    # 1) invoices path – δώσε προτεραιότητα στον φάκελο epsilon του group
     inv_candidates = [
         invoices_json,
         os.path.join(base_invoices_dir, f"{vat}_epsilon_invoices.json"),
         os.path.join(base_invoices_dir, "epsilon_invoices.json"),
-        f"{vat}_epsilon_invoices.json",
-        os.path.join("data", f"{vat}_epsilon_invoices.json"),
-        os.path.join("data", "epsilon_invoices.json"),
+        # extra candidates just in case
+        os.path.join(base_dir, "epsilon", f"{vat}_epsilon_invoices.json"),
+        os.path.join(base_dir, "epsilon", "epsilon_invoices.json"),
     ]
-    invoices_path = next((p for p in inv_candidates if p and os.path.exists(p)), inv_candidates[1])
+    invoices_path = next((p for p in inv_candidates if p and os.path.exists(p)),
+                         os.path.join(base_invoices_dir, f"{vat}_epsilon_invoices.json"))
 
-    # Robust client_db search
+    # 2) client_db – ψάξε ΠΡΩΤΑ στο group base dir, μετά (fallback) στο data/
     explicit = client_db if (client_db and os.path.exists(client_db)) else None
     conventional = None
     for p in [
+        os.path.join(base_dir, f"client_db_{vat}.xlsx"),
+        os.path.join(base_dir, f"{vat}_client_db.xlsx"),
+        os.path.join(base_dir, "client_db.xlsx"),
+        os.path.join(base_dir, f"client_db_{vat}.xls"),
+        os.path.join(base_dir, f"{vat}_client_db.xls"),
+        os.path.join(base_dir, "client_db.xls"),
+        os.path.join(base_dir, "client_db.csv"),
+        # fallbacks στο παλιό "data/"
         os.path.join("data", f"client_db_{vat}.xlsx"),
         os.path.join("data", f"{vat}_client_db.xlsx"),
         os.path.join("data", "client_db.xlsx"),
@@ -423,11 +438,15 @@ def resolve_paths_for_vat(
         if os.path.exists(p):
             conventional = p
             break
-    discovered = _discover_client_db_in_data_dir("data", vat=vat)
+
+    discovered = (_discover_client_db_in_data_dir(base_dir, vat=vat)
+                  or _discover_client_db_in_data_dir("data", vat=vat))
     client_db_path = explicit or conventional or discovered
 
+    # 3) out path – άσε να παραμετροποιείται (στο app θα περάσουμε group exports)
     out_path = out_xlsx or os.path.join(base_exports_dir, f"{vat}_EPSILON_BRIDGE_KINHSEIS.xlsx")
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+
     return {"invoices": invoices_path, "client_db": client_db_path, "out": out_path}
 
 # ----------------------- per-line account resolution -----------------------

@@ -102,7 +102,7 @@
 <script>
 // ID-first profiles: list from /api/profiles; save uses id when present
 (function(){
-  const VAT = "{{ vat }}";
+  const VAT = "{{ vat or active_credential_vat or '' }}";
   const listEl = document.getElementById('profList');
   const msgEl  = document.getElementById('profMsg');
   const saveBtn = document.getElementById('btnSaveProf');

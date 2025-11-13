@@ -607,7 +607,6 @@ def scrape_impact(url):
     full_text = soup.get_text(" ", strip=True)
     m = MARK_RE.search(full_text)
     return (m.group(0) if m else None), None
-
 # -------------------- EPSILON --------------------
 def scrape_epsilon(url):
     # --- ΝΕΟ: κανονικοποίηση fd → DocViewer/UUID ---

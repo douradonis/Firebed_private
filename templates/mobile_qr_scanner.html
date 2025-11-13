@@ -665,7 +665,28 @@
       {% endif %}
     </div>
     <footer>Firebed • Remote QR link</footer>
-  </main>
+  
+<!-- === Mobile Bottom Sheet (auto-opens when summary is visible) === -->
+<style>
+#sheetBackdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99998;display:none}
+#sheetBackdrop.show{display:block}
+#mobileSheet{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);transition:transform .25s ease;z-index:99999}
+#mobileSheet.show{transform:translateY(0)}
+#mobileSheet .sheet-inner{border-radius:20px 20px 0 0;background:#ffffff;box-shadow:0 -12px 28px rgba(15,23,42,0.25);padding:14px;max-height:85vh;overflow-y:auto}
+#closeSheetBtn{border:1px solid #cbd5f5;background:#f8fafc;border-radius:10px;padding:8px 12px;font-weight:600}
+</style>
+<div id="sheetBackdrop"></div>
+<div id="mobileSheet" aria-hidden="true">
+  <div class="sheet-inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+      <div style="width:44px;height:5px;border-radius:999px;background:#cbd5f5;margin:4px auto 8px"></div>
+      <button id="closeSheetBtn" type="button">Κλείσιμο</button>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+</main>
 
   <script>
     window.__REMOTE_QR_CONFIG__ = {{ {
@@ -1591,5 +1612,52 @@
       attach();
     })();
   </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var sheetBackdrop = document.getElementById('sheetBackdrop');
+  var sheet = document.getElementById('mobileSheet');
+  var sheetBody = document.getElementById('sheetBody');
+  var panel = document.getElementById('summaryControlPanel');
+  var warnPanel = document.getElementById('warningControlPanel');
+  if (panel && sheetBody) sheetBody.appendChild(panel);
+  if (warnPanel && sheetBody) sheetBody.appendChild(warnPanel);
+
+  function openSheet(){
+    sheet.classList.add('show');
+    sheet.setAttribute('aria-hidden','false');
+    sheetBackdrop.classList.add('show');
+  }
+  function closeSheet(){
+    sheet.classList.remove('show');
+    sheet.setAttribute('aria-hidden','true');
+    sheetBackdrop.classList.remove('show');
+  }
+  window.__openMobileSheet = openSheet;
+  window.__closeMobileSheet = closeSheet;
+
+  var closeBtn = document.getElementById('closeSheetBtn');
+  if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+  if (sheetBackdrop) sheetBackdrop.addEventListener('click', closeSheet);
+
+  // Also close when user taps "Κλείσιμο" in the summary actions (if present)
+  var summaryCloseBtn = document.getElementById('summaryCloseBtn');
+  if (summaryCloseBtn){
+    summaryCloseBtn.addEventListener('click', function(){ setTimeout(closeSheet, 150); });
+  }
+
+  // Open the sheet whenever the summary panel becomes visible; close when hidden
+  if (panel){
+    var obs = new MutationObserver(function(){
+      var hidden = panel.classList.contains('hidden');
+      if (!hidden) openSheet(); else closeSheet();
+    });
+    obs.observe(panel, { attributes:true, attributeFilter:['class'] });
+    // If initially visible, open
+    if (!panel.classList.contains('hidden')) openSheet();
+  }
+});
+</script>
+
 </body>
 </html>

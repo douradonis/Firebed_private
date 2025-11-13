@@ -1,33 +1,5 @@
 [
-  {
-    "mark": "400011172559639",
-    "issueDate": "03/10/2025",
-    "series": "12Μ0ΤΔΑ",
-    "aa": "10768",
-    "AA": "10768",
-    "type": "1.1",
-    "vatCategory": "",
-    "totalNetValue": "13,83",
-    "totalVatAmount": "3,32",
-    "totalValue": "17,15",
-    "classification": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM": "094439854",
-    "lines": [
-      {
-        "id": "400011172559639_inst0",
-        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "13,83",
-        "vat": "3,32",
-        "category": "δαπανες_χωρις_φπα",
-        "vat_category": "ΦΠΑ 24%"
-      }
-    ],
-    "_updated_at": "2025-10-29T10:50:26.904252+00:00"
-  },
+  
   {
     "mark": "400011185872109",
     "issueDate": "04/10/2025",
@@ -236,6 +208,35 @@
         "id": "r0",
         "description": "",
         "amount": "2,60",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
+  },
+  {
+    "mark": "400011576793994",
+    "issueDate": "11/10/2025",
+    "series": "ΑΛΠ",
+    "aa": "8350",
+    "AA": "8350",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "3,50",
+    "totalVatAmount": "",
+    "totalValue": "3,50",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "3,50",
         "vat": "",
         "category": "αποδειξακια",
         "vat_category": ""
