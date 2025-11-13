@@ -3018,21 +3018,40 @@ def normalize_vat_key(raw):
     if re.search(r'0|μηδ', s):
         return "0%"
     return ""
-def read_credentials_list():
+def _current_credentials_file() -> str:
+    """Return credentials.json path for current request (group-aware)."""
+    path = None
     try:
-        with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        if 'credentials_path_for_request' in globals():
+            path = credentials_path_for_request()
+    except Exception:
+        path = None
+    path = path or CREDENTIALS_FILE
+    return path
+
+
+def read_credentials_list():
+    path = _current_credentials_file()
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                data = [data]
+            return data
     except FileNotFoundError:
         return []
     except Exception:
-        log.exception("read_credentials_list failed")
+        log.exception("read_credentials_list failed for %s", path)
         return []
 
+
 def write_credentials_list(data_list):
-    tmp = CREDENTIALS_FILE + '.tmp'
+    path = _current_credentials_file()
+    os.makedirs(os.path.dirname(path) or DATA_DIR, exist_ok=True)
+    tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data_list, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, CREDENTIALS_FILE)
+    os.replace(tmp, path)
 
 def find_active_client_index(creds_list, vat=None):
     # priority: match vat, else find 'active': true, else first
