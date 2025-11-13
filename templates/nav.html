@@ -5,10 +5,10 @@
   <h1>myDATA - Κεντρικό Μενού</h1>
   <p>Επέλεξε λειτουργία:</p>
   <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-primary" href="{{ url_for('fetch') }}">Εισαγωγή / Bulk Fetch</a>
-    <a class="btn btn-secondary" href="{{ url_for('search') }}">Αναζήτηση MARK</a>
-    <a class="btn btn-success" href="{{ url_for('list_invoices') }}">Λίστα / Excel</a>
-    <a class="btn btn-outline-dark" href="{{ url_for('credentials') }}">Credentials</a>
+    <a class="btn btn-primary" href="{{ url_for('fetch') }}">📥 Εισαγωγή / Bulk Fetch</a>
+    <a class="btn btn-secondary" href="{{ url_for('search') }}">🔍 Αναζήτηση MARK</a>
+    <a class="btn btn-success" href="{{ url_for('list_invoices') }}">📄 Λίστα / Excel</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('credentials') }}">🔐 Credentials</a>
   </div>
 </div>
 {% endblock %}

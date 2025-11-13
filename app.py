@@ -803,7 +803,17 @@ try:
             return None
         # allow public API endpoints (if any) - keep a whitelist here if needed
         public = {'home', 'index', 'healthcheck'}
+        remote_public_endpoints = {
+            'mobile_qr_scanner',
+            'api_qr_remote_attach',
+            'api_qr_remote_heartbeat',
+            'api_qr_remote_update',
+            'api_qr_remote_push',
+            'api_qr_remote_control',
+        }
         if endpoint in public:
+            return None
+        if endpoint in remote_public_endpoints:
             return None
 
         try:
@@ -3649,11 +3659,21 @@ def inject_active_credential():
     except Exception:
         pass
     
+    active_group_name = None
+    try:
+        from auth import get_active_group
+        grp = get_active_group()
+        if grp:
+            active_group_name = getattr(grp, 'name', None)
+    except Exception:
+        active_group_name = None
+
     return dict(
-        active_credential=name, 
-        active_credential_vat=vat, 
+        active_credential=name,
+        active_credential_vat=vat,
         app_settings=settings,
-        user_role=user_role
+        user_role=user_role,
+        active_group=active_group_name,
     )
 
 

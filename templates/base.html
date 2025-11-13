@@ -135,6 +135,8 @@
     .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
     .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+    .flash-warning { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .flash-info    { background:#e0f2fe; color:#075985; border:1px solid #bae6fd; }
 
     /* Warning modal styling (shared look & feel) */
     [data-role="modal-warning"] { display: none; }
@@ -250,9 +252,9 @@
           <!-- 1η γραμμή: Menu buttons + Active credential -->
           <div class="layout-header__top-row flex items-center gap-4">
             <nav class="layout-header__nav flex gap-3 items-center">
-              <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
-              <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
-              <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
+              <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">📥 Bulk Fetch</a>
+              <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔍 Αναζήτηση MARK</a>
+              <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔐 Credentials</a>
             </nav>
 
             <!-- Active credential badge moved to second row -->
@@ -274,6 +276,15 @@
                 {% else %}
                   <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
                 {% endif %}
+              {% else %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+              {% endif %}
+            </div>
+
+            <div class="layout-header__active-group flex items-center gap-2">
+              <span class="text-sm text-gray-500">Ενεργή ομάδα:</span>
+              {% if active_group %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-emerald-600 text-white">{{ active_group }}</span>
               {% else %}
                 <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
               {% endif %}
@@ -340,7 +351,17 @@
       {% if messages %}
         <div class="space-y-2 mb-4" id="flashContainer">
           {% for cat, msg in messages %}
-            <div class="flash-banner {% if cat == 'error' %}flash-error{% else %}flash-success{% endif %}" role="alert" data-flash data-ttl="6000">{{ msg|safe }}</div>
+            {% set normalized = (cat or '')|lower %}
+            {% if normalized in ['error', 'danger'] %}
+              {% set flash_class = 'flash-error' %}
+            {% elif normalized in ['warning'] %}
+              {% set flash_class = 'flash-warning' %}
+            {% elif normalized in ['info'] %}
+              {% set flash_class = 'flash-info' %}
+            {% else %}
+              {% set flash_class = 'flash-success' %}
+            {% endif %}
+            <div class="flash-banner {{ flash_class }}" role="alert" data-flash data-ttl="6000">{{ msg|safe }}</div>
           {% endfor %}
         </div>
       {% endif %}

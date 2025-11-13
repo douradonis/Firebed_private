@@ -5,15 +5,6 @@
 {% block content %}
   <div class="content-wrap">
     <h1 class="text-xl font-semibold mb-4">Σύνδεση</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="space-y-2 mb-4">
-          {% for category, msg in messages %}
-            <div class="flash-banner {{ 'flash-error' if category=='error' else 'flash-success' }}" role="alert">{{ msg|safe }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
 
     <form method="post" action="{{ url_for('auth.login') }}" class="grid gap-3 max-w-md">
       <label class="block">Όνομα χρήστη

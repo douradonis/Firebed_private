@@ -94,7 +94,7 @@ def login():
         password = request.form.get('password') or ''
         user = User.query.filter_by(username=username).first()
         if not user or not user.check_password(password):
-            flash('Invalid username or password', 'danger')
+            flash('Invalid username or password', 'error')
             return redirect(url_for('auth.login'))
 
         # Successful login: clear any previous active credential selection
@@ -102,8 +102,20 @@ def login():
         session.pop('_remote_qr_owner', None)
 
         login_user(user)
-        flash('Logged in', 'success')
         next_url = request.args.get('next') or url_for('home')
+
+        if not session.get('active_group'):
+            user_groups = list(getattr(user, 'groups', []) or [])
+            if len(user_groups) == 1:
+                session['active_group'] = user_groups[0].name
+            else:
+                if user_groups:
+                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'warning')
+                else:
+                    flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα. Επίλεξε ή δημιούργησε μία.', 'warning')
+                return redirect(url_for('auth.list_groups'))
+
+        flash('Logged in', 'success')
         return redirect(next_url)
 
     # GET -> render login form
@@ -114,7 +126,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Logged out', 'info')
+    flash('Logged out', 'danger')
     # clear any active client/credential selection from session to avoid stale state
     session.pop('active_credential', None)
     session.pop('_remote_qr_owner', None)
