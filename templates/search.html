@@ -3904,11 +3904,11 @@ function applyMappingToSummaryAndSubmitUsingMapping(mapping){
   }
 
   if (forceBtn){
-    forceBtn.addEventListener('click', function(){
+    forceBtn.addEventListener('click', async function(){
       const markValRaw = (markInput && markInput.value) ? markInput.value.trim() : '{{ mark or "" }}';
       const markVal = encodeURIComponent(markValRaw || '');
-      if (!markVal){ alert('Δεν δόθηκε MARK για επιβεβαίωση.'); return; }
-      if (confirm('Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
+      if (!markVal){ await showModalAlert('Σφάλμα', 'Δεν δόθηκε MARK για επιβεβαίωση.'); return; }
+      if (await showModalConfirm('Επιβεβαίωση', 'Θες σίγουρα να επαναχαρακτηρίσεις το MARK και να ανοίξει η φόρμα επεξεργασίας;')) {
         if(existingBanner) existingBanner.style.display = 'none';
         window.location = SEARCH_BASE_URL + '?mark=' + markVal + '&force_edit=1';
       }
@@ -4388,7 +4388,7 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     summary = JSON.parse(document.getElementById('summaryJsonInput').value || '{}');
   } catch(err){
     console.warn('Failed parsing summaryJsonInput', err);
-    alert('Σφάλμα: άκυρα δεδομένα παραστατικού.');
+    await showModalAlert('Σφάλμα', 'Άκυρα δεδομένα παραστατικού.');
     return;
   }
 
@@ -4419,14 +4419,14 @@ document.getElementById('saveSummaryForm')?.addEventListener('submit', async fun
     });
     if (!res.ok) {
       const t = await res.text().catch(()=>'');
-      alert('Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
+      await showModalAlert('Σφάλμα', 'Αποτυχία αποθήκευσης (HTTP ' + res.status + '): ' + t);
       return;
     }
     try { hideSummaryModal(); } catch(_) {}
     window.location = window.location.pathname;
   } catch (err) {
     console.error('save_summary AJAX error', err);
-    alert('Σφάλμα αποθήκευσης: ' + (err.message || err));
+    await showModalAlert('Σφάλμα', 'Σφάλμα αποθήκευσης: ' + (err.message || err));
   }
 });
 

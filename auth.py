@@ -496,3 +496,36 @@ def api_user():
     if getattr(current_user, 'is_authenticated', False):
         return jsonify({'authenticated': True, 'username': current_user.username, 'groups': [g.name for g in current_user.groups]})
     return jsonify({'authenticated': False})
+
+
+@auth_bp.route('/api/user_groups', methods=['GET'])
+def api_user_groups():
+    """Get list of groups for the authenticated user, including active group."""
+    if not getattr(current_user, 'is_authenticated', False):
+        return jsonify({'groups': [], 'active_group': None}), 401
+    
+    try:
+        groups = []
+        active_group = None
+        
+        for g in current_user.groups:
+            groups.append({
+                'name': g.name,
+                'data_folder': g.data_folder,
+            })
+        
+        # Get active group from session
+        try:
+            active_group_name = session.get('active_group')
+            if active_group_name:
+                # Verify user has access to this group
+                if any(g.name == active_group_name for g in current_user.groups):
+                    active_group = active_group_name
+        except Exception:
+            pass
+        
+        return jsonify({'groups': groups, 'active_group': active_group})
+    except Exception as e:
+        current_app.logger.exception("api_user_groups failed")
+        return jsonify({'error': str(e)}), 500
+

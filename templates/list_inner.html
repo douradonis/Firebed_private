@@ -495,9 +495,9 @@
       const confirmBtn=qs('#deleteConfirm');
       const spinner=qs('#deleteSpinner');
       let toDelete=[];
-      deleteBtn.addEventListener('click', ()=>{
+      deleteBtn.addEventListener('click', async ()=>{
         toDelete=qsa('input[name="delete_mark"]:checked').map(cb=>cb.value).filter(v=>v.trim()!=='');
-        if(!toDelete.length){ alert('Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
+        if(!toDelete.length){ await showModalAlert('Ενημέρωση', 'Επίλεξε πρώτα γραμμές για διαγραφή.'); return; }
         modalMsg.textContent=`Θες σίγουρα να διαγράψεις ${toDelete.length} εγγραφή(ες);`;
         modal.classList.remove('hidden');
       });

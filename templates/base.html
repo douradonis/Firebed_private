@@ -240,24 +240,34 @@
     <header class="mb-6">
       <div class="layout-header flex items-center justify-between">
         <div class="layout-header__brand">
-          <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
-          <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
+          <a href="{{ url_for('home') }}" class="inline-block">
+            <h1 class="text-2xl font-semibold text-sky-700">myDATA</h1>
+            <p class="text-sm text-gray-600">Firebed - myDATA tools</p>
+          </a>
         </div>
 
         <div class="layout-header__right flex flex-col items-end gap-2">
           <!-- 1η γραμμή: Menu buttons + Active credential -->
           <div class="layout-header__top-row flex items-center gap-4">
             <nav class="layout-header__nav flex gap-3 items-center">
-              <a href="{{ url_for('home') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='home' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Μενού</a>
               <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Bulk Fetch</a>
-              <a href="{{ url_for('list_invoices') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='list_invoices' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Λίστα</a>
               <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Αναζήτηση MARK</a>
               <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">Credentials</a>
             </nav>
 
-            <!-- Active credential badge -->
-            <div class="layout-header__active flex items-center gap-2">
-              <span class="text-sm text-gray-500">Active:</span>
+            <!-- Active credential badge moved to second row -->
+            <div class="ml-4">
+              <button id="sideMenuToggle" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">☰ Μενού</button>
+              {% if current_user.is_authenticated %}
+                <span class="text-sm text-gray-700 ml-2">{{ current_user.username }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- 2η γραμμή: Ενεργός πελάτης + Fiscal year selector -->
+          <div class="layout-header__year-row flex items-center gap-4 w-max">
+            <div class="layout-header__active-customer flex items-center gap-2">
+              <span class="text-sm text-gray-500">Ενεργός πελάτης:</span>
               {% if active_credential %}
                 {% if active_credential_vat %}
                   <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
@@ -268,20 +278,7 @@
                 <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
               {% endif %}
             </div>
-            <div class="ml-4">
-              {% if current_user.is_authenticated %}
-                <span class="text-sm text-gray-700 mr-2">{{ current_user.username }}</span>
-                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Ομάδες</a>
-                <a href="{{ url_for('auth.logout') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Αποσύνδεση</a>
-              {% else %}
-                <a href="{{ url_for('auth.login') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Σύνδεση</a>
-                <a href="{{ url_for('auth.signup') }}" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">Δημιουργία λογαριασμού</a>
-              {% endif %}
-            </div>
-          </div>
 
-          <!-- 2η γραμμή: Fiscal year selector -->
-          <div class="layout-header__year-row flex items-center gap-2 w-max">
             <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
             <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
             <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
@@ -290,6 +287,54 @@
         </div>
       </div>
     </header>
+
+    <!-- Side Menu (toggleable) -->
+    <div id="sideMenu" class="fixed inset-y-0 right-0 w-72 bg-white shadow-lg z-50 overflow-y-auto transform translate-x-full transition-transform duration-300 ease-in-out">
+      <div class="p-6 space-y-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-semibold text-gray-900">Μενού</h2>
+          <button id="sideMenuClose" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+
+        <!-- User Info -->
+        {% if current_user.is_authenticated %}
+        <div class="border-b pb-4">
+          <div class="mb-2">
+            <p class="text-sm font-medium text-gray-700">Χρήστης</p>
+            <p class="text-lg font-semibold text-sky-600">{{ current_user.username }}</p>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200 text-center">Αποσύνδεση</a>
+        </div>
+
+        <!-- Groups Selector -->
+        <div class="border-b pb-4">
+          <p class="text-sm font-medium text-gray-700 mb-3">Ομάδες</p>
+          <div id="groupsList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+          <a href="{{ url_for('auth.list_groups') }}" class="block mt-3 px-4 py-2 rounded text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 text-center">Διαχείριση ομάδων</a>
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+          <p class="text-sm font-medium text-gray-700 mb-3">Σύνδεσμοι</p>
+            <div class="space-y-2">
+            <a href="{{ url_for('home') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🏠 Αρχική</a>
+            <a href="{{ url_for('fetch') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">📥 Bulk Fetch</a>
+            <a href="{{ url_for('search') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🔍 Αναζήτηση</a>
+            <a href="{{ url_for('credentials') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🔐 Credentials</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="space-y-2">
+          <a href="{{ url_for('auth.login') }}" class="block px-4 py-2 rounded text-sm bg-sky-600 text-white hover:bg-sky-700 text-center">Σύνδεση</a>
+          <a href="{{ url_for('auth.signup') }}" class="block px-4 py-2 rounded text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 text-center">Δημιουργία λογαριασμού</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Side Menu Overlay (uses backdrop blur) -->
+    <div id="sideMenuOverlay" class="fixed inset-0 bg-black/10 backdrop-blur-sm opacity-0 invisible z-40 transition-all duration-300"></div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -734,7 +779,7 @@
         for (const m of muts) m.addedNodes && m.addedNodes.forEach(n=>{
           if (n.nodeType===1) scan(n);
         });
-      });
+        });
       mo.observe(document.body, { childList:true, subtree:true });
 
       document.addEventListener('click', (e)=>{
@@ -744,7 +789,80 @@
         if (host) { e.preventDefault(); try{ host.remove(); }catch(_){ } }
       }, true);
     })();
-  </script>
 
-</body>
+    // Side menu toggle functionality
+    document.addEventListener('DOMContentLoaded', function(){
+      const sideMenu = document.getElementById('sideMenu');
+      const sideMenuOverlay = document.getElementById('sideMenuOverlay');
+      const sideMenuToggle = document.getElementById('sideMenuToggle');
+      const sideMenuClose = document.getElementById('sideMenuClose');
+      const groupsList = document.getElementById('groupsList');
+
+      if (!sideMenu || !sideMenuToggle) return;
+
+      // Toggle side menu open/close (right-side menu)
+      function toggleMenu() {
+        sideMenu.classList.toggle('translate-x-full');
+        sideMenuOverlay.classList.toggle('opacity-0');
+        sideMenuOverlay.classList.toggle('invisible');
+      }
+
+      if (sideMenuToggle) {
+        sideMenuToggle.addEventListener('click', toggleMenu);
+      }
+
+      if (sideMenuClose) {
+        sideMenuClose.addEventListener('click', toggleMenu);
+      }
+
+      if (sideMenuOverlay) {
+        sideMenuOverlay.addEventListener('click', toggleMenu);
+      }
+
+      // Populate groups list from page
+      if (groupsList) {
+        try {
+          fetch('/api/user_groups')
+            .then(r => r.json())
+            .then(data => {
+              if (data.groups && Array.isArray(data.groups)) {
+                groupsList.innerHTML = data.groups.map(g => `
+                  <button type="button" onclick="selectGroup('${g.name.replace(/'/g,"\\'") }')" 
+                          class="w-full text-left px-3 py-2 rounded text-sm hover:bg-sky-100 text-gray-700 border border-gray-200">
+                    ${g.name === data.active_group ? '✓ ' : ''}${escapeHtml(g.name)}
+                  </button>
+                `).join('');
+              }
+            })
+            .catch(err => console.warn('Failed to load groups:', err));
+        } catch (e) {
+          console.warn('Groups list error:', e);
+        }
+      }
+
+      // Helper to select a group
+      // Select a group without interactive warning
+      window.selectGroup = function(groupName) {
+        fetch('/groups/select', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({group: groupName})
+        })
+        .then(async r => {
+          const j = await r.json().catch(()=> ({}));
+          if (r.ok && j.ok) {
+            // close menu and reload
+            try { toggleMenu(); } catch(_) {}
+            window.location.reload();
+          } else if (j && j.error) {
+            showModalAlert('Σφάλμα', j.error);
+          } else {
+            showModalAlert('Σφάλμα', 'Failed to select group');
+          }
+        })
+        .catch(err => showModalAlert('Σφάλμα', 'Request failed: ' + err));
+      };
+    });
+  </script></body>
 </html>

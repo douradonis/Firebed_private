@@ -77,7 +77,7 @@
     <h3 class="mt-6 font-medium">Υπάρχουσες ομάδες</h3>
     <ul class="mt-2 space-y-2">
       {% for g in groups %}
-        <li class="px-3 py-2 border rounded">
+        <li class="px-3 py-2 border rounded {% if session.get('active_group') == g.name %}selected{% endif %}">
           <div class="flex justify-between items-center">
             <div><strong>{{ g.name }}</strong> → <code>{{ g.data_folder }}</code></div>
             <div class="text-sm text-gray-600">Διαχειριστές: {% for u in g.admins() %}<span class="px-2 py-1 bg-gray-100 rounded">{{ u.username }}</span>{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</div>
@@ -142,7 +142,7 @@
               // clear existing highlights
               document.querySelectorAll('ul li').forEach(x=>x.classList.remove('selected'));
               li.classList.add('selected');
-              await showModalAlert('Επιτυχία', 'Η ομάδα επιλέχθηκε: ' + name);
+              // selection done silently (no modal)
             } else {
               await showModalAlert('Σφάλμα', 'Αποτυχία επιλογής ομάδας: ' + (data.error || 'άγνωστο σφάλμα'));
             }

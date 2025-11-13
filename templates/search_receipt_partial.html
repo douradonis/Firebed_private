@@ -273,7 +273,7 @@
       await showModalAlert('Επιτυχία', (j && j.message) ? j.message : 'Αποθηκεύτηκαν οι αποδείξεις.');
       doCloseModal();
       setTimeout(()=>window.location.reload(), 500);
-    } catch(e){ console.error(e); alert('Δίκτυο - αποτυχία'); }
+    } catch(e){ console.error(e); await showModalAlert('Σφάλμα', 'Δίκτυο - αποτυχία'); }
   });
 
   // Optional: intercept search form submit on parent page to call scraper and open modal (if you want quick client-side behavior)
