@@ -56,5 +56,34 @@
         "vat_category": "ΦΠΑ 24%"
       }
     ]
+  },
+  {
+    "mark": "400011605611275",
+    "issueDate": "10/11/2025",
+    "series": "00ΤΔΓ",
+    "aa": "4885",
+    "AA": "4885",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "82,27",
+    "totalVatAmount": "19,74",
+    "totalValue": "102,01",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "095736139",
+    "Name_issuer": "",
+    "AFM": "095736139",
+    "lines": [
+      {
+        "id": "400011605611275_inst0",
+        "description": "Instance #1",
+        "amount": "82,27",
+        "vat": "19,74",
+        "category": "custom_custom",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
   }
 ]

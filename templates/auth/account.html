@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Ρυθμίσεις λογαριασμού{% endblock %}
+
+{% block content %}
+<div class="content-wrap max-w-2xl">
+  <h1 class="text-xl font-semibold mb-4">Ρυθμίσεις λογαριασμού</h1>
+  <form method="post" class="grid gap-4 max-w-md">
+    <div>
+      <label for="currentPassword" class="block text-sm font-medium text-gray-700">Τρέχων κωδικός</label>
+      <div class="mt-1 relative">
+        <input id="currentPassword" name="current_password" type="password" required class="w-full border rounded px-3 py-2 pr-10" autocomplete="current-password">
+        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" data-toggle-password="currentPassword" aria-label="Εναλλαγή εμφάνισης κωδικού" aria-pressed="false">
+          <span data-eye-show class="block">👁</span>
+          <span data-eye-hide class="hidden">🙈</span>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <label for="newPassword" class="block text-sm font-medium text-gray-700">Νέος κωδικός</label>
+      <div class="mt-1 relative">
+        <input id="newPassword" name="new_password" type="password" required minlength="8" class="w-full border rounded px-3 py-2 pr-10" autocomplete="new-password">
+        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" data-toggle-password="newPassword" aria-label="Εναλλαγή εμφάνισης κωδικού" aria-pressed="false">
+          <span data-eye-show class="block">👁</span>
+          <span data-eye-hide class="hidden">🙈</span>
+        </button>
+      </div>
+      <p class="mt-1 text-xs text-gray-500">Ο νέος κωδικός πρέπει να αποτελείται από τουλάχιστον 8 χαρακτήρες.</p>
+    </div>
+
+    <div>
+      <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Επιβεβαίωση νέου κωδικού</label>
+      <div class="mt-1 relative">
+        <input id="confirmPassword" name="confirm_password" type="password" required minlength="8" class="w-full border rounded px-3 py-2 pr-10" autocomplete="new-password">
+        <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" data-toggle-password="confirmPassword" aria-label="Εναλλαγή εμφάνισης κωδικού" aria-pressed="false">
+          <span data-eye-show class="block">👁</span>
+          <span data-eye-hide class="hidden">🙈</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Αποθήκευση αλλαγών</button>
+      <a href="{{ url_for('home') }}" class="text-sm text-gray-600 hover:text-gray-800">Επιστροφή</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  document.querySelectorAll('[data-toggle-password]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const targetId = btn.getAttribute('data-toggle-password');
+      const input = targetId ? document.getElementById(targetId) : null;
+      if(!input) return;
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.setAttribute('aria-pressed', showing ? 'false' : 'true');
+      btn.querySelectorAll('[data-eye-show]').forEach(function(el){ el.classList.toggle('hidden', !showing); });
+      btn.querySelectorAll('[data-eye-hide]').forEach(function(el){ el.classList.toggle('hidden', showing); });
+    });
+  });
+})();
+</script>
+{% endblock %}
