@@ -25,31 +25,37 @@
   {% endif %}
 
   <div class="bg-white rounded-2xl shadow p-6 mb-6">
-    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end" autocomplete="off" novalidate>
-      <div class="flex flex-col">
-        <label for="use_credential" class="text-sm font-medium text-gray-700 mb-2">Χρήση Credential</label>
-        <select id="use_credential" name="use_credential" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
-          <option value="">-- Επιλογή --</option>
-          {% for c in credentials %}
-            {%- set selected_val = (request.form.get('use_credential') == c.name) or (not request.form.get('use_credential') and active_credential == c.name) -%}
-            {%- set label = c.name ~ (c.vat and (' (' ~ c.vat ~ ')') or '') -%}
-            <option value="{{ c.name }}" {% if selected_val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <div id="lastFetchInfo" class="text-xs text-gray-500 mt-2">Τελευταίο fetch: —</div>
+    <form method="POST" class="space-y-4" autocomplete="off" novalidate>
+      <!-- Πάνω σειρά: Credential (κλειδωμένο) και τελευταίο fetch -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col">
+          <label for="use_credential" class="text-sm font-medium text-gray-700 mb-2">Χρήση Credential</label>
+          <select id="use_credential" name="use_credential" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300">
+            <option value="">-- Επιλογή --</option>
+            {% for c in credentials %}
+              {%- set selected_val = (request.form.get('use_credential') == c.name) or (not request.form.get('use_credential') and active_credential == c.name) -%}
+              {%- set label = c.name ~ (c.vat and (' (' ~ c.vat ~ ')') or '') -%}
+              <option value="{{ c.name }}" {% if selected_val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div id="lastFetchInfo" class="text-xs text-gray-500 mt-2">Τελευταίο fetch: —</div>
+        </div>
       </div>
 
-      <div class="flex flex-col">
-        <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/yyyy)</label>
-        <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+      <!-- Δεύτερη σειρά: Ημερομηνίες (ευθυγράμμιση) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col">
+          <label for="date_from" class="text-sm font-medium text-gray-700 mb-2">Από (dd/mm/yyyy)</label>
+          <input id="date_from" name="date_from" type="text" value="{{ default_from or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+        </div>
+        <div class="flex flex-col">
+          <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/yyyy)</label>
+          <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
+        </div>
       </div>
 
-      <div class="flex flex-col">
-        <label for="date_to" class="text-sm font-medium text-gray-700 mb-2">Έως (dd/mm/yyyy)</label>
-        <input id="date_to" name="date_to" type="text" value="{{ default_to or '' }}" placeholder="dd/mm/yyyy" class="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-300" required>
-      </div>
-
-      <div class="flex items-center gap-2 md:col-span-3">
+      <!-- Κουμπιά (ίδια σειρά) -->
+      <div class="flex items-center gap-2 pt-2">
         <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Ανάκτηση</button>
         <button type="button" id="togglePreviewBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-3 rounded-lg border">Εμφάνιση Preview</button>
         <div class="text-sm text-gray-500 ml-2">Preview: πρώτες 40 εγγραφές</div>
@@ -110,9 +116,20 @@ document.addEventListener("DOMContentLoaded", function() {
   flatpickr("#date_from", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
   flatpickr("#date_to", { locale: "el", dateFormat: "d/m/Y", allowInput: true });
 
-  // Load last-fetch date for selected credential
+  // Lock credential dropdown to active credential
   const credentialSelect = document.getElementById('use_credential');
   const lastFetchInfo = document.getElementById('lastFetchInfo');
+  
+  async function lockCredentialToActive() {
+    // Αν υπάρχει ήδη επιλεγμένο credential, κλείδωσέ το
+    const currentValue = credentialSelect.value;
+    if (currentValue) {
+      credentialSelect.disabled = true;
+      credentialSelect.setAttribute('title', 'Κλειδωμένο στον ενεργό πελάτη');
+      credentialSelect.style.cursor = 'not-allowed';
+      credentialSelect.style.opacity = '0.7';
+    }
+  }
   
   async function loadLastFetch() {
     const credentialName = credentialSelect.value;
@@ -136,8 +153,22 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
   
-  credentialSelect.addEventListener('change', loadLastFetch);
-  loadLastFetch(); // Initial load
+  // Κλείδωσε το credential και φόρτωσε το τελευταίο fetch
+  lockCredentialToActive();
+  loadLastFetch();
+  
+  // Αποτρέψου αλλαγή του credential αν είναι κλειδωμένο
+  credentialSelect.addEventListener('change', (e) => {
+    if (credentialSelect.disabled) {
+      e.preventDefault();
+      credentialSelect.value = credentialSelect.getAttribute('data-original-value') || credentialSelect.value;
+    } else {
+      loadLastFetch();
+    }
+  });
+  
+  // Αποθήκευσε την αρχική τιμή
+  credentialSelect.setAttribute('data-original-value', credentialSelect.value);
 
   // preview toggle with localStorage memory (default minimized=true)
   const PREVIEW_KEY = 'bulk_fetch_preview_minimized';

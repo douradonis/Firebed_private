@@ -1737,14 +1737,6 @@ def _save_json_file(path: Path, data):
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def _load_credentials():
-    _ensure_paths()
-    return _load_json_file(CREDENTIALS_PATH, [])
-
-def _save_credentials(creds):
-    _ensure_paths()
-    _save_json_file(CREDENTIALS_PATH, creds)
-
 # ---- credentials helpers (δουλεύουν και με list και με dict-style) ----
 def _get_customer(creds, vat: str, create=False):
     vat = (vat or "").strip()
@@ -3043,6 +3035,16 @@ def find_active_client_index(creds_list, vat=None):
     for i,c in enumerate(creds_list):
         if c.get('active'):
             return i
+    # If no explicit active flag, try to get from session
+    try:
+        from flask import session
+        active_name = session.get('active_credential')
+        if active_name:
+            for i,c in enumerate(creds_list):
+                if str(c.get('name','')).strip() == str(active_name).strip():
+                    return i
+    except Exception:
+        pass
     return 0 if creds_list else None
 
 def load_invoices():
@@ -4212,35 +4214,125 @@ def api_repeat_entry_save():
     # "" => Γενικό
     profile_name = (data.get("profile_name") or "").strip()
 
+    log.info(f"api_repeat_entry_save: vat={vat}, mapping_in={mapping_in}, profile_name={profile_name}")
+
     # Επιτρέπουμε ΜΟΝΟ ποσοστά ΦΠΑ
     VAT_KEYS = ["0%", "6%", "13%", "17%", "24%"]
     mapping = {k: (mapping_in.get(k) or "") for k in VAT_KEYS}
 
+    log.info(f"  normalized mapping={mapping}")
+
     # Έλεγχος για κενές επιλογές
     missing = [k for k in VAT_KEYS if not mapping[k]]
     if missing:
+        log.warning(f"  missing categories: {missing}")
         return jsonify(ok=False, error="Συμπλήρωσε κατηγορία για " + ", ".join(missing) + "."), 400
 
-    creds = read_credentials_list() or []
-    idx = find_active_client_index(creds, vat=vat)
-    if idx is None:
+    # Prefer per-group credentials file when looking up clients
+    try:
+        group_creds = _load_credentials() or []
+    except Exception:
+        group_creds = []
+
+    client = None
+    # 1) If VAT provided, try to find matching client in group creds
+    if vat:
+        try:
+            for c in group_creds:
+                if isinstance(c, dict) and str(c.get('vat') or '').strip() == vat:
+                    client = c
+                    break
+        except Exception:
+            client = None
+
+    # 2) If not found, try to fallback to session active credential (may reference a client by name/vat)
+    if not client:
+        try:
+            active = get_active_credential_from_session() or {}
+            # prefer match in group creds by vat or name
+            if active:
+                active_v = str(active.get('vat') or '').strip()
+                active_name = str(active.get('name') or '').strip()
+                for c in group_creds:
+                    if not isinstance(c, dict):
+                        continue
+                    if active_v and str(c.get('vat') or '').strip() == active_v:
+                        client = c
+                        break
+                    if active_name and str(c.get('name') or '').strip() == active_name:
+                        client = c
+                        break
+        except Exception:
+            client = None
+
+    # 3) If still not found and VAT was provided, search global credentials as last resort
+    if not client and vat:
+        try:
+            global_creds = read_credentials_list() or []
+            for c in global_creds:
+                if isinstance(c, dict) and str(c.get('vat') or '').strip() == vat:
+                    client = c
+                    break
+        except Exception:
+            client = None
+
+    # 4) Final fallback: if group_creds has at least one entry, pick the first (consistent with other codepaths)
+    if not client and group_creds:
+        try:
+            # try to find any active flag first
+            for c in group_creds:
+                if isinstance(c, dict) and c.get('active'):
+                    client = c
+                    break
+            if not client:
+                client = group_creds[0]
+        except Exception:
+            client = None
+
+    if not client:
+        log.error("Client not found. vat=%s", vat)
         return jsonify(ok=False, error="Πελάτης δεν βρέθηκε."), 404
 
-    client = creds[idx] if isinstance(creds[idx], dict) else {}
+    # ensure client is a dict
+    client = client if isinstance(client, dict) else {}
 
     repeat = (client.get("repeat_entry") if isinstance(client, dict) else {}) or {}
     repeat.update({
         "enabled": enabled,
         "mapping": mapping,
-        # Χρησιμοποιούμε το module datetime:
         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        # ΠΑΝΤΑ γράφουμε το profile_name — κενό σημαίνει «Γενικό»
         "profile_name": profile_name,
     })
     client["repeat_entry"] = repeat
-    creds[idx] = client
 
-    write_credentials_list(creds)
+    # Save back into group credentials (modify the matching entry if present)
+    try:
+        saved = False
+        for i, c in enumerate(group_creds):
+            try:
+                if isinstance(c, dict) and str(c.get('vat') or '').strip() == str(client.get('vat') or '').strip():
+                    group_creds[i] = client
+                    saved = True
+                    break
+            except Exception:
+                continue
+        if not saved:
+            # try to match by name
+            for i, c in enumerate(group_creds):
+                try:
+                    if isinstance(c, dict) and str(c.get('name') or '').strip() == str(client.get('name') or '').strip():
+                        group_creds[i] = client
+                        saved = True
+                        break
+                except Exception:
+                    continue
+        if not saved:
+            # append new client entry
+            group_creds.append(client)
+
+        _save_credentials(group_creds)
+    except Exception:
+        log.exception("Failed to persist repeat_entry into group credentials")
 
     expense_tags = _list_invoice_categories(client)
     labels = _category_labels_for_client(client)
@@ -6777,11 +6869,30 @@ def search():
 @app.get("/profiles")
 def profiles_page():
     vat = (request.args.get("vat") or "").strip()
+    
+    # Αν δεν υπάρχει VAT, προσπάθησε να πάρεις τον ενεργό πελάτη
+    if not vat:
+        active = get_active_credential_from_session() or {}
+        vat = str(active.get("vat") or "").strip()
+    
     creds = _load_credentials()
     categories = _get_expense_tags(creds, vat)
     client = _find_client(creds, vat=vat) or {}
     labels = _category_labels_for_client(client)
     constraints = _category_vat_constraints(client)
+    
+    # Αν δεν βρέθηκε πελάτης, συγκέντρωσε όλα τα διαθέσιμα labels
+    if not client:
+        try:
+            for cred in creds:
+                if isinstance(cred, dict):
+                    try:
+                        labels.update(_category_labels_for_client(cred))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+    
     # δίνουμε πάντα λίστα (όχι Undefined)
     return render_template(
         "profiles.html",
@@ -6789,6 +6900,7 @@ def profiles_page():
         customer_categories=categories,
         category_labels=labels,
         vat_constraints=constraints,
+        active_credential_vat=vat,
     )
 
 
@@ -8099,6 +8211,45 @@ def api_confirm_receipt():
         log.exception("api_confirm_receipt: load_epsilon_cache_for_vat failed")
         epsilon_cache = []
 
+    # --- Apply repeat_entry mapping if enabled ---
+    try:
+        creds = read_credentials_list() or []
+        client_idx = find_active_client_index(creds, vat=vat)
+        if client_idx is not None and isinstance(creds[client_idx], dict):
+            client = creds[client_idx]
+            repeat_entry = client.get("repeat_entry") or {}
+            if repeat_entry.get("enabled"):
+                # Apply repeat mapping to lines
+                mapping = repeat_entry.get("mapping") or {}
+                profile_name = repeat_entry.get("profile_name", "")
+                
+                # Try to apply profile if specified
+                if profile_name and profile_name.strip():
+                    profiles = client.get("char_profiles") or []
+                    profile = next((p for p in profiles if (p.get("name") or "") == profile_name.strip()), None)
+                    if profile:
+                        profile_mapping = profile.get("mapping") or {}
+                        # Use profile mapping if available, fallback to repeat_entry mapping
+                        mapping = profile_mapping if profile_mapping else mapping
+                
+                # Apply mapping to lines based on VAT rate
+                for ln in summary.get("lines") or []:
+                    if isinstance(ln, dict):
+                        vat_rate = ln.get("vat_category") or ln.get("vatCategory") or ""
+                        # Normalize VAT rate to "X%"
+                        if vat_rate:
+                            vat_rate_normalized = str(vat_rate).strip()
+                            if not vat_rate_normalized.endswith("%"):
+                                vat_rate_normalized = vat_rate_normalized + "%"
+                        else:
+                            vat_rate_normalized = "0%"
+                        
+                        # Apply mapping if exists
+                        if vat_rate_normalized in mapping and mapping[vat_rate_normalized]:
+                            ln["category"] = mapping[vat_rate_normalized]
+    except Exception as e:
+        log.exception("api_confirm_receipt: Failed to apply repeat_entry mapping: %s", e)
+
     mark = str(summary.get("mark") or "").strip()
 
     # index by mark
@@ -8575,6 +8726,18 @@ def epsilon_preview():
             category_labels.update(_category_labels_for_client(cred_for_labels))
         except Exception:
             current_app.logger.exception("Failed to build category labels for epsilon preview")
+    else:
+        # If no specific credential found, try all credentials to get all available labels
+        try:
+            creds_list = read_credentials_list() or []
+            for cred in creds_list:
+                if isinstance(cred, dict):
+                    try:
+                        category_labels.update(_category_labels_for_client(cred))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
     client_db_path = _resolve_client_db_path(vat)
     rows, issues, _ok = build_preview_rows_for_ui(
         vat=vat,
@@ -8958,6 +9121,6 @@ def credentials_page():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)

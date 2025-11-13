@@ -438,7 +438,7 @@
           const j = await r.json();
           populateFiscalSelect(j.fiscal_year || thisYear);
           const msg = document.getElementById('fiscalYearMsg');
-          if (msg) msg.textContent = j.fiscal_year ? `Τρέχουσα χρήση: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
+          if (msg) msg.textContent = j.fiscal_year ? `Ενεργό: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
         } catch {
           populateFiscalSelect(thisYear);
           const msg = document.getElementById('fiscalYearMsg');

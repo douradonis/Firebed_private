@@ -668,6 +668,7 @@ function katToPercent(k){
   setHint('');
 
   const profileName = selProfile?.value || "";   // "" = Γενικό
+  const vatToUse = window._repeatModalVAT || "{{ vat or '' }}";  // χρησιμοποίησε το ανιχνευθέν VAT
 
   try {
     const r = await fetch('/api/repeat_entry/save', {
@@ -675,7 +676,7 @@ function katToPercent(k){
       headers: {'Content-Type':'application/json'},
       credentials: 'same-origin',
       body: JSON.stringify({
-        vat: "{{ vat or '' }}",
+        vat: vatToUse,
         enabled: true,
         mapping: out,                  // 0/6/13/17/24
         profile_name: profileName      // <-- ΣΗΜΑΝΤΙΚΟ
@@ -733,7 +734,22 @@ function katToPercent(k){
 }
   // Άνοιγμα modal: ΠΑΝΤΑ καθαρό render, χωρίς διπλο-append
   async function openModal(){
-  const VAT = "{{ vat or '' }}";
+  // Προσπάθησε να πάρεις το VAT από διάφορες πηγές
+  let VAT = "{{ vat or '' }}";
+  
+  // Αν δεν υπάρχει VAT, προσπάθησε να το πάρεις από την ενεργή session
+  if (!VAT || !VAT.trim()) {
+    try {
+      const r = await fetch('/api/repeat_entry/get', {credentials:'same-origin'});
+      const j = await r.json();
+      if (j && j.vat) VAT = j.vat;
+      if (j && j.afm) VAT = j.afm;
+    } catch(_) {}
+  }
+  
+  // Αποθήκευσε το VAT στη μεταβλητή ώστε να το χρησιμοποιήσει το save
+  window._repeatModalVAT = VAT;
+  
   const hint = document.getElementById('charMissingHint');
   if(hint){ hint.style.display='none'; hint.textContent=''; }
 
@@ -3318,11 +3334,12 @@ async function apiGetRepeatEntry(vat){
 }
 async function apiSaveRepeatEntry(enabled, mapping, vat){
   try {
+    const vatToUse = vat || VAT || (window._repeatModalVAT || "");  // χρησιμοποίησε το ανιχνευθέν VAT
     const res = await fetch('/api/repeat_entry/save', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       credentials: 'same-origin',
-      body: JSON.stringify({ enabled: !!enabled, mapping: mapping || {}, vat: vat || VAT })
+      body: JSON.stringify({ enabled: !!enabled, mapping: mapping || {}, vat: vatToUse })
     });
     if(!res.ok) {
       const txt = await res.text().catch(()=>null);
