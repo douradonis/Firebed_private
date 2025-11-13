@@ -2965,3 +2965,5 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) attempt to write a r
 2025-11-13T08:53:16.810733+00:00 - Bulk fetch performed: 01/11/2025 to 13/11/2025, VAT 802576637, 24 docs + 22 summaries by douradonis
 2025-11-13T10:50:54.700562+00:00 - Bulk fetch performed: 01/11/2025 to 06/11/2025, VAT 802576637, 0 docs + 0 summaries by douradonis
 2025-11-13T10:52:43.892268+00:00 - Bulk fetch performed: 01/11/2025 to 06/11/2025, VAT 802576637, 0 docs + 0 summaries by douradonis
+2025-11-13T11:03:27.861463+00:00 - Bulk fetch performed: 01/11/2025 to 13/11/2025, VAT 802576637, 33 docs + 31 summaries by douradonis
+2025-11-13T11:17:10.624971+00:00 - Bulk fetch performed: 01/11/2025 to 13/11/2025, VAT 802576637, 33 docs + 31 summaries by douradonis

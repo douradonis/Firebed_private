@@ -2379,3 +2379,330 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-11-13 12:54:25+0200 WARNING   missing categories: ['0%', '6%', '13%', '17%', '24%']
 2025-11-13 12:54:25+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
 2025-11-13 12:54:26+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 12:57:04+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:03:01+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-13 13:03:02+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:03:15+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4.github.dev/
+2025-11-13 13:03:15+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/
+2025-11-13 13:03:15+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/
+2025-11-13 13:03:15+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/
+2025-11-13 13:03:15+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:03:20+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:21+0200 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:03:22+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:22+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:22+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:27+0200 INFO Incoming request: method=POST path=/fetch remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:27+0200 INFO Set last fetch date for credential 'ΒΑΨΙΜΟ': 2025-11-13T11:03:27.859492+00:00
+2025-11-13 13:03:27+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:28+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:28+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:28+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:03:28+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:05:40+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:05:40+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:41+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:05:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:16:43+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:16:43+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:16:50+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:16:51+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 13:17:05+0200 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:05+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:06+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:06+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:10+0200 INFO Incoming request: method=POST path=/fetch remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:10+0200 INFO Set last fetch date for credential 'ΒΑΨΙΜΟ': 2025-11-13T11:17:10.623403+00:00
+2025-11-13 13:17:10+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:10+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:11+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:11+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:11+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/fetch
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:26+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:27+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:30+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:30+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:30+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:17:30+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:30+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:30+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={}, profile_name=
+2025-11-13 13:17:30+0200 INFO   normalized mapping={'0%': '', '6%': '', '13%': '', '17%': '', '24%': ''}
+2025-11-13 13:17:30+0200 WARNING   missing categories: ['0%', '6%', '13%', '17%', '24%']
+2025-11-13 13:17:30+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:36+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:36+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'αγορες_α_υλων'}, profile_name=
+2025-11-13 13:17:36+0200 INFO   normalized mapping={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'αγορες_α_υλων'}
+2025-11-13 13:17:38+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:38+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:38+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:38+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:38+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:39+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:42+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:17:42+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:42+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={}, profile_name=
+2025-11-13 13:17:42+0200 INFO   normalized mapping={'0%': '', '6%': '', '13%': '', '17%': '', '24%': ''}
+2025-11-13 13:17:42+0200 WARNING   missing categories: ['0%', '6%', '13%', '17%', '24%']
+2025-11-13 13:17:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:42+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:42+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:44+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:44+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'custom_custom'}, profile_name=τεστ
+2025-11-13 13:17:44+0200 INFO   normalized mapping={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'custom_custom'}
+2025-11-13 13:17:44+0200 INFO Incoming request: method=POST path=/api/profiles/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:47+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:47+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:17:47+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:17:47+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:17:47+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/credentials
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:49+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:49+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:49+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:49+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:17:49+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:49+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={}, profile_name=
+2025-11-13 13:17:49+0200 INFO   normalized mapping={'0%': '', '6%': '', '13%': '', '17%': '', '24%': ''}
+2025-11-13 13:17:49+0200 WARNING   missing categories: ['0%', '6%', '13%', '17%', '24%']
+2025-11-13 13:17:49+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:52+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:52+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'custom_custom'}, profile_name=τεστ
+2025-11-13 13:17:52+0200 INFO   normalized mapping={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'custom_custom'}
+2025-11-13 13:17:52+0200 INFO Incoming request: method=POST path=/api/profiles/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:56+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:17:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:07+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:07+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 13:27:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 13:27:08+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 13:27:08+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 13:27:09+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=None
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:46+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:47+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:47+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:48+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:48+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={}, profile_name=
+2025-11-13 13:27:48+0200 INFO   normalized mapping={'0%': '', '6%': '', '13%': '', '17%': '', '24%': ''}
+2025-11-13 13:27:48+0200 WARNING   missing categories: ['0%', '6%', '13%', '17%', '24%']
+2025-11-13 13:27:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:48+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:27:48+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:48+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:55+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:55+0200 INFO api_repeat_entry_save: vat=802576637, mapping_in={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'αγορες_α_υλων'}, profile_name=
+2025-11-13 13:27:55+0200 INFO   normalized mapping={'0%': 'αγορες_α_υλων', '6%': 'αγορες_α_υλων', '13%': 'αγορες_α_υλων', '17%': 'αγορες_α_υλων', '24%': 'αγορες_α_υλων'}
+2025-11-13 13:27:56+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
+2025-11-13 13:27:57+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://sturdy-computing-machine-x5q45rvrjw6f6qg4-5001.app.github.dev/search
