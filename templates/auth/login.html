@@ -11,7 +11,13 @@
         <input type="text" name="username" class="mt-1 px-3 py-2 border rounded w-full" />
       </label>
       <label class="block">Κωδικός
-        <input type="password" name="password" class="mt-1 px-3 py-2 border rounded w-full" />
+        <div class="mt-1 relative">
+          <input id="loginPassword" type="password" name="password" class="px-3 py-2 border rounded w-full pr-10" autocomplete="current-password" />
+          <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" data-toggle-password="loginPassword" aria-label="Εναλλαγή εμφάνισης κωδικού" aria-pressed="false">
+            <span data-eye-show class="block">👁</span>
+            <span data-eye-hide class="hidden">🙈</span>
+          </button>
+        </div>
       </label>
       <div class="flex items-center gap-3">
         <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Σύνδεση</button>
@@ -19,4 +25,23 @@
       </div>
     </form>
   </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  document.querySelectorAll('[data-toggle-password]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const targetId = btn.getAttribute('data-toggle-password');
+      const input = targetId ? document.getElementById(targetId) : null;
+      if(!input) return;
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.setAttribute('aria-pressed', showing ? 'false' : 'true');
+      btn.querySelectorAll('[data-eye-show]').forEach(function(el){ el.classList.toggle('hidden', !showing); });
+      btn.querySelectorAll('[data-eye-hide]').forEach(function(el){ el.classList.toggle('hidden', showing); });
+    });
+  });
+})();
+</script>
 {% endblock %}

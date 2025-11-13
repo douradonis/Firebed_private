@@ -311,9 +311,17 @@
         <!-- User Info -->
         {% if current_user.is_authenticated %}
         <div class="border-b pb-4">
-          <div class="mb-2">
-            <p class="text-sm font-medium text-gray-700">Χρήστης</p>
-            <p class="text-lg font-semibold text-sky-600">{{ current_user.username }}</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <p class="text-sm font-medium text-gray-700">Χρήστης</p>
+              <p class="text-lg font-semibold text-sky-600">{{ current_user.username }}</p>
+            </div>
+            <a href="{{ url_for('auth.account_settings') }}" class="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300" title="Ρυθμίσεις λογαριασμού" aria-label="Ρυθμίσεις λογαριασμού">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </a>
           </div>
           <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200 text-center">Αποσύνδεση</a>
         </div>

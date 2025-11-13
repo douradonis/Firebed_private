@@ -544,10 +544,62 @@ function katToPercent(k){
   // ενεργές κατηγορίες πελάτη (χωρίς «αποδειξακια»)
   let CUSTOMER_CATEGORIES = (function(){
     try {
-      const arr = {{ (customer_categories or []) | tojson | safe }};
-      return Array.isArray(arr) ? arr.filter(x => x !== 'αποδειξακια') : [];
+      return {{ (customer_categories or []) | tojson | safe }} || [];
     } catch(e){ return []; }
   })();
+
+  let CATEGORY_VAT_CONSTRAINTS = {};
+
+  function normalizeCategoryList(rawList){
+    const normalized = [];
+    (rawList || []).forEach(item => {
+      if(!item) return;
+      if(typeof item === 'string'){
+        const key = item.trim();
+        if(!key || key.toLowerCase() === 'αποδειξακια') return;
+        if(!normalized.includes(key)) normalized.push(key);
+        return;
+      }
+      if(typeof item === 'object'){
+        const key = String(item.value || item.id || item.slug || '').trim();
+        if(!key || key.toLowerCase() === 'αποδειξακια') return;
+        const label = String(item.label || '').trim();
+        if(label){
+          CATEGORY_LABELS[key] = label;
+          if(typeof window !== 'undefined'){
+            window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+            window.CATEGORY_LABELS[key] = label;
+          }
+        }
+        if(!normalized.includes(key)) normalized.push(key);
+      }
+    });
+    return normalized;
+  }
+
+  CUSTOMER_CATEGORIES = normalizeCategoryList(CUSTOMER_CATEGORIES);
+
+  setCategoryConstraints((function(){
+    try {
+      return {{ (category_vat_constraints or {}) | tojson | safe }} || {};
+    } catch(e){ return {}; }
+  })());
+
+  function setCategoryConstraints(map){
+    if(map && typeof map === 'object'){
+      CATEGORY_VAT_CONSTRAINTS = map;
+    } else {
+      CATEGORY_VAT_CONSTRAINTS = {};
+    }
+  }
+
+  function categoryAllowedForVat(cat, vatKey){
+    if(!cat) return true;
+    const key = String(cat);
+    const allowed = CATEGORY_VAT_CONSTRAINTS[key];
+    if(!allowed || !allowed.length) return true;
+    return allowed.includes(vatKey);
+  }
 
   
   async function fetchDefaultMapping() {
@@ -563,12 +615,21 @@ function katToPercent(k){
     try {
       const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
       const j = await r.json();
-      if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
-        CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
-      }
       if (j && j.category_labels) {
         Object.assign(CATEGORY_LABELS, j.category_labels);
-      if (window.CATEGORY_LABELS) Object.assign(window.CATEGORY_LABELS, j.category_labels);
+        if (typeof window !== 'undefined') {
+          window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+          Object.assign(window.CATEGORY_LABELS, j.category_labels);
+        }
+      }
+      if (Array.isArray(j.expense_tags) && j.expense_tags.length) {
+        CUSTOMER_CATEGORIES = normalizeCategoryList(j.expense_tags);
+        if (typeof window !== 'undefined') {
+          window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
+        }
+      }
+      if (j && j.vat_constraints) {
+        setCategoryConstraints(j.vat_constraints);
       }
       // κανονικοποίηση mapping κάθε προφίλ σε ποσοστά
       const profiles = Array.isArray(j.profiles) ? j.profiles.map(p => ({
@@ -605,12 +666,23 @@ function katToPercent(k){
     sel.dataset.vat = pct;
 
     const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— επίλεξε —'; sel.appendChild(o0);
-    CUSTOMER_CATEGORIES.forEach(t => {
+    const vatKey = pct;
+    const allowedCats = CUSTOMER_CATEGORIES.filter(cat => categoryAllowedForVat(cat, vatKey));
+    allowedCats.forEach(t => {
       const o = document.createElement('option'); o.value = t; o.textContent = labelForCategory(t);
 
       if (t === selected) o.selected = true;
       sel.appendChild(o);
     });
+
+    if (selected && !allowedCats.includes(selected)) {
+      const extra = document.createElement('option');
+      extra.value = selected;
+      extra.textContent = `${labelForCategory(selected)} (μη διαθέσιμο για ${vatKey})`;
+      extra.dataset.unavailable = '1';
+      sel.appendChild(extra);
+      sel.value = selected;
+    }
 
     wrap.appendChild(label);
     wrap.appendChild(sel);
@@ -759,9 +831,21 @@ function katToPercent(k){
       try {
         const r = await fetch('/api/char_profiles?vat=' + encodeURIComponent(VAT), {credentials:'same-origin'});
         const j = await r.json();
-        // αν επέστρεψε expense_tags, ανανέωσε τα διαθέσιμα (χωρίς "αποδειξακια")
+        if (j && j.category_labels) {
+          Object.assign(CATEGORY_LABELS, j.category_labels);
+          if (typeof window !== 'undefined') {
+            window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+            Object.assign(window.CATEGORY_LABELS, j.category_labels);
+          }
+        }
+        if (j && j.vat_constraints) {
+          setCategoryConstraints(j.vat_constraints);
+        }
         if (Array.isArray(j.expense_tags)) {
-          window.CUSTOMER_CATEGORIES = j.expense_tags.filter(x => x !== 'αποδειξακια');
+          CUSTOMER_CATEGORIES = normalizeCategoryList(j.expense_tags);
+          if (typeof window !== 'undefined') {
+            window.CUSTOMER_CATEGORIES = CUSTOMER_CATEGORIES.slice();
+          }
         }
         return (j.profiles || []).map(p => ({...p, mapping: normalizeMapping(p.mapping || p.map || {})}));
       } catch { return []; }
@@ -1217,7 +1301,22 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }, true);
     // initial categories passed from server as fallback; will be overridden if API returns expense_tags
-let CUSTOMER_CATEGORIES = (function(){ try { return {{ customer_categories | tojson | safe }} || []; } catch(e){ return []; } })();
+let CUSTOMER_CATEGORIES = (function(){
+  try {
+    const raw = {{ customer_categories | tojson | safe }} || [];
+    const cleaned = [];
+    (raw || []).forEach(item => {
+      if(!item) return;
+      const key = String(item).trim();
+      if(!key || key.toLowerCase() === 'αποδειξακια') return;
+      if(!cleaned.includes(key)) cleaned.push(key);
+    });
+    return cleaned;
+  } catch(e){ return []; }
+})();
+if (typeof window !== 'undefined') {
+  window.CUSTOMER_CATEGORIES = window.CUSTOMER_CATEGORIES || CUSTOMER_CATEGORIES.slice();
+}
 
 // Helper: show transient flash (client-side)
 /* ====== Render summary lines into modal and wire handlers ====== */

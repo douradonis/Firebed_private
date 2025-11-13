@@ -7095,6 +7095,13 @@ def char_profiles_ui():
     vat = request.args.get("vat","").strip()
     creds = _load_credentials()
     client = _find_client(creds, vat=vat) or {}
+    if not client:
+        try:
+            active = get_active_credential_from_session() or {}
+        except Exception:
+            active = {}
+        if isinstance(active, dict) and active:
+            client = active
     expense_tags = _list_invoice_categories(client)
     labels = _category_labels_for_client(client)
     constraints = _category_vat_constraints(client)

@@ -133,6 +133,46 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
+@auth_bp.route('/account', methods=['GET', 'POST'])
+@login_required
+def account_settings():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password') or ''
+        new_password = request.form.get('new_password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+
+        if not current_password:
+            flash('Συμπλήρωσε τον τρέχοντα κωδικό.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if not new_password or not confirm_password:
+            flash('Συμπλήρωσε τον νέο κωδικό και την επιβεβαίωση.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if new_password != confirm_password:
+            flash('Ο νέος κωδικός και η επιβεβαίωση δεν ταιριάζουν.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if not current_user.check_password(current_password):
+            flash('Ο τρέχων κωδικός δεν είναι σωστός.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if len(new_password) < 8:
+            flash('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.', 'warning')
+            return redirect(url_for('auth.account_settings'))
+
+        if current_password == new_password:
+            flash('Ο νέος κωδικός πρέπει να είναι διαφορετικός από τον τρέχοντα.', 'warning')
+            return redirect(url_for('auth.account_settings'))
+
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('Ο κωδικός ενημερώθηκε με επιτυχία.', 'success')
+        return redirect(url_for('auth.account_settings'))
+
+    return render_template('auth/account.html')
+
+
 @auth_bp.route('/groups', methods=['GET'])
 @login_required
 def list_groups():
