@@ -27,5 +27,35 @@
         "vat_category": ""
       }
     ]
+  },
+  {
+    "mark": "400011622878368",
+    "issueDate": "12/11/2025",
+    "series": "11Μ0ΤΔΑ",
+    "aa": "9480",
+    "AA": "9480",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "69,29",
+    "totalVatAmount": "16,63",
+    "totalValue": "85,92",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094439854",
+    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+    "AFM": "094439854",
+    "lines": [
+      {
+        "id": "400011622878368_inst0",
+        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
+        "amount": "69,29",
+        "vat": "16,63",
+        "category": "custom_custom",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ],
+    "_updated_at": "2025-11-13T12:21:36.646695+00:00"
   }
 ]

@@ -2963,3 +2963,4 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) attempt to write a r
 2025-11-12T19:38:00.056782+00:00 - douradonis assigned nakakis as member
 2025-11-13T08:31:33.545473+00:00 - Bulk fetch performed: 01/11/2025 to 05/11/2025, VAT 802576637, 0 docs + 0 summaries by douradonis
 2025-11-13T08:53:16.810733+00:00 - Bulk fetch performed: 01/11/2025 to 13/11/2025, VAT 802576637, 24 docs + 22 summaries by douradonis
+2025-11-13T12:20:47.172553+00:00 - Bulk fetch performed: 01/11/2025 to 13/11/2025, VAT 802576637, 34 docs + 1 summaries by douradonis

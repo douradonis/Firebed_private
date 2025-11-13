@@ -1070,3 +1070,377 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-11-13 11:48:02+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
 2025-11-13 11:48:02+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/
 2025-11-13 11:50:16+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 14:20:18+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-13 14:20:19+0200 INFO Starting app - MYDATA_ENV=production
+2025-11-13 14:20:24+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x.github.dev/
+2025-11-13 14:20:24+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:25+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:25+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:27+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:28+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/search
+2025-11-13 14:20:28+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/search
+2025-11-13 14:20:28+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/search
+2025-11-13 14:20:32+0200 INFO Incoming request: method=POST path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/search
+2025-11-13 14:20:32+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/search
+2025-11-13 14:20:33+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:33+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:33+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:33+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:36+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/
+2025-11-13 14:20:36+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:36+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:36+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:36+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:37+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:38+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:38+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:38+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:38+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:38+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:39+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/credentials
+2025-11-13 14:20:39+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:39+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:39+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:39+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/fetch remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:40+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:46+0200 INFO Incoming request: method=POST path=/fetch remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:47+0200 INFO Set last fetch date for credential 'ΒΑΨΙΜΟ': 2025-11-13T12:20:47.168433+00:00
+2025-11-13 14:20:47+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:47+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:47+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:47+0200 INFO Incoming request: method=GET path=/api/last_fetch_date remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:20:47+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:21:00+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/fetch
+2025-11-13 14:21:00+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:00+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:00+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:00+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:01+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:04+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:04+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:04+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 14:21:04+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:11+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:12+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 14:21:12+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:18+0200 INFO Incoming request: method=POST path=/api/profiles/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:18+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:20+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:21+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:21+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:21+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:21+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:21+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-13 14:21:22+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/douradonis/epsilon/802576637_epsilon_invoices.json
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?auto_submit=1
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:22+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:23+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/status2 remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 ERROR Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:25+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:27+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=POST path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:31+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:33+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368
+2025-11-13 14:21:34+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368&force_edit=1
+2025-11-13 14:21:36+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368
+2025-11-13 14:21:36+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-13 14:21:36+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/douradonis/epsilon/802576637_epsilon_invoices.json
+2025-11-13 14:21:36+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368
+2025-11-13 14:21:36+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:37+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:39+0200 INFO Incoming request: method=GET path=/epsilon/preview remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:21:39+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 14:21:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 14:21:39+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 14:21:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 14:21:44+0200 INFO Incoming request: method=GET path=/export/fastimport/kinitseis remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/epsilon/preview?vat=802576637
+2025-11-13 14:22:12+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search?mark=400011622878368
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:13+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:26+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:28+0200 INFO Incoming request: method=POST path=/api/qr/remote/start remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:28+0200 INFO remote.start session=FpSq0XoHZh_t mode=receipts repeat=False auto=True owner=9EI7WIC3… ip=127.0.0.1
+2025-11-13 14:22:28+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:28+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:30+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:30+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:31+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:31+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:32+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:32+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:33+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:33+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:34+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:34+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:36+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:36+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:36+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:36+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:38+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:38+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:38+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:38+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:40+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:40+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:41+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:41+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:42+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:42+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:43+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:43+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:45+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:45+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:46+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:46+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:47+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:47+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:48+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:48+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:49+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:49+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:51+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:51+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:51+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:51+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:53+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:53+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:53+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:53+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:55+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:55+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:56+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:56+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:57+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:57+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:22:58+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:58+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:22:59+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:22:59+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:01+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:01+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:01+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=None
+2025-11-13 14:23:01+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:01+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-13 14:23:01+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:02+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-13 14:23:02+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/login?next=/mobile/qr-scanner
+2025-11-13 14:23:03+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:03+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:04+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:04+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:06+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:06+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:06+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:06+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:08+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:08+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:08+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:08+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:11+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:11+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:11+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:11+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:14+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:14+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:14+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:16+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:16+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True
+2025-11-13 14:23:17+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:17+0200 INFO remote.status session=FpSq0XoHZh_t owner=9EI7WIC3… since=0 version=0 attached=False
+2025-11-13 14:23:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://jubilant-memory-wrqjv7q4rwprf569x-5000.app.github.dev/search
+2025-11-13 14:23:19+0200 INFO remote.update session=FpSq0XoHZh_t owner=9EI7WIC3… mode=receipts repeat=False auto=True summary=True

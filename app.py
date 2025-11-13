@@ -5696,11 +5696,14 @@ def set_active_credential():
 def append_doc_to_customer_file(doc, vat):
     """
     Add a doc to per-customer JSON file, avoiding duplicates.
-    Filename: data/{VAT}_invoices.json
+    Filename (per group): <group_path>/{VAT}_invoices.json
     """
     if not vat:
         return False
-    customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+
+    # ΠΑΛΙΑ: customer_file = os.path.join(DATA_DIR, f"{vat}_invoices.json")
+    customer_file = get_customer_docs_file(vat)
+
     cache = json_read(customer_file)
     sig = json.dumps(doc, sort_keys=True, ensure_ascii=False)
     for d in cache:
