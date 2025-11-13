@@ -124,6 +124,33 @@
 
   const VAT_KEY_BY_SFX = { a: '0%', b: '6%', g: '13%', d: '17%', e: '24%' };
 
+  function normalizeTags(rawList){
+    const result = [];
+    (rawList || []).forEach(item => {
+      if(!item) return;
+      if(typeof item === 'string'){
+        const key = item.trim();
+        if(key && !result.includes(key)) result.push(key);
+        return;
+      }
+      if(typeof item === 'object'){
+        const value = String(item.value || item.id || item.slug || '').trim();
+        if(!value) return;
+        const label = String(item.label || '').trim();
+        if(label){
+          CATEGORY_LABELS[value] = label;
+          if(typeof window !== 'undefined' && window.CATEGORY_LABELS){
+            window.CATEGORY_LABELS[value] = label;
+          }
+        }
+        if(!result.includes(value)){
+          result.push(value);
+        }
+      }
+    });
+    return result;
+  }
+
   function labelForCategory(value){
     if(!value) return '';
     const key = String(value);
@@ -253,13 +280,21 @@
       VAT_CONSTRAINTS = j.vat_constraints || {};
     }
 
+    if(j && j.category_labels){
+      Object.assign(CATEGORY_LABELS, j.category_labels);
+      if(typeof window !== 'undefined'){
+        window.CATEGORY_LABELS = window.CATEGORY_LABELS || {};
+        Object.assign(window.CATEGORY_LABELS, j.category_labels);
+      }
+    }
+
     ['a','b','g','e','d'].forEach(sfx=>{
       const sel = document.getElementById(`kat_fpa_${sfx}`);
       if(!sel) return;
       const previous = sel.value;
       sel.innerHTML = '';
       sel.appendChild(new Option('-επιλέξτε-',''));
-      const tags = (j && (j.options || j.expense_tags)) || [];
+      const tags = normalizeTags((j && (j.options || j.expense_tags)) || []);
       const vatKey = VAT_KEY_BY_SFX[sfx] || '';
       const allowed = categoriesForVat(vatKey, tags);
       allowed.forEach(t=> sel.appendChild(opt(t)));

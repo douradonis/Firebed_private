@@ -94,7 +94,7 @@ def login():
         password = request.form.get('password') or ''
         user = User.query.filter_by(username=username).first()
         if not user or not user.check_password(password):
-            flash('Invalid username or password', 'danger')
+            flash('Invalid username or password', 'error')
             return redirect(url_for('auth.login'))
 
         # Successful login: clear any previous active credential selection
@@ -102,8 +102,20 @@ def login():
         session.pop('_remote_qr_owner', None)
 
         login_user(user)
-        flash('Logged in', 'success')
         next_url = request.args.get('next') or url_for('home')
+
+        if not session.get('active_group'):
+            user_groups = list(getattr(user, 'groups', []) or [])
+            if len(user_groups) == 1:
+                session['active_group'] = user_groups[0].name
+            else:
+                if user_groups:
+                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'warning')
+                else:
+                    flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα. Επίλεξε ή δημιούργησε μία.', 'warning')
+                return redirect(url_for('auth.list_groups'))
+
+        flash('Logged in', 'success')
         return redirect(next_url)
 
     # GET -> render login form
@@ -114,11 +126,51 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Logged out', 'info')
+    flash('Logged out', 'danger')
     # clear any active client/credential selection from session to avoid stale state
     session.pop('active_credential', None)
     session.pop('_remote_qr_owner', None)
     return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/account', methods=['GET', 'POST'])
+@login_required
+def account_settings():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password') or ''
+        new_password = request.form.get('new_password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+
+        if not current_password:
+            flash('Συμπλήρωσε τον τρέχοντα κωδικό.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if not new_password or not confirm_password:
+            flash('Συμπλήρωσε τον νέο κωδικό και την επιβεβαίωση.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if new_password != confirm_password:
+            flash('Ο νέος κωδικός και η επιβεβαίωση δεν ταιριάζουν.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if not current_user.check_password(current_password):
+            flash('Ο τρέχων κωδικός δεν είναι σωστός.', 'danger')
+            return redirect(url_for('auth.account_settings'))
+
+        if len(new_password) < 8:
+            flash('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.', 'warning')
+            return redirect(url_for('auth.account_settings'))
+
+        if current_password == new_password:
+            flash('Ο νέος κωδικός πρέπει να είναι διαφορετικός από τον τρέχοντα.', 'warning')
+            return redirect(url_for('auth.account_settings'))
+
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('Ο κωδικός ενημερώθηκε με επιτυχία.', 'success')
+        return redirect(url_for('auth.account_settings'))
+
+    return render_template('auth/account.html')
 
 
 @auth_bp.route('/groups', methods=['GET'])
