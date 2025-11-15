@@ -353,6 +353,14 @@ _sync_thread = None
 _sync_stop = False
 _sync_state_path = os.path.join(os.getcwd(), 'data', '.firebase_sync_state.json')
 
+# Map user_id -> last db write timestamp (epoch seconds)
+_user_last_db_activity = {}
+# Map user_id -> threading.Timer so we can cancel / reschedule idle syncs
+_user_idle_timers = {}
+
+# Idle timeout in seconds (10 minutes default). Can be adjusted by tests/env.
+IDLE_SYNC_TIMEOUT = int(os.getenv('FIREBASE_IDLE_SYNC_TIMEOUT', '600'))
+
 
 def _load_sync_state() -> Dict[str, float]:
     try:
@@ -482,6 +490,106 @@ def start_firebase_data_sync(data_dir: str = None, interval: int = 60) -> None:
     _sync_thread = threading.Thread(target=_sync_loop, args=(data_dir, interval), daemon=True)
     _sync_thread.start()
     logger.info('Started Firebase data sync thread')
+
+
+def firebase_sync_group_folder(group_folder: str, data_dir: str = None) -> bool:
+    """Perform immediate sync of a single group folder under `data/`.
+
+    `group_folder` must be the filesystem folder name under `data/` (this is the
+    Group.data_folder value). Returns True if the sync ran without fatal errors.
+    """
+    try:
+        if not is_firebase_enabled():
+            logger.warning('Firebase not enabled; skipping group sync')
+            return False
+
+        if not group_folder:
+            logger.warning('No group folder provided for firebase_sync_group_folder')
+            return False
+
+        if data_dir is None:
+            data_dir = os.path.join(os.getcwd(), 'data')
+
+        # run a single scan for the specified folder
+        _scan_and_sync_data_dir(data_dir, group_names=[group_folder])
+        logger.info('Completed firebase_sync_group_folder for %s', group_folder)
+        return True
+    except Exception as e:
+        logger.error('Error syncing group folder to Firebase: %s', e)
+        return False
+
+
+def _user_idle_sync_handler(user_id: int, group_folder: str) -> None:
+    """Called by timer when a user has been idle long enough to trigger sync."""
+    try:
+        last_ts = _user_last_db_activity.get(str(user_id) if isinstance(user_id, str) else user_id)
+        if not last_ts:
+            logger.debug('Idle sync: no last activity record for user %s', user_id)
+            return
+
+        # If current time now is at least IDLE_SYNC_TIMEOUT seconds after last activity, proceed
+        if time.time() - float(last_ts) >= IDLE_SYNC_TIMEOUT:
+            logger.info('User %s idle for >= %s seconds. Syncing group %s', user_id, IDLE_SYNC_TIMEOUT, group_folder)
+            # Perform a targeted group sync
+            firebase_sync_group_folder(group_folder)
+        else:
+            logger.debug('Idle sync: user %s not idle anymore (last %s)', user_id, last_ts)
+    except Exception as e:
+        logger.error('Error during user idle sync handler for %s: %s', user_id, e)
+    finally:
+        # cleanup timer reference
+        try:
+            _user_idle_timers.pop(user_id, None)
+        except Exception:
+            pass
+
+
+def firebase_record_db_activity(user_id: int, group_folder: str) -> None:
+    """Record that a user performed a DB-write action and (re)schedule idle sync.
+
+    When called, this stores a last-activity timestamp and schedules a Timer
+    to call `_user_idle_sync_handler` after `IDLE_SYNC_TIMEOUT` seconds. If the
+    user performs more DB writes, the timer is reset.
+    """
+    try:
+        if not user_id:
+            return
+
+        # Normalize to str key to be safe across sessions
+        key = str(user_id)
+        _user_last_db_activity[key] = time.time()
+
+        # Cancel previous timer if exists
+        prev = _user_idle_timers.get(key)
+        if prev and isinstance(prev, threading.Timer):
+            try:
+                prev.cancel()
+            except Exception:
+                pass
+
+        # Only schedule if group_folder is provided
+        if not group_folder:
+            return
+
+        t = threading.Timer(IDLE_SYNC_TIMEOUT, _user_idle_sync_handler, args=(key, group_folder))
+        t.daemon = True
+        t.start()
+        _user_idle_timers[key] = t
+        logger.debug('Scheduled idle sync for user %s (group=%s) in %s seconds', user_id, group_folder, IDLE_SYNC_TIMEOUT)
+    except Exception as e:
+        logger.error('Failed to schedule idle sync for user %s: %s', user_id, e)
+
+
+def firebase_cancel_idle_sync_for_user(user_id: int) -> None:
+    """Cancel a pending idle sync for a user (used on logout)."""
+    key = str(user_id)
+    t = _user_idle_timers.pop(key, None)
+    try:
+        if t and isinstance(t, threading.Timer):
+            t.cancel()
+    except Exception:
+        pass
+    _user_last_db_activity.pop(key, None)
 
 
 def stop_firebase_data_sync() -> None:

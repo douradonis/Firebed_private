@@ -32,8 +32,13 @@ with app.test_client() as c:
     with c.session_transaction() as sess:
         sess['_user_id'] = str(admin_id)
         sess['_fresh'] = True
-        # also set a stale active_group to test logout clearing
-        sess['active_group'] = 'stale_group_test'
+        # choose a real group to test DB-activity-driven sync if available
+        from admin_panel import admin_list_all_groups
+        groups = admin_list_all_groups()
+        if groups:
+            sess['active_group'] = groups[0].get('name') or groups[0].get('group_name')
+        else:
+            sess['active_group'] = 'stale_group_test'
 
     endpoints = [
         ('GET', '/admin/api/groups'),
@@ -60,6 +65,21 @@ with app.test_client() as c:
         print('Body:', json.dumps(data, indent=2, ensure_ascii=False) if isinstance(data, dict) else data)
         results[path] = (resp.status_code, data)
 
+    # Simulate a DB write to trigger after_commit -> idle sync scheduling
+    print('\nSimulating DB write for admin to trigger idle sync scheduling...')
+    try:
+        from models import db, User
+        with app.app_context():
+            user = User.query.get(admin_id)
+            if user:
+                user.username = user.username + '_smoketest'
+                db.session.add(user)
+                db.session.commit()
+                print('DB write committed for user', admin_id)
+            else:
+                print('Admin user not found; skipping DB write')
+    except Exception as e:
+        print('DB write simulation error:', e)
     # test logout clears active_group — try known logout endpoints
     print('\nTesting logout clears active_group...')
     logout_paths = ['/auth/logout', '/firebase-auth/logout', '/logout']

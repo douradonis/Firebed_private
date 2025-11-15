@@ -2,6 +2,7 @@ from flask import Blueprint, request, render_template, redirect, url_for, flash,
 from werkzeug.utils import secure_filename
 import os
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+import firebase_config
 from models import db, User, Group
 import datetime
 
@@ -38,6 +39,7 @@ def signup():
             return redirect(url_for('auth.signup'))
 
         user = User(username=username)
+        user.email = username
         user.set_password(password)
 
         db.session.add(user)
@@ -90,11 +92,14 @@ def signup():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = (request.form.get('username') or '').strip()
+        identifier = (request.form.get('username') or '').strip()
         password = request.form.get('password') or ''
-        user = User.query.filter_by(username=username).first()
+        # Support login by username or email
+        user = User.query.filter_by(username=identifier).first()
+        if not user:
+            user = User.query.filter_by(email=identifier).first()
         if not user or not user.check_password(password):
-            flash('Invalid username or password', 'error')
+            flash('Invalid username/email or password', 'error')
             return redirect(url_for('auth.login'))
 
         # Successful login: clear any previous active credential selection
@@ -102,21 +107,28 @@ def login():
         session.pop('_remote_qr_owner', None)
 
         login_user(user)
-        next_url = request.args.get('next') or url_for('home')
+        # record last login
+        try:
+            user.last_login = datetime.datetime.utcnow()
+            db.session.commit()
+        except Exception:
+            pass
 
         if not session.get('active_group'):
             user_groups = list(getattr(user, 'groups', []) or [])
             if len(user_groups) == 1:
                 session['active_group'] = user_groups[0].name
+                flash('Logged in', 'success')
+                return redirect(url_for('home'))
             else:
                 if user_groups:
-                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'warning')
+                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'info')
                 else:
                     flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα. Επίλεξε ή δημιούργησε μία.', 'warning')
                 return redirect(url_for('auth.list_groups'))
 
         flash('Logged in', 'success')
-        return redirect(next_url)
+        return redirect(request.args.get('next') or url_for('home'))
 
     # GET -> render login form
     return render_template('auth/login.html')
@@ -125,6 +137,25 @@ def login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    # if user has an active group, sync it to Firebase before clearing session
+    try:
+        active_group_name = session.get('active_group')
+        if active_group_name:
+            grp = Group.query.filter_by(name=active_group_name).first()
+            if grp:
+                # Cancel any idle timers for this user and run an immediate sync
+                try:
+                    firebase_config.firebase_cancel_idle_sync_for_user(current_user.id)
+                except Exception:
+                    pass
+                try:
+                    firebase_config.firebase_sync_group_folder(grp.data_folder)
+                except Exception:
+                    current_app.logger.exception('Failed to sync data on logout')
+    except Exception:
+        # continue with logout even if sync fails
+        pass
+
     logout_user()
     flash('Έχετε αποσυνδεθεί.', 'info')
     # clear any active client/credential selection and active group from session to avoid stale state
@@ -183,6 +214,45 @@ def list_groups():
     except Exception:
         groups = []
     return render_template('auth/groups.html', groups=groups)
+
+
+@auth_bp.route('/groups/assign-user', methods=['POST'])
+@login_required
+def assign_user_to_group():
+    """Assign a user to a group by email or username (admin/group-admin only)"""
+    try:
+        group_name = (request.form.get('group_name') or '').strip()
+        user_identifier = (request.form.get('user_identifier') or '').strip()  # email or username
+        role = (request.form.get('role') or 'member').strip()
+        
+        if not group_name or not user_identifier:
+            return jsonify({'ok': False, 'error': 'group_name and user_identifier required'}), 400
+        
+        grp = Group.query.filter_by(name=group_name).first()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'group not found'}), 404
+        
+        # Check if current user is admin or group admin
+        from admin_panel import is_admin
+        if not (is_admin(current_user) or current_user.role_for_group(grp) == 'admin'):
+            return jsonify({'ok': False, 'error': 'not authorized'}), 403
+        
+        # Find user by email or username
+        user = User.query.filter_by(username=user_identifier).first()
+        if not user:
+            user = User.query.filter_by(email=user_identifier).first()
+        
+        if not user:
+            return jsonify({'ok': False, 'error': f'user not found: {user_identifier}'}), 404
+        
+        # Add user to group with specified role
+        user.add_to_group(grp, role=role)
+        db.session.commit()
+        
+        return jsonify({'ok': True, 'message': f'User {user.username} assigned to {group_name} as {role}'})
+    except Exception as e:
+        current_app.logger.exception('Error assigning user to group')
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @auth_bp.route('/groups/create', methods=['POST'])
@@ -245,7 +315,7 @@ def create_group():
 
 @auth_bp.route('/groups/assign', methods=['POST'])
 @login_required
-def assign_user_to_group():
+def assign_user_to_group_legacy():
     username = (request.form.get('username') or '').strip()
     group_name = (request.form.get('group') or '').strip()
     role = (request.form.get('role') or request.args.get('role') or 'member').strip()

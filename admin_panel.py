@@ -22,8 +22,22 @@ ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "0"))  # Set in .env
 
 
 def is_admin(user: Optional[User]) -> bool:
-    """Check if user is the master admin"""
-    return user and user.id == ADMIN_USER_ID
+    """Check if user is an admin (either by is_admin flag or ADMIN_USER_ID env)"""
+    if not user:
+        return False
+    
+    # First check the is_admin flag on the user model
+    if hasattr(user, 'is_admin') and user.is_admin:
+        return True
+    
+    # Fallback to ADMIN_USER_ID env variable for backwards compatibility
+    from flask import current_app
+    try:
+        admin_id = int(current_app.config.get('ADMIN_USER_ID', ADMIN_USER_ID))
+    except Exception:
+        admin_id = ADMIN_USER_ID
+    
+    return user.id == admin_id if admin_id > 0 else False
 
 
 # ============================================================================
@@ -40,7 +54,8 @@ def admin_list_all_users(include_deleted: bool = False) -> List[Dict[str, Any]]:
             result.append({
                 'id': user.id,
                 'username': user.username,
-                'email': getattr(user, 'email', None),
+                    'email': getattr(user, 'email', None),
+                'firebase_uid': getattr(user, 'pw_hash', None),
                 'created_at': str(getattr(user, 'created_at', None)),
                 'groups': [g.name for g in user.groups],
                 'group_count': len(user.groups),
@@ -74,7 +89,7 @@ def admin_get_user_details(user_id: int) -> Optional[Dict[str, Any]]:
         return {
             'id': user.id,
             'username': user.username,
-            'email': getattr(user, 'email', None),
+                'email': getattr(user, 'email', None),
             'created_at': str(getattr(user, 'created_at', None)),
             'groups': groups_info,
             'last_login': str(getattr(user, 'last_login', None))
@@ -150,6 +165,7 @@ def admin_list_all_groups() -> List[Dict[str, Any]]:
             result.append({
                 'id': group.id,
                 'name': group.name,
+                'group_name': group.name,  # keep alias for backward compatibility
                 'data_folder': group.data_folder,
                 'members_count': len(group.user_groups),
                 'admins': [u.user.username for u in group.user_groups if u.role == 'admin'],

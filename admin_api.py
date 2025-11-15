@@ -270,7 +270,8 @@ def api_backup_all():
         }
         
         for group in groups:
-            group_data = firebase_config.firebase_read_data(f'/groups/{group["group_name"]}')
+            group_name = group.get('name') or group.get('group_name')
+            group_data = firebase_config.firebase_read_data(f'/groups/{group_name}')
             if group_data:
                 backup_data['groups'][group['group_name']] = group_data
         
@@ -302,7 +303,8 @@ def api_clear_activity():
         
         groups = admin_list_all_groups()
         for group in groups:
-            firebase_config.firebase_delete_data(f'/activity_logs/{group["group_name"]}')
+            group_name = group.get('name') or group.get('group_name')
+            firebase_config.firebase_delete_data(f'/activity_logs/{group_name}')
         
         logger.warning(f"Activity logs cleared by admin {current_user.id}")
         

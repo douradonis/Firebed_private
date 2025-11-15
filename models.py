@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 from flask_login import UserMixin
 
 db = SQLAlchemy()
@@ -20,17 +21,25 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    # Explicit user email field (previously `email` was an alias of username)
+    email = db.Column(db.String(150), unique=False, nullable=True)
+    # Firebase UID if user is managed by Firebase
+    firebase_uid = db.Column(db.String(128), unique=False, nullable=True)
+    # optional timestamps
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.datetime.utcnow)
+    last_login = db.Column(db.DateTime(), nullable=True)
     active = db.Column(db.Boolean, default=True, nullable=False)
+    # Admin flag for global admin privileges (separate from group-level admin role)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
     user_groups = db.relationship('UserGroup', back_populates='user', cascade='all, delete-orphan')
 
     # Compatibility properties for legacy code that expects `email` and `pw_hash`
+    # `email` column now exists. Keep alias for `username` compatibility only
     @property
-    def email(self) -> str:
+    def username_email(self) -> str:
+        """Legacy alias returning the username (not used for actual email storage)."""
         return self.username
-    @email.setter
-    def email(self, value: str) -> None:
-        self.username = value
 
     @property
     def pw_hash(self) -> str:

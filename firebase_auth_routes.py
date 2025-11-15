@@ -57,6 +57,9 @@ def firebase_signup():
                     username=email,
                     pw_hash=uid  # Store Firebase UID
                 )
+                # store explicit email and firebase uid
+                user.email = email
+                user.firebase_uid = uid
                 db.session.add(user)
                 try:
                     db.session.commit()
@@ -99,7 +102,7 @@ def firebase_login():
             return redirect(url_for('firebase_auth.firebase_login'))
         
         # Support login by either email or username. If user provided a username (no @),
-        # try to look up the local user and resolve the Firebase email via stored UID.
+        # try to look up the local user and resolve the Firebase email.
         identifier = email
         firebase_email = None
         if '@' in identifier:
@@ -107,13 +110,16 @@ def firebase_login():
         else:
             # treat as username: try to find local user and resolve their firebase email
             local = User.query.filter_by(username=identifier).first()
-            if local and getattr(local, 'pw_hash', None):
-                try:
-                    fb_user = FirebaseAuthHandler.get_user_by_uid(local.pw_hash)
-                    if fb_user and fb_user.get('email'):
-                        firebase_email = fb_user.get('email')
-                except Exception:
-                    firebase_email = None
+            if local:
+                if getattr(local, 'email', None):
+                    firebase_email = local.email
+                elif getattr(local, 'pw_hash', None):
+                    try:
+                        fb_user = FirebaseAuthHandler.get_user_by_uid(local.pw_hash)
+                        if fb_user and fb_user.get('email'):
+                            firebase_email = fb_user.get('email')
+                    except Exception:
+                        pass
 
         # fallback: if we couldn't resolve an email, use the raw identifier (will likely fail)
         if not firebase_email:
@@ -126,14 +132,17 @@ def firebase_login():
             flash(f'Login failed: {error}', 'danger')
             return redirect(url_for('firebase_auth.firebase_login'))
         
-        # Get or create local user. Prefer storing username as full email for consistency.
-        user = User.query.filter_by(username=firebase_email).first()
+        # Get or create local user. Prefer finding by username OR email to avoid creating duplicates
+        from sqlalchemy import or_
+        user = User.query.filter(or_(User.username == firebase_email, User.email == firebase_email)).first()
         if not user:
             try:
                 user = User(
                     username=firebase_email,
                     pw_hash=uid
                 )
+                user.email = firebase_email
+                user.firebase_uid = uid
                 db.session.add(user)
                 try:
                     db.session.commit()
@@ -151,10 +160,21 @@ def firebase_login():
         
         # Update local user's Firebase UID
         user.pw_hash = uid
+        # update explicit firebase uid and email if missing
+        if not getattr(user, 'firebase_uid', None):
+            user.firebase_uid = uid
+        if getattr(user, 'email', None) != firebase_email:
+            user.email = firebase_email
         db.session.commit()
         
         # Login user
         login_user(user, remember=True)
+        # Update last_login timestamp
+        try:
+            user.last_login = datetime.datetime.utcnow()
+            db.session.commit()
+        except Exception:
+            pass
         
         # Log the login
         firebase_config.firebase_log_activity(
@@ -164,7 +184,21 @@ def firebase_login():
             {'email': firebase_email}
         )
         
-        flash(f'Καλώς ήρθατε, {user.username}!', 'success')
+        # Redirect to group selection if no active group set
+        if not session.get('active_group'):
+            user_groups = list(getattr(user, 'groups', []) or [])
+            if len(user_groups) == 1:
+                session['active_group'] = user_groups[0].name
+                flash(f'Καλώς ήρθατε!', 'success')
+                return redirect(url_for('home'))
+            else:
+                if user_groups:
+                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'info')
+                else:
+                    flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα.', 'warning')
+                return redirect(url_for('auth.list_groups'))
+        
+        flash(f'Καλώς ήρθατε!', 'success')
         return redirect(url_for('home'))
     
     return render_template('auth/login.html')
@@ -185,6 +219,17 @@ def firebase_logout():
         {'email': email}
     )
     
+    # try to sync user's active group before logout
+    try:
+        active_group_name = session.get('active_group')
+        if active_group_name:
+            grp = Group.query.filter_by(name=active_group_name).first()
+            if grp:
+                firebase_config.firebase_cancel_idle_sync_for_user(current_user.id)
+                firebase_config.firebase_sync_group_folder(grp.data_folder)
+    except Exception:
+        logger.exception('Failed to sync data on firebase logout')
+
     logout_user()
     # clear session-level active group to avoid showing previous user's state
     try:

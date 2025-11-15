@@ -818,6 +818,39 @@ try:
         except Exception:
             # ignore DB creation errors during import; app can still run
             pass
+    # Register a SQLAlchemy after_commit hook to record DB activity per-user.
+    try:
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session
+        from flask_login import current_user
+        from flask import session as flask_session
+        import firebase_config as _fc
+        from models import Group
+
+        @event.listens_for(Session, 'after_commit')
+        def _after_commit(session):
+            # This is called after any commit; record that the current user
+            # wrote to the DB and schedule an idle sync for their active group.
+            try:
+                if not getattr(current_user, 'is_authenticated', False):
+                    return
+                # active_group is group.name — translate to data_folder
+                active_group_name = flask_session.get('active_group')
+                if not active_group_name:
+                    return
+                grp = Group.query.filter_by(name=active_group_name).first()
+                if not grp:
+                    return
+                _fc.firebase_record_db_activity(current_user.id, grp.data_folder)
+            except Exception as e:
+                try:
+                    current_app.logger.debug('After commit: %s', e)
+                except Exception:
+                    pass
+                return
+    except Exception:
+        # Not fatal; if SQLAlchemy hooks fail allow app to continue
+        pass
 except Exception:
     # if SQLAlchemy or auth is not available, continue without auth
     pass
@@ -2599,6 +2632,7 @@ def set_last_fetch_date(credential_name: str, date_str: Optional[str] = None) ->
         if date_str is None:
             date_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
         
+    
         p = _fiscal_meta_path()
         os.makedirs(os.path.dirname(p), exist_ok=True)
         
@@ -9272,6 +9306,6 @@ def api_admin_activity_logs():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
