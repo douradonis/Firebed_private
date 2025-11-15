@@ -255,6 +255,9 @@
               <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">📥 Bulk Fetch</a>
               <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔍 Αναζήτηση MARK</a>
               <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔐 Credentials</a>
+              {% if current_user.is_authenticated and current_user.id == ADMIN_USER_ID %}
+                <a href="{{ url_for('admin_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700">⚙️ Admin</a>
+              {% endif %}
             </nav>
 
             <!-- Active credential badge moved to second row -->

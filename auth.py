@@ -126,10 +126,11 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Logged out', 'danger')
-    # clear any active client/credential selection from session to avoid stale state
+    flash('Έχετε αποσυνδεθεί.', 'info')
+    # clear any active client/credential selection and active group from session to avoid stale state
     session.pop('active_credential', None)
     session.pop('_remote_qr_owner', None)
+    session.pop('active_group', None)
     return redirect(url_for('auth.login'))
 
 

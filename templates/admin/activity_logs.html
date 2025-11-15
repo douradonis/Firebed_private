@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Activity Logs (Traffic Tracking)</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="alert alert-info">
+        📊 All user activity is logged to Firebase for traffic tracking and audit purposes.
+    </div>
+
+    {% if logs %}
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Timestamp</th>
+                <th>User ID</th>
+                <th>Group</th>
+                <th>Action</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>
+                    <small>{{ log.timestamp }}</small>
+                </td>
+                <td>{{ log.user_id }}</td>
+                <td>{{ log.group }}</td>
+                <td><code>{{ log.action }}</code></td>
+                <td>
+                    <small>
+                        {% if log.details %}
+                            <pre style="font-size: 0.75rem; margin: 0;">{{ log.details|tojson }}</pre>
+                        {% endif %}
+                    </small>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No activity logs yet</p>
+    {% endif %}
+</div>
+{% endblock %}

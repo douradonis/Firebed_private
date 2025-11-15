@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Manage Users</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Groups</th>
+                <th>Admin of</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>
+                    {% for group in user.groups %}
+                        <span class="badge badge-info">{{ group }}</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for group in user.is_admin_of %}
+                        <span class="badge badge-warning">{{ group }}</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <a href="/admin/users/{{ user.id }}" class="btn btn-sm btn-info">View</a>
+                    {% if user.id != current_user.id %}
+                    <form method="POST" action="/admin/users/{{ user.id }}/delete" style="display:inline;">
+                        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete user {{ user.username }}?')">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

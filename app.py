@@ -1,6 +1,14 @@
 # app.py (ολοκληρωμένο, με ενσωματωμένη λογική για per-line categorization -> epsilon per-vat files)
 import os
 import sys
+
+# Load environment variables from .env file first
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 import json
 import traceback
 import logging
@@ -90,6 +98,18 @@ from flask import current_app
 from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui
 from utils import decode_qr_from_file, decode_qr_payloads, extract_mark
 
+# Firebase & Admin imports
+import firebase_config
+import admin_panel
+from encryption import encrypt_data, decrypt_data, encrypt_data_with_group_key, decrypt_data_with_group_key
+
+# Import login_required early for decorator usage
+try:
+    from flask_login import login_required
+except ImportError:
+    # Fallback: create a no-op decorator if flask_login not available
+    def login_required(f):
+        return f
 
 # --- end lock + current_app imports ---
 # --- Compatibility shim: unify invoice-scraper vs receipt-scraper usage ---
@@ -766,8 +786,18 @@ ALLOWED_CLIENT_EXT = {'.xlsx', '.xls', '.csv'}
 
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
-app.secret_key = os.getenv("FLASK_SECRET", "change-me")
+app.secret_key = os.getenv("FLASK_SECRET", "douradonis1997")
 app.config["UPLOAD_FOLDER"] = UPLOADS_DIR
+
+# --- Initialize Logger ---
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+# Create a rotating file handler
+handler = RotatingFileHandler('firebed.log', maxBytes=10485760, backupCount=10)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
+# --- end logger init ---
+
 # --- Initialize DB and authentication ---
 try:
     # local imports to avoid circulars during module import
@@ -792,14 +822,37 @@ except Exception:
     # if SQLAlchemy or auth is not available, continue without auth
     pass
 # --- end auth init ---
+# --- Initialize Firebase ---
+try:
+    firebase_config.init_firebase()
+    logger.info("Firebase initialized")
+    
+    # Register Firebase Auth routes
+    from firebase_auth_routes import firebase_auth_bp
+    app.register_blueprint(firebase_auth_bp)
+    logger.info("Firebase Auth routes registered")
+    
+    # Register Admin API routes
+    from admin_api import admin_api_bp
+    app.register_blueprint(admin_api_bp)
+    logger.info("Admin API routes registered")
+    # Start periodic background sync of local data/ to Firebase (encrypted)
+    try:
+        import firebase_config as _fc
+        _fc.start_firebase_data_sync()
+    except Exception:
+        logger.exception('Could not start firebase data sync')
+except Exception as e:
+    logger.warning(f"Firebase initialization failed: {e}")
+# --- end firebase init ---
 try:
     # If Flask-Login is available, enforce login for non-auth endpoints
     from flask_login import current_user
     @app.before_request
     def require_login_before_request():
-        # allow static and auth endpoints
+        # allow static, local auth and firebase auth endpoints
         endpoint = request.endpoint or ''
-        if endpoint.startswith('auth.') or endpoint.startswith('static'):
+        if endpoint.startswith('auth.') or endpoint.startswith('static') or endpoint.startswith('firebase_auth.'):
             return None
         # allow public API endpoints (if any) - keep a whitelist here if needed
         public = {'home', 'index', 'healthcheck'}
@@ -1109,6 +1162,15 @@ except Exception:
     pass
 
 log.info("Starting app - MYDATA_ENV=%s", MYDATA_ENV)
+
+# Admin configuration
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "0"))
+# expose to Flask app config so decorators and blueprints can read it
+try:
+    app.config.setdefault('ADMIN_USER_ID', ADMIN_USER_ID)
+except Exception:
+    # app may not be defined yet in some import orders; ignore if so
+    pass
 
 GLOBAL_ACCOUNTS_NAME = "__global_accounts__"
 # keep settings inside data/ so it's co-located with other app files
@@ -3674,6 +3736,7 @@ def inject_active_credential():
         app_settings=settings,
         user_role=user_role,
         active_group=active_group_name,
+        ADMIN_USER_ID=ADMIN_USER_ID if 'ADMIN_USER_ID' in globals() else 0,
     )
 
 
@@ -9007,6 +9070,206 @@ def credentials_page():
 @app.route("/health")
 def health():
     return "OK"
+
+
+# ============================================================================
+# ADMIN PANEL ROUTES (Admin-only access)
+# ============================================================================
+
+def _require_admin(f):
+    """Decorator to require admin access"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not (current_user.is_authenticated and admin_panel.is_admin(current_user)):
+            flash('Admin access required', 'danger')
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route("/admin")
+@login_required
+@_require_admin
+def admin_dashboard():
+    """Admin dashboard - overview of system"""
+    try:
+        return render_template('admin/dashboard_new.html')
+    except Exception as e:
+        logger.exception(f"Admin dashboard error: {e}")
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('home'))
+
+
+@app.route("/admin/users")
+@login_required
+@_require_admin
+def admin_users():
+    """List and manage all users"""
+    users = admin_panel.admin_list_all_users()
+    return render_template('admin/users.html', users=users)
+
+
+@app.route("/admin/users/<int:user_id>")
+@login_required
+@_require_admin
+def admin_user_detail(user_id):
+    """View user details"""
+    user_detail = admin_panel.admin_get_user_details(user_id)
+    if not user_detail:
+        flash('User not found', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/user_detail.html', user=user_detail)
+
+
+@app.route("/admin/users/<int:user_id>/delete", methods=['POST'])
+@login_required
+@_require_admin
+def admin_user_delete(user_id):
+    """Delete a user"""
+    result = admin_panel.admin_delete_user(user_id, current_user)
+    if result['ok']:
+        flash(result['message'], 'success')
+    else:
+        flash(result['error'], 'danger')
+    
+    return redirect(url_for('admin_users'))
+
+
+@app.route("/admin/groups")
+@login_required
+@_require_admin
+def admin_groups():
+    """List and manage all groups"""
+    groups = admin_panel.admin_list_all_groups()
+    return render_template('admin/groups.html', groups=groups)
+
+
+@app.route("/admin/groups/<int:group_id>")
+@login_required
+@_require_admin
+def admin_group_detail(group_id):
+    """View group details"""
+    group_detail = admin_panel.admin_get_group_details(group_id)
+    if not group_detail:
+        flash('Group not found', 'danger')
+        return redirect(url_for('admin_groups'))
+    
+    return render_template('admin/group_detail.html', group=group_detail)
+
+
+@app.route("/admin/groups/<int:group_id>/backup", methods=['POST'])
+@login_required
+@_require_admin
+def admin_group_backup(group_id):
+    """Create backup of group"""
+    backup_path = admin_panel.admin_backup_group(group_id)
+    if backup_path:
+        flash(f'Backup created: {backup_path}', 'success')
+    else:
+        flash('Failed to create backup', 'danger')
+    
+    return redirect(url_for('admin_group_detail', group_id=group_id))
+
+
+@app.route("/admin/groups/<int:group_id>/delete", methods=['POST'])
+@login_required
+@_require_admin
+def admin_group_delete(group_id):
+    """Delete a group and its data (with backup)"""
+    result = admin_panel.admin_delete_group(group_id, current_user, backup_first=True)
+    if result['ok']:
+        flash(result['message'], 'success')
+    else:
+        flash(result['error'], 'danger')
+    
+    return redirect(url_for('admin_groups'))
+
+
+@app.route("/admin/backups")
+@login_required
+@_require_admin
+def admin_backups():
+    """List available backups"""
+    backups = admin_panel.admin_list_backups()
+    return render_template('admin/backups.html', backups=backups)
+
+
+@app.route("/admin/backups/restore/<backup_name>", methods=['POST'])
+@login_required
+@_require_admin
+def admin_backup_restore(backup_name):
+    """Restore group from backup"""
+    group_id = request.form.get('group_id', type=int)
+    if not group_id:
+        flash('Group ID required', 'danger')
+        return redirect(url_for('admin_backups'))
+    
+    result = admin_panel.admin_restore_backup(backup_name, group_id, current_user)
+    if result['ok']:
+        flash(result['message'], 'success')
+    else:
+        flash(result['error'], 'danger')
+    
+    return redirect(url_for('admin_backups'))
+
+
+@app.route("/admin/activity-logs")
+@login_required
+@_require_admin
+def admin_activity_logs():
+    """View activity logs (traffic tracking)"""
+    logs = admin_panel.admin_get_activity_logs(limit=200)
+    return render_template('admin/activity_logs.html', logs=logs)
+
+
+@app.route("/api/admin/users", methods=['GET'])
+@login_required
+def api_admin_users():
+    """API endpoint for admin to list users (JSON)"""
+    if not admin_panel.is_admin(current_user):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    users = admin_panel.admin_list_all_users()
+    return jsonify(users)
+
+
+@app.route("/api/admin/groups", methods=['GET'])
+@login_required
+def api_admin_groups():
+    """API endpoint for admin to list groups (JSON)"""
+    if not admin_panel.is_admin(current_user):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    groups = admin_panel.admin_list_all_groups()
+    return jsonify(groups)
+
+
+@app.route("/api/admin/stats", methods=['GET'])
+@login_required
+def api_admin_stats():
+    """API endpoint for system statistics"""
+    if not admin_panel.is_admin(current_user):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    stats = admin_panel.admin_get_system_stats()
+    return jsonify(stats)
+
+
+@app.route("/api/admin/activity-logs", methods=['GET'])
+@login_required
+def api_admin_activity_logs():
+    """API endpoint for activity logs"""
+    if not admin_panel.is_admin(current_user):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    group_name = request.args.get('group')
+    limit = request.args.get('limit', 100, type=int)
+    
+    logs = admin_panel.admin_get_activity_logs(group_name, limit)
+    return jsonify(logs)
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))

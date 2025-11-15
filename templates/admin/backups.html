@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Backups</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="alert alert-info">
+        💾 Available backups of group data. Use these to restore groups if needed.
+    </div>
+
+    {% if backups %}
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Backup Name</th>
+                <th>Size</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for backup in backups %}
+            <tr>
+                <td><code>{{ backup.name }}</code></td>
+                <td>{{ backup.size_mb }} MB</td>
+                <td>{{ backup.created_at }}</td>
+                <td>
+                    <form method="POST" action="/admin/backups/restore/{{ backup.name }}" style="display:inline;">
+                        <select name="group_id" class="form-control" style="display:inline-block; width:auto;">
+                            <option value="">Select group to restore to...</option>
+                            <!-- This would be populated with available groups -->
+                        </select>
+                        <button class="btn btn-sm btn-success">Restore</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No backups available</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,43 +1,76 @@
 {% extends 'base.html' %}
 
-{% block title %}Δημιουργία λογαριασμού{% endblock %}
+{% block title %}Δημιουργία λογαριασμού - Firebed Private{% endblock %}
 
 {% block content %}
   <div class="content-wrap">
-    <h1 class="text-xl font-semibold mb-4">Δημιουργία λογαριασμού</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="space-y-2 mb-4">
-          {% for category, msg in messages %}
-            <div class="flash-banner {{ 'flash-error' if category=='error' else 'flash-success' }}" role="alert">{{ msg|safe }}</div>
-          {% endfor %}
+    <div class="max-w-md">
+      <h1 class="text-2xl font-bold mb-2">🆕 Δημιουργία λογαριασμού</h1>
+      <p class="text-gray-600 mb-6">Εγγραφείτε στο Firebed Private με Firebase</p>
+      
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="space-y-3 mb-4">
+            {% for category, msg in messages %}
+              {% if category in ['danger', 'error'] %}
+                <div class="p-3 rounded border border-red-200 bg-red-50 text-red-800">{{ msg|safe }}</div>
+              {% elif category == 'success' %}
+                <div class="p-3 rounded border border-green-200 bg-green-50 text-green-800">{{ msg|safe }}</div>
+              {% elif category == 'warning' %}
+                <div class="p-3 rounded border border-yellow-200 bg-yellow-50 text-yellow-800">{{ msg|safe }}</div>
+              {% elif category == 'info' %}
+                <div class="p-3 rounded border border-sky-200 bg-sky-50 text-sky-800">{{ msg|safe }}</div>
+              {% else %}
+                <div class="p-3 rounded border border-gray-200 bg-gray-50 text-gray-800">{{ msg|safe }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="/firebase-auth/signup" class="grid gap-4">
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700 mb-1 block">Email</span>
+          <input type="email" name="email" required class="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-sky-600" placeholder="your@email.com" />
+        </label>
+
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700 mb-1 block">Όνομα χρήστη (προαιρετικό)</span>
+          <input type="text" name="display_name" class="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-sky-600" placeholder="Όνομα εμφάνισης" />
+        </label>
+
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700 mb-1 block">Κωδικός (ελάχιστο 6 χαρακτήρες)</span>
+          <input id="signupPassword" type="password" name="password" required minlength="6" class="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-sky-600" />
+        </label>
+
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700 mb-1 block">Επιβεβαίωση κωδικού</span>
+          <input id="signupPasswordConfirm" type="password" name="password_confirm" required minlength="6" class="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-sky-600" />
+          <small class="text-gray-500 mt-1 block">Πρέπει να ταιριάζουν</small>
+        </label>
+
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Ένταξη σε ομάδα (προαιρετικό):</strong>
+          </p>
+          <input type="text" name="group" placeholder="Εισάγετε κωδικό ομάδας για ένταξη" class="px-3 py-2 border rounded w-full text-sm" />
+          <small class="text-gray-500 mt-1 block">Ζητήστε από τον διαχειριστή τον κωδικό της ομάδας</small>
         </div>
-      {% endif %}
-    {% endwith %}
 
-    <form method="post" action="{{ url_for('auth.signup') }}" class="grid gap-3 max-w-md">
-      <label class="block">Όνομα χρήστη
-        <input type="text" name="username" class="mt-1 px-3 py-2 border rounded w-full" />
-      </label>
-      <label class="block">Κωδικός
-        <input type="password" name="password" class="mt-1 px-3 py-2 border rounded w-full" />
-      </label>
+        <button type="submit" class="px-4 py-3 rounded bg-sky-600 hover:bg-sky-700 text-white font-medium transition">
+          ✓ Δημιουργία λογαριασμού
+        </button>
+      </form>
 
-      <div class="mt-2 p-3 border rounded">
-        <div class="text-sm font-medium mb-2">Ένταξη σε υπάρχουσα ομάδα</div>
-        <input type="text" name="group" placeholder="Όνομα ομάδας για ένταξη (προαιρετικό)" class="px-3 py-2 border rounded w-full" />
+      <div class="mt-6 pt-6 border-t border-gray-300">
+        <p class="text-center text-sm text-gray-600">
+          Έχετε ήδη λογαριασμό;
+          <a href="/firebase-auth/login" class="font-semibold text-sky-600 hover:text-sky-700">
+            Συνδεθείτε εδώ
+          </a>
+        </p>
       </div>
-
-      <div class="mt-2 p-3 border rounded">
-        <div class="text-sm font-medium mb-2">Ή δημιουργία νέας ομάδας (θα γίνεις admin)</div>
-        <input type="text" name="new_group_name" placeholder="Όνομα νέας ομάδας" class="px-3 py-2 border rounded w-full mb-2" />
-        <input type="text" name="new_group_folder" placeholder="Όνομα φακέλου κάτω από data/ (π.χ. client_xyz)" class="px-3 py-2 border rounded w-full" />
-      </div>
-
-      <div class="flex items-center gap-3">
-        <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Δημιουργία λογαριασμού</button>
-        <a href="{{ url_for('auth.login') }}" class="text-sm text-sky-600">Σύνδεση</a>
-      </div>
-    </form>
+    </div>
   </div>
 {% endblock %}

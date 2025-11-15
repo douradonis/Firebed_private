@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Firebed Private{% endblock %}
+
+{% block content %}
+<div class="content-wrap">
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold mb-1">⚙️ Admin Dashboard</h1>
+    <p class="text-gray-600">Διαχείριση χρηστών, ομάδων και συστήματος</p>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="flex gap-2 mb-6 border-b border-gray-300 flex-wrap">
+    <button onclick="showTab('overview')" class="tab-button active px-4 py-3 border-b-2 border-sky-600 font-medium text-sky-600">
+      📊 Επισκόπηση
+    </button>
+    <button onclick="showTab('users')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      👥 Χρήστες
+    </button>
+    <button onclick="showTab('groups')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📁 Ομάδες
+    </button>
+    <button onclick="showTab('activity')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📋 Δραστηριότητα
+    </button>
+    <button onclick="showTab('backups')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      💾 Backups
+    </button>
+    <button onclick="showTab('settings')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      ⚙️ Ρυθμίσεις
+    </button>
+  </div>
+
+  <!-- Overview Tab -->
+  <div id="overview" class="tab-content active">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- Stat Cards -->
+      <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-blue-700">Συνολικοί Χρήστες</div>
+        <div class="text-3xl font-bold text-blue-900 mt-2" id="stat-users">-</div>
+        <div class="text-xs text-blue-600 mt-2">🔄 Ενημέρωση...</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-green-700">Ενεργές Ομάδες</div>
+        <div class="text-3xl font-bold text-green-900 mt-2" id="stat-groups">-</div>
+        <div class="text-xs text-green-600 mt-2">🔄 Ενημέρωση...</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-purple-700">Δραστηριότητα (24h)</div>
+        <div class="text-3xl font-bold text-purple-900 mt-2" id="stat-activity">-</div>
+        <div class="text-xs text-purple-600 mt-2">🔄 Ενημέρωση...</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-orange-700">Σύστημα</div>
+        <div class="text-3xl font-bold text-orange-900 mt-2">🟢</div>
+        <div class="text-xs text-orange-600 mt-2">Σε λειτουργία</div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-bold mb-4">📝 Πρόσφατη Δραστηριότητα</h2>
+      <div id="recent-activity" class="space-y-3">
+        <p class="text-gray-500">Φόρτωση...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Tab -->
+  <div id="users" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">👥 Διαχείριση Χρηστών</h2>
+        <button onclick="loadUsers()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">
+          🔄 Ανανέωση
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Email</th>
+              <th class="text-left px-4 py-3 font-medium">Όνομα</th>
+              <th class="text-left px-4 py-3 font-medium">Ομάδες</th>
+              <th class="text-left px-4 py-3 font-medium">Δημιουργία</th>
+              <th class="text-center px-4 py-3 font-medium">Ενέργειες</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr>
+              <td colspan="5" class="px-4 py-3 text-center text-gray-500">Φόρτωση...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Groups Tab -->
+  <div id="groups" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Create Group -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">➕ Νέα Ομάδα</h3>
+        <form id="create-group-form" class="space-y-3">
+          <input type="text" name="group_name" placeholder="Όνομα ομάδας" class="w-full px-3 py-2 border rounded" required />
+          <textarea name="description" placeholder="Περιγραφή" class="w-full px-3 py-2 border rounded" rows="3"></textarea>
+          <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            ✓ Δημιουργία
+          </button>
+        </form>
+      </div>
+
+      <!-- Groups List -->
+      <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold">📁 Ομάδες</h3>
+          <button onclick="loadGroups()" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
+            🔄 Ανανέωση
+          </button>
+        </div>
+        
+        <div id="groups-list" class="space-y-3">
+          <p class="text-gray-500">Φόρτωση...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Tab -->
+  <div id="activity" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">📋 Δραστηριότητα Συστήματος</h2>
+        <div class="flex gap-2">
+          <select id="activity-group" class="px-3 py-2 border rounded text-sm">
+            <option value="">Όλες οι ομάδες</option>
+          </select>
+          <button onclick="loadActivity()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">
+            🔄 Ανανέωση
+          </button>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Ώρα</th>
+              <th class="text-left px-4 py-3 font-medium">Χρήστης</th>
+              <th class="text-left px-4 py-3 font-medium">Ομάδα</th>
+              <th class="text-left px-4 py-3 font-medium">Ενέργεια</th>
+              <th class="text-left px-4 py-3 font-medium">Λεπτομέρειες</th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody">
+            <tr>
+              <td colspan="5" class="px-4 py-3 text-center text-gray-500">Φόρτωση...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backups Tab -->
+  <div id="backups" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Backup Actions -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">💾 Backup Ενέργειες</h3>
+        <div class="space-y-3">
+          <button onclick="backupAllData()" class="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+            💾 Backup Όλων των Δεδομένων
+          </button>
+          <button onclick="backupSpecificGroup()" class="w-full px-4 py-3 bg-purple-600 text-white rounded hover:bg-purple-700">
+            📁 Backup Συγκεκριμένης Ομάδας
+          </button>
+          <div id="backup-status" class="text-sm text-gray-600 mt-3 hidden">
+            <span id="backup-message"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Restore Options -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">♻️ Επαναφορά</h3>
+        <div class="space-y-3" id="backups-list">
+          <p class="text-gray-500">Φόρτωση αποθηκευμένων backups...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div id="settings" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- System Settings -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">⚙️ Ρυθμίσεις Συστήματος</h3>
+        <div class="space-y-4">
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked />
+            <span>Ενεργοποίηση Firebase Authentication</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked />
+            <span>Ενεργοποίηση Encryption</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked />
+            <span>Activity Logging</span>
+          </label>
+          <button class="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+            ✓ Αποθήκευση Ρυθμίσεων
+          </button>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4 text-red-600">⚠️ Επικίνδυνες Ενέργειες</h3>
+        <div class="space-y-3">
+          <button onclick="clearActivityLogs()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            🗑️ Διαγραφή Δραστηριότητας
+          </button>
+          <button onclick="resetSystem()" class="w-full px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">
+            🔴 Reset Συστήματος
+          </button>
+          <p class="text-sm text-red-600 mt-3">
+            ⚠️ Αυτές οι ενέργειες δεν μπορούν να αναιρεθούν!
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+function showTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-button').forEach(el => {
+    el.classList.remove('border-b-2', 'border-sky-600', 'text-sky-600');
+    el.classList.add('border-transparent', 'text-gray-600');
+  });
+  
+  document.getElementById(tabName).classList.remove('hidden');
+  event.target.classList.add('border-b-2', 'border-sky-600', 'text-sky-600');
+}
+
+// Load users
+async function loadUsers() {
+  try {
+    const response = await fetch('/admin/api/users');
+    const data = await response.json();
+    const tbody = document.getElementById('users-tbody');
+    
+    if (!data.users || data.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν υπάρχουν χρήστες</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.users.map(user => `
+      <tr class="border-b border-gray-200 hover:bg-gray-50">
+        <td class="px-4 py-3">${user.email || '-'}</td>
+        <td class="px-4 py-3">${user.display_name || '-'}</td>
+        <td class="px-4 py-3"><span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">${user.groups ? user.groups.length : 0} ομάδες</span></td>
+        <td class="px-4 py-3 text-xs text-gray-500">${user.created_at ? user.created_at.split('T')[0] : '-'}</td>
+        <td class="px-4 py-3 text-center">
+          <button onclick="viewUserDetails('${user.uid}')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">👁️ Προβολή</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading users:', error);
+    document.getElementById('users-tbody').innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
+  }
+}
+
+// Load groups
+async function loadGroups() {
+  try {
+    const response = await fetch('/admin/api/groups');
+    const data = await response.json();
+    const list = document.getElementById('groups-list');
+    
+    if (!data.groups || data.groups.length === 0) {
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν ομάδες</p>';
+      return;
+    }
+
+    list.innerHTML = data.groups.map(group => `
+      <div class="border border-gray-200 rounded p-4 flex justify-between items-center">
+        <div>
+          <div class="font-medium">${group.group_name}</div>
+          <div class="text-xs text-gray-500">${group.members ? group.members.length : 0} μέλη</div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="viewGroupDetails('${group.group_name}')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">👁️</button>
+          <button onclick="deleteGroup('${group.group_name}')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading groups:', error);
+  }
+}
+
+// Load activity
+async function loadActivity() {
+  try {
+    const groupFilter = document.getElementById('activity-group').value;
+    const url = `/admin/api/activity?group=${groupFilter}&limit=50`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const tbody = document.getElementById('activity-tbody');
+    
+    if (!data.logs || data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν υπάρχουν δραστηριότητες</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(log => `
+      <tr class="border-b border-gray-200 hover:bg-gray-50">
+        <td class="px-4 py-3 text-xs">${new Date(log.timestamp).toLocaleString('el-GR')}</td>
+        <td class="px-4 py-3 text-sm">${log.user_id || '-'}</td>
+        <td class="px-4 py-3 text-sm">${log.group || '-'}</td>
+        <td class="px-4 py-3"><span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">${log.action}</span></td>
+        <td class="px-4 py-3 text-xs text-gray-500">${JSON.stringify(log.details || {}).substring(0, 30)}...</td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading activity:', error);
+  }
+}
+
+// Backup functions
+async function backupAllData() {
+  const statusDiv = document.getElementById('backup-status');
+  const message = document.getElementById('backup-message');
+  statusDiv.classList.remove('hidden');
+  message.textContent = '⏳ Δημιουργία backup...';
+  
+  try {
+    const response = await fetch('/admin/api/backup/all', { method: 'POST' });
+    if (response.ok) {
+      message.textContent = '✅ Backup δημιουργήθηκε επιτυχώς';
+      message.classList.add('text-green-600');
+    }
+  } catch (error) {
+    message.textContent = '❌ Σφάλμα backup';
+    message.classList.add('text-red-600');
+  }
+}
+
+// Initialize
+window.addEventListener('load', function() {
+  loadUsers();
+  loadGroups();
+  loadActivity();
+});
+</script>
+
+<style>
+.tab-button {
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  border-bottom-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+</style>
+{% endblock %}

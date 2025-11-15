@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>User Details</h1>
+    <p><a href="/admin/users" class="btn btn-secondary">← Back</a></p>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">User Information</h5>
+            <p><strong>ID:</strong> {{ user.id }}</p>
+            <p><strong>Username:</strong> {{ user.username }}</p>
+            <p><strong>Email:</strong> {{ user.email or 'N/A' }}</p>
+            <p><strong>Created:</strong> {{ user.created_at }}</p>
+            <p><strong>Last Login:</strong> {{ user.last_login or 'Never' }}</p>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Group Memberships</h5>
+            {% if user.groups %}
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Group Name</th>
+                        <th>Folder</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in user.groups %}
+                    <tr>
+                        <td>{{ group.name }}</td>
+                        <td><code>{{ group.data_folder }}</code></td>
+                        <td>
+                            {% if group.role == 'admin' %}
+                                <span class="badge badge-danger">Admin</span>
+                            {% else %}
+                                <span class="badge badge-info">Member</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No groups assigned</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <form method="POST" action="/admin/users/{{ user.id }}/delete">
+            <button class="btn btn-danger" onclick="return confirm('Delete this user? This cannot be undone.')">Delete User</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

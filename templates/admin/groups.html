@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Manage Groups</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Folder</th>
+                <th>Members</th>
+                <th>Admins</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ group.id }}</td>
+                <td>{{ group.name }}</td>
+                <td><code>{{ group.data_folder }}</code></td>
+                <td>
+                    <span class="badge badge-primary">{{ group.members_count }}</span>
+                </td>
+                <td>
+                    {% for admin in group.admins %}
+                        <span class="badge badge-warning">{{ admin }}</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <small>{{ group.created_at }}</small>
+                </td>
+                <td>
+                    <a href="/admin/groups/{{ group.id }}" class="btn btn-sm btn-info">View</a>
+                    <form method="POST" action="/admin/groups/{{ group.id }}/delete" style="display:inline;">
+                        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete group {{ group.name }}? This will backup first.')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

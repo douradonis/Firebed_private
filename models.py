@@ -24,6 +24,23 @@ class User(UserMixin, db.Model):
 
     user_groups = db.relationship('UserGroup', back_populates='user', cascade='all, delete-orphan')
 
+    # Compatibility properties for legacy code that expects `email` and `pw_hash`
+    @property
+    def email(self) -> str:
+        return self.username
+    @email.setter
+    def email(self, value: str) -> None:
+        self.username = value
+
+    @property
+    def pw_hash(self) -> str:
+        return self.password_hash
+
+    @pw_hash.setter
+    def pw_hash(self, value: str) -> None:
+        # store raw value; if it's a Firebase UID we keep it here
+        self.password_hash = value
+
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
