@@ -86,13 +86,36 @@ def admin_get_user_details(user_id: int) -> Optional[Dict[str, Any]]:
                 'role': role
             })
         
+        # Calculate total size for user's groups
+        total_size = 0
+        for g in user.groups:
+            data_path = os.path.join(os.getcwd(), 'data', g.data_folder) if getattr(g, 'data_folder', None) else None
+            if data_path and os.path.exists(data_path):
+                total_size += _get_folder_size(data_path)
+
+        # Fetch recent activity entries related to this user (best-effort)
+        try:
+            logs = admin_get_activity_logs(limit=200)
+            recent = []
+            user_keys = {str(user.id), str(getattr(user, 'username', '') or ''), str(getattr(user, 'email', '') or ''), str(getattr(user, 'firebase_uid', '') or '' )}
+            for entry in logs:
+                uid = str(entry.get('user_id') or '')
+                # include if any of the identifying keys match
+                if uid in user_keys or any(k and k in uid for k in user_keys):
+                    recent.append(entry)
+            recent = recent[:50]
+        except Exception:
+            recent = []
+
         return {
             'id': user.id,
             'username': user.username,
-                'email': getattr(user, 'email', None),
+            'email': getattr(user, 'email', None),
             'created_at': str(getattr(user, 'created_at', None)),
             'groups': groups_info,
-            'last_login': str(getattr(user, 'last_login', None))
+            'last_login': str(getattr(user, 'last_login', None)),
+            'total_size_mb': round(total_size / (1024 * 1024), 2),
+            'recent_activity': recent,
         }
     
     except Exception as e:
@@ -227,9 +250,10 @@ def admin_delete_group(group_id: int, current_admin: User, backup_first: bool = 
         group_name = group.name
         data_folder = group.data_folder
         
-        # Create backup if requested
+        # Create backup if requested and if data folder exists
         backup_path = None
-        if backup_first:
+        data_path = os.path.join(os.getcwd(), 'data', data_folder) if data_folder else None
+        if backup_first and data_path and os.path.exists(data_path):
             backup_path = admin_backup_group(group_id)
             if not backup_path:
                 return {'ok': False, 'error': 'Failed to create backup before deletion'}
@@ -341,6 +365,37 @@ def admin_list_backups(group_id: Optional[int] = None) -> List[Dict[str, Any]]:
         return []
 
 
+def admin_get_backup_zip(backup_name: str) -> Optional[str]:
+    """
+    Create a zip archive for a named backup folder and return the zip path.
+    The zip will be created alongside the backup folder in the _backups directory.
+    """
+    try:
+        backups_dir = os.path.join(os.getcwd(), 'data', '_backups')
+        backup_path = os.path.join(backups_dir, backup_name)
+        if not os.path.exists(backup_path):
+            logger.warning(f"Backup not found for zipping: {backup_path}")
+            return None
+
+        zip_base = os.path.join(backups_dir, f"{backup_name}")
+        zip_path = f"{zip_base}.zip"
+
+        # If zip already exists, reuse it
+        if os.path.exists(zip_path):
+            return zip_path
+
+        # Create an archive (zip)
+        shutil.make_archive(zip_base, 'zip', backup_path)
+        if os.path.exists(zip_path):
+            logger.info(f"Created backup zip: {zip_path}")
+            return zip_path
+        return None
+
+    except Exception as e:
+        logger.error(f"Failed to create zip for backup {backup_name}: {e}")
+        return None
+
+
 def admin_restore_backup(backup_name: str, target_group_id: int, current_admin: User) -> Dict[str, Any]:
     """Restore a group from backup"""
     try:
@@ -404,6 +459,37 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
             # Sort and limit
             flat_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
             logs = flat_logs[:limit]
+        # If firebase returned no logs (or not configured) fall back to local activity.log files
+        if not logs:
+            local_logs = []
+            data_dir = os.path.join(os.getcwd(), 'data')
+            if os.path.exists(data_dir):
+                for root, dirs, files in os.walk(data_dir):
+                    if 'activity.log' in files:
+                        path = os.path.join(root, 'activity.log')
+                        try:
+                            with open(path, 'r', encoding='utf-8') as fh:
+                                lines = fh.readlines()[-limit:]
+                                for ln in lines:
+                                    ln = ln.strip()
+                                    if not ln:
+                                        continue
+                                    # Expect format: ISO_TIMESTAMP - message
+                                    parts = ln.split(' - ', 1)
+                                    ts = parts[0] if parts else ''
+                                    msg = parts[1] if len(parts) > 1 else ln
+                                    local_logs.append({
+                                        'timestamp': ts,
+                                        'group': os.path.basename(root),
+                                        'user_id': '',
+                                        'action': 'log_entry',
+                                        'details': {'message': msg}
+                                    })
+                        except Exception:
+                            continue
+            # sort local logs and limit
+            local_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            logs = local_logs[:limit]
         
         return logs or []
     

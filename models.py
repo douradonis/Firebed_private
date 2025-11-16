@@ -31,6 +31,9 @@ class User(UserMixin, db.Model):
     active = db.Column(db.Boolean, default=True, nullable=False)
     # Admin flag for global admin privileges (separate from group-level admin role)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    # Email verification
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verified_at = db.Column(db.DateTime(), nullable=True)
 
     user_groups = db.relationship('UserGroup', back_populates='user', cascade='all, delete-orphan')
 
@@ -93,3 +96,24 @@ class Group(db.Model):
 
     def __repr__(self):
         return f"<Group {self.name} -> {self.data_folder}>"
+
+
+class VerificationToken(db.Model):
+    __tablename__ = 'verification_token'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(256), unique=True, nullable=False)
+    token_type = db.Column(db.String(32), nullable=False)  # 'email_verify', 'password_reset', etc.
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.datetime.utcnow)
+    expires_at = db.Column(db.DateTime(), nullable=False)
+    used = db.Column(db.Boolean, default=False, nullable=False)
+
+    user = db.relationship('User')
+
+    def is_valid(self) -> bool:
+        """Check if token is still valid (not expired and not used)"""
+        if self.used:
+            return False
+        if datetime.datetime.utcnow() > self.expires_at:
+            return False
+        return True

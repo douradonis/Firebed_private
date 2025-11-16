@@ -266,10 +266,7 @@
             <div class="ml-4">
               <button id="sideMenuToggle" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">☰ Μενού</button>
               {% if current_user.is_authenticated %}
-                <span class="text-sm text-gray-700 ml-2">{{ current_user.username }}</span>
-                {% if current_user.is_admin %}
-                  <span class="ml-2 px-2 py-1 rounded bg-red-600 text-white text-xs font-semibold">ADMIN</span>
-                {% endif %}
+                <span class="text-sm text-gray-700 ml-2">{{ display_username or current_user.username }}</span>
               {% endif %}
             </div>
           </div>

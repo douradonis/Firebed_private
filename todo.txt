@@ -1,2 +1,2 @@
-αφαιρεση smoketest και admin κοκκινου admin, καλυτερο πανελ admin , ελαχιστοποιηση μεγεθους δεδομενων 
-πανελ διαχειρισης
+η εγγραφη χρηστη να κανει και email verification ετσι ωστε σε περιπτωση forgot password να στελνει εκει email για custom url για reset password
+ελαχιστοποιηση δεδομενων μεγεθους

@@ -29,6 +29,9 @@
     <button onclick="showTab('settings')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
       ⚙️ Ρυθμίσεις
     </button>
+    <button onclick="showTab('email')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📧 Email
+    </button>
   </div>
 
   <!-- Overview Tab -->
@@ -64,7 +67,18 @@
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <h2 class="text-lg font-bold mb-4">📝 Πρόσφατη Δραστηριότητα</h2>
       <div id="recent-activity" class="space-y-3">
-        <p class="text-gray-500">Φόρτωση...</p>
+        {% if recent_activity %}
+          {% for entry in recent_activity %}
+            <div class="p-3 border rounded bg-gray-50">
+              <div class="text-xs text-gray-500">{{ entry.timestamp or entry.get('timestamp', '') }}</div>
+              <div class="text-sm font-medium">{{ entry.user or entry.get('user', entry.get('uid', '')) }}</div>
+              <div class="text-sm text-gray-700">{{ entry.action or entry.get('action', entry.get('type', '')) }}</div>
+              <div class="text-xs text-gray-600">{{ entry.details or entry.get('details', entry.get('data', '')) }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-gray-500">Δεν βρέθηκαν εγγραφές.</p>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -333,6 +347,38 @@ async function loadActivity() {
         <td class="px-4 py-3"><span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">${log.action}</span></td>
         <td class="px-4 py-3 text-xs text-gray-500">${JSON.stringify(log.details || {}).substring(0, 30)}...</td>
       </tr>
+  <!-- Email Tab -->
+  <div id="email" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-bold mb-4">📧 Αποστολή Email σε Χρήστες</h2>
+      <p class="text-sm text-gray-600 mb-4">Επιλέξτε χρήστες και στείλτε μήνυμα email</p>
+      <div class="flex gap-2">
+        <a href="/admin/send-email" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          📧 Αποστολή Email
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.add('hidden');
+  });
+  document.querySelectorAll('.tab-button').forEach(el => {
+    el.classList.remove('active', 'border-sky-600', 'text-sky-600');
+    el.classList.add('border-transparent', 'text-gray-600');
+  });
+  
+  // Show selected tab
+  document.getElementById(tabName).classList.remove('hidden');
+  event.target.classList.add('active', 'border-sky-600', 'text-sky-600');
+  event.target.classList.remove('border-transparent', 'text-gray-600');
+}
+
+// Existing functions...
     `).join('');
   } catch (error) {
     console.error('Error loading activity:', error);

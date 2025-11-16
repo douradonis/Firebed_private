@@ -3764,6 +3764,18 @@ def inject_active_credential():
     except Exception:
         active_group_name = None
 
+    # compute a display-friendly username (strip trailing _<id> appended for uniqueness)
+    try:
+        from flask_login import current_user as _cu
+        import re as _re
+        if getattr(_cu, 'is_authenticated', False):
+            _uname = getattr(_cu, 'username', '') or ''
+            display_username = _re.sub(r'_(\d+)$', '', _uname)
+        else:
+            display_username = None
+    except Exception:
+        display_username = None
+
     return dict(
         active_credential=name,
         active_credential_vat=vat,
@@ -3771,7 +3783,9 @@ def inject_active_credential():
         user_role=user_role,
         active_group=active_group_name,
         ADMIN_USER_ID=ADMIN_USER_ID if 'ADMIN_USER_ID' in globals() else 0,
+        display_username=display_username,
     )
+
 
 
 # ---------------- Validation helper ----------------
@@ -9128,7 +9142,14 @@ def _require_admin(f):
 def admin_dashboard():
     """Admin dashboard - overview of system"""
     try:
-        return render_template('admin/dashboard_new.html')
+        # Load recent activity logs to show on dashboard
+        try:
+            from admin_panel import admin_get_activity_logs
+            recent_activity = admin_get_activity_logs(limit=10) or []
+        except Exception:
+            recent_activity = []
+
+        return render_template('admin/dashboard_new.html', recent_activity=recent_activity)
     except Exception as e:
         logger.exception(f"Admin dashboard error: {e}")
         flash(f'Error: {str(e)}', 'danger')
@@ -9153,7 +9174,11 @@ def admin_user_detail(user_id):
     if not user_detail:
         flash('User not found', 'danger')
         return redirect(url_for('admin_users'))
-    
+    # Return JSON for AJAX requests (modals)
+    accept_json = request.is_json or request.headers.get('Accept') == 'application/json' or 'application/json' in request.headers.get('Accept', '')
+    if accept_json:
+        return jsonify(user_detail)
+
     return render_template('admin/user_detail.html', user=user_detail)
 
 
@@ -9161,8 +9186,11 @@ def admin_user_detail(user_id):
 @login_required
 @_require_admin
 def admin_user_delete(user_id):
-    """Delete a user"""
+    """Delete a user (supports both form and AJAX JSON)"""
     result = admin_panel.admin_delete_user(user_id, current_user)
+    # If AJAX request, return JSON; else redirect
+    if request.is_json or request.headers.get('Accept') == 'application/json':
+        return jsonify(result)
     if result['ok']:
         flash(result['message'], 'success')
     else:
@@ -9189,7 +9217,11 @@ def admin_group_detail(group_id):
     if not group_detail:
         flash('Group not found', 'danger')
         return redirect(url_for('admin_groups'))
-    
+    # If this is an AJAX/JSON request, return JSON data for client-side modals
+    accept_json = request.is_json or request.headers.get('Accept') == 'application/json' or 'application/json' in request.headers.get('Accept', '')
+    if accept_json:
+        return jsonify(group_detail)
+
     return render_template('admin/group_detail.html', group=group_detail)
 
 
@@ -9211,8 +9243,11 @@ def admin_group_backup(group_id):
 @login_required
 @_require_admin
 def admin_group_delete(group_id):
-    """Delete a group and its data (with backup)"""
+    """Delete a group and its data (with backup, supports AJAX)"""
     result = admin_panel.admin_delete_group(group_id, current_user, backup_first=True)
+    # If AJAX request, return JSON; else redirect
+    if request.is_json or request.headers.get('Accept') == 'application/json':
+        return jsonify(result)
     if result['ok']:
         flash(result['message'], 'success')
     else:
@@ -9227,20 +9262,50 @@ def admin_group_delete(group_id):
 def admin_backups():
     """List available backups"""
     backups = admin_panel.admin_list_backups()
-    return render_template('admin/backups.html', backups=backups)
+    # supply groups for restore dropdown
+    groups = admin_panel.admin_list_all_groups()
+    return render_template('admin/backups.html', backups=backups, groups=groups)
+
+@app.route("/admin/backups/download/<backup_name>")
+@login_required
+@_require_admin
+def admin_backup_download(backup_name):
+    """Download a backup as a zip archive"""
+    # Prevent path traversal by only allowing simple names (no slashes)
+    if '/' in backup_name or '..' in backup_name:
+        flash('Invalid backup name', 'danger')
+        return redirect(url_for('admin_backups'))
+
+    zip_path = admin_panel.admin_get_backup_zip(backup_name)
+    if not zip_path or not os.path.exists(zip_path):
+        flash('Backup not found or failed to create zip', 'danger')
+        return redirect(url_for('admin_backups'))
+
+    # send_file with as_attachment
+    try:
+        return send_file(zip_path, as_attachment=True)
+    except Exception as e:
+        logger.exception(f"Failed to send backup file: {e}")
+        flash('Failed to download backup', 'danger')
+        return redirect(url_for('admin_backups'))
 
 
 @app.route("/admin/backups/restore/<backup_name>", methods=['POST'])
 @login_required
 @_require_admin
 def admin_backup_restore(backup_name):
-    """Restore group from backup"""
-    group_id = request.form.get('group_id', type=int)
+    """Restore group from backup (supports AJAX)"""
+    group_id = request.form.get('group_id', type=int) or request.json.get('group_id', type=int) if request.is_json else None
     if not group_id:
+        result = {'ok': False, 'error': 'Group ID required'}
+        if request.is_json or request.headers.get('Accept') == 'application/json':
+            return jsonify(result)
         flash('Group ID required', 'danger')
         return redirect(url_for('admin_backups'))
     
     result = admin_panel.admin_restore_backup(backup_name, group_id, current_user)
+    if request.is_json or request.headers.get('Accept') == 'application/json':
+        return jsonify(result)
     if result['ok']:
         flash(result['message'], 'success')
     else:
@@ -9256,6 +9321,46 @@ def admin_activity_logs():
     """View activity logs (traffic tracking)"""
     logs = admin_panel.admin_get_activity_logs(limit=200)
     return render_template('admin/activity_logs.html', logs=logs)
+
+
+@app.route('/admin/settings')
+@login_required
+@_require_admin
+def admin_settings():
+    settings = load_settings()
+    return render_template('admin/settings.html', settings=settings)
+
+
+@app.route('/admin/settings/save', methods=['POST'])
+@login_required
+@_require_admin
+def admin_settings_save():
+    form = request.form or {}
+    settings = load_settings()
+    settings['site_title'] = form.get('site_title')
+    save_settings(settings)
+    flash('Settings saved', 'success')
+    return redirect(url_for('admin_settings'))
+
+
+@app.route("/api/admin/activity-logs", methods=['GET'])
+@login_required
+def api_admin_activity_logs_filtered():
+    """API endpoint for filtered activity logs (JSON)"""
+    if not admin_panel.is_admin(current_user):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    group_name = request.args.get('group', '')
+    action_filter = request.args.get('action', '')
+    limit = request.args.get('limit', 100, type=int)
+    
+    logs = admin_panel.admin_get_activity_logs(group_name if group_name else None, limit)
+    
+    # Filter by action if provided
+    if action_filter:
+        logs = [log for log in logs if action_filter.lower() in (log.get('action') or '').lower()]
+    
+    return jsonify(logs)
 
 
 @app.route("/api/admin/users", methods=['GET'])
@@ -9305,7 +9410,60 @@ def api_admin_activity_logs():
     return jsonify(logs)
 
 
+@app.route("/admin/send-email", methods=['GET', 'POST'])
+@login_required
+@_require_admin
+def admin_send_email():
+    """Admin: send email to selected users"""
+    if request.method == 'GET':
+        users = admin_panel.admin_list_all_users()
+        return render_template('admin/send_email.html', users=users)
+    
+    # POST: send email
+    try:
+        from email_utils import send_bulk_email_to_users
+        
+        user_ids = request.form.getlist('user_ids')
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '').strip()
+        
+        if not user_ids or not subject or not message:
+            flash('Please select users and provide subject and message', 'danger')
+            return redirect(url_for('admin_send_email'))
+        
+        user_ids = [int(uid) for uid in user_ids]
+        
+        # Build HTML body
+        html_body = f"""
+        <html>
+            <body>
+                <h3>{subject}</h3>
+                <hr>
+                <div style="white-space: pre-wrap; line-height: 1.6;">
+                    {message}
+                </div>
+                <hr>
+                <p><small>This is a message from the Firebed Admin Team</small></p>
+            </body>
+        </html>
+        """
+        
+        result = send_bulk_email_to_users(user_ids, subject, html_body)
+        
+        flash(f'Email sent to {result["sent"]} users; {result["failed"]} failed', 'success' if result['failed'] == 0 else 'warning')
+        if result['errors']:
+            current_app.logger.warning(f"Email send errors: {result['errors']}")
+        
+        return redirect(url_for('admin_send_email'))
+    
+    except Exception as e:
+        logger.exception('Failed to send bulk email')
+        flash(f'Error sending emails: {str(e)}', 'danger')
+        return redirect(url_for('admin_send_email'))
+
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5001"))
+    port = int(os.getenv("PORT", "5000"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
+

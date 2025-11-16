@@ -35,14 +35,30 @@
                     <small>{{ group.created_at }}</small>
                 </td>
                 <td>
-                    <a href="/admin/groups/{{ group.id }}" class="btn btn-sm btn-info">View</a>
-                    <form method="POST" action="/admin/groups/{{ group.id }}/delete" style="display:inline;">
-                        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete group {{ group.name }}? This will backup first.')">Delete</button>
-                    </form>
+                    <button class="btn btn-sm btn-info" onclick="showGroupDetailsModal({{ group.id }}, '{{ group.name }}')">View</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteGroupAjax({{ group.id }}, '{{ group.name }}')">Delete</button>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<!-- Modal for Group Details -->
+<div class="modal fade" id="groupDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Group Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/admin_groups.js"></script>
+
 {% endblock %}

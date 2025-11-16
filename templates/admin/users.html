@@ -31,11 +31,9 @@
                     {% endfor %}
                 </td>
                 <td>
-                    <a href="/admin/users/{{ user.id }}" class="btn btn-sm btn-info">View</a>
+                    <button class="btn btn-sm btn-info" onclick="showUserActivityModal({{ user.id }}, '{{ user.username }}')">View</button>
                     {% if user.id != current_user.id %}
-                    <form method="POST" action="/admin/users/{{ user.id }}/delete" style="display:inline;">
-                        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete user {{ user.username }}?')">Delete</button>
-                    </form>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUserAjax({{ user.id }}, '{{ user.username }}')">Delete</button>
                     {% endif %}
                 </td>
             </tr>
@@ -43,4 +41,22 @@
         </tbody>
     </table>
 </div>
+
+<!-- Modal for User Activity -->
+<div class="modal fade" id="userActivityModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Activity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/admin_users.js"></script>
+
 {% endblock %}

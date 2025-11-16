@@ -6,11 +6,38 @@
     <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
 
     <div class="alert alert-info">
-        📊 All user activity is logged to Firebase for traffic tracking and audit purposes.
+        📊 All user activity is logged for traffic tracking and audit purposes.
     </div>
 
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="activityFilterForm">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Group</label>
+                        <input type="text" class="form-control" id="filterGroup" placeholder="(leave empty for all)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label>Action</label>
+                        <input type="text" class="form-control" id="filterAction" placeholder="(leave empty for all)" />
+                    </div>
+                    <div class="col-md-2">
+                        <label>Limit</label>
+                        <input type="number" class="form-control" id="filterLimit" value="100" />
+                    </div>
+                    <div class="col-md-2">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
     {% if logs %}
-    <table class="table table-hover">
+    <table class="table table-hover" id="logsTable">
         <thead class="table-dark">
             <tr>
                 <th>Timestamp</th>
@@ -44,4 +71,7 @@
     <p class="text-muted">No activity logs yet</p>
     {% endif %}
 </div>
+
+<script src="/static/admin_activity.js"></script>
 {% endblock %}
+

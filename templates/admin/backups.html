@@ -26,13 +26,16 @@
                 <td>{{ backup.size_mb }} MB</td>
                 <td>{{ backup.created_at }}</td>
                 <td>
-                    <form method="POST" action="/admin/backups/restore/{{ backup.name }}" style="display:inline;">
-                        <select name="group_id" class="form-control" style="display:inline-block; width:auto;">
+                    <form style="display:inline;">
+                        <select class="form-control" id="groupSelect_{{ backup.name }}" style="display:inline-block; width:auto;">
                             <option value="">Select group to restore to...</option>
-                            <!-- This would be populated with available groups -->
+                            {% for grp in (groups or []) %}
+                                <option value="{{ grp.id }}">{{ grp.name }}</option>
+                            {% endfor %}
                         </select>
-                        <button class="btn btn-sm btn-success">Restore</button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="restoreBackupAjax('{{ backup.name }}')">Restore</button>
                     </form>
+                    <a class="btn btn-sm btn-primary" href="/admin/backups/download/{{ backup.name }}">Download</a>
                 </td>
             </tr>
             {% endfor %}
@@ -42,4 +45,6 @@
     <p class="text-muted">No backups available</p>
     {% endif %}
 </div>
+
+<script src="/static/admin_backups.js"></script>
 {% endblock %}

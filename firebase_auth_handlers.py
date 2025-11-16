@@ -280,6 +280,34 @@ class FirebaseAuthHandler:
             return False, str(e)
 
     @staticmethod
+    def generate_email_verification_link(email: str) -> Tuple[bool, Optional[str]]:
+        """Generate Firebase email verification link for an email address."""
+        try:
+            if not firebase_config.is_firebase_enabled():
+                return False, "Firebase not enabled"
+
+            link = firebase_auth.generate_email_verification_link(email)
+            logger.info(f"Generated email verification link for {email}")
+            return True, link
+        except Exception as e:
+            logger.error(f"Failed to generate verification link for {email}: {e}")
+            return False, str(e)
+
+    @staticmethod
+    def generate_password_reset_link(email: str) -> Tuple[bool, Optional[str]]:
+        """Generate Firebase password reset link for an email address."""
+        try:
+            if not firebase_config.is_firebase_enabled():
+                return False, "Firebase not enabled"
+
+            link = firebase_auth.generate_password_reset_link(email)
+            logger.info(f"Generated password reset link for {email}")
+            return True, link
+        except Exception as e:
+            logger.error(f"Failed to generate password reset link for {email}: {e}")
+            return False, str(e)
+
+    @staticmethod
     def change_password(uid: str, current_password: Optional[str], new_password: str) -> Tuple[bool, Optional[str]]:
         """Change user password. If current_password provided, verify it first via Firebase REST API."""
         try:

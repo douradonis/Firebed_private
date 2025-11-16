@@ -51,9 +51,28 @@
     </div>
 
     <div class="mt-4">
-        <form method="POST" action="/admin/users/{{ user.id }}/delete">
-            <button class="btn btn-danger" onclick="return confirm('Delete this user? This cannot be undone.')">Delete User</button>
-        </form>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Storage & Activity</h5>
+                <p><strong>Total Storage:</strong> {{ user.total_size_mb }} MB</p>
+                <h6>Recent Activity</h6>
+                {% if user.recent_activity %}
+                    <ul>
+                    {% for act in user.recent_activity %}
+                        <li><small>{{ act.timestamp }} - {{ act.group }} - {{ act.action }} - {{ act.details }}</small></li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No recent activity found</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <form method="POST" action="/admin/users/{{ user.id }}/delete">
+                <button class="btn btn-danger" onclick="return confirm('Delete this user? This cannot be undone.')">Delete User</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

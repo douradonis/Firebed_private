@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import firebase_config
 from firebase_auth_handlers import FirebaseAuthHandler
 from models import db, User, Group
-from admin_panel import admin_list_all_users, admin_list_all_groups, admin_get_activity_logs
+from admin_panel import admin_list_all_users, admin_list_all_groups, admin_get_activity_logs, is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,11 @@ def _require_admin(f):
     def decorated_function(*args, **kwargs):
         if not current_user or not current_user.is_authenticated:
             return jsonify({'error': 'Not authenticated'}), 401
-        
-        admin_user_id = int(current_app.config.get('ADMIN_USER_ID', 0))
-        if current_user.id != admin_user_id:
+        # Use centralized admin check (supports is_admin flag or ADMIN_USER_ID fallback)
+        try:
+            if not is_admin(current_user):
+                return jsonify({'error': 'Admin access required'}), 403
+        except Exception:
             return jsonify({'error': 'Admin access required'}), 403
         
         return f(*args, **kwargs)

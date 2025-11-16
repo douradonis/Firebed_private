@@ -2396,3 +2396,653 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-11-15 17:12:15+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
 2025-11-15 17:12:15+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
 2025-11-15 17:12:23+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:39:25+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:39:38+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:40:04+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:40:05+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:40:11+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 02:40:11+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:11+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:11+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:12+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:12+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:12+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:40:19+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:43:20+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:43:33+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:44:23+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:44:40+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:45:38+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:47:10+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:47:21+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:47:40+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:47:40+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=None
+2025-11-16 02:47:40+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=None
+2025-11-16 02:47:40+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=None
+2025-11-16 02:47:40+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=None
+2025-11-16 02:47:58+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:52:00+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:52:02+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:52:07+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 02:52:07+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:07+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:07+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:08+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:08+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:12+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:52:12+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:12+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:12+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:13+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:27+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:52:51+0200 INFO Incoming request: method=POST path=/admin/api/backup/all remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:38+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:56:38+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:38+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:38+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:56:39+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:57:27+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:57:27+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:27+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:27+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:28+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:28+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:28+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:29+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:57:29+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:29+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:29+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:30+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:30+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:40+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login?next=/admin
+2025-11-16 02:57:40+0200 ERROR Unhandled exception: (sqlite3.OperationalError) no such table: user
+[SQL: SELECT user.id AS user_id, user.username AS user_username, user.password_hash AS user_password_hash, user.email AS user_email, user.firebase_uid AS user_firebase_uid, user.created_at AS user_created_at, user.last_login AS user_last_login, user.active AS user_active, user.is_admin AS user_is_admin 
+FROM user 
+WHERE user.username = ? OR user.email = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('adonis.douramanis@gmail.com', 'adonis.douramanis@gmail.com', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such table: user
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/firebase_auth_routes.py", line 137, in firebase_login
+    user = User.query.filter(or_(User.username == firebase_email, User.email == firebase_email)).first()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: user
+[SQL: SELECT user.id AS user_id, user.username AS user_username, user.password_hash AS user_password_hash, user.email AS user_email, user.firebase_uid AS user_firebase_uid, user.created_at AS user_created_at, user.last_login AS user_last_login, user.active AS user_active, user.is_admin AS user_is_admin 
+FROM user 
+WHERE user.username = ? OR user.email = ?
+ LIMIT ? OFFSET ?]
+[parameters: ('adonis.douramanis@gmail.com', 'adonis.douramanis@gmail.com', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-11-16 02:57:40+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/firebase-auth/login
+2025-11-16 02:57:40+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/firebase-auth/login
+2025-11-16 02:57:40+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/firebase-auth/login
+2025-11-16 02:57:40+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/firebase-auth/login
+2025-11-16 02:57:40+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/firebase-auth/login
+2025-11-16 02:57:59+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:58:00+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:03+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:04+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 02:58:06+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:04:54+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:05:02+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:05:21+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:08:26+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:09:15+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:09:41+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:09:59+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:09:59+0200 INFO Incoming request: method=POST path=/api/login remote=127.0.0.1 ref=None
+2025-11-16 03:09:59+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=None
+2025-11-16 03:09:59+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=None
+2025-11-16 03:09:59+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=None
+2025-11-16 03:09:59+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=None
+2025-11-16 03:13:52+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:13:53+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:14:06+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:07+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:10+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:14:10+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:10+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:11+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:14:18+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:22+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:22+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:22+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:22+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:22+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:23+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:23+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:31+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/login
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:31+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:34+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 03:15:34+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:34+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:34+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:35+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:15:46+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 03:17:46+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:17:56+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:18:27+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:19:02+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:19:30+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:19:41+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:23:31+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 03:24:04+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:47:42+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:47:44+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:47:49+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 19:47:49+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:49+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:49+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:50+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:50+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:50+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:56+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/
+2025-11-16 19:47:56+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:56+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:56+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:57+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:57+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:57+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:47:58+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:23+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:49:43+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:44+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:44+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:44+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:44+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:45+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/admin
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:46+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:49+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:50+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:55+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/credentials
+2025-11-16 19:49:55+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:49:55+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:49:55+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:49:56+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:49:56+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:49:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:50:03+0200 INFO Incoming request: method=POST path=/groups/leave remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:50:09+0200 INFO Incoming request: method=POST path=/groups/remove_member remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:50:16+0200 INFO Incoming request: method=POST path=/groups/leave remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5001.app.github.dev/groups
+2025-11-16 19:51:09+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:51:20+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:52:15+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:52:30+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:52:44+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:52:53+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:53:11+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:54:20+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:54:55+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:55:25+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:56:16+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:57:36+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:57:42+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:01+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:06+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:30+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:39+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:49+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:58:56+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:59:23+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:59:30+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 19:59:44+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:01:54+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:02:07+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:02:25+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:03:29+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:14:44+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:15:22+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:15:41+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:16:19+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:17:33+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:18:15+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:19:08+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:19:34+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:19:35+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:19:36+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:19:53+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 20:19:53+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:53+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:53+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:54+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:54+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:19:57+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:20:10+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:11+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:26+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:26+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:27+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:27+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:27+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:27+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:27+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:29+0200 INFO Incoming request: method=GET path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:20:30+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:30+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:30+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:30+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:30+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:41+0200 INFO Incoming request: method=POST path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:42+0200 INFO Incoming request: method=GET path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:20:43+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:43+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:43+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:43+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:43+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:54+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:54+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:20:54+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:54+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:54+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:55+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:20:55+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:08+0200 INFO Incoming request: method=GET path=/account remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:08+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:08+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:08+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:09+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:09+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:09+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:15+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:15+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:22:15+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:15+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:15+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:16+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:16+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:25+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:25+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:22:25+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:25+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:25+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:26+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:26+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:26+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:27+0200 INFO Incoming request: method=POST path=/set_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:27+0200 INFO Set active fiscal year: 2025
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:28+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=POST path=/groups/create remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:45+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:22:45+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:45+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:45+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:46+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:46+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:46+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:54+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:54+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:22:55+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:23:59+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:24:00+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:24:35+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:25:16+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:25:33+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:26:14+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:26:15+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:26:18+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 20:26:18+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:18+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:18+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:19+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:19+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:19+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:23+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:23+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:26:23+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:23+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:23+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:24+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:24+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:31+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:31+0200 INFO Incoming request: method=GET path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:26:32+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:32+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:32+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:32+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:32+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:35+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:49+0200 INFO Incoming request: method=POST path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:26:50+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:27:18+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:27:18+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:19+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:38+0200 INFO Incoming request: method=GET path=/account remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=POST path=/account remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/account remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:27:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/account
+2025-11-16 20:31:23+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:31:24+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:33:13+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:34:42+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:40:25+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:40:35+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:40:45+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:41:27+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:43:01+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:43:33+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:46:05+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:46:07+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-16 20:46:10+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj.github.dev/
+2025-11-16 20:46:10+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:10+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:10+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:11+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:11+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:15+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:46:15+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:15+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:15+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:16+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:16+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:21+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:21+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login?next=/credentials
+2025-11-16 20:46:21+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:21+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:21+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:22+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:23+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:23+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:23+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:24+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:51+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:55+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/credentials
+2025-11-16 20:46:55+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:55+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:55+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:56+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:56+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:46:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=POST path=/groups/create remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:04+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:06+0200 INFO Incoming request: method=POST path=/groups/select remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:08+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:47:08+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:08+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:08+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:08+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:09+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:09+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:09+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:09+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:09+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:21+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:21+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:47:21+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:21+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:21+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:22+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:22+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:24+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:41+0200 INFO Incoming request: method=POST path=/firebase-auth/signup remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:42+0200 INFO Incoming request: method=GET path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/signup
+2025-11-16 20:47:42+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:47:42+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:47:42+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:47:43+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:47:43+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:49:32+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/firebase-auth/login
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:33+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:50+0200 INFO Incoming request: method=POST path=/groups/create remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:50+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:51+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:56+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:57+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/groups
+2025-11-16 20:49:57+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:49:57+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:49:57+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:49:58+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:49:58+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:50:04+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:50:04+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/login
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:05+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/admin/api/activity remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:06+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:50:07+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 20:56:09+0200 INFO Incoming request: method=POST path=/admin/api/backup/all remote=127.0.0.1 ref=https://super-duper-parakeet-x594p6799prqc6gj-5000.app.github.dev/admin
+2025-11-16 21:01:03+0200 INFO Starting app - MYDATA_ENV=sandbox

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Admin Settings</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">System Settings</h5>
+            <form method="POST" action="/admin/settings/save">
+                <div class="form-group">
+                    <label>Site Title</label>
+                    <input name="site_title" class="form-control" value="{{ settings.get('site_title', '') }}" />
+                </div>
+                <button class="btn btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

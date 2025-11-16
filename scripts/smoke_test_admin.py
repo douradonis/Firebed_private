@@ -72,10 +72,13 @@ with app.test_client() as c:
         with app.app_context():
             user = User.query.get(admin_id)
             if user:
-                user.username = user.username + '_smoketest'
-                db.session.add(user)
-                db.session.commit()
-                print('DB write committed for user', admin_id)
+                if not (user.username or '').endswith('_smoketest'):
+                    user.username = user.username + '_smoketest'
+                    db.session.add(user)
+                    db.session.commit()
+                    print('DB write committed for user', admin_id)
+                else:
+                    print('User already has smoketest suffix; skipping')
             else:
                 print('Admin user not found; skipping DB write')
     except Exception as e:

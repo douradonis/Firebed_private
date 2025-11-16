@@ -1,0 +1,8 @@
+{
+  "id": 4,
+  "username": "admin",
+  "email": "admin@example.com",
+  "password_hash": "scrypt:32768:8:1$I94lgsGDjUPGVTJW$71aa0e4a5be1d5015cf411b79fe0b246665729f21049609aac51e0b8a93b81b81fadbe516b06cf238471a7ee51a7de0ab733a7f1edff9523ef3365075efe2cae",
+  "is_admin": true,
+  "firebase_uid": null
+}

@@ -5,6 +5,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 import firebase_config
 from models import db, User, Group
 import datetime
+from firebase_auth_handlers import FirebaseAuthHandler
+import email_utils
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -38,9 +40,21 @@ def signup():
             flash('Username already exists', 'warning')
             return redirect(url_for('auth.signup'))
 
+        # Try to register user in Firebase (if enabled). If successful, store firebase_uid.
+        firebase_uid = None
+        try:
+            success, uid, err = FirebaseAuthHandler.register_user(username, password, display_name=username)
+            if success and uid:
+                firebase_uid = uid
+        except Exception:
+            # If Firebase fails or not enabled, continue with local-only user
+            firebase_uid = None
+
         user = User(username=username)
         user.email = username
         user.set_password(password)
+        if firebase_uid:
+            user.firebase_uid = firebase_uid
 
         db.session.add(user)
         db.session.flush()
@@ -82,7 +96,38 @@ def signup():
                 user.add_to_group(grp, role='member')
 
         db.session.commit()
-        flash('Account created. Please log in.', 'success')
+
+        # If we registered in Firebase, generate a verification link via Firebase Admin SDK
+        try:
+            if firebase_uid:
+                ok, link_or_err = FirebaseAuthHandler.generate_email_verification_link(user.email)
+                if ok:
+                    # Try to send verification email via SMTP; fallback to logging
+                    verify_link = link_or_err
+                    html_body = f"""
+                    <html><body>
+                        <h2>Email Verification</h2>
+                        <p>Hello {user.username},</p>
+                        <p>Please verify your email address by clicking the link below:</p>
+                        <p><a href=\"{verify_link}\">Verify Email</a></p>
+                        <p>If you did not sign up, ignore this email.</p>
+                    </body></html>
+                    """
+                    sent = email_utils.send_email(user.email, 'Verify your email - Firebed', html_body)
+                    if sent:
+                        flash('Account created! A verification email has been sent to your inbox.', 'success')
+                    else:
+                        current_app.logger.info(f"Firebase verification link for {user.email}: {verify_link}")
+                        flash('Account created! Verification link generated (logged on server during development).', 'success')
+                else:
+                    current_app.logger.warning(f"Could not generate Firebase verification link: {link_or_err}")
+                    flash('Account created. Please verify your email via Firebase (check inbox).', 'success')
+            else:
+                flash('Account created. Please log in.', 'success')
+        except Exception as e:
+            current_app.logger.exception('Failed to generate Firebase verification link')
+            flash('Account created. Please log in.', 'success')
+
         return redirect(url_for('auth.login'))
 
     # render signup form
@@ -652,3 +697,84 @@ def api_user_groups():
         current_app.logger.exception("api_user_groups failed")
         return jsonify({'error': str(e)}), 500
 
+
+# =====================================================================
+# Email Verification & Password Reset
+# =====================================================================
+
+@auth_bp.route('/verify-email', methods=['GET'])
+def verify_email():
+    """Verify user email via token link"""
+    # When using Firebase Authentication, email verification is handled by Firebase.
+    # The generated Firebase verification link will verify the user's email in Firebase.
+    # Here we simply inform the user and, if possible, sync local user record.
+    email = request.args.get('email')
+    if email:
+        try:
+            # Try to sync verification status from Firebase
+            from firebase_admin import auth as firebase_auth
+            fb_user = firebase_auth.get_user_by_email(email)
+            if fb_user and getattr(fb_user, 'email_verified', False):
+                # Update local user record if present
+                user = User.query.filter_by(email=email).first()
+                if user:
+                    user.email_verified = True
+                    user.email_verified_at = datetime.datetime.utcnow()
+                    db.session.commit()
+                    flash('Email verified successfully! You can now log in.', 'success')
+                    return redirect(url_for('auth.login'))
+        except Exception:
+            pass
+
+    flash('Email verification is handled by Firebase. Please check your inbox and follow the link sent by Firebase to verify your email.', 'info')
+    return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request password reset link"""
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip()
+        if not email:
+            flash('Email is required', 'danger')
+            return redirect(url_for('auth.forgot_password'))
+        
+        try:
+            # Use Firebase to generate password reset link and let Firebase handle sending.
+            ok, link_or_err = FirebaseAuthHandler.generate_password_reset_link(email)
+            if ok:
+                reset_link = link_or_err
+                # build email body and attempt to send via SMTP
+                html_body = f"""
+                <html><body>
+                    <h2>Password Reset</h2>
+                    <p>If you requested a password reset, click the link below to choose a new password:</p>
+                    <p><a href=\"{reset_link}\">Reset your password</a></p>
+                    <p>If you did not request this, you can ignore this email.</p>
+                </body></html>
+                """
+                sent = email_utils.send_email(email, 'Password Reset - Firebed', html_body)
+                if sent:
+                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+                else:
+                    current_app.logger.info(f"Firebase password reset link for {email}: {reset_link}")
+                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+            else:
+                current_app.logger.warning(f"Could not generate Firebase password reset link: {link_or_err}")
+                flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            current_app.logger.exception('Forgot password failed')
+            flash('Error processing password reset request', 'danger')
+            return redirect(url_for('auth.forgot_password'))
+    
+    return render_template('auth/forgot_password.html')
+
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Reset password via token link"""
+    # With Firebase-based flows, password reset is handled by Firebase links.
+    # Users should follow the link sent by Firebase to reset their password.
+    flash('Password reset is handled by Firebase. Please use the link sent to your email to reset your password.', 'info')
+    return redirect(url_for('auth.login'))
