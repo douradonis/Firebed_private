@@ -265,9 +265,6 @@ def firebase_delete_data(path: str) -> bool:
 def firebase_log_activity(user_id: str, group_name: str, action: str, details: Optional[Dict] = None) -> bool:
     """Log user activity to Firebase for traffic tracking"""
     try:
-        if not is_firebase_enabled():
-            return False
-        
         timestamp = datetime.now(timezone.utc).isoformat()
         log_entry = {
             'user_id': user_id,
@@ -276,13 +273,37 @@ def firebase_log_activity(user_id: str, group_name: str, action: str, details: O
             'timestamp': timestamp,
             'details': details or {}
         }
-        
-        # Write to activity log under /activity_logs/{group}/{timestamp}
-        # Replace special characters in timestamp for Firebase path compatibility
-        safe_timestamp = timestamp.replace(":", "-").replace("+", "_").replace(".", "-")
-        path = f'/activity_logs/{group_name}/{safe_timestamp}'
-        result = firebase_write_data(path, log_entry)
-        return result
+
+        wrote_any = False
+
+        # Attempt to write to Firebase if enabled
+        try:
+            if is_firebase_enabled():
+                # Write to activity log under /activity_logs/{group}/{timestamp}
+                # Replace special characters in timestamp for Firebase path compatibility
+                safe_timestamp = timestamp.replace(":", "-").replace("+", "_").replace(".", "-")
+                path = f'/activity_logs/{group_name}/{safe_timestamp}'
+                if firebase_write_data(path, log_entry):
+                    wrote_any = True
+        except Exception:
+            # keep going; we'll still write a local log
+            pass
+
+        # Also append to a local activity.log per-group for offline inspection and admin panel fallback
+        try:
+            data_dir = os.path.join(os.getcwd(), 'data')
+            os.makedirs(data_dir, exist_ok=True)
+            group_dir = os.path.join(data_dir, str(group_name) if group_name else 'global')
+            os.makedirs(group_dir, exist_ok=True)
+            activity_path = os.path.join(group_dir, 'activity.log')
+            with open(activity_path, 'a', encoding='utf-8') as fh:
+                # store a compact JSON line for easier parsing
+                fh.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+            wrote_any = True
+        except Exception:
+            pass
+
+        return wrote_any
     except Exception as e:
         logger.error(f"Failed to log activity to Firebase: {e}")
         return False
@@ -332,6 +353,469 @@ def firebase_export_group_data(group_name: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _maybe_decompress_blob(obj: Any) -> Any:
+    """If object is a compressed payload created by firebase_write_compressed, decompress it."""
+    try:
+        if isinstance(obj, dict) and obj.get('_compressed'):
+            import gzip
+            b64 = obj.get('content') or ''
+            raw = base64.urlsafe_b64decode(b64.encode('utf-8'))
+            data = gzip.decompress(raw)
+            return json.loads(data.decode('utf-8'))
+    except Exception:
+        pass
+    return obj
+
+
+def firebase_read_data_compressed(path: str) -> Optional[Dict[str, Any]]:
+    """Read data and automatically decompress if stored as compressed blob."""
+    try:
+        data = firebase_read_data(path)
+        if data is None:
+            return None
+        # If top-level object is compressed blob
+        decompressed = _maybe_decompress_blob(data)
+        if decompressed is not data:
+            return decompressed
+
+        # Walk dict and decompress any nested compressed blobs (shallow)
+        if isinstance(data, dict):
+            out = {}
+            for k, v in data.items():
+                out[k] = _maybe_decompress_blob(v)
+            return out
+        return data
+    except Exception as e:
+        logger.error(f"Failed to read compressed data from Firebase at {path}: {e}")
+        return None
+
+
+def firebase_write_compressed(path: str, data: Dict[str, Any], compress_threshold: int = 5 * 1024) -> bool:
+    """Write data to Firebase; if serialized size > threshold, gzip-compress and base64 encode it.
+    Stores compressed payload under the same path as {'_compressed': True, 'content': '<b64>'}.
+    """
+    try:
+        text = json.dumps(data, ensure_ascii=False)
+        raw = text.encode('utf-8')
+        if len(raw) <= compress_threshold:
+            return firebase_write_data(path, data)
+
+        import gzip
+        compressed = gzip.compress(raw)
+        b64 = base64.urlsafe_b64encode(compressed).decode('utf-8')
+        payload = {'_compressed': True, 'content': b64}
+        return firebase_write_data(path, payload)
+    except Exception as e:
+        logger.error(f"Failed to write compressed data to Firebase at {path}: {e}")
+        return False
+
+
+def firebase_push_group_files(group_name: str, local_data_root: str = None) -> bool:
+    """Upload group files from local data/ folder to Firebase /groups/{group_name}/files.
+    
+    Also detects and removes files from Firebase that have been deleted locally.
+    This is called on logout to sync any changes made to files back to Firebase.
+    Files are read from data/{group_name}/ (and subdirectories), encrypted, and uploaded.
+    
+    Returns True if push succeeded or no files found.
+    """
+    try:
+        if not is_firebase_enabled():
+            logger.warning('[PUSH] Firebase not enabled; cannot push group files')
+            return False
+
+        if local_data_root is None:
+            local_data_root = os.path.join(os.getcwd(), 'data')
+
+        source_dir = os.path.join(local_data_root, group_name)
+        if not os.path.isdir(source_dir):
+            logger.warning('[PUSH] Group directory not found: %s', source_dir)
+            return True  # No error, just nothing to push
+
+        # Get encryption key
+        fernet_key = encryption._ensure_key()
+        if not fernet_key:
+            logger.error('[PUSH] No Fernet key available; cannot encrypt files')
+            return False
+
+        from cryptography.fernet import Fernet
+        cipher = Fernet(fernet_key)
+        
+        files_uploaded = 0
+        files_failed = 0
+        files_deleted = 0
+        
+        # Build set of local file keys (what should exist in Firebase)
+        local_file_keys = set()
+        
+        # Scan all files in the source directory (including subdirectories)
+        for root, dirs, files in os.walk(source_dir):
+            for fname in files:
+                try:
+                    # Skip certain files
+                    if fname.startswith('.') or fname in ['files_json', 'activity_log', 'error_log', 'fiscal_meta_json']:
+                        continue
+                    
+                    file_path = os.path.join(root, fname)
+                    
+                    # Determine the key name for Firebase
+                    # If file is in a subdirectory (excel/, epsilon/), include it in the key
+                    # Otherwise, convert extension to suffix (json -> _json, xlsx -> _xlsx)
+                    rel_path = os.path.relpath(file_path, source_dir)
+                    rel_path = rel_path.replace('\\', '/')  # Normalize paths
+                    
+                    # If file is in root directory, convert extension to suffix
+                    if '/' not in rel_path:
+                        # This is a root-level file
+                        # Convert: credentials_settings.json -> credentials_settings_json
+                        name_no_ext = os.path.splitext(fname)[0]
+                        ext = os.path.splitext(fname)[1]
+                        
+                        # Map extensions to suffixes
+                        ext_map = {
+                            '.json': '_json',
+                            '.xlsx': '_xlsx',
+                            '.xls': '_xls',
+                            '.pdf': '_pdf',
+                            '.csv': '_csv',
+                            '.txt': '_txt',
+                            '.xml': '_xml',
+                        }
+                        
+                        suffix = ext_map.get(ext.lower(), f'_{ext.lower().lstrip(".")}')
+                        firebase_key = f"{name_no_ext}{suffix}"
+                    else:
+                        # File is in a subdirectory (excel/, epsilon/)
+                        # Keep the path as-is
+                        firebase_key = rel_path
+                    
+                    local_file_keys.add(firebase_key)
+                    
+                    # Read file
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                    
+                    # Encrypt
+                    encrypted_content = cipher.encrypt(file_content)
+                    logger.debug('[PUSH] Encrypted file %s (size: %d -> %d)', firebase_key, len(file_content), len(encrypted_content))
+                    
+                    # Base64 encode
+                    content_b64 = base64.urlsafe_b64encode(encrypted_content).decode('utf-8')
+                    
+                    # Get mtime
+                    mtime = os.path.getmtime(file_path)
+                    
+                    # Prepare file payload
+                    file_payload = {
+                        'content': content_b64,
+                        '_meta': {
+                            'mtime': mtime,
+                            'size': len(file_content)
+                        }
+                    }
+                    
+                    # Upload to Firebase
+                    firebase_path = f'/groups/{group_name}/files/{firebase_key}'
+                    if firebase_write_data(firebase_path, file_payload):
+                        logger.info('[PUSH] Uploaded file to Firebase: %s', firebase_key)
+                        files_uploaded += 1
+                    else:
+                        files_failed += 1
+                        logger.error('[PUSH] Failed to upload file to Firebase: %s', firebase_key)
+                
+                except Exception as e:
+                    files_failed += 1
+                    logger.error('[PUSH] Error processing file %s: %s', fname, e)
+        
+        # Now detect and remove deleted files from Firebase
+        try:
+            firebase_path = f'/groups/{group_name}/files'
+            remote_files = firebase_read_data_compressed(firebase_path) or {}
+            
+            if isinstance(remote_files, dict):
+                def _find_all_keys(obj, prefix=''):
+                    """Recursively find all keys that look like files (have content + _meta)"""
+                    result = set()
+                    if not isinstance(obj, dict):
+                        return result
+                    for key, val in obj.items():
+                        key_str = str(key).lstrip('/')
+                        current_path = f"{prefix}/{key_str}".lstrip('/')
+                        if isinstance(val, dict) and 'content' in val and '_meta' in val:
+                            result.add(current_path)
+                        elif isinstance(val, dict):
+                            result.update(_find_all_keys(val, current_path))
+                    return result
+                
+                remote_file_keys = _find_all_keys(remote_files)
+                
+                # Find keys that exist in Firebase but not locally
+                deleted_keys = remote_file_keys - local_file_keys
+                
+                for deleted_key in deleted_keys:
+                    try:
+                        delete_path = f'/groups/{group_name}/files/{deleted_key}'
+                        if firebase_write_data(delete_path, None):  # Writing None deletes the key
+                            logger.info('[PUSH] Deleted file from Firebase: %s', deleted_key)
+                            files_deleted += 1
+                        else:
+                            logger.warning('[PUSH] Failed to delete file from Firebase: %s', deleted_key)
+                    except Exception as e:
+                        logger.error('[PUSH] Error deleting file from Firebase %s: %s', deleted_key, e)
+        
+        except Exception as e:
+            logger.warning('[PUSH] Could not detect deleted files: %s', e)
+        
+        # Log summary
+        logger.info('[PUSH] Pushed files for group %s: uploaded %d files, deleted %d files, %d failed', 
+                    group_name, files_uploaded, files_deleted, files_failed)
+        
+        return True
+    
+    except Exception as e:
+        logger.error('[PUSH] Failed to push files for group %s: %s', group_name, e)
+        return False
+
+
+def firebase_pull_group_to_local(group_name: str, local_data_root: str = None) -> bool:
+    """Download group data from Firebase and populate `data/<group_name>` locally.
+
+    This is a best-effort lazy-sync used when server is missing a group's data.
+    Only files from the 'files' folder in Firebase are pulled and stored locally.
+    All files are flattened directly into the group's folder (no nested structure).
+    It will:
+    1. Read only data from /groups/{group_name}/files
+    2. Recursively find all files (content + _meta pairs)
+    3. Decrypt encrypted files using Fernet key
+    4. Store all files directly in data/<group_name>/ (flattened)
+    5. Log all actions for admin visibility
+    
+    Returns True if pull succeeded (or no data found to pull).
+    """
+    try:
+        if not is_firebase_enabled():
+            logger.warning('Firebase not enabled; cannot pull group data')
+            return False
+
+        if local_data_root is None:
+            local_data_root = os.path.join(os.getcwd(), 'data')
+
+        # Read only from the 'files' subfolder in Firebase
+        path = f'/groups/{group_name}/files'
+        exported = firebase_read_data_compressed(path) or {}
+        if not isinstance(exported, dict):
+            logger.warning('No files found in Firebase for %s at path %s', group_name, path)
+            return True
+
+        target_dir = os.path.join(local_data_root, group_name)
+        os.makedirs(target_dir, exist_ok=True)
+
+        files_created = 0
+        files_failed = 0
+        
+        # Get encryption key once
+        fernet_key = encryption._ensure_key()
+        if not fernet_key:
+            logger.warning('[PULL] No Fernet key available; encrypted files will not be decrypted')
+        
+        def _get_file_name_with_extension(key_name):
+            """
+            Convert key name to proper file name with extension.
+            E.g., 'credentials_settings_json' -> 'credentials_settings.json'
+                  '12345679_2024_invoices_xlsx' -> '12345679_2024_invoices.xlsx'
+            """
+            key_str = str(key_name).lstrip('/')
+            
+            # Map of suffixes to extensions
+            extension_map = {
+                '_json': '.json',
+                '_xlsx': '.xlsx',
+                '_xls': '.xls',
+                '_pdf': '.pdf',
+                '_csv': '.csv',
+                '_txt': '.txt',
+                '_xml': '.xml',
+            }
+            
+            # Check for known extensions at the end
+            for suffix, ext in extension_map.items():
+                if key_str.endswith(suffix):
+                    # Replace the suffix with the extension
+                    base_name = key_str[:-len(suffix)]
+                    return f"{base_name}{ext}"
+            
+            # If no extension found, return as-is
+            return key_str
+        
+        def _recursive_process(obj):
+            """Recursively find all files (flattened) and materialize them"""
+            nonlocal files_created, files_failed
+            
+            if not isinstance(obj, dict):
+                return
+            
+            for key, val in obj.items():
+                try:
+                    # Check if this is a binary file (has content + _meta)
+                    if isinstance(val, dict) and 'content' in val and '_meta' in val:
+                        # This is a file - materialize it directly in target_dir
+                        try:
+                            # Get proper file name with extension
+                            file_name = _get_file_name_with_extension(key)
+                            content_b64 = val.get('content')
+                            logger.debug('[PULL] Processing file: %s (original key: %s)', file_name, key)
+                            
+                            # Base64 decode
+                            blob = base64.urlsafe_b64decode(content_b64.encode('utf-8'))
+                            logger.debug('[PULL] Decoded %d bytes for %s', len(blob), file_name)
+                            
+                            # Try to decrypt if key is available
+                            decrypted = False
+                            if fernet_key:
+                                from cryptography.fernet import Fernet
+                                try:
+                                    cipher = Fernet(fernet_key)
+
+                                    blob = cipher.decrypt(blob)
+                                    decrypted = True
+                                    logger.info('[PULL] Decrypted file: %s (size: %d bytes)', file_name, len(blob))
+                                except Exception as de:
+                                    logger.warning('[PULL] Decrypt failed for %s: %s (using as-is)', file_name, de)
+                            else:
+                                logger.warning('[PULL] No key available; skipping decrypt for %s', file_name)
+                            
+                            # Determine target subdirectory based on file type
+                            file_dir = target_dir
+                            
+                            # Route .xlsx files to excel/ subdirectory
+                            if file_name.endswith('.xlsx'):
+                                file_dir = os.path.join(target_dir, 'excel')
+                                os.makedirs(file_dir, exist_ok=True)
+                                logger.debug('[PULL] Routing .xlsx file to excel/ subdirectory: %s', file_name)
+                            
+                            # Route epsilon_invoices files to epsilon/ subdirectory
+                            elif 'epsilon_invoices' in file_name:
+                                file_dir = os.path.join(target_dir, 'epsilon')
+                                os.makedirs(file_dir, exist_ok=True)
+                                logger.debug('[PULL] Routing epsilon_invoices file to epsilon/ subdirectory: %s', file_name)
+                            
+                            # Write file to appropriate directory
+                            target_file_path = os.path.join(file_dir, file_name)
+                            with open(target_file_path, 'wb') as fh:
+                                fh.write(blob)
+                            logger.info('[PULL] Wrote file %s to %s (size: %d bytes, decrypted: %s)', 
+                                       file_name, file_dir, len(blob), decrypted)
+                            
+                            # Set mtime if available
+                            try:
+                                mtime = float(val.get('_meta', {}).get('mtime', 0))
+                                if mtime:
+                                    os.utime(target_file_path, (mtime, mtime))
+                            except Exception:
+                                pass
+                            
+                            files_created += 1
+                        except Exception as e:
+                            files_failed += 1
+                            logger.error('[PULL] Failed to materialize file %s: %s', key, e)
+                    
+                    elif isinstance(val, dict):
+                        # This is a nested dict - recurse into it to find files
+                        logger.debug('[PULL] Recursing into nested dict at key: %s', key)
+                        _recursive_process(val)
+                    
+                    else:
+                        # Other types - skip
+                        logger.debug('[PULL] Skipping non-dict value at key %s', key)
+                
+                except Exception as e:
+                    files_failed += 1
+                    logger.error('[PULL] Error processing key %s: %s', key, e)
+        
+        # Start recursive processing
+        _recursive_process(exported)
+
+        # Log summary
+        logger.info('[PULL] Pulled files for group %s: created %d files, %d failed. Stored in: %s', 
+                    group_name, files_created, files_failed, target_dir)
+        
+        return True
+    
+    except Exception as e:
+        logger.error('Failed to pull files for group %s: %s', group_name, e)
+        return False
+
+
+def ensure_group_data_local(group_folder: str, create_empty_dirs: bool = True) -> bool:
+    """
+    Ensure a group's data folder exists locally.
+    
+    Strategy:
+    1. If folder already exists locally, return True immediately (fast path)
+    2. If missing, attempt lazy-pull from Firebase
+    3. If Firebase pull fails/empty, optionally create empty folder structure
+    
+    This is the primary entry point for lazy-loading group data.
+    Used by routes to ensure data is available before processing.
+    
+    Args:
+        group_folder: The data_folder name (e.g., 'client_xyz')
+        create_empty_dirs: If True, create empty folder even if Firebase has no data
+    
+    Returns:
+        True if folder now exists and is accessible (or will be created)
+        False only if there's a critical error
+    """
+    try:
+        if not group_folder:
+            logger.warning('ensure_group_data_local: No group_folder provided')
+            return False
+        
+        data_root = os.path.join(os.getcwd(), 'data')
+        target_dir = os.path.join(data_root, group_folder)
+        
+        # Fast path: folder already exists
+        if os.path.isdir(target_dir):
+            logger.debug('Group data already exists locally: %s', group_folder)
+            return True
+        
+        # Attempt to pull from Firebase
+        logger.info('Group data missing locally, attempting lazy-pull: %s', group_folder)
+        if firebase_pull_group_to_local(group_folder, data_root):
+            # Pull succeeded (either found data or returned without error)
+            # Ensure the folder exists (might be empty if Firebase had no data)
+            if create_empty_dirs:
+                os.makedirs(target_dir, exist_ok=True)
+                # Also create common subdirectories proactively
+                for subdir in ['epsilon', 'excel', '__pycache__']:
+                    try:
+                        os.makedirs(os.path.join(target_dir, subdir), exist_ok=True)
+                    except Exception:
+                        pass
+            logger.info('Successfully ensured group data local: %s', group_folder)
+            return True
+        
+        # Pull failed, but if create_empty_dirs is True, create folder anyway
+        if create_empty_dirs:
+            try:
+                os.makedirs(target_dir, exist_ok=True)
+                # Create common subdirectories
+                for subdir in ['epsilon', 'excel']:
+                    os.makedirs(os.path.join(target_dir, subdir), exist_ok=True)
+                logger.warning('Created empty group folder (Firebase pull failed): %s', group_folder)
+                return True
+            except Exception as e:
+                logger.error('Failed to create empty group folder: %s (error: %s)', group_folder, e)
+                return False
+        
+        logger.warning('Could not ensure group data local and create_empty_dirs=False: %s', group_folder)
+        return False
+    
+    except Exception as e:
+        logger.error('Unexpected error in ensure_group_data_local for %s: %s', group_folder, e)
+        return False
+
+
 def firebase_import_group_data(group_name: str, data: Dict[str, Any]) -> bool:
     """Import data for a group to Firebase"""
     try:
@@ -339,7 +823,8 @@ def firebase_import_group_data(group_name: str, data: Dict[str, Any]) -> bool:
             return False
         
         path = f'/groups/{group_name}'
-        return firebase_write_data(path, data)
+        # Use compressed write to reduce payload size when appropriate
+        return firebase_write_compressed(path, data)
     except Exception as e:
         logger.error(f"Failed to import group data for {group_name}: {e}")
         return False

@@ -1,744 +1,195 @@
-2025-11-14 09:20:31,416 - __main__ - INFO - Firebase initialized
-2025-11-14 09:20:51,356 - __main__ - INFO - Firebase initialized
-2025-11-14 09:20:52,724 - __main__ - INFO - Firebase initialized
-2025-11-14 09:23:12,975 - __main__ - INFO - Firebase initialized
-2025-11-14 09:23:12,983 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 09:23:14,848 - __main__ - INFO - Firebase initialized
-2025-11-14 09:23:14,854 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 09:24:26,640 - __main__ - INFO - Firebase initialized
-2025-11-14 09:24:26,645 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 09:24:27,839 - __main__ - INFO - Firebase initialized
-2025-11-14 09:24:27,847 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 09:28:24,114 - __main__ - INFO - Firebase initialized
-2025-11-14 09:28:24,121 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 09:28:25,584 - __main__ - INFO - Firebase initialized
-2025-11-14 09:28:25,593 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:17:55,597 - __main__ - INFO - Firebase initialized
-2025-11-14 13:17:55,604 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:17:57,006 - __main__ - INFO - Firebase initialized
-2025-11-14 13:17:57,013 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:24:10,155 - __main__ - INFO - Firebase initialized
-2025-11-14 13:24:10,160 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:24:19,094 - __main__ - INFO - Firebase initialized
-2025-11-14 13:24:19,099 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:24:19,108 - __main__ - INFO - Firebase API routes registered
-2025-11-14 13:31:28,873 - __main__ - INFO - Firebase initialized
-2025-11-14 13:31:28,878 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:31:28,885 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:31:30,031 - __main__ - INFO - Firebase initialized
-2025-11-14 13:31:30,036 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:31:30,040 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:38:14,713 - __main__ - INFO - Firebase initialized
-2025-11-14 13:38:14,715 - __main__ - WARNING - Firebase initialization failed: invalid syntax (firebase_auth_handlers.py, line 42)
-2025-11-14 13:39:24,183 - __main__ - INFO - Firebase initialized
-2025-11-14 13:39:24,185 - __main__ - WARNING - Firebase initialization failed: invalid syntax (firebase_auth_handlers.py, line 42)
-2025-11-14 13:41:09,023 - __main__ - INFO - Firebase initialized
-2025-11-14 13:41:09,029 - __main__ - WARNING - Firebase initialization failed: invalid syntax (firebase_auth_handlers.py, line 539)
-2025-11-14 13:42:53,089 - __main__ - INFO - Firebase initialized
-2025-11-14 13:42:53,100 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:42:53,104 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:43:35,666 - __main__ - INFO - Firebase initialized
-2025-11-14 13:43:35,674 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:43:35,681 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:43:59,925 - __main__ - INFO - Firebase initialized
-2025-11-14 13:43:59,930 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:43:59,934 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:44:03,029 - __main__ - INFO - Firebase initialized
-2025-11-14 13:44:03,036 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:44:03,040 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:44:04,243 - __main__ - INFO - Firebase initialized
-2025-11-14 13:44:04,248 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:44:04,252 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:49:16,808 - __main__ - INFO - Firebase initialized
-2025-11-14 13:49:16,813 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:49:16,817 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:49:18,132 - __main__ - INFO - Firebase initialized
-2025-11-14 13:49:18,140 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:49:18,147 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:49:55,540 - __main__ - INFO - Firebase initialized
-2025-11-14 13:49:55,548 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:49:55,560 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:49:56,895 - __main__ - INFO - Firebase initialized
-2025-11-14 13:49:56,914 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:49:56,930 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:58:08,256 - app - INFO - Firebase initialized
-2025-11-14 13:58:08,264 - app - INFO - Firebase Auth routes registered
-2025-11-14 13:58:08,270 - app - INFO - Admin API routes registered
-2025-11-14 13:58:56,719 - __main__ - INFO - Firebase initialized
-2025-11-14 13:58:56,724 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 13:58:56,729 - __main__ - INFO - Admin API routes registered
-2025-11-14 13:59:34,265 - app - INFO - Firebase initialized
-2025-11-14 13:59:34,270 - app - INFO - Firebase Auth routes registered
-2025-11-14 13:59:34,274 - app - INFO - Admin API routes registered
-2025-11-14 14:00:27,035 - __main__ - INFO - Firebase initialized
-2025-11-14 14:00:27,046 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 14:00:27,054 - __main__ - INFO - Admin API routes registered
-2025-11-14 14:00:50,739 - app - INFO - Firebase initialized
-2025-11-14 14:00:50,746 - app - INFO - Firebase Auth routes registered
-2025-11-14 14:00:50,754 - app - INFO - Admin API routes registered
-2025-11-14 14:01:01,512 - __main__ - INFO - Firebase initialized
-2025-11-14 14:01:01,520 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 14:01:01,527 - __main__ - INFO - Admin API routes registered
-2025-11-14 14:01:13,355 - app - INFO - Firebase initialized
-2025-11-14 14:01:13,360 - app - INFO - Firebase Auth routes registered
-2025-11-14 14:01:13,366 - app - INFO - Admin API routes registered
-2025-11-14 14:02:24,335 - __main__ - INFO - Firebase initialized
-2025-11-14 14:02:24,339 - __main__ - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:02:39,642 - app - INFO - Firebase initialized
-2025-11-14 14:02:39,644 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:03:26,595 - app - INFO - Firebase initialized
-2025-11-14 14:03:26,598 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:04:08,515 - app - INFO - Firebase initialized
-2025-11-14 14:04:08,517 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:08:47,440 - __main__ - INFO - Firebase initialized
-2025-11-14 14:08:47,442 - __main__ - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:08:48,692 - __main__ - INFO - Firebase initialized
-2025-11-14 14:08:48,697 - __main__ - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:10:03,348 - __main__ - INFO - Firebase initialized
-2025-11-14 14:10:03,351 - __main__ - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:10:03,436 - __main__ - INFO - Firebase initialized
-2025-11-14 14:10:03,440 - __main__ - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:13:33,229 - app - INFO - Firebase initialized
-2025-11-14 14:13:33,233 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:14:13,681 - app - INFO - Firebase initialized
-2025-11-14 14:14:13,684 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:14:42,246 - app - INFO - Firebase initialized
-2025-11-14 14:14:42,249 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:15:28,582 - app - INFO - Firebase initialized
-2025-11-14 14:15:28,584 - app - WARNING - Firebase initialization failed: unexpected indent (firebase_auth_routes.py, line 135)
-2025-11-14 14:16:41,646 - __main__ - INFO - Firebase initialized
-2025-11-14 14:16:41,660 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 14:16:41,666 - __main__ - INFO - Admin API routes registered
-2025-11-14 14:17:07,459 - app - INFO - Firebase initialized
-2025-11-14 14:17:07,463 - app - INFO - Firebase Auth routes registered
-2025-11-14 14:17:07,469 - app - INFO - Admin API routes registered
-2025-11-14 14:18:15,066 - app - INFO - Firebase initialized
-2025-11-14 14:18:15,071 - app - INFO - Firebase Auth routes registered
-2025-11-14 14:18:15,077 - app - INFO - Admin API routes registered
-2025-11-14 14:18:39,949 - app - INFO - Firebase initialized
-2025-11-14 14:18:39,954 - app - INFO - Firebase Auth routes registered
-2025-11-14 14:18:39,959 - app - INFO - Admin API routes registered
-2025-11-14 14:20:48,135 - __main__ - INFO - Firebase initialized
-2025-11-14 14:20:48,144 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 14:20:48,148 - __main__ - INFO - Admin API routes registered
-2025-11-14 23:47:13,139 - __main__ - INFO - Firebase initialized
-2025-11-14 23:47:13,146 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 23:47:13,151 - __main__ - INFO - Admin API routes registered
-2025-11-14 23:47:14,309 - __main__ - INFO - Firebase initialized
-2025-11-14 23:47:14,315 - __main__ - INFO - Firebase Auth routes registered
-2025-11-14 23:47:14,319 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:02:00,287 - __main__ - INFO - Firebase initialized
-2025-11-15 00:02:00,298 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:02:00,302 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:11:43,526 - __main__ - INFO - Firebase initialized
-2025-11-15 00:11:43,539 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:11:43,546 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:12:41,562 - app - INFO - Firebase initialized
-2025-11-15 00:12:41,567 - app - INFO - Firebase Auth routes registered
-2025-11-15 00:12:41,572 - app - INFO - Admin API routes registered
-2025-11-15 00:13:14,471 - __main__ - INFO - Firebase initialized
-2025-11-15 00:13:14,476 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:13:14,480 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:13:15,588 - __main__ - INFO - Firebase initialized
-2025-11-15 00:13:15,593 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:13:15,597 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:32:58,988 - __main__ - INFO - Firebase initialized
-2025-11-15 00:32:58,993 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:32:58,997 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:33:00,138 - __main__ - INFO - Firebase initialized
-2025-11-15 00:33:00,143 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:33:00,147 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:42:04,805 - __main__ - INFO - Firebase initialized
-2025-11-15 00:42:04,811 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:42:04,819 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:42:26,477 - __main__ - INFO - Firebase initialized
-2025-11-15 00:42:26,481 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:42:26,486 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:42:50,719 - __main__ - INFO - Firebase initialized
-2025-11-15 00:42:50,730 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:42:50,735 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:43:21,903 - __main__ - INFO - Firebase initialized
-2025-11-15 00:43:21,910 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:43:21,914 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:43:50,525 - __main__ - INFO - Firebase initialized
-2025-11-15 00:43:50,531 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:43:50,535 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:44:21,359 - __main__ - INFO - Firebase initialized
-2025-11-15 00:44:21,364 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:44:21,368 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:50:13,019 - app - INFO - Firebase initialized
-2025-11-15 00:50:13,023 - app - INFO - Firebase Auth routes registered
-2025-11-15 00:50:13,027 - app - INFO - Admin API routes registered
-2025-11-15 00:51:05,259 - __main__ - INFO - Firebase initialized
-2025-11-15 00:51:05,264 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:51:05,268 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:51:06,536 - __main__ - INFO - Firebase initialized
-2025-11-15 00:51:06,541 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:51:06,545 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:58:53,257 - __main__ - INFO - Firebase initialized
-2025-11-15 00:58:53,267 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:58:53,279 - __main__ - INFO - Admin API routes registered
-2025-11-15 00:59:00,868 - __main__ - INFO - Firebase initialized
-2025-11-15 00:59:00,872 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 00:59:00,877 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:03:25,823 - __main__ - INFO - Firebase initialized
-2025-11-15 01:03:25,831 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:03:25,840 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:03:26,923 - __main__ - INFO - Firebase initialized
-2025-11-15 01:03:26,927 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:03:26,932 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:05:17,791 - __main__ - INFO - Firebase initialized
-2025-11-15 01:05:17,805 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:05:17,809 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:05:53,230 - __main__ - INFO - Firebase initialized
-2025-11-15 01:05:53,244 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:05:53,254 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:05:54,290 - __main__ - INFO - Firebase initialized
-2025-11-15 01:05:54,295 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:05:54,299 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:13:30,559 - __main__ - INFO - Firebase initialized
-2025-11-15 01:13:30,564 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:13:30,568 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:13:41,739 - __main__ - INFO - Firebase initialized
-2025-11-15 01:13:41,748 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:13:41,755 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:13:53,129 - __main__ - INFO - Firebase initialized
-2025-11-15 01:13:53,142 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:13:53,149 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:13:58,485 - __main__ - INFO - Firebase initialized
-2025-11-15 01:13:58,490 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:13:58,497 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:15:49,797 - __main__ - INFO - Firebase initialized
-2025-11-15 01:15:49,803 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:15:49,810 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:16:29,633 - __main__ - INFO - Firebase initialized
-2025-11-15 01:16:29,638 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:16:29,642 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:16:52,394 - __main__ - INFO - Firebase initialized
-2025-11-15 01:16:52,402 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:16:52,410 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:16:59,041 - app - INFO - Firebase initialized
-2025-11-15 01:16:59,046 - app - INFO - Firebase Auth routes registered
-2025-11-15 01:16:59,050 - app - INFO - Admin API routes registered
-2025-11-15 01:17:36,611 - __main__ - INFO - Firebase initialized
-2025-11-15 01:17:36,619 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:17:36,629 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:18:03,062 - __main__ - INFO - Firebase initialized
-2025-11-15 01:18:03,067 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:18:03,071 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:18:32,434 - __main__ - INFO - Firebase initialized
-2025-11-15 01:18:32,439 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:18:32,443 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:18:33,701 - __main__ - INFO - Firebase initialized
-2025-11-15 01:18:33,706 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:18:33,710 - __main__ - INFO - Admin API routes registered
-2025-11-15 01:20:03,010 - __main__ - INFO - Firebase initialized
-2025-11-15 01:20:03,015 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 01:20:03,019 - __main__ - INFO - Admin API routes registered
-2025-11-15 13:52:46,105 - app - INFO - Firebase initialized
-2025-11-15 13:52:46,118 - app - INFO - Firebase Auth routes registered
-2025-11-15 13:52:46,131 - app - INFO - Admin API routes registered
-2025-11-15 13:53:16,039 - app - INFO - Firebase initialized
-2025-11-15 13:53:16,046 - app - INFO - Firebase Auth routes registered
-2025-11-15 13:53:16,050 - app - INFO - Admin API routes registered
-2025-11-15 13:53:44,805 - app - INFO - Firebase initialized
-2025-11-15 13:53:44,811 - app - INFO - Firebase Auth routes registered
-2025-11-15 13:53:44,815 - app - INFO - Admin API routes registered
-2025-11-15 13:54:26,651 - __main__ - INFO - Firebase initialized
-2025-11-15 13:54:26,655 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 13:54:26,660 - __main__ - INFO - Admin API routes registered
-2025-11-15 13:54:28,185 - __main__ - INFO - Firebase initialized
-2025-11-15 13:54:28,191 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 13:54:28,196 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:04:45,160 - __main__ - INFO - Firebase initialized
-2025-11-15 14:04:45,164 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:04:45,169 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:04:53,879 - __main__ - INFO - Firebase initialized
-2025-11-15 14:04:53,887 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:04:53,894 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:05:01,486 - __main__ - INFO - Firebase initialized
-2025-11-15 14:05:01,496 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:05:01,500 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:05:11,702 - __main__ - INFO - Firebase initialized
-2025-11-15 14:05:11,715 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:05:11,721 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:05:17,986 - __main__ - INFO - Firebase initialized
-2025-11-15 14:05:17,995 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:05:18,002 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:06:16,730 - __main__ - INFO - Firebase initialized
-2025-11-15 14:06:16,744 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:06:16,754 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:12:15,395 - app - INFO - Firebase initialized
-2025-11-15 14:12:15,399 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:12:15,405 - app - INFO - Admin API routes registered
-2025-11-15 14:13:29,470 - app - INFO - Firebase initialized
-2025-11-15 14:13:29,475 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:13:29,479 - app - INFO - Admin API routes registered
-2025-11-15 14:15:03,348 - app - INFO - Firebase initialized
-2025-11-15 14:15:03,353 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:15:03,358 - app - INFO - Admin API routes registered
-2025-11-15 14:15:24,952 - app - INFO - Firebase initialized
-2025-11-15 14:15:24,957 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:15:24,962 - app - INFO - Admin API routes registered
-2025-11-15 14:15:32,924 - app - INFO - Firebase initialized
-2025-11-15 14:15:32,930 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:15:32,934 - app - INFO - Admin API routes registered
-2025-11-15 14:16:03,986 - app - INFO - Firebase initialized
-2025-11-15 14:16:03,992 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:16:03,996 - app - INFO - Admin API routes registered
-2025-11-15 14:16:32,564 - app - INFO - Firebase initialized
-2025-11-15 14:16:32,570 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:16:32,574 - app - INFO - Admin API routes registered
-2025-11-15 14:17:07,995 - app - INFO - Firebase initialized
-2025-11-15 14:17:08,001 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:17:08,005 - app - INFO - Admin API routes registered
-2025-11-15 14:18:20,805 - app - INFO - Firebase initialized
-2025-11-15 14:18:20,811 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:18:20,815 - app - INFO - Admin API routes registered
-2025-11-15 14:18:38,565 - app - INFO - Firebase initialized
-2025-11-15 14:18:38,573 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:18:38,583 - app - INFO - Admin API routes registered
-2025-11-15 14:18:57,659 - app - INFO - Firebase initialized
-2025-11-15 14:18:57,665 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:18:57,673 - app - INFO - Admin API routes registered
-2025-11-15 14:19:09,576 - app - INFO - Firebase initialized
-2025-11-15 14:19:09,582 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:19:09,586 - app - INFO - Admin API routes registered
-2025-11-15 14:19:44,036 - app - INFO - Firebase initialized
-2025-11-15 14:19:44,043 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:19:44,049 - app - INFO - Admin API routes registered
-2025-11-15 14:20:56,413 - app - INFO - Firebase initialized
-2025-11-15 14:20:56,419 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:20:56,423 - app - INFO - Admin API routes registered
-2025-11-15 14:21:05,097 - app - INFO - Firebase initialized
-2025-11-15 14:21:05,103 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:21:05,108 - app - INFO - Admin API routes registered
-2025-11-15 14:21:15,796 - app - INFO - Firebase initialized
-2025-11-15 14:21:15,802 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:21:15,806 - app - INFO - Admin API routes registered
-2025-11-15 14:22:00,920 - app - INFO - Firebase initialized
-2025-11-15 14:22:00,929 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:22:00,936 - app - INFO - Admin API routes registered
-2025-11-15 14:22:28,488 - __main__ - INFO - Firebase initialized
-2025-11-15 14:22:28,498 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:22:28,505 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:22:29,609 - __main__ - INFO - Firebase initialized
-2025-11-15 14:22:29,614 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:22:29,618 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:27:44,998 - app - INFO - Firebase initialized
-2025-11-15 14:27:45,004 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:27:45,009 - app - INFO - Admin API routes registered
-2025-11-15 14:28:00,261 - app - INFO - Firebase initialized
-2025-11-15 14:28:00,267 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:28:00,271 - app - INFO - Admin API routes registered
-2025-11-15 14:29:14,444 - app - INFO - Firebase initialized
-2025-11-15 14:29:14,450 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:29:14,455 - app - INFO - Admin API routes registered
-2025-11-15 14:29:25,185 - app - INFO - Firebase initialized
-2025-11-15 14:29:25,192 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:29:25,196 - app - INFO - Admin API routes registered
-2025-11-15 14:30:10,638 - __main__ - INFO - Firebase initialized
-2025-11-15 14:30:10,643 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:30:10,647 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:30:11,752 - __main__ - INFO - Firebase initialized
-2025-11-15 14:30:11,757 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:30:11,761 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:32:12,877 - app - INFO - Firebase initialized
-2025-11-15 14:32:12,883 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:32:12,887 - app - INFO - Admin API routes registered
-2025-11-15 14:32:22,978 - app - INFO - Firebase initialized
-2025-11-15 14:32:22,984 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:32:22,989 - app - INFO - Admin API routes registered
-2025-11-15 14:33:42,218 - __main__ - INFO - Firebase initialized
-2025-11-15 14:33:42,223 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:33:42,227 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:33:43,372 - __main__ - INFO - Firebase initialized
-2025-11-15 14:33:43,377 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:33:43,382 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:35:53,213 - app - INFO - Firebase initialized
-2025-11-15 14:35:53,219 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:35:53,223 - app - INFO - Admin API routes registered
-2025-11-15 14:36:03,807 - app - INFO - Firebase initialized
-2025-11-15 14:36:03,813 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:36:03,817 - app - INFO - Admin API routes registered
-2025-11-15 14:36:18,154 - app - INFO - Firebase initialized
-2025-11-15 14:36:18,163 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:36:18,171 - app - INFO - Admin API routes registered
-2025-11-15 14:36:32,723 - __main__ - INFO - Firebase initialized
-2025-11-15 14:36:32,728 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:36:32,732 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:36:33,911 - __main__ - INFO - Firebase initialized
-2025-11-15 14:36:33,916 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:36:33,920 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:40:24,522 - __main__ - INFO - Firebase initialized
-2025-11-15 14:40:24,527 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:40:24,531 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:40:49,139 - app - INFO - Firebase initialized
-2025-11-15 14:40:49,146 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:40:49,152 - app - INFO - Admin API routes registered
-2025-11-15 14:41:02,966 - app - INFO - Firebase initialized
-2025-11-15 14:41:02,972 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:41:02,977 - app - INFO - Admin API routes registered
-2025-11-15 14:41:15,176 - app - INFO - Firebase initialized
-2025-11-15 14:41:15,182 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:41:15,186 - app - INFO - Admin API routes registered
-2025-11-15 14:41:27,269 - __main__ - INFO - Firebase initialized
-2025-11-15 14:41:27,274 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:41:27,278 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:41:28,396 - __main__ - INFO - Firebase initialized
-2025-11-15 14:41:28,401 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:41:28,405 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:42:38,774 - app - INFO - Firebase initialized
-2025-11-15 14:42:38,783 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:42:38,791 - app - INFO - Admin API routes registered
-2025-11-15 14:42:49,407 - app - INFO - Firebase initialized
-2025-11-15 14:42:49,413 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:42:49,417 - app - INFO - Admin API routes registered
-2025-11-15 14:43:09,748 - app - INFO - Firebase initialized
-2025-11-15 14:43:09,754 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:43:09,758 - app - INFO - Admin API routes registered
-2025-11-15 14:43:25,759 - app - INFO - Firebase initialized
-2025-11-15 14:43:25,764 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:43:25,769 - app - INFO - Admin API routes registered
-2025-11-15 14:43:46,976 - app - INFO - Firebase initialized
-2025-11-15 14:43:46,982 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:43:46,988 - app - INFO - Admin API routes registered
-2025-11-15 14:44:08,841 - __main__ - INFO - Firebase initialized
-2025-11-15 14:44:08,846 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:44:08,850 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:44:10,020 - __main__ - INFO - Firebase initialized
-2025-11-15 14:44:10,025 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:44:10,030 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:47:53,248 - app - INFO - Firebase initialized
-2025-11-15 14:47:53,255 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:47:53,259 - app - INFO - Admin API routes registered
-2025-11-15 14:48:14,793 - __main__ - INFO - Firebase initialized
-2025-11-15 14:48:14,801 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:48:14,807 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:48:16,023 - __main__ - INFO - Firebase initialized
-2025-11-15 14:48:16,028 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:48:16,032 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:50:39,494 - app - INFO - Firebase initialized
-2025-11-15 14:50:39,499 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:50:39,504 - app - INFO - Admin API routes registered
-2025-11-15 14:50:50,264 - app - INFO - Firebase initialized
-2025-11-15 14:50:50,270 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:50:50,274 - app - INFO - Admin API routes registered
-2025-11-15 14:51:33,131 - __main__ - INFO - Firebase initialized
-2025-11-15 14:51:33,136 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:51:33,140 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:51:34,365 - __main__ - INFO - Firebase initialized
-2025-11-15 14:51:34,373 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:51:34,380 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:53:17,267 - __main__ - INFO - Firebase initialized
-2025-11-15 14:53:17,273 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:53:17,280 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:53:42,950 - __main__ - INFO - Firebase initialized
-2025-11-15 14:53:42,955 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:53:42,959 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:53:44,108 - __main__ - INFO - Firebase initialized
-2025-11-15 14:53:44,113 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:53:44,117 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:56:25,961 - __main__ - INFO - Firebase initialized
-2025-11-15 14:56:25,970 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 14:56:25,976 - __main__ - INFO - Admin API routes registered
-2025-11-15 14:56:37,530 - app - INFO - Firebase initialized
-2025-11-15 14:56:37,535 - app - INFO - Firebase Auth routes registered
-2025-11-15 14:56:37,540 - app - INFO - Admin API routes registered
-2025-11-15 15:01:26,445 - __main__ - INFO - Firebase initialized
-2025-11-15 15:01:26,453 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:01:26,460 - __main__ - INFO - Admin API routes registered
-2025-11-15 15:01:27,622 - __main__ - INFO - Firebase initialized
-2025-11-15 15:01:27,627 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:01:27,632 - __main__ - INFO - Admin API routes registered
-2025-11-15 15:08:06,372 - __main__ - INFO - Firebase initialized
-2025-11-15 15:08:06,377 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:08:06,381 - __main__ - INFO - Admin API routes registered
-2025-11-15 15:08:09,238 - __main__ - INFO - Firebase initialized
-2025-11-15 15:08:09,243 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:08:09,247 - __main__ - INFO - Admin API routes registered
-2025-11-15 15:08:34,345 - __main__ - INFO - Firebase initialized
-2025-11-15 15:08:34,350 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:08:34,354 - __main__ - INFO - Admin API routes registered
-2025-11-15 15:08:39,511 - __main__ - INFO - Firebase initialized
-2025-11-15 15:08:39,516 - __main__ - INFO - Firebase Auth routes registered
-2025-11-15 15:08:39,520 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:39:25,198 - app - INFO - Firebase initialized
-2025-11-16 00:39:25,208 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:39:25,216 - app - INFO - Admin API routes registered
-2025-11-16 00:39:38,424 - app - INFO - Firebase initialized
-2025-11-16 00:39:38,431 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:39:38,435 - app - INFO - Admin API routes registered
-2025-11-16 00:40:04,288 - __main__ - INFO - Firebase initialized
-2025-11-16 00:40:04,293 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:40:04,297 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:40:05,599 - __main__ - INFO - Firebase initialized
-2025-11-16 00:40:05,604 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:40:05,608 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:43:20,933 - __main__ - INFO - Firebase initialized
-2025-11-16 00:43:20,944 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:43:20,955 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:43:33,173 - __main__ - INFO - Firebase initialized
-2025-11-16 00:43:33,181 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:43:33,188 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:44:23,720 - app - INFO - Firebase initialized
-2025-11-16 00:44:23,728 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:44:23,735 - app - INFO - Admin API routes registered
-2025-11-16 00:44:40,106 - app - INFO - Firebase initialized
-2025-11-16 00:44:40,112 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:44:40,116 - app - INFO - Admin API routes registered
-2025-11-16 00:45:38,617 - app - INFO - Firebase initialized
-2025-11-16 00:45:38,622 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:45:38,626 - app - INFO - Admin API routes registered
-2025-11-16 00:47:10,375 - app - INFO - Firebase initialized
-2025-11-16 00:47:10,380 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:47:10,384 - app - INFO - Admin API routes registered
-2025-11-16 00:47:21,442 - app - INFO - Firebase initialized
-2025-11-16 00:47:21,448 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:47:21,452 - app - INFO - Admin API routes registered
-2025-11-16 00:47:40,115 - app - INFO - Firebase initialized
-2025-11-16 00:47:40,121 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:47:40,126 - app - INFO - Admin API routes registered
-2025-11-16 00:47:58,711 - app - INFO - Firebase initialized
-2025-11-16 00:47:58,717 - app - INFO - Firebase Auth routes registered
-2025-11-16 00:47:58,721 - app - INFO - Admin API routes registered
-2025-11-16 00:52:00,906 - __main__ - INFO - Firebase initialized
-2025-11-16 00:52:00,911 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:52:00,915 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:52:02,000 - __main__ - INFO - Firebase initialized
-2025-11-16 00:52:02,005 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:52:02,009 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:57:59,843 - __main__ - INFO - Firebase initialized
-2025-11-16 00:57:59,848 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:57:59,852 - __main__ - INFO - Admin API routes registered
-2025-11-16 00:58:00,962 - __main__ - INFO - Firebase initialized
-2025-11-16 00:58:00,967 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 00:58:00,971 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:04:54,762 - __main__ - INFO - Firebase initialized
-2025-11-16 01:04:54,768 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:04:54,773 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:05:02,239 - __main__ - INFO - Firebase initialized
-2025-11-16 01:05:02,247 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:05:02,255 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:05:21,419 - __main__ - INFO - Firebase initialized
-2025-11-16 01:05:21,424 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:05:21,428 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:08:26,406 - __main__ - INFO - Firebase initialized
-2025-11-16 01:08:26,411 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:08:26,415 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:09:15,500 - __main__ - INFO - Firebase initialized
-2025-11-16 01:09:15,504 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:09:15,509 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:09:41,435 - __main__ - INFO - Firebase initialized
-2025-11-16 01:09:41,439 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:09:41,444 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:09:59,636 - app - INFO - Firebase initialized
-2025-11-16 01:09:59,641 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:09:59,645 - app - INFO - Admin API routes registered
-2025-11-16 01:13:52,499 - __main__ - INFO - Firebase initialized
-2025-11-16 01:13:52,504 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:13:52,508 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:13:53,766 - __main__ - INFO - Firebase initialized
-2025-11-16 01:13:53,771 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:13:53,775 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:17:46,231 - __main__ - INFO - Firebase initialized
-2025-11-16 01:17:46,236 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 01:17:46,241 - __main__ - INFO - Admin API routes registered
-2025-11-16 01:17:56,366 - app - INFO - Firebase initialized
-2025-11-16 01:17:56,371 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:17:56,376 - app - INFO - Admin API routes registered
-2025-11-16 01:18:27,761 - app - INFO - Firebase initialized
-2025-11-16 01:18:27,767 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:18:27,771 - app - INFO - Admin API routes registered
-2025-11-16 01:19:02,198 - app - INFO - Firebase initialized
-2025-11-16 01:19:02,204 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:19:02,208 - app - INFO - Admin API routes registered
-2025-11-16 01:19:30,445 - app - INFO - Firebase initialized
-2025-11-16 01:19:30,453 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:19:30,460 - app - INFO - Admin API routes registered
-2025-11-16 01:19:41,403 - app - INFO - Firebase initialized
-2025-11-16 01:19:41,409 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:19:41,413 - app - INFO - Admin API routes registered
-2025-11-16 01:23:31,904 - app - INFO - Firebase initialized
-2025-11-16 01:23:31,910 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:23:31,917 - app - INFO - Admin API routes registered
-2025-11-16 01:24:04,869 - app - INFO - Firebase initialized
-2025-11-16 01:24:04,879 - app - INFO - Firebase Auth routes registered
-2025-11-16 01:24:04,888 - app - INFO - Admin API routes registered
-2025-11-16 17:47:42,717 - __main__ - INFO - Firebase initialized
-2025-11-16 17:47:42,725 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:47:42,730 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:47:44,235 - __main__ - INFO - Firebase initialized
-2025-11-16 17:47:44,240 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:47:44,244 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:49:23,617 - __main__ - INFO - Firebase initialized
-2025-11-16 17:49:23,624 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:49:23,631 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:51:09,128 - __main__ - INFO - Firebase initialized
-2025-11-16 17:51:09,132 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:51:09,137 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:51:20,218 - __main__ - INFO - Firebase initialized
-2025-11-16 17:51:20,222 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:51:20,227 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:52:15,874 - __main__ - INFO - Firebase initialized
-2025-11-16 17:52:15,879 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:52:15,884 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:52:30,259 - __main__ - INFO - Firebase initialized
-2025-11-16 17:52:30,266 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:52:30,273 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:52:44,726 - __main__ - INFO - Firebase initialized
-2025-11-16 17:52:44,731 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:52:44,736 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:52:53,213 - __main__ - INFO - Firebase initialized
-2025-11-16 17:52:53,218 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:52:53,222 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:53:11,084 - __main__ - INFO - Firebase initialized
-2025-11-16 17:53:11,093 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:53:11,097 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:54:20,394 - __main__ - INFO - Firebase initialized
-2025-11-16 17:54:20,405 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:54:20,413 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:54:55,878 - __main__ - INFO - Firebase initialized
-2025-11-16 17:54:55,883 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:54:55,887 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:55:25,337 - app - INFO - Firebase initialized
-2025-11-16 17:55:25,342 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:55:25,346 - app - INFO - Admin API routes registered
-2025-11-16 17:56:16,452 - app - INFO - Firebase initialized
-2025-11-16 17:56:16,457 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:56:16,461 - app - INFO - Admin API routes registered
-2025-11-16 17:57:36,871 - __main__ - INFO - Firebase initialized
-2025-11-16 17:57:36,876 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:57:36,880 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:57:42,274 - app - INFO - Firebase initialized
-2025-11-16 17:57:42,278 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:57:42,283 - app - INFO - Admin API routes registered
-2025-11-16 17:58:01,080 - __main__ - INFO - Firebase initialized
-2025-11-16 17:58:01,086 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:58:01,093 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:58:06,304 - __main__ - INFO - Firebase initialized
-2025-11-16 17:58:06,315 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:58:06,324 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:58:30,115 - __main__ - INFO - Firebase initialized
-2025-11-16 17:58:30,121 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:58:30,126 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:58:39,659 - app - INFO - Firebase initialized
-2025-11-16 17:58:39,664 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:58:39,668 - app - INFO - Admin API routes registered
-2025-11-16 17:58:49,104 - app - INFO - Firebase initialized
-2025-11-16 17:58:49,109 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:58:49,114 - app - INFO - Admin API routes registered
-2025-11-16 17:58:56,925 - app - INFO - Firebase initialized
-2025-11-16 17:58:56,930 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:58:56,934 - app - INFO - Admin API routes registered
-2025-11-16 17:59:23,256 - __main__ - INFO - Firebase initialized
-2025-11-16 17:59:23,266 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 17:59:23,274 - __main__ - INFO - Admin API routes registered
-2025-11-16 17:59:30,611 - app - INFO - Firebase initialized
-2025-11-16 17:59:30,623 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:59:30,635 - app - INFO - Admin API routes registered
-2025-11-16 17:59:44,322 - app - INFO - Firebase initialized
-2025-11-16 17:59:44,327 - app - INFO - Firebase Auth routes registered
-2025-11-16 17:59:44,332 - app - INFO - Admin API routes registered
-2025-11-16 18:01:54,449 - __main__ - INFO - Firebase initialized
-2025-11-16 18:01:54,475 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:01:54,493 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:02:07,040 - __main__ - INFO - Firebase initialized
-2025-11-16 18:02:07,044 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:02:07,050 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:02:25,507 - app - INFO - Firebase initialized
-2025-11-16 18:02:25,512 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:02:25,517 - app - INFO - Admin API routes registered
-2025-11-16 18:03:29,033 - app - INFO - Firebase initialized
-2025-11-16 18:03:29,038 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:03:29,043 - app - INFO - Admin API routes registered
-2025-11-16 18:14:44,686 - __main__ - INFO - Firebase initialized
-2025-11-16 18:14:44,706 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:14:44,722 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:15:22,213 - __main__ - INFO - Firebase initialized
-2025-11-16 18:15:22,217 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:15:22,221 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:15:41,668 - __main__ - INFO - Firebase initialized
-2025-11-16 18:15:41,674 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:15:41,680 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:16:19,683 - __main__ - INFO - Firebase initialized
-2025-11-16 18:16:19,687 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:16:19,691 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:17:33,281 - app - INFO - Firebase initialized
-2025-11-16 18:17:33,288 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:17:33,295 - app - INFO - Admin API routes registered
-2025-11-16 18:18:15,209 - app - INFO - Firebase initialized
-2025-11-16 18:18:15,213 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:18:15,217 - app - INFO - Admin API routes registered
-2025-11-16 18:19:08,065 - __main__ - INFO - Firebase initialized
-2025-11-16 18:19:08,069 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:19:08,073 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:19:34,388 - __main__ - INFO - Firebase initialized
-2025-11-16 18:19:34,393 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:19:34,400 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:19:35,709 - __main__ - INFO - Firebase initialized
-2025-11-16 18:19:35,718 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:19:35,725 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:19:36,959 - __main__ - INFO - Firebase initialized
-2025-11-16 18:19:36,963 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:19:36,967 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:23:59,866 - __main__ - INFO - Firebase initialized
-2025-11-16 18:23:59,876 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:23:59,896 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:24:00,126 - __main__ - INFO - Firebase initialized
-2025-11-16 18:24:00,134 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:24:00,141 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:24:35,486 - app - INFO - Firebase initialized
-2025-11-16 18:24:35,490 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:24:35,494 - app - INFO - Admin API routes registered
-2025-11-16 18:25:16,370 - __main__ - INFO - Firebase initialized
-2025-11-16 18:25:16,375 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:25:16,380 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:25:33,741 - app - INFO - Firebase initialized
-2025-11-16 18:25:33,746 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:25:33,750 - app - INFO - Admin API routes registered
-2025-11-16 18:26:14,043 - __main__ - INFO - Firebase initialized
-2025-11-16 18:26:14,047 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:26:14,051 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:26:15,219 - __main__ - INFO - Firebase initialized
-2025-11-16 18:26:15,223 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:26:15,228 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:31:23,214 - __main__ - INFO - Firebase initialized
-2025-11-16 18:31:23,224 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:31:23,237 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:31:24,418 - __main__ - INFO - Firebase initialized
-2025-11-16 18:31:24,422 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:31:24,426 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:33:13,792 - app - INFO - Firebase initialized
-2025-11-16 18:33:13,799 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:33:13,806 - app - INFO - Admin API routes registered
-2025-11-16 18:34:42,631 - __main__ - INFO - Firebase initialized
-2025-11-16 18:34:42,635 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:34:42,639 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:40:25,864 - __main__ - INFO - Firebase initialized
-2025-11-16 18:40:25,870 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:40:25,874 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:40:35,777 - __main__ - INFO - Firebase initialized
-2025-11-16 18:40:35,782 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:40:35,787 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:40:45,808 - __main__ - INFO - Firebase initialized
-2025-11-16 18:40:45,822 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:40:45,829 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:41:27,255 - __main__ - INFO - Firebase initialized
-2025-11-16 18:41:27,260 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:41:27,265 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:43:01,380 - app - INFO - Firebase initialized
-2025-11-16 18:43:01,384 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:43:01,389 - app - INFO - Admin API routes registered
-2025-11-16 18:43:33,088 - app - INFO - Firebase initialized
-2025-11-16 18:43:33,093 - app - INFO - Firebase Auth routes registered
-2025-11-16 18:43:33,097 - app - INFO - Admin API routes registered
-2025-11-16 18:46:05,788 - __main__ - INFO - Firebase initialized
-2025-11-16 18:46:05,793 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:46:05,801 - __main__ - INFO - Admin API routes registered
-2025-11-16 18:46:07,055 - __main__ - INFO - Firebase initialized
-2025-11-16 18:46:07,059 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 18:46:07,064 - __main__ - INFO - Admin API routes registered
-2025-11-16 19:01:03,650 - __main__ - INFO - Firebase initialized
-2025-11-16 19:01:03,656 - __main__ - INFO - Firebase Auth routes registered
-2025-11-16 19:01:03,661 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:17:57,786 - app - INFO - Firebase initialized
+2025-11-16 21:17:57,793 - app - INFO - Firebase Auth routes registered
+2025-11-16 21:17:57,799 - app - INFO - Admin API routes registered
+2025-11-16 21:18:50,145 - __main__ - INFO - Firebase initialized
+2025-11-16 21:18:50,149 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:18:50,156 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:18:51,344 - __main__ - INFO - Firebase initialized
+2025-11-16 21:18:51,348 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:18:51,361 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:20:15,284 - app - INFO - Firebase initialized
+2025-11-16 21:20:15,288 - app - INFO - Firebase Auth routes registered
+2025-11-16 21:20:15,294 - app - INFO - Admin API routes registered
+2025-11-16 21:23:02,564 - __main__ - INFO - Firebase initialized
+2025-11-16 21:23:02,568 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:23:02,574 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:23:03,770 - __main__ - INFO - Firebase initialized
+2025-11-16 21:23:03,774 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:23:03,780 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:36:28,158 - __main__ - INFO - Firebase initialized
+2025-11-16 21:36:28,163 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:36:28,168 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:38:56,204 - __main__ - INFO - Firebase initialized
+2025-11-16 21:38:56,210 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:38:56,219 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:39:16,872 - __main__ - INFO - Firebase initialized
+2025-11-16 21:39:16,879 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:39:16,888 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:39:56,818 - __main__ - INFO - Firebase initialized
+2025-11-16 21:39:56,822 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:39:56,827 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:50:01,269 - __main__ - INFO - Firebase initialized
+2025-11-16 21:50:01,274 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:50:01,279 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:51:12,259 - __main__ - INFO - Firebase initialized
+2025-11-16 21:51:12,263 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:51:12,268 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:51:30,647 - __main__ - INFO - Firebase initialized
+2025-11-16 21:51:30,651 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:51:30,661 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:51:43,131 - __main__ - INFO - Firebase initialized
+2025-11-16 21:51:43,136 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:51:43,145 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:53:24,484 - __main__ - INFO - Firebase initialized
+2025-11-16 21:53:24,489 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:53:24,495 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:53:46,256 - __main__ - INFO - Firebase initialized
+2025-11-16 21:53:46,260 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:53:46,266 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:53:54,777 - __main__ - INFO - Firebase initialized
+2025-11-16 21:53:54,784 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:53:54,794 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:53:56,055 - __main__ - INFO - Firebase initialized
+2025-11-16 21:53:56,062 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 21:53:56,091 - __main__ - INFO - Admin API routes registered
+2025-11-16 21:59:57,404 - app - INFO - Firebase initialized
+2025-11-16 21:59:57,410 - app - INFO - Firebase Auth routes registered
+2025-11-16 21:59:57,416 - app - INFO - Admin API routes registered
+2025-11-16 22:00:16,013 - __main__ - INFO - Firebase initialized
+2025-11-16 22:00:16,018 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:00:16,024 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:00:27,886 - app - INFO - Firebase initialized
+2025-11-16 22:00:27,890 - app - INFO - Firebase Auth routes registered
+2025-11-16 22:00:27,895 - app - INFO - Admin API routes registered
+2025-11-16 22:08:02,271 - __main__ - INFO - Firebase initialized
+2025-11-16 22:08:02,276 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:08:02,282 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:08:23,051 - __main__ - INFO - Firebase initialized
+2025-11-16 22:08:23,056 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:08:23,062 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:08:43,723 - __main__ - INFO - Firebase initialized
+2025-11-16 22:08:43,727 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:08:43,736 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:08:50,279 - __main__ - INFO - Firebase initialized
+2025-11-16 22:08:50,283 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:08:50,289 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:09:07,466 - __main__ - INFO - Firebase initialized
+2025-11-16 22:09:07,473 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:09:07,483 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:09:20,279 - __main__ - INFO - Firebase initialized
+2025-11-16 22:09:20,284 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:09:20,290 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:09:40,217 - __main__ - INFO - Firebase initialized
+2025-11-16 22:09:40,222 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:09:40,228 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:09:58,771 - __main__ - INFO - Firebase initialized
+2025-11-16 22:09:58,777 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:09:58,784 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:10:28,857 - __main__ - INFO - Firebase initialized
+2025-11-16 22:10:28,862 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:10:28,868 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:10:32,942 - app - INFO - Firebase initialized
+2025-11-16 22:10:32,949 - app - INFO - Firebase Auth routes registered
+2025-11-16 22:10:32,957 - app - INFO - Admin API routes registered
+2025-11-16 22:13:40,973 - __main__ - INFO - Firebase initialized
+2025-11-16 22:13:40,978 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:13:40,984 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:13:42,251 - __main__ - INFO - Firebase initialized
+2025-11-16 22:13:42,255 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:13:42,262 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:16:49,001 - __main__ - INFO - Firebase initialized
+2025-11-16 22:16:49,009 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:16:49,018 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:16:49,665 - __main__ - INFO - Firebase initialized
+2025-11-16 22:16:49,672 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:16:49,681 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:17:15,807 - __main__ - INFO - Firebase initialized
+2025-11-16 22:17:15,816 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:17:15,838 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:17:16,547 - __main__ - INFO - Firebase initialized
+2025-11-16 22:17:16,552 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:17:16,559 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:18:53,611 - __main__ - INFO - Firebase initialized
+2025-11-16 22:18:53,615 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:18:53,623 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:21:10,871 - __main__ - INFO - Firebase initialized
+2025-11-16 22:21:10,875 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:21:10,882 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:21:12,138 - __main__ - INFO - Firebase initialized
+2025-11-16 22:21:12,143 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:21:12,150 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:34:33,860 - __main__ - INFO - Firebase initialized
+2025-11-16 22:34:33,865 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:34:33,872 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:35:07,326 - __main__ - INFO - Firebase initialized
+2025-11-16 22:35:07,333 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:35:07,344 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:35:08,689 - __main__ - INFO - Firebase initialized
+2025-11-16 22:35:08,696 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:35:08,708 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:38:15,461 - __main__ - INFO - Firebase initialized
+2025-11-16 22:38:15,466 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:38:15,473 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:38:17,143 - __main__ - INFO - Firebase initialized
+2025-11-16 22:38:17,151 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:38:17,169 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:39:29,765 - __main__ - INFO - Firebase initialized
+2025-11-16 22:39:29,773 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:39:29,785 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:39:30,638 - __main__ - INFO - Firebase initialized
+2025-11-16 22:39:30,643 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:39:30,650 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:43:38,829 - __main__ - INFO - Firebase initialized
+2025-11-16 22:43:38,837 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:43:38,877 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:43:40,188 - __main__ - INFO - Firebase initialized
+2025-11-16 22:43:40,192 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:43:40,199 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:47:44,144 - __main__ - INFO - Firebase initialized
+2025-11-16 22:47:44,153 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:47:44,165 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:47:44,539 - __main__ - INFO - Firebase initialized
+2025-11-16 22:47:44,547 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:47:44,558 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:52:28,994 - __main__ - INFO - Firebase initialized
+2025-11-16 22:52:29,002 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:52:29,014 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:52:29,323 - __main__ - INFO - Firebase initialized
+2025-11-16 22:52:29,337 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:52:29,354 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:56:38,266 - __main__ - INFO - Firebase initialized
+2025-11-16 22:56:38,275 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:56:38,290 - __main__ - INFO - Admin API routes registered
+2025-11-16 22:56:38,705 - __main__ - INFO - Firebase initialized
+2025-11-16 22:56:38,713 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 22:56:38,725 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:02:03,448 - __main__ - INFO - Firebase initialized
+2025-11-16 23:02:03,456 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:02:03,469 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:02:03,507 - __main__ - INFO - Firebase initialized
+2025-11-16 23:02:03,515 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:02:03,532 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:10:14,894 - __main__ - INFO - Firebase initialized
+2025-11-16 23:10:14,903 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:10:14,919 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:10:15,145 - __main__ - INFO - Firebase initialized
+2025-11-16 23:10:15,152 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:10:15,163 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:10:27,062 - __main__ - INFO - Firebase initialized
+2025-11-16 23:10:27,083 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:10:27,112 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:10:28,286 - __main__ - INFO - Firebase initialized
+2025-11-16 23:10:28,290 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:10:28,297 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:20:27,654 - __main__ - INFO - Firebase initialized
+2025-11-16 23:20:27,663 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:20:27,685 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:20:28,053 - __main__ - INFO - Firebase initialized
+2025-11-16 23:20:28,060 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:20:28,073 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:21:21,340 - __main__ - INFO - Firebase initialized
+2025-11-16 23:21:21,351 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:21:21,386 - __main__ - INFO - Admin API routes registered
+2025-11-16 23:21:22,904 - __main__ - INFO - Firebase initialized
+2025-11-16 23:21:22,908 - __main__ - INFO - Firebase Auth routes registered
+2025-11-16 23:21:22,915 - __main__ - INFO - Admin API routes registered

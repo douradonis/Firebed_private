@@ -194,6 +194,11 @@ def logout():
                 except Exception:
                     pass
                 try:
+                    # First, push any local file changes back to Firebase
+                    firebase_config.firebase_push_group_files(grp.data_folder)
+                except Exception:
+                    current_app.logger.exception('Failed to push files on logout')
+                try:
                     firebase_config.firebase_sync_group_folder(grp.data_folder)
                 except Exception:
                     current_app.logger.exception('Failed to sync data on logout')
@@ -608,6 +613,7 @@ def _append_group_log(group: Group, message: str) -> None:
 def select_group():
     """Set the active group for the session. Expects form param 'group' (group name).
     Only allows selecting groups the current user belongs to.
+    Also attempts to ensure group data is available locally (lazy-pull from Firebase).
     """
     group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or ''
     group_name = (group_name or '').strip()
@@ -621,6 +627,15 @@ def select_group():
     # verify membership
     if grp not in current_user.groups:
         return jsonify({'ok': False, 'error': 'not a member of group'}), 403
+
+    # Attempt lazy-pull if group data missing locally
+    try:
+        import firebase_config
+        if getattr(grp, 'data_folder', None):
+            firebase_config.ensure_group_data_local(grp.data_folder)
+    except Exception as e:
+        # Log but don't fail - lazy-pull is non-critical
+        current_app.logger.debug(f"Lazy-pull failed when selecting group {group_name}: {e}")
 
     session['active_group'] = grp.name
     return jsonify({'ok': True, 'group': grp.name})

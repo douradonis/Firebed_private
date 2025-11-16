@@ -9,6 +9,11 @@ try:
 except ImportError:
     pass
 
+# Warn if MASTER_ENCRYPTION_KEY is missing or empty
+import logging
+if not os.getenv("MASTER_ENCRYPTION_KEY") or os.getenv("MASTER_ENCRYPTION_KEY") == "":
+     logging.warning("MASTER_ENCRYPTION_KEY is missing or empty! Decryption will fail.")
+
 import json
 import traceback
 import logging
@@ -921,6 +926,8 @@ CREDENTIALS_PATH = os.path.join(DATA_DIR, "credentials.json")
 def get_group_base_dir():
     """Return absolute path to the data directory for the currently active group (or user's single group).
     Falls back to the global DATA_DIR if no group selected or available.
+    
+    If the group's data folder is missing locally, attempts lazy-pull from Firebase.
     """
     try:
         # avoid top-level import cycles
@@ -931,6 +938,14 @@ def get_group_base_dir():
 
     if grp and getattr(grp, 'data_folder', None):
         base = os.path.join(BASE_DIR, 'data', grp.data_folder)
+        
+        # If folder doesn't exist, attempt lazy-pull from Firebase before creating empty folder
+        if not os.path.exists(base):
+            try:
+                import firebase_config
+                firebase_config.ensure_group_data_local(grp.data_folder)
+            except Exception as e:
+                current_app.logger.debug(f"Lazy-pull failed for group {grp.data_folder}: {e}")
     else:
         base = DATA_DIR
 
@@ -9239,6 +9254,20 @@ def admin_group_backup(group_id):
     return redirect(url_for('admin_group_detail', group_id=group_id))
 
 
+@app.route("/admin/groups/<int:group_id>/files", methods=['GET'])
+@login_required
+@_require_admin
+def admin_group_files(group_id):
+    """View and manage files in a group"""
+    from models import Group
+    group = Group.query.get(group_id)
+    if not group:
+        flash('Group not found', 'danger')
+        return redirect(url_for('admin_groups'))
+    
+    return render_template('admin/group_files.html', group=group)
+
+
 @app.route("/admin/groups/<int:group_id>/delete", methods=['POST'])
 @login_required
 @_require_admin
@@ -9463,7 +9492,7 @@ def admin_send_email():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "5001"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
 

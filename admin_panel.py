@@ -90,8 +90,14 @@ def admin_get_user_details(user_id: int) -> Optional[Dict[str, Any]]:
         total_size = 0
         for g in user.groups:
             data_path = os.path.join(os.getcwd(), 'data', g.data_folder) if getattr(g, 'data_folder', None) else None
-            if data_path and os.path.exists(data_path):
-                total_size += _get_folder_size(data_path)
+            # If the server has no local data for this group, attempt lazy pull from Firebase
+            try:
+                if getattr(g, 'data_folder', None):
+                    firebase_config.ensure_group_data_local(g.data_folder)
+                if data_path and os.path.exists(data_path):
+                    total_size += _get_folder_size(data_path)
+            except Exception:
+                continue
 
         # Fetch recent activity entries related to this user (best-effort)
         try:
@@ -185,6 +191,24 @@ def admin_list_all_groups() -> List[Dict[str, Any]]:
             for ug in group.user_groups:
                 member_roles[ug.user.username] = ug.role
             
+            # Attempt lazy-pull if group data missing locally
+            data_folder = getattr(group, 'data_folder', None)
+            if data_folder:
+                try:
+                    firebase_config.ensure_group_data_local(data_folder)
+                except Exception as e:
+                    logger.debug(f"Lazy-pull failed for group {group.name}: {e}")
+            
+            # Calculate folder size (now that lazy-pull has been attempted)
+            folder_size = 0
+            if data_folder:
+                try:
+                    data_path = os.path.join(os.getcwd(), 'data', data_folder)
+                    if os.path.exists(data_path):
+                        folder_size = _get_folder_size(data_path)
+                except Exception as e:
+                    logger.debug(f"Failed to calculate folder size for {group.name}: {e}")
+            
             result.append({
                 'id': group.id,
                 'name': group.name,
@@ -192,7 +216,8 @@ def admin_list_all_groups() -> List[Dict[str, Any]]:
                 'data_folder': group.data_folder,
                 'members_count': len(group.user_groups),
                 'admins': [u.user.username for u in group.user_groups if u.role == 'admin'],
-                'created_at': str(getattr(group, 'created_at', None))
+                'created_at': str(getattr(group, 'created_at', None)),
+                'folder_size_mb': round(folder_size / (1024 * 1024), 2)
             })
         
         return result
@@ -217,8 +242,12 @@ def admin_get_group_details(group_id: int) -> Optional[Dict[str, Any]]:
                 'role': ug.role
             })
         
-        # Get data size
+        # Get data size. If local data folder missing, try to pull from Firebase lazily
         data_path = os.path.join(os.getcwd(), 'data', group.data_folder)
+        try:
+            firebase_config.ensure_group_data_local(group.data_folder)
+        except Exception as e:
+            logger.debug(f"Lazy-pull failed for group {group.name}: {e}")
         folder_size = _get_folder_size(data_path) if os.path.exists(data_path) else 0
         
         return {
@@ -310,9 +339,15 @@ def admin_backup_group(group_id: int) -> Optional[str]:
         if not group:
             return None
         
+        # Attempt lazy-pull if data missing locally
+        try:
+            firebase_config.ensure_group_data_local(group.data_folder)
+        except Exception as e:
+            logger.debug(f"Lazy-pull failed for backup of {group.name}: {e}")
+        
         data_path = os.path.join(os.getcwd(), 'data', group.data_folder)
         if not os.path.exists(data_path):
-            logger.warning(f"Group data folder not found: {data_path}")
+            logger.warning(f"Group data folder not found after lazy-pull attempt: {data_path}")
             return None
         
         # Create backups folder
@@ -363,6 +398,168 @@ def admin_list_backups(group_id: Optional[int] = None) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Failed to list backups: {e}")
         return []
+
+
+def admin_list_remote_backups(prefix: Optional[str] = None) -> List[Dict[str, Any]]:
+    """List backups stored in Firebase under /backups. Optionally filter by prefix (e.g. group name)."""
+    try:
+        if not firebase_config.is_firebase_enabled():
+            return []
+
+        data = firebase_config.firebase_read_data('/backups') or {}
+        results = []
+
+        # data structure is expected to be { category: { timestamp: payload } }
+        for cat, entries in data.items():
+            if not isinstance(entries, dict):
+                continue
+            for ts_key, payload in entries.items():
+                # build a simple name/path
+                name = f"/backups/{cat}/{ts_key}"
+                if prefix and prefix not in name:
+                    continue
+                # attempt to compute an approximate size
+                try:
+                    size = len(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+                except Exception:
+                    size = 0
+
+                created_at = None
+                try:
+                    # ts_key may be ISO timestamp
+                    created_at = ts_key
+                except Exception:
+                    created_at = ''
+
+                results.append({
+                    'name': name,
+                    'category': cat,
+                    'key': ts_key,
+                    'size_bytes': size,
+                    'size_mb': round(size / (1024 * 1024), 2),
+                    'created_at': created_at
+                })
+
+        # sort newest first by created_at (string compare OK for ISO timestamps)
+        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        return results
+    except Exception as e:
+        logger.error(f"Failed to list remote backups: {e}")
+        return []
+
+
+def admin_delete_remote_backup(backup_path: str, current_admin: User) -> Dict[str, Any]:
+    """Delete a backup entry stored in Firebase. `backup_path` should be like '/backups/<cat>/<key>'"""
+    try:
+        if not firebase_config.is_firebase_enabled():
+            return {'ok': False, 'error': 'Firebase not enabled'}
+
+        # sanitize path: ensure it starts with /backups
+        if not backup_path.startswith('/backups'):
+            return {'ok': False, 'error': 'Invalid backup path'}
+
+        ok = firebase_config.firebase_delete_data(backup_path)
+        if ok:
+            firebase_log_activity(current_admin.id, 'admin', 'backup_deleted', {'backup_path': backup_path})
+            return {'ok': True, 'message': f'Deleted backup {backup_path}'}
+        return {'ok': False, 'error': 'Failed to delete backup in Firebase'}
+    except Exception as e:
+        logger.error(f"Failed to delete remote backup {backup_path}: {e}")
+        return {'ok': False, 'error': str(e)}
+
+
+def admin_restore_remote_backup(backup_path: str, target_group_id: int, groups_to_restore: Optional[List[str]] = None, current_admin: Optional[User] = None) -> Dict[str, Any]:
+    """Restore one or more groups from a Firebase backup entry.
+
+    - `backup_path` : Firebase path like '/backups/<cat>/<key>'
+    - `target_group_id` : DB Group id to map single-group restores; ignored when groups_to_restore provided
+    - `groups_to_restore` : list of group folder names to restore from the backup; if None and backup contains multiple groups, will try to restore the single group matched by target_group_id
+    """
+    try:
+        if not firebase_config.is_firebase_enabled():
+            return {'ok': False, 'error': 'Firebase not enabled'}
+
+        # Read backup data
+        data = firebase_config.firebase_read_data(backup_path)
+        if not data:
+            return {'ok': False, 'error': 'Backup not found or empty'}
+
+        # If groups_to_restore not provided, infer from target_group_id
+        restore_groups = []
+        if groups_to_restore:
+            restore_groups = groups_to_restore
+        else:
+            group = Group.query.get(target_group_id)
+            if not group:
+                return {'ok': False, 'error': 'Target group not found and no groups_to_restore provided'}
+            # try to find matching entry in backup by folder name
+            gf = group.data_folder
+            if isinstance(data.get('groups'), dict) and gf in data.get('groups'):
+                restore_groups = [gf]
+            else:
+                # if backup is a direct group backup (not full backup), backup might contain group's keys at top-level
+                # try using last path segment of backup_path
+                parts = backup_path.strip('/').split('/')
+                if len(parts) >= 2:
+                    candidate = parts[1]
+                    restore_groups = [candidate]
+
+        if not restore_groups:
+            return {'ok': False, 'error': 'No groups determined to restore'}
+
+        restored = []
+        for gname in restore_groups:
+            # If full-backup structure (has 'groups' key)
+            if isinstance(data.get('groups'), dict) and gname in data['groups']:
+                group_blob = data['groups'][gname]
+            else:
+                # fallback: top-level payload for single group backups
+                # backup path like /backups/<group>/<key>
+                group_blob = data if isinstance(data, dict) else None
+
+            if not group_blob:
+                continue
+
+            # Write to Firebase groups path
+            ok = firebase_config.firebase_import_group_data(gname, group_blob)
+            # Also write to local folder
+            try:
+                local_dir = os.path.join(os.getcwd(), 'data', gname)
+                # remove existing local data (safety: keep a pre-restore backup)
+                if os.path.exists(local_dir):
+                    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+                    pre = os.path.join(os.getcwd(), 'data', '_backups', f"{gname}_pre_remote_restore_{timestamp}")
+                    shutil.copytree(local_dir, pre)
+                    shutil.rmtree(local_dir)
+                os.makedirs(local_dir, exist_ok=True)
+                # materialize keys as JSON files where appropriate
+                if isinstance(group_blob, dict):
+                    for k, v in group_blob.items():
+                        safe = str(k).lstrip('/').replace('/', '_')
+                        target_path = os.path.join(local_dir, f"{safe}.json")
+                        try:
+                            with open(target_path, 'w', encoding='utf-8') as fh:
+                                json.dump(v, fh, ensure_ascii=False, indent=2)
+                        except Exception:
+                            pass
+            except Exception as e:
+                logger.warning(f"Failed to write local data for restored group {gname}: {e}")
+
+            restored.append(gname)
+
+        if current_admin:
+            firebase_log_activity(current_admin.id, 'admin', 'remote_backup_restored', {
+                'backup_path': backup_path,
+                'restored_groups': restored
+            })
+
+        if not restored:
+            return {'ok': False, 'error': 'No groups restored'}
+        return {'ok': True, 'restored': restored}
+
+    except Exception as e:
+        logger.error(f"Failed to restore remote backup {backup_path}: {e}")
+        return {'ok': False, 'error': str(e)}
 
 
 def admin_get_backup_zip(backup_name: str) -> Optional[str]:
