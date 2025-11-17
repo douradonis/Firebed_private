@@ -1092,17 +1092,46 @@ def api_send_email():
 def api_email_config():
     """Get or update email configuration"""
     if request.method == 'GET':
-        import email_utils
-        return jsonify({
-            'success': True,
-            'config': {
-                'smtp_server': email_utils.SMTP_SERVER,
-                'smtp_port': email_utils.SMTP_PORT,
-                'smtp_user': email_utils.SMTP_USER,
-                'sender_email': email_utils.SENDER_EMAIL,
-                'configured': bool(email_utils.SMTP_USER and email_utils.SMTP_PASSWORD)
+        try:
+            import email_utils
+            from app import load_settings
+            
+            settings = load_settings()
+            current_provider = email_utils.get_email_provider()
+            
+            # Check configuration status for different providers
+            smtp_configured = bool(email_utils.SMTP_USER and email_utils.SMTP_PASSWORD)
+            resend_configured = bool(email_utils.RESEND_API_KEY)
+            
+            config_status = {
+                'smtp': smtp_configured,
+                'resend': resend_configured,
+                'oauth2_outlook': False  # TODO: Add OAuth2 check
             }
-        })
+            
+            provider_info = {
+                'smtp': {
+                    'server': email_utils.SMTP_SERVER,
+                    'port': email_utils.SMTP_PORT,
+                    'user': email_utils.SMTP_USER,
+                    'sender': email_utils.SENDER_EMAIL
+                } if smtp_configured else None,
+                'resend': {
+                    'api_key_set': bool(email_utils.RESEND_API_KEY),
+                    'sender': email_utils.SENDER_EMAIL
+                } if resend_configured else None
+            }
+            
+            return jsonify({
+                'success': True,
+                'current_provider': current_provider,
+                'config_status': config_status,
+                'provider_info': provider_info,
+                'configured': config_status.get(current_provider, False)
+            })
+        except Exception as e:
+            logger.error(f"Error getting email config: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
     
     # POST method would update config, but we use environment variables
     return jsonify({

@@ -72,3 +72,5 @@
 {"user_id": "qztJIKPL6NNG6Jk9ZcXAbiLFTEz2", "group": "system", "action": "user_signup_complete", "timestamp": "2025-11-17T20:31:53.831366+00:00", "details": {"email": "douradonis@hotmail.com", "verification_email_sent": true}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-17T20:33:17.886124+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-17T20:33:17.979907+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-17T22:21:14.240823+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-17T22:21:14.416035+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
