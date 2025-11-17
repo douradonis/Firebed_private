@@ -9155,7 +9155,7 @@ def _require_admin(f):
 @login_required
 @_require_admin
 def admin_dashboard():
-    """Admin dashboard - overview of system"""
+    """Admin dashboard - overview of system (unified)"""
     try:
         # Load recent activity logs to show on dashboard
         try:
@@ -9164,7 +9164,7 @@ def admin_dashboard():
         except Exception:
             recent_activity = []
 
-        return render_template('admin/dashboard_new.html', recent_activity=recent_activity)
+        return render_template('admin/dashboard_unified.html', recent_activity=recent_activity)
     except Exception as e:
         logger.exception(f"Admin dashboard error: {e}")
         flash(f'Error: {str(e)}', 'danger')
@@ -9492,7 +9492,7 @@ def admin_send_email():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5001"))
+    port = int(os.getenv("PORT", "5000"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
 

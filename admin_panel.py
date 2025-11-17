@@ -54,11 +54,12 @@ def admin_list_all_users(include_deleted: bool = False) -> List[Dict[str, Any]]:
             result.append({
                 'id': user.id,
                 'username': user.username,
-                    'email': getattr(user, 'email', None),
+                'email': getattr(user, 'email', None),
                 'firebase_uid': getattr(user, 'pw_hash', None),
                 'created_at': str(getattr(user, 'created_at', None)),
-                'groups': [g.name for g in user.groups],
+                'groups': [{'id': g.id, 'name': g.name} for g in user.groups],
                 'group_count': len(user.groups),
+                'is_admin': getattr(user, 'is_admin', False),
                 'is_admin_of': [g.name for g in user.groups if user.role_for_group(g) == 'admin']
             })
         

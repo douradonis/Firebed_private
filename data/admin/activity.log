@@ -1,0 +1,4 @@
+{"user_id": 5, "group": "admin", "action": "user_deleted", "timestamp": "2025-11-17T07:51:50.542229+00:00", "details": {"deleted_user_id": 4, "deleted_username": "admin"}}
+{"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T07:51:57.593708+00:00", "details": {"group_id": 3, "group_name": "test_lazy_group_admin", "backup_path": "/workspaces/Firebed_private/data/_backups/test_lazy_group_backup_20251117_075157"}}
+{"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T07:54:53.276607+00:00", "details": {"group_id": 4, "group_name": "test_backup_group", "backup_path": "/workspaces/Firebed_private/data/_backups/test_backup_folder_backup_20251117_075453"}}
+{"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T07:55:28.392347+00:00", "details": {"group_id": 1, "group_name": "parad1", "backup_path": "/workspaces/Firebed_private/data/_backups/parad1_backup_20251117_075528"}}

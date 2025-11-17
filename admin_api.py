@@ -511,3 +511,435 @@ def api_get_group_file(group_id, file_path):
         logger.error(f"Error getting group file: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ============================================================================
+# Enhanced CRUD and Admin Operations
+# ============================================================================
+
+def _log_admin_action(action_type: str, target_type: str, target_id: str, details: dict = None):
+    """Log an admin action for audit trail"""
+    try:
+        log_entry = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'admin_user_id': current_user.id,
+            'admin_username': current_user.username,
+            'action': action_type,
+            'target_type': target_type,
+            'target_id': target_id,
+            'details': details or {},
+            'ip_address': request.remote_addr
+        }
+        firebase_config.firebase_log_activity(
+            current_user.pw_hash or 'admin',
+            '__admin__',
+            f'admin_{action_type}',
+            log_entry
+        )
+        logger.info(f'[ADMIN ACTION] {action_type} on {target_type} {target_id} by {current_user.username}')
+    except Exception as e:
+        logger.error(f'Failed to log admin action: {e}')
+
+
+@admin_api_bp.route('/users', methods=['POST'])
+@login_required
+@_require_admin
+def api_create_user():
+    """Create a new user"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '').strip()
+        username = data.get('username', '').strip()
+        
+        if not email or not password or not username:
+            return jsonify({'success': False, 'error': 'Email, password, and username required'}), 400
+        
+        # Check if user already exists
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            return jsonify({'success': False, 'error': 'User already exists'}), 400
+        
+        # Create user in database
+        new_user = User(email=email, username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        # Log action
+        _log_admin_action('create_user', 'user', str(new_user.id), {
+            'email': email,
+            'username': username
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {username} created',
+            'user': {
+                'id': new_user.id,
+                'email': new_user.email,
+                'username': new_user.username
+            }
+        })
+    except Exception as e:
+        logger.error(f'Error creating user: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/users/<int:user_id>', methods=['PUT'])
+@login_required
+@_require_admin
+def api_update_user(user_id):
+    """Update user details"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        data = request.get_json()
+        changes = {}
+        
+        # Update email
+        if 'email' in data:
+            new_email = data['email'].strip()
+            if new_email and new_email != user.email:
+                existing = User.query.filter_by(email=new_email).first()
+                if existing:
+                    return jsonify({'success': False, 'error': 'Email already in use'}), 400
+                changes['email'] = {'from': user.email, 'to': new_email}
+                user.email = new_email
+        
+        # Update username
+        if 'username' in data:
+            new_username = data['username'].strip()
+            if new_username and new_username != user.username:
+                changes['username'] = {'from': user.username, 'to': new_username}
+                user.username = new_username
+        
+        # Update password
+        if 'password' in data:
+            new_password = data['password'].strip()
+            if new_password:
+                user.set_password(new_password)
+                changes['password'] = 'updated'
+        
+        # Update is_admin flag
+        if 'is_admin' in data:
+            old_is_admin = user.is_admin
+            user.is_admin = bool(data['is_admin'])
+            if old_is_admin != user.is_admin:
+                changes['is_admin'] = {'from': old_is_admin, 'to': user.is_admin}
+        
+        db.session.commit()
+        
+        # Log action
+        _log_admin_action('update_user', 'user', str(user_id), changes)
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {user.username} updated',
+            'changes': changes,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'username': user.username,
+                'is_admin': user.is_admin
+            }
+        })
+    except Exception as e:
+        logger.error(f'Error updating user {user_id}: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@login_required
+@_require_admin
+def api_delete_user_by_id(user_id):
+    """Delete a user by ID"""
+    try:
+        if user_id == current_user.id:
+            return jsonify({'success': False, 'error': 'Cannot delete yourself'}), 400
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        username = user.username
+        email = user.email
+        
+        # Delete from database
+        db.session.delete(user)
+        db.session.commit()
+        
+        # Log action
+        _log_admin_action('delete_user', 'user', str(user_id), {
+            'username': username,
+            'email': email
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {username} deleted'
+        })
+    except Exception as e:
+        logger.error(f'Error deleting user {user_id}: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/groups/<int:group_id>/members', methods=['GET'])
+@login_required
+@_require_admin
+def api_get_group_members(group_id):
+    """Get members of a group"""
+    try:
+        group = Group.query.get(group_id)
+        if not group:
+            return jsonify({'success': False, 'error': 'Group not found'}), 404
+        
+        members = []
+        for user in group.users:
+            members.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_admin': user.is_admin
+            })
+        
+        return jsonify({
+            'success': True,
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'data_folder': group.data_folder
+            },
+            'members': members,
+            'count': len(members)
+        })
+    except Exception as e:
+        logger.error(f'Error getting group members: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/groups/<int:group_id>/members', methods=['POST'])
+@login_required
+@_require_admin
+def api_add_group_member(group_id):
+    """Add a member to a group"""
+    try:
+        group = Group.query.get(group_id)
+        if not group:
+            return jsonify({'success': False, 'error': 'Group not found'}), 404
+        
+        data = request.get_json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        if user in group.users:
+            return jsonify({'success': False, 'error': 'User already in group'}), 400
+        
+        group.users.append(user)
+        db.session.commit()
+        
+        # Log action
+        _log_admin_action('add_group_member', 'group', str(group_id), {
+            'user_id': user_id,
+            'username': user.username,
+            'group_name': group.name
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {user.username} added to group {group.name}'
+        })
+    except Exception as e:
+        logger.error(f'Error adding group member: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/groups/<int:group_id>/members/<int:user_id>', methods=['DELETE'])
+@login_required
+@_require_admin
+def api_remove_group_member(group_id, user_id):
+    """Remove a member from a group"""
+    try:
+        group = Group.query.get(group_id)
+        if not group:
+            return jsonify({'success': False, 'error': 'Group not found'}), 404
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        if user not in group.users:
+            return jsonify({'success': False, 'error': 'User not in group'}), 400
+        
+        group.users.remove(user)
+        db.session.commit()
+        
+        # Log action
+        _log_admin_action('remove_group_member', 'group', str(group_id), {
+            'user_id': user_id,
+            'username': user.username,
+            'group_name': group.name
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {user.username} removed from group {group.name}'
+        })
+    except Exception as e:
+        logger.error(f'Error removing group member: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/audit-log', methods=['GET'])
+@login_required
+@_require_admin
+def api_get_audit_log():
+    """Get detailed audit log of admin actions"""
+    try:
+        limit = int(request.args.get('limit', 200))
+        admin_user_id = request.args.get('admin_user_id')
+        action_type = request.args.get('action')
+        
+        # Get audit logs from Firebase
+        logs = firebase_config.firebase_get_group_activity_logs('__admin__', limit=limit)
+        
+        # Filter if needed
+        if admin_user_id:
+            logs = [log for log in logs if log.get('details', {}).get('admin_user_id') == int(admin_user_id)]
+        
+        if action_type:
+            logs = [log for log in logs if action_type in log.get('event_type', '')]
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+    except Exception as e:
+        logger.error(f'Error getting audit log: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/user-actions/<int:user_id>', methods=['GET'])
+@login_required
+@_require_admin
+def api_get_user_actions(user_id):
+    """Get all actions performed by a specific user"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        limit = int(request.args.get('limit', 100))
+        
+        # Get all activity logs for this user across groups
+        all_logs = []
+        groups = Group.query.filter(Group.users.any(id=user_id)).all()
+        
+        for group in groups:
+            group_logs = firebase_config.firebase_get_group_activity_logs(group.name, limit=limit)
+            all_logs.extend(group_logs)
+        
+        # Sort by timestamp, most recent first
+        all_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        all_logs = all_logs[:limit]
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            },
+            'actions': all_logs,
+            'count': len(all_logs)
+        })
+    except Exception as e:
+        logger.error(f'Error getting user actions: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# Additional Endpoints for Unified Dashboard
+# ============================================================================
+
+@admin_api_bp.route('/activity-logs', methods=['GET'])
+@login_required
+@_require_admin
+def api_activity_logs():
+    """Get activity logs with filtering"""
+    try:
+        group_filter = request.args.get('group', '')
+        action_filter = request.args.get('action', '')
+        limit = int(request.args.get('limit', 100))
+        
+        logs = admin_panel.admin_get_activity_logs(group_filter if group_filter else None, limit)
+        
+        # Filter by action if provided
+        if action_filter:
+            logs = [log for log in logs if action_filter.lower() in (log.get('action') or '').lower()]
+        
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        logger.error(f"Error getting activity logs: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/users/<int:user_id>', methods=['GET'])
+@login_required
+@_require_admin
+def api_get_user_detail(user_id):
+    """Get detailed info about a specific user"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        user_detail = admin_panel.admin_get_user_details(user_id)
+        if not user_detail:
+            return jsonify({'success': False, 'error': 'Could not load user details'}), 404
+        
+        return jsonify({'success': True, 'user': user_detail})
+    except Exception as e:
+        logger.error(f"Error getting user {user_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/groups/<int:group_id>', methods=['GET'])
+@login_required
+@_require_admin
+def api_get_group_detail(group_id):
+    """Get detailed info about a specific group"""
+    try:
+        group = Group.query.get(group_id)
+        if not group:
+            return jsonify({'success': False, 'error': 'Group not found'}), 404
+        
+        group_detail = admin_panel.admin_get_group_details(group_id)
+        if not group_detail:
+            return jsonify({'success': False, 'error': 'Could not load group details'}), 404
+        
+        return jsonify({'success': True, 'group': group_detail})
+    except Exception as e:
+        logger.error(f"Error getting group {group_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups', methods=['GET'])
+@login_required
+@_require_admin
+def api_list_backups():
+    """List all local backups"""
+    try:
+        backups = admin_panel.admin_list_backups()
+        return jsonify({'success': True, 'backups': backups})
+    except Exception as e:
+        logger.error(f"Error listing backups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
