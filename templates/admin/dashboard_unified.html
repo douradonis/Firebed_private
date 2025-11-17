@@ -273,6 +273,53 @@
   <!-- ==================== SETTINGS TAB ==================== -->
   <div id="settings" class="tab-content hidden">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Email Provider Settings -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">📧 Email Provider Configuration</h3>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Επιλέξτε Πάροχο Email</label>
+          <select id="email-provider-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+            <option value="smtp">SMTP (Traditional Email)</option>
+            <option value="resend">Resend API (Modern)</option>
+            <option value="oauth2_outlook">OAuth2 Outlook</option>
+          </select>
+        </div>
+
+        <!-- Provider-specific help text -->
+        <div id="provider-help" class="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded">
+          <div id="help-smtp" class="hidden">
+            <strong>SMTP:</strong> Παραδοσιακό email μέσω SMTP server<br>
+            <small>Απαιτεί: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD στο .env</small>
+          </div>
+          <div id="help-resend" class="hidden">
+            <strong>Resend:</strong> Σύγχρονο API-based email service<br>
+            <small>Απαιτεί: RESEND_API_KEY στο .env και επαληθευμένο domain</small>
+          </div>
+          <div id="help-oauth2_outlook" class="hidden">
+            <strong>OAuth2 Outlook:</strong> Microsoft Outlook με OAuth2<br>
+            <small>Απαιτεί: OAuth2 credentials configuration</small>
+          </div>
+        </div>
+
+        <button onclick="saveEmailProvider()" class="w-full px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+          💾 Αποθήκευση Επιλογής
+        </button>
+
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <h4 class="font-medium text-blue-800 mb-2">📊 Status Email Συστήματος</h4>
+          <div class="text-sm text-blue-700 mb-3" id="email-config-info">Loading...</div>
+          <div class="flex gap-2">
+            <button onclick="testEmailConfiguration()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+              🧪 Test Email
+            </button>
+            <button onclick="loadEmailProviderSettings()" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- System Settings -->
       <div class="bg-white border border-gray-200 rounded-lg p-6">
         <h3 class="text-lg font-bold mb-4">⚙️ Ρυθμίσεις Συστήματος</h3>
@@ -291,20 +338,17 @@
           </label>
           <label class="flex items-center gap-3">
             <input type="checkbox" id="smtp-status" class="w-4 h-4" disabled />
-            <span id="smtp-status-text">📧 SMTP Email</span>
+            <span id="smtp-status-text">📧 Email Service</span>
           </label>
           
-          <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-            <h4 class="font-medium text-blue-800 mb-2">📧 Email Configuration</h4>
-            <div class="text-sm text-blue-700 mb-3" id="email-config-info">Loading...</div>
-            <button onclick="testEmailConfiguration()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-              🧪 Test SMTP
-            </button>
+          <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+            <h4 class="font-medium text-green-800 mb-2">💡 Configuration Tips</h4>
+            <ul class="text-sm text-green-700 space-y-1">
+              <li>• <strong>SMTP:</strong> Καλύτερο για εσωτερικές εφαρμογές</li>
+              <li>• <strong>Resend:</strong> Καλύτερο για production με analytics</li>
+              <li>• <strong>OAuth2:</strong> Για ασφαλή Microsoft integration</li>
+            </ul>
           </div>
-          
-          <p class="text-xs text-gray-500 mt-4 p-3 bg-gray-50 rounded">
-            💡 Email ρυθμίσεις: SMTP_SERVER, SMTP_USER, SMTP_PASSWORD στο .env αρχείο
-          </p>
         </div>
       </div>
 
@@ -1153,23 +1197,44 @@ async function loadEmailConfiguration() {
     const data = await response.json();
     
     if (data.success) {
-      const config = data.config;
       const statusEl = document.getElementById('smtp-status');
       const statusTextEl = document.getElementById('smtp-status-text');
       const infoEl = document.getElementById('email-config-info');
       
-      if (config.configured) {
+      const provider = data.current_provider;
+      const isConfigured = data.configured;
+      
+      if (isConfigured) {
         statusEl.checked = true;
-        statusTextEl.textContent = '✅ SMTP Email (Configured)';
-        infoEl.innerHTML = `
-          <strong>Server:</strong> ${config.smtp_server}:${config.smtp_port}<br>
-          <strong>User:</strong> ${config.smtp_user}<br>
-          <strong>Sender:</strong> ${config.sender_email}
-        `;
+        statusTextEl.textContent = `✅ Email Service (${provider.toUpperCase()})`;
+        
+        let configInfo = `<strong>Τρέχων πάροχος:</strong> ${provider.toUpperCase()}<br>`;
+        
+        if (provider === 'smtp' && data.provider_info.smtp) {
+          const smtp = data.provider_info.smtp;
+          configInfo += `<strong>SMTP Server:</strong> ${smtp.server}:${smtp.port}<br>`;
+          configInfo += `<strong>User:</strong> ${smtp.user}<br>`;
+          configInfo += `<strong>Sender:</strong> ${smtp.sender}`;
+        } else if (provider === 'resend' && data.provider_info.resend) {
+          const resend = data.provider_info.resend;
+          configInfo += `<strong>API Key:</strong> ${resend.api_key_set ? 'Configured' : 'Not set'}<br>`;
+          configInfo += `<strong>Sender:</strong> ${resend.sender || 'Not set'}`;
+        } else {
+          configInfo += `<strong>Status:</strong> Configured`;
+        }
+        
+        infoEl.innerHTML = configInfo;
       } else {
         statusEl.checked = false;
-        statusTextEl.textContent = '❌ SMTP Email (Not Configured)';
-        infoEl.innerHTML = '<span class="text-red-600">SMTP not configured. Add SMTP_SERVER, SMTP_USER, SMTP_PASSWORD to .env file.</span>';
+        statusTextEl.textContent = `❌ Email Service (${provider.toUpperCase()})`;
+        infoEl.innerHTML = `<span class="text-red-600">Provider "${provider}" not configured. Check environment variables.</span>`;
+      }
+      
+      // Update the provider select dropdown
+      const providerSelect = document.getElementById('email-provider-select');
+      if (providerSelect && providerSelect.value !== provider) {
+        providerSelect.value = provider;
+        showProviderHelp(provider);
       }
     }
   } catch (err) {
@@ -1177,6 +1242,71 @@ async function loadEmailConfiguration() {
     document.getElementById('email-config-info').textContent = 'Failed to load email configuration';
   }
 }
+
+async function loadEmailProviderSettings() {
+  // Just reload the email configuration, which now includes provider info
+  await loadEmailConfiguration();
+}
+
+function showProviderHelp(provider) {
+  // Hide all help texts
+  document.getElementById('help-smtp').classList.add('hidden');
+  document.getElementById('help-resend').classList.add('hidden');
+  document.getElementById('help-oauth2_outlook').classList.add('hidden');
+  
+  // Show relevant help text
+  const helpEl = document.getElementById(`help-${provider}`);
+  if (helpEl) {
+    helpEl.classList.remove('hidden');
+  }
+}
+
+async function saveEmailProvider() {
+  const provider = document.getElementById('email-provider-select').value;
+  const btn = event.target;
+  const originalText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ Αποθήκευση...';
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append('email_provider', provider);
+    formData.append('site_title', ''); // Keep existing site title (backend handles this)
+    
+    const response = await fetch('/admin/settings/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData
+    });
+    
+    if (response.ok) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Ο πάροχος email άλλαξε σε "${provider}". Οι αλλαγές θα εφαρμοστούν στην επόμενη αποστολή email.`,
+        () => {
+          loadEmailProviderSettings();
+        });
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (err) {
+    console.error('Failed to save email provider:', err);
+    showErrorModal('❌ Σφάλμα', 'Αποτυχία αποθήκευσης επιλογής παρόχου email');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Add event listener for provider selection change
+document.addEventListener('DOMContentLoaded', function() {
+  const providerSelect = document.getElementById('email-provider-select');
+  if (providerSelect) {
+    providerSelect.addEventListener('change', function() {
+      showProviderHelp(this.value);
+    });
+  }
+});
 
 async function testEmailConfiguration() {
   const btn = event.target;
@@ -1312,6 +1442,7 @@ window.addEventListener('load', function() {
   loadStats();
   loadUsers();
   loadEmailConfiguration();
+  loadEmailProviderSettings();
 });
 </script>
 

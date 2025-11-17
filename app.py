@@ -9367,6 +9367,12 @@ def admin_settings_save():
     form = request.form or {}
     settings = load_settings()
     settings['site_title'] = form.get('site_title')
+    
+    # Save email provider setting
+    email_provider = form.get('email_provider', '').strip()
+    if email_provider in ['smtp', 'resend', 'oauth2_outlook']:
+        settings['email_provider'] = email_provider
+    
     save_settings(settings)
     flash('Settings saved', 'success')
     return redirect(url_for('admin_settings'))

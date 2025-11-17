@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # Email config from environment
-EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp' or 'oauth2_outlook'
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', or 'resend'
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
@@ -19,13 +19,42 @@ SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SENDER_EMAIL = os.getenv('SENDER_EMAIL', SMTP_USER)
 APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
 OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+
+
+def get_email_provider() -> str:
+    """Get the current email provider from settings or environment"""
+    try:
+        # Try to load from settings file first (admin panel preference)
+        from pathlib import Path
+        import json
+        
+        # Try to import app's load_settings function
+        try:
+            from app import load_settings
+            settings = load_settings()
+            provider = settings.get('email_provider', '').strip()
+            if provider in ['smtp', 'oauth2_outlook', 'resend']:
+                return provider
+        except (ImportError, Exception):
+            pass
+    except Exception:
+        pass
+    
+    # Fallback to environment variable
+    return EMAIL_PROVIDER
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
-    """Send an email via SMTP or OAuth2"""
+    """Send an email via SMTP, OAuth2, or Resend based on configuration"""
     
-    # Check email provider configuration
-    if EMAIL_PROVIDER == 'oauth2_outlook':
+    # Get current provider from settings or environment
+    provider = get_email_provider()
+    
+    # Route to appropriate sending function
+    if provider == 'resend':
+        return send_resend_email(to_email, subject, html_body, text_body)
+    elif provider == 'oauth2_outlook':
         return send_oauth2_email(to_email, subject, html_body, text_body)
     else:
         return send_smtp_email(to_email, subject, html_body, text_body)
@@ -79,6 +108,44 @@ def send_oauth2_email(to_email: str, subject: str, html_body: str, text_body: Op
         return False
     except Exception as e:
         logger.error(f"Failed to send OAuth2 email to {to_email}: {e}")
+        return False
+
+
+def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via Resend API"""
+    if not RESEND_API_KEY:
+        logger.warning(f"Resend API key not configured; skipping email to {to_email}")
+        return False
+    
+    try:
+        import resend
+        
+        # Set the API key
+        resend.api_key = RESEND_API_KEY
+        
+        # Prepare email params - Resend requires 'from' to be a verified domain
+        params = {
+            "from": SENDER_EMAIL or "noreply@yourdomain.com",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        }
+        
+        # Add text body if provided
+        if text_body:
+            params["text"] = text_body
+        
+        # Send email using Resend API
+        email = resend.Emails.send(params)
+        
+        logger.info(f"Email sent via Resend to {to_email}: {subject} (ID: {email.get('id', 'unknown')})")
+        return True
+        
+    except ImportError:
+        logger.error("Resend library not available. Install it with: pip install resend")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send Resend email to {to_email}: {e}")
         return False
 
 
