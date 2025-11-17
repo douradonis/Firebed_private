@@ -145,6 +145,11 @@ def admin_delete_user(user_id: int, current_admin: User) -> Dict[str, Any]:
         if user.id == current_admin.id:
             return {'ok': False, 'error': 'Cannot delete yourself'}
         
+        # Protect main admin from deletion
+        user_email = getattr(user, 'email', '')
+        if user_email == 'adonis.douramanis@gmail.com':
+            return {'ok': False, 'error': 'Cannot delete the main admin user'}
+        
         username = user.username
         
         # Remove from all groups
@@ -292,9 +297,14 @@ def admin_delete_group(group_id: int, current_admin: User, backup_first: bool = 
         for ug in group.user_groups:
             db.session.delete(ug)
         
-        # Delete from Firebase
+        # Delete from Firebase - all related data
         try:
             firebase_config.firebase_delete_data(f'/groups/{group_name}')
+            firebase_config.firebase_delete_data(f'/group_encryption_keys/{group_name}')
+            firebase_config.firebase_delete_data(f'/activity_logs/{group_name}')
+            firebase_config.firebase_delete_data(f'/receipts/{group_name}')
+            firebase_config.firebase_delete_data(f'/group_settings/{group_name}')
+            logger.info(f"Deleted all Firebase data for group: {group_name}")
         except Exception as e:
             logger.warning(f"Failed to delete Firebase group data: {e}")
         
@@ -752,6 +762,87 @@ def _get_folder_size(folder_path: str) -> int:
         logger.error(f"Error calculating folder size: {e}")
     
     return total
+
+
+def admin_compare_backup_with_current(backup_path: str, backup_type: str = 'remote') -> Dict[str, Any]:
+    """Compare backup with current state to show differences before restore"""
+    try:
+        comparison = {
+            'backup_info': {
+                'path': backup_path,
+                'type': backup_type
+            },
+            'differences': [],
+            'summary': {
+                'groups_in_backup': 0,
+                'groups_in_current': 0,
+                'groups_to_add': [],
+                'groups_to_update': [],
+                'groups_to_remove': []
+            }
+        }
+        
+        # Get backup data
+        backup_data = None
+        if backup_type == 'remote':
+            backup_data = firebase_config.firebase_read_data(backup_path)
+        elif backup_type == 'local':
+            # For local backups, we need to read the backup folder structure
+            backups_dir = os.path.join(os.getcwd(), 'data', '_backups')
+            backup_full_path = os.path.join(backups_dir, backup_path)
+            if os.path.exists(backup_full_path):
+                backup_data = {'groups': {}}
+                # Read backup folder as a single group
+                group_name = os.path.basename(backup_path).replace('_backup_', '').split('_')[0]
+                backup_data['groups'][group_name] = {'folder_exists': True}
+        
+        if not backup_data:
+            return {'error': 'Could not read backup data'}
+        
+        # Get current groups
+        current_groups = admin_list_all_groups()
+        current_group_names = {g['name'] for g in current_groups}
+        
+        # Analyze backup structure
+        backup_groups = set()
+        if 'groups' in backup_data and isinstance(backup_data['groups'], dict):
+            backup_groups = set(backup_data['groups'].keys())
+        elif backup_type == 'remote':
+            # Single group backup - extract group name from path
+            parts = backup_path.strip('/').split('/')
+            if len(parts) >= 2:
+                backup_groups.add(parts[1])
+        
+        comparison['summary']['groups_in_backup'] = len(backup_groups)
+        comparison['summary']['groups_in_current'] = len(current_group_names)
+        
+        # Find differences
+        comparison['summary']['groups_to_add'] = list(backup_groups - current_group_names)
+        comparison['summary']['groups_to_update'] = list(backup_groups & current_group_names)
+        comparison['summary']['groups_to_remove'] = list(current_group_names - backup_groups)
+        
+        # Create detailed differences
+        for group_name in backup_groups:
+            diff = {
+                'group_name': group_name,
+                'action': 'add' if group_name not in current_group_names else 'update',
+                'current_exists': group_name in current_group_names
+            }
+            
+            if group_name in current_group_names:
+                # Find current group info
+                current_group = next((g for g in current_groups if g['name'] == group_name), None)
+                if current_group:
+                    diff['current_size_mb'] = current_group.get('folder_size_mb', 0)
+                    diff['current_members'] = current_group.get('members_count', 0)
+            
+            comparison['differences'].append(diff)
+        
+        return comparison
+        
+    except Exception as e:
+        logger.error(f"Failed to compare backup: {e}")
+        return {'error': str(e)}
 
 
 def admin_get_system_stats() -> Dict[str, Any]:

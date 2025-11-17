@@ -154,6 +154,29 @@ def api_delete_group(group_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_api_bp.route('/groups/<int:group_id>', methods=['DELETE'])
+@login_required
+@_require_admin
+def api_delete_group_by_id(group_id):
+    """Delete a group by ID using admin_panel function"""
+    try:
+        result = admin_panel.admin_delete_group(group_id, current_user, backup_first=True)
+        if result.get('ok'):
+            return jsonify({
+                'success': True,
+                'message': result.get('message', 'Group deleted successfully'),
+                'backup_path': result.get('backup_path')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Unknown error')
+            }), 400
+    except Exception as e:
+        logger.error(f"Error deleting group {group_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_api_bp.route('/activity', methods=['GET'])
 @login_required
 @_require_admin
@@ -279,8 +302,26 @@ def api_delete_remote_backup():
         path = data.get('backup_path')
         if not path:
             return jsonify({'success': False, 'error': 'backup_path required'}), 400
-        res = admin_panel.admin_delete_remote_backup(path, current_user)
-        return jsonify({'success': res.get('ok', False), 'message': res.get('message'), 'error': res.get('error')}), (200 if res.get('ok') else 400)
+        
+        # If path doesn't start with /backups/, assume it's just the backup name and construct the full path
+        if not path.startswith('/backups/'):
+            # Try to construct a proper backup path
+            if path.startswith('/backups'):
+                full_path = path  # Already has /backups prefix
+            else:
+                full_path = f'/backups/{path}' if '/' not in path else path
+        else:
+            full_path = path
+        
+        logger.info(f"Attempting to delete remote backup: {full_path}")
+        
+        res = admin_panel.admin_delete_remote_backup(full_path, current_user)
+        
+        if res.get('ok'):
+            return jsonify({'success': True, 'message': res.get('message', 'Remote backup deleted successfully')})
+        else:
+            logger.warning(f"Failed to delete remote backup: {res.get('error')}")
+            return jsonify({'success': False, 'error': res.get('error', 'Unknown error')}), 400
     except Exception as e:
         logger.error(f"Error deleting remote backup: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -663,8 +704,36 @@ def api_delete_user_by_id(user_id):
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
         
+        # Protect main admin from deletion
+        user_email = getattr(user, 'email', '')
+        if user_email == 'adonis.douramanis@gmail.com':
+            return jsonify({'success': False, 'error': 'Cannot delete the main admin user'}), 400
+        
         username = user.username
         email = user.email
+        firebase_uid = getattr(user, 'pw_hash', None)  # Firebase UID is stored in pw_hash
+        
+        # Delete from Firebase Authentication if UID exists
+        if firebase_uid:
+            try:
+                import firebase_config
+                firebase_config.firebase_delete_user(firebase_uid)
+                logger.info(f"Deleted Firebase user: {firebase_uid}")
+            except Exception as e:
+                logger.warning(f"Failed to delete Firebase user {firebase_uid}: {e}")
+        
+        # Delete from Firebase Database (user data)
+        try:
+            import firebase_config
+            firebase_config.firebase_delete_data(f'/users/{firebase_uid}')
+            firebase_config.firebase_delete_data(f'/user_profiles/{firebase_uid}')
+            logger.info(f"Deleted Firebase user data for: {firebase_uid}")
+        except Exception as e:
+            logger.warning(f"Failed to delete Firebase user data: {e}")
+        
+        # Remove from all groups in the database
+        for group in user.groups:
+            group.users.remove(user)
         
         # Delete from database
         db.session.delete(user)
@@ -942,4 +1011,221 @@ def api_list_backups():
         return jsonify({'success': True, 'backups': backups})
     except Exception as e:
         logger.error(f"Error listing backups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups/restore/<path:backup_path>', methods=['POST'])
+@login_required
+@_require_admin
+def api_restore_backup_by_path(backup_path):
+    """Restore a backup by its path (handles both local and remote)"""
+    try:
+        data = request.json or {}
+        backup_type = data.get('type', 'remote')
+        
+        if backup_type == 'remote':
+            # For remote backups, backup_path is the Firebase path
+            result = admin_panel.admin_restore_remote_backup(
+                backup_path, 
+                target_group_id=1,  # Will be determined by backend
+                current_admin=current_user
+            )
+        else:
+            # For local backups, find the first available group to restore to
+            groups = admin_panel.admin_list_all_groups()
+            if not groups:
+                return jsonify({'success': False, 'error': 'No groups available for restore'}), 400
+            
+            result = admin_panel.admin_restore_backup(
+                backup_path, 
+                groups[0]['id'],  # Use first available group
+                current_user
+            )
+        
+        return jsonify({
+            'success': result.get('ok', False),
+            'message': result.get('message', ''),
+            'error': result.get('error', ''),
+            'restored': result.get('restored', [])
+        })
+    except Exception as e:
+        logger.error(f"Error restoring backup {backup_path}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups/local', methods=['DELETE'])
+@login_required
+@_require_admin
+def api_delete_local_backup():
+    """Delete a local backup. JSON body: {'backup_name': 'name'}"""
+    try:
+        data = request.json or {}
+        backup_name = data.get('backup_name')
+        if not backup_name:
+            return jsonify({'success': False, 'error': 'backup_name required'}), 400
+        
+        # Delete local backup
+        import os
+        import shutil
+        backups_dir = os.path.join(os.getcwd(), 'data', '_backups')
+        backup_path = os.path.join(backups_dir, backup_name)
+        
+        if not os.path.exists(backup_path):
+            return jsonify({'success': False, 'error': 'Backup not found'}), 404
+        
+        # Security check - make sure path is within backups directory
+        real_backup_path = os.path.realpath(backup_path)
+        real_backups_dir = os.path.realpath(backups_dir)
+        
+        if not real_backup_path.startswith(real_backups_dir):
+            return jsonify({'success': False, 'error': 'Invalid backup path'}), 400
+        
+        # Delete the backup
+        if os.path.isdir(backup_path):
+            shutil.rmtree(backup_path)
+        elif os.path.isfile(backup_path):
+            os.remove(backup_path)
+        
+        # Log the action
+        _log_admin_action('delete_backup', 'local_backup', backup_name)
+        
+        return jsonify({'success': True, 'message': f'Backup {backup_name} deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting local backup: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups/local', methods=['GET'])
+@login_required
+@_require_admin
+def api_list_local_backups():
+    """List only local server backups"""
+    try:
+        backups = admin_panel.admin_list_backups()
+        return jsonify({'success': True, 'backups': backups, 'type': 'local'})
+    except Exception as e:
+        logger.error(f"Error listing local backups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups/remote', methods=['GET'])
+@login_required
+@_require_admin
+def api_list_remote_backups_only():
+    """List only Firebase remote backups"""
+    try:
+        prefix = request.args.get('prefix')
+        backups = admin_panel.admin_list_remote_backups(prefix)
+        return jsonify({'success': True, 'backups': backups, 'type': 'remote'})
+    except Exception as e:
+        logger.error(f"Error listing remote backups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backup/compare', methods=['POST'])
+@login_required
+@_require_admin
+def api_compare_backup():
+    """Compare current state with backup for preview before restore"""
+    try:
+        data = request.json or {}
+        backup_path = data.get('backup_path')
+        backup_type = data.get('type', 'remote')  # 'local' or 'remote'
+        
+        if not backup_path:
+            return jsonify({'success': False, 'error': 'backup_path required'}), 400
+        
+        comparison = admin_panel.admin_compare_backup_with_current(backup_path, backup_type)
+        return jsonify({'success': True, 'comparison': comparison})
+    except Exception as e:
+        logger.error(f"Error comparing backup: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backups/local/<path:backup_name>', methods=['DELETE'])
+@login_required
+@_require_admin
+def api_delete_local_backup(backup_name):
+    """Delete a local backup"""
+    try:
+        import os
+        import shutil
+        import urllib.parse
+        
+        # Decode URL-encoded backup name
+        decoded_backup_name = urllib.parse.unquote(backup_name)
+        
+        backups_dir = os.path.join(os.getcwd(), 'data', '_backups')
+        backup_path = os.path.join(backups_dir, decoded_backup_name)
+        
+        logger.info(f"Attempting to delete local backup: {backup_path}")
+        
+        if not os.path.exists(backup_path):
+            # Also try without decoding in case the name is already correct
+            backup_path_alt = os.path.join(backups_dir, backup_name)
+            if not os.path.exists(backup_path_alt):
+                logger.warning(f"Backup not found: {backup_path} or {backup_path_alt}")
+                return jsonify({'success': False, 'error': f'Backup not found: {decoded_backup_name}'}), 404
+            backup_path = backup_path_alt
+        
+        # Safety check - ensure it's within backups directory
+        real_backup_path = os.path.realpath(backup_path)
+        real_backups_dir = os.path.realpath(backups_dir)
+        
+        if not real_backup_path.startswith(real_backups_dir):
+            return jsonify({'success': False, 'error': 'Invalid backup path - security violation'}), 400
+        
+        # Delete the backup
+        try:
+            if os.path.isdir(backup_path):
+                shutil.rmtree(backup_path)
+                logger.info(f"Deleted backup directory: {backup_path}")
+            else:
+                os.remove(backup_path)
+                logger.info(f"Deleted backup file: {backup_path}")
+        except Exception as delete_error:
+            logger.error(f"Failed to delete backup file/directory: {delete_error}")
+            return jsonify({'success': False, 'error': f'Failed to delete backup: {str(delete_error)}'}), 500
+        
+        # Log action
+        _log_admin_action('delete_local_backup', 'backup', decoded_backup_name)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Local backup {decoded_backup_name} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f'Error deleting local backup {backup_name}: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/backup/restore/local', methods=['POST'])
+@login_required
+@_require_admin
+def api_restore_local_backup():
+    """Restore from a local backup"""
+    try:
+        data = request.json or {}
+        backup_name = data.get('backup_name')
+        target_group_id = data.get('target_group_id', 1)  # Default to first available group
+        
+        if not backup_name:
+            return jsonify({'success': False, 'error': 'backup_name required'}), 400
+        
+        # Find a suitable group or create one
+        from models import Group
+        group = Group.query.first()
+        if not group:
+            return jsonify({'success': False, 'error': 'No groups available for restore'}), 400
+        
+        result = admin_panel.admin_restore_backup(backup_name, group.id, current_user)
+        
+        return jsonify({
+            'success': result['ok'],
+            'message': result.get('message'),
+            'error': result.get('error')
+        })
+    except Exception as e:
+        logger.error(f'Error restoring local backup: {e}')
         return jsonify({'success': False, 'error': str(e)}), 500

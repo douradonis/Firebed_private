@@ -256,3 +256,117 @@
 2025-11-17 08:02:33,181 - __main__ - INFO - Firebase initialized
 2025-11-17 08:02:33,190 - __main__ - INFO - Firebase Auth routes registered
 2025-11-17 08:02:33,229 - __main__ - INFO - Admin API routes registered
+2025-11-17 14:20:33,008 - __main__ - INFO - Firebase initialized
+2025-11-17 14:20:33,016 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 14:20:33,040 - __main__ - INFO - Admin API routes registered
+2025-11-17 14:20:35,098 - __main__ - INFO - Firebase initialized
+2025-11-17 14:20:35,102 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 14:20:35,114 - __main__ - INFO - Admin API routes registered
+2025-11-17 14:21:52,349 - __main__ - INFO - Firebase initialized
+2025-11-17 14:21:52,353 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 14:21:52,369 - __main__ - INFO - Admin API routes registered
+2025-11-17 14:21:54,033 - __main__ - INFO - Firebase initialized
+2025-11-17 14:21:54,037 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 14:21:54,049 - __main__ - INFO - Admin API routes registered
+2025-11-17 15:43:00,481 - __main__ - INFO - Firebase initialized
+2025-11-17 15:43:00,531 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 15:43:00,556 - __main__ - INFO - Admin API routes registered
+2025-11-17 15:43:02,698 - __main__ - INFO - Firebase initialized
+2025-11-17 15:43:02,706 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 15:43:02,727 - __main__ - INFO - Admin API routes registered
+2025-11-17 15:49:01,521 - __main__ - INFO - Firebase initialized
+2025-11-17 15:49:01,526 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 15:49:01,537 - __main__ - INFO - Admin API routes registered
+2025-11-17 15:49:04,082 - __main__ - INFO - Firebase initialized
+2025-11-17 15:49:04,102 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 15:49:04,140 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:06:12,685 - __main__ - INFO - Firebase initialized
+2025-11-17 16:06:12,702 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:06:12,722 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:06:35,703 - __main__ - INFO - Firebase initialized
+2025-11-17 16:06:35,709 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:06:35,722 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:08:28,366 - __main__ - INFO - Firebase initialized
+2025-11-17 16:08:28,370 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:08:28,392 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:11:17,208 - __main__ - INFO - Firebase initialized
+2025-11-17 16:11:17,215 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:11:17,238 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:15:02,891 - __main__ - INFO - Firebase initialized
+2025-11-17 16:15:02,896 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:15:02,908 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:17:56,053 - __main__ - INFO - Firebase initialized
+2025-11-17 16:17:56,060 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:17:56,072 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:19:09,814 - __main__ - INFO - Firebase initialized
+2025-11-17 16:19:09,818 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:19:09,830 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:19:10,940 - __main__ - INFO - Firebase initialized
+2025-11-17 16:19:10,944 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:19:10,957 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:19:21,843 - __main__ - INFO - Firebase initialized
+2025-11-17 16:19:21,852 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:19:21,871 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:19:28,207 - __main__ - INFO - Firebase initialized
+2025-11-17 16:19:28,212 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:19:28,224 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:26:46,786 - __main__ - INFO - Firebase initialized
+2025-11-17 16:26:46,791 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:26:46,811 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:27:18,805 - __main__ - INFO - Firebase initialized
+2025-11-17 16:27:18,809 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:27:18,822 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:28:17,474 - __main__ - INFO - Firebase initialized
+2025-11-17 16:28:17,478 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:28:17,500 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:28:43,477 - __main__ - INFO - Firebase initialized
+2025-11-17 16:28:43,481 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:28:43,494 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:28:54,708 - __main__ - INFO - Firebase initialized
+2025-11-17 16:28:54,731 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:28:54,797 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:29:06,076 - __main__ - INFO - Firebase initialized
+2025-11-17 16:29:06,083 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:29:06,096 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:29:15,894 - __main__ - INFO - Firebase initialized
+2025-11-17 16:29:15,898 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:29:15,911 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:29:29,116 - __main__ - INFO - Firebase initialized
+2025-11-17 16:29:29,120 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:29:29,133 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:42:41,689 - __main__ - INFO - Firebase initialized
+2025-11-17 16:42:41,695 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:42:41,708 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:42:42,820 - __main__ - INFO - Firebase initialized
+2025-11-17 16:42:42,825 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:42:42,837 - __main__ - INFO - Admin API routes registered
+2025-11-17 16:46:00,662 - __main__ - INFO - Firebase initialized
+2025-11-17 16:46:00,669 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:46:00,708 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:46:39,650 - __main__ - INFO - Firebase initialized
+2025-11-17 16:46:39,655 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:46:39,669 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:48:00,452 - __main__ - INFO - Firebase initialized
+2025-11-17 16:48:00,456 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:48:00,469 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:50:45,487 - __main__ - INFO - Firebase initialized
+2025-11-17 16:50:45,492 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:50:45,505 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:50:46,504 - __main__ - INFO - Firebase initialized
+2025-11-17 16:50:46,509 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:50:46,521 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:56:42,658 - __main__ - INFO - Firebase initialized
+2025-11-17 16:56:42,663 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:56:42,685 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 16:58:58,388 - __main__ - INFO - Firebase initialized
+2025-11-17 16:58:58,393 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 16:58:58,406 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 17:00:03,121 - __main__ - INFO - Firebase initialized
+2025-11-17 17:00:03,129 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 17:00:03,152 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 17:01:54,488 - __main__ - INFO - Firebase initialized
+2025-11-17 17:01:54,493 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 17:01:54,506 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 17:01:55,650 - __main__ - INFO - Firebase initialized
+2025-11-17 17:01:55,654 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 17:01:55,668 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup

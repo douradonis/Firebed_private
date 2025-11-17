@@ -176,7 +176,7 @@
 
   <!-- ==================== BACKUPS TAB ==================== -->
   <div id="backups" class="tab-content hidden">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6">
       <!-- Backup Actions -->
       <div class="bg-white border border-gray-200 rounded-lg p-6">
         <h3 class="text-lg font-bold mb-4">💾 Backup Ενέργειες</h3>
@@ -198,11 +198,31 @@
         </div>
       </div>
 
-      <!-- Restore Options -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 class="text-lg font-bold mb-4">♻️ Επαναφορά</h3>
-        <div class="space-y-3" id="backups-list">
-          <p class="text-gray-500">Φόρτωση αποθηκευμένων backups...</p>
+      <!-- Backup Tabs -->
+      <div class="bg-white border border-gray-200 rounded-lg">
+        <div class="flex border-b">
+          <button onclick="showBackupTab('local')" id="local-backup-tab" class="backup-tab-btn flex-1 px-4 py-3 text-sm font-medium border-r border-gray-200 bg-blue-50 text-blue-700">
+            💻 Server Backups
+          </button>
+          <button onclick="showBackupTab('remote')" id="remote-backup-tab" class="backup-tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
+            ☁️ Firebase Backups
+          </button>
+        </div>
+        
+        <!-- Local Backups -->
+        <div id="local-backups" class="backup-tab-content p-6">
+          <h4 class="font-bold mb-3">💻 Τοπικά Backups (Server)</h4>
+          <div class="space-y-3" id="local-backups-list">
+            <p class="text-gray-500">Φόρτωση τοπικών backups...</p>
+          </div>
+        </div>
+        
+        <!-- Remote Backups -->
+        <div id="remote-backups" class="backup-tab-content hidden p-6">
+          <h4 class="font-bold mb-3">☁️ Remote Backups (Firebase)</h4>
+          <div class="space-y-3" id="remote-backups-list">
+            <p class="text-gray-500">Φόρτωση remote backups...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -473,27 +493,32 @@ function closeUserDetailModal() {
 }
 
 async function deleteUser(userId, username) {
-  // Show confirmation modal
   showDeleteConfirmationModal(
     `Διαγραφή Χρήστη`,
     `Είστε σίγουρος ότι θέλετε να διαγράψετε τον χρήστη "${username}";`,
-    async () => {
-      try {
-        const response = await fetch(`/admin/users/${userId}/delete`, { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.ok || data.success) {
-          showSuccessModal('✅ Επιτυχία', 'Χρήστης διαγράφθηκε επιτυχώς', () => {
-            loadUsers();
-          });
-        } else {
-          showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
-        }
-      } catch (err) {
-        showErrorModal('❌ Σφάλμα', 'Σφάλμα διαγραφής χρήστη');
-      }
-    }
+    () => performUserDeletion(userId, username)
   );
+}
+
+async function performUserDeletion(userId, username) {
+  try {
+    const response = await fetch(`/admin/api/users/${userId}`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Χρήστης διαγράφθηκε επιτυχώς', () => {
+        location.reload();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('User deletion error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα διαγραφής χρήστη');
+  }
 }
 
 // ==================== GROUPS TAB ====================
@@ -573,20 +598,33 @@ function closeGroupDetailModal() {
 }
 
 async function deleteGroup(groupId, groupName) {
-  if (!confirm(`Είστε σίγουρος ότι θέλετε να διαγράψετε την ομάδα "${groupName}"; Θα δημιουργηθεί backup.`)) return;
-  
+  showDeleteConfirmationModal(
+    `Διαγραφή Ομάδας`,
+    `Είστε σίγουρος ότι θέλετε να διαγράψετε την ομάδα "${groupName}"; Θα δημιουργηθεί αυτόματα backup πριν τη διαγραφή.`,
+    () => performGroupDeletion(groupId, groupName)
+  );
+}
+
+async function performGroupDeletion(groupId, groupName) {
   try {
-    const response = await fetch(`/admin/groups/${groupId}/delete`, { method: 'POST' });
+    const response = await fetch(`/admin/api/groups/${groupId}`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
     const data = await response.json();
     
-    if (data.ok || data.success) {
-      alert('Ομάδα διαγράφθηκε. Backup: ' + (data.backup_path || 'none'));
-      loadGroups();
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Ομάδα διαγράφθηκε επιτυχώς.${data.backup_path ? ' Backup: ' + data.backup_path : ''}`, 
+        () => {
+          location.reload();
+        });
     } else {
-      alert('Σφάλμα: ' + (data.error || 'Unknown error'));
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
     }
   } catch (err) {
-    alert('Σφάλμα διαγραφής');
+    console.error('Group deletion error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα διαγραφής ομάδας');
   }
 }
 
@@ -636,14 +674,47 @@ function populateGroupSelect(groups) {
     (groups || []).map(g => `<option value="${g.id}">${g.name || g.group_name}</option>`).join('');
 }
 
+function showBackupTab(type) {
+  // Update tab buttons
+  document.querySelectorAll('.backup-tab-btn').forEach(btn => {
+    btn.classList.remove('bg-blue-50', 'text-blue-700');
+    btn.classList.add('text-gray-600');
+  });
+  
+  // Update tab content
+  document.querySelectorAll('.backup-tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+  
+  // Show selected tab
+  const tabBtn = document.getElementById(`${type}-backup-tab`);
+  const tabContent = document.getElementById(`${type}-backups`);
+  
+  tabBtn.classList.add('bg-blue-50', 'text-blue-700');
+  tabBtn.classList.remove('text-gray-600');
+  tabContent.classList.remove('hidden');
+  
+  // Load appropriate backups
+  if (type === 'local') {
+    loadLocalBackups();
+  } else {
+    loadRemoteBackups();
+  }
+}
+
 async function loadBackups() {
+  // Load both local and remote backups, starting with local
+  showBackupTab('local');
+}
+
+async function loadLocalBackups() {
   try {
-    const response = await fetch('/admin/api/backups');
+    const response = await fetch('/admin/api/backups/local');
     const data = await response.json();
-    const list = document.getElementById('backups-list');
+    const list = document.getElementById('local-backups-list');
     
     if (!data.backups || data.backups.length === 0) {
-      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν backups</p>';
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν τοπικά backups</p>';
       return;
     }
 
@@ -651,19 +722,224 @@ async function loadBackups() {
       (data.backups || []).map(backup => `
         <div class="p-3 border rounded bg-gray-50 flex justify-between items-center">
           <div class="text-sm">
-            <div class="font-medium">${backup.name}</div>
+            <div class="font-medium">💻 ${backup.name}</div>
             <div class="text-xs text-gray-500">${backup.size_mb || 0} MB • ${backup.created_at || ''}</div>
           </div>
-          <button onclick="restoreBackup('${backup.name}')" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
-            ♻️ Restore
-          </button>
+          <div class="flex gap-2">
+            <button onclick="compareBackup('${backup.name}', 'local')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">
+              🔍 Σύγκριση
+            </button>
+            <button onclick="restoreBackup('${backup.name}', 'local')" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+              ♻️ Restore
+            </button>
+            <button onclick="deleteBackup('${backup.name}', 'local')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">
+              🗑️
+            </button>
+          </div>
         </div>
       `).join('') +
       '</div>';
   } catch (err) {
-    console.error('Error loading backups:', err);
-    document.getElementById('backups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+    console.error('Error loading local backups:', err);
+    document.getElementById('local-backups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
   }
+}
+
+async function loadRemoteBackups() {
+  try {
+    const response = await fetch('/admin/api/backups/remote');
+    const data = await response.json();
+    const list = document.getElementById('remote-backups-list');
+    
+    if (!data.backups || data.backups.length === 0) {
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν remote backups</p>';
+      return;
+    }
+
+    list.innerHTML = '<div class="space-y-2">' + 
+      (data.backups || []).map(backup => `
+        <div class="p-3 border rounded bg-blue-50 flex justify-between items-center">
+          <div class="text-sm">
+            <div class="font-medium">☁️ ${backup.name}</div>
+            <div class="text-xs text-gray-500">${backup.size_mb || 0} MB • ${backup.created_at || ''}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="compareBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">
+              🔍 Σύγκριση
+            </button>
+            <button onclick="restoreBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+              ♻️ Restore
+            </button>
+            <button onclick="deleteBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('') +
+      '</div>';
+  } catch (err) {
+    console.error('Error loading remote backups:', err);
+    document.getElementById('remote-backups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+  }
+}
+
+async function compareBackup(backupName, type) {
+  try {
+    const response = await fetch('/admin/api/backup/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        backup_path: backupName, 
+        type: type 
+      })
+    });
+    const data = await response.json();
+    
+    if (data.success && data.comparison) {
+      showBackupComparisonModal(data.comparison, backupName, type);
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Δεν ήταν δυνατή η σύγκριση: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα σύγκρισης backup');
+  }
+}
+
+function showBackupComparisonModal(comparison, backupName, type) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">🔍 Σύγκριση Backup</h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      
+      <div class="mb-4">
+        <p><strong>Backup:</strong> ${backupName} (${type})</p>
+        <p><strong>Ομάδες στο backup:</strong> ${comparison.summary?.groups_in_backup || 0}</p>
+        <p><strong>Τρέχουσες ομάδες:</strong> ${comparison.summary?.groups_in_current || 0}</p>
+      </div>
+      
+      ${comparison.summary?.groups_to_add?.length > 0 ? `
+        <div class="mb-3">
+          <h4 class="font-medium text-green-700">✅ Νέες ομάδες που θα προστεθούν:</h4>
+          <ul class="text-sm text-green-600 ml-4">
+            ${comparison.summary.groups_to_add.map(g => `<li>• ${g}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${comparison.summary?.groups_to_update?.length > 0 ? `
+        <div class="mb-3">
+          <h4 class="font-medium text-blue-700">🔄 Ομάδες που θα ενημερωθούν:</h4>
+          <ul class="text-sm text-blue-600 ml-4">
+            ${comparison.summary.groups_to_update.map(g => `<li>• ${g}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      <div class="flex gap-2 mt-4">
+        <button onclick="proceedWithRestore('${backupName}', '${type}'); this.closest('.fixed').remove();" 
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          ✅ Επιβεβαίωση Επαναφοράς
+        </button>
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+          ❌ Ακύρωση
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function deleteBackup(backupName, type) {
+  showDeleteConfirmationModal(
+    'Διαγραφή Backup',
+    `Είστε σίγουρος ότι θέλετε να διαγράψετε το backup "${backupName}";`,
+    () => performBackupDeletion(backupName, type)
+  );
+}
+
+async function performBackupDeletion(backupName, type) {
+  try {
+    let response;
+    console.log(`Deleting ${type} backup: ${backupName}`);
+    
+    if (type === 'remote') {
+      response = await fetch('/admin/api/backup', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_path: backupName })
+      });
+    } else {
+      // For local backups - use the new endpoint
+      response = await fetch('/admin/api/backups/local', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_name: backupName })
+      });
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Delete response:', data);
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        data.message || 'Backup διαγράφθηκε επιτυχώς', 
+        () => {
+          location.reload();
+        });
+    } else {
+      console.error('Delete failed:', data.error);
+      showErrorModal('❌ Σφάλμα', 
+        'Σφάλμα διαγραφής: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('Delete backup error:', err);
+    showErrorModal('❌ Σφάλμα', 
+      `Σφάλμα διαγραφής ${type} backup: ${err.message || err}`);
+  }
+}
+
+function proceedWithRestore(backupName, type) {
+  performBackupRestore(backupName, type);
+}
+
+async function performBackupRestore(backupName, type) {
+  try {
+    // Use the unified restore endpoint
+    const response = await fetch(`/admin/api/backups/restore/${encodeURIComponent(backupName)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        type: type
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Backup επαναφέρθηκε επιτυχώς', () => {
+        location.reload();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα επαναφοράς: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('Backup restore error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα επαναφοράς backup');
+  }
+}
+
+async function restoreBackup(backupName, type) {
+  // First show comparison, then let user decide
+  compareBackup(backupName, type);
 }
 
 async function backupAllData() {
@@ -675,14 +951,15 @@ async function backupAllData() {
     const response = await fetch('/admin/api/backup/all', { method: 'POST' });
     const data = await response.json();
     
-    if (data.ok) {
-      alert('✅ Backup δημιουργήθηκε επιτυχώς');
-      loadBackups();
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Backup δημιουργήθηκε επιτυχώς', () => {
+        loadBackups();
+      });
     } else {
-      alert('❌ Σφάλμα: ' + (data.error || 'Unknown'));
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
     }
   } catch (err) {
-    alert('❌ Σφάλμα backup');
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα backup');
   } finally {
     btn.disabled = false;
     btn.textContent = '💾 Backup Όλων των Δεδομένων';
@@ -692,22 +969,30 @@ async function backupAllData() {
 async function backupSpecificGroup() {
   const groupId = document.getElementById('group-select').value;
   if (!groupId) {
-    alert('Παρακαλώ επιλέξτε ομάδα');
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ επιλέξτε ομάδα');
     return;
   }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Δημιουργία backup...';
   
   try {
     const response = await fetch(`/admin/groups/${groupId}/backup`, { method: 'POST' });
     const data = await response.json();
     
     if (data.ok) {
-      alert('✅ Backup δημιουργήθηκε');
-      loadBackups();
+      showSuccessModal('✅ Επιτυχία', 'Backup ομάδας δημιουργήθηκε επιτυχώς', () => {
+        loadBackups();
+      });
     } else {
-      alert('❌ Σφάλμα: ' + (data.error || 'Unknown'));
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
     }
   } catch (err) {
-    alert('❌ Σφάλμα backup');
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα backup ομάδας');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📁 Backup';
   }
 }
 
@@ -809,6 +1094,86 @@ async function resetSystem() {
   } catch (err) {
     alert('Σφάλμα');
   }
+}
+
+// ==================== MODAL FUNCTIONS ====================
+function showDeleteConfirmationModal(title, message, onConfirm) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-red-600 text-2xl mr-3">⚠️</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+          Ακύρωση
+        </button>
+        <button onclick="this.closest('.fixed').remove(); window._confirmCallback();" 
+                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          Διαγραφή
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Store the callback globally so it can be accessed
+  window._confirmCallback = onConfirm;
+  
+  document.body.appendChild(modal);
+}
+
+function showSuccessModal(title, message, onClose = null) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-green-600 text-2xl mr-3">✅</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex justify-end">
+        <button onclick="this.closest('.fixed').remove(); ${onClose ? 'onClose()' : ''}" 
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          ΟΚ
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  if (onClose) {
+    // Store the callback globally so it can be called from the onclick
+    window._successModalCallback = onClose;
+    modal.querySelector('button').setAttribute('onclick', 
+      "this.closest('.fixed').remove(); if(window._successModalCallback) { window._successModalCallback(); window._successModalCallback = null; }"
+    );
+  }
+}
+
+function showErrorModal(title, message) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-red-600 text-2xl mr-3">❌</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex justify-end">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          ΟΚ
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
 
 // ==================== INITIALIZATION ====================
