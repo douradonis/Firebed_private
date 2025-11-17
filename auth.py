@@ -759,16 +759,36 @@ def forgot_password():
             ok, link_or_err = FirebaseAuthHandler.generate_password_reset_link(email)
             if ok:
                 reset_link = link_or_err
-                # build email body and attempt to send via SMTP
+                # Enhanced email template for password reset
                 html_body = f"""
-                <html><body>
-                    <h2>Password Reset</h2>
-                    <p>If you requested a password reset, click the link below to choose a new password:</p>
-                    <p><a href=\"{reset_link}\">Reset your password</a></p>
-                    <p>If you did not request this, you can ignore this email.</p>
-                </body></html>
+                <html>
+                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                            <h1 style="margin: 0; font-size: 28px;">🔐 Επαναφορά Κωδικού</h1>
+                        </div>
+                        
+                        <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-radius: 0 0 10px 10px;">
+                            <h2 style="color: #333; margin-top: 0;">Αλλαγή Κωδικού Πρόσβασης</h2>
+                            <p style="color: #666; font-size: 16px; line-height: 1.6;">Λάβαμε αίτημα για επαναφορά του κωδικού πρόσβασής σας. Κάντε κλικ στο παρακάτω κουμπί για να ορίσετε νέο κωδικό:</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{reset_link}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);">🔑 Επαναφορά Κωδικού</a>
+                            </div>
+                            
+                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                <p style="margin: 0; color: #856404; font-size: 14px;">⏰ <strong>Σημαντικό:</strong> Αυτός ο σύνδεσμος λήγει σε 1 ώρα για λόγους ασφαλείας.</p>
+                            </div>
+                            
+                            <p style="color: #888; font-size: 14px; margin-top: 30px;">Εάν το κουμπί δεν λειτουργεί, αντιγράψτε αυτό το link:</p>
+                            <p style="background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all; font-family: monospace; font-size: 12px;">{reset_link}</p>
+                            
+                            <hr style="border: none; height: 1px; background: #eee; margin: 30px 0;">
+                            <p style="color: #888; font-size: 12px; text-align: center;">Εάν δεν ζητήσατε αυτή την αλλαγή, παραβλέψτε αυτό το email. Ο κωδικός σας θα παραμείνει αμετάβλητος.</p>
+                        </div>
+                    </body>
+                </html>
                 """
-                sent = email_utils.send_email(email, 'Password Reset - Firebed', html_body)
+                sent = email_utils.send_email(email, '🔐 Επαναφορά Κωδικού - Firebed', html_body)
                 if sent:
                     flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
                 else:

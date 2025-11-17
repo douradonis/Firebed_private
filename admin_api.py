@@ -1020,6 +1020,130 @@ def api_get_group_detail(group_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_api_bp.route('/send-email', methods=['POST'])
+@login_required
+@_require_admin
+def api_send_email():
+    """Send email to selected users"""
+    try:
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '').strip()
+        user_ids_str = request.form.get('user_ids', '')
+        
+        if not subject or not message or not user_ids_str:
+            return jsonify({'success': False, 'error': 'Subject, message, and users are required'}), 400
+        
+        # Parse user IDs
+        try:
+            user_ids = [int(uid.strip()) for uid in user_ids_str.split(',') if uid.strip()]
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid user IDs format'}), 400
+        
+        if not user_ids:
+            return jsonify({'success': False, 'error': 'No valid user IDs provided'}), 400
+        
+        # Create HTML email body
+        html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="color: #333; margin: 0;">📧 Μήνυμα από Διαχειριστή</h2>
+                </div>
+                
+                <div style="background-color: white; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px;">
+                    <h3 style="color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">{subject}</h3>
+                    <div style="margin: 20px 0; line-height: 1.6; color: #495057;">
+                        {message.replace(chr(10), '<br>')}
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 5px; text-align: center;">
+                    <small style="color: #6c757d;">Αυτό το email στάλθηκε από το Firebed System</small>
+                </div>
+            </body>
+        </html>
+        """
+        
+        # Send emails using the bulk email function
+        import email_utils
+        results = email_utils.send_bulk_email_to_users(user_ids, subject, html_body)
+        
+        # Log the admin action
+        _log_admin_action('send_email', 'users', f'{len(user_ids)}_users', {
+            'subject': subject,
+            'user_count': len(user_ids),
+            'sent': results['sent'],
+            'failed': results['failed']
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'Email sent to {results["sent"]} users, {results["failed"]} failed',
+            'results': results
+        })
+    except Exception as e:
+        logger.error(f"Error sending admin email: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_api_bp.route('/email-config', methods=['GET', 'POST'])
+@login_required
+@_require_admin
+def api_email_config():
+    """Get or update email configuration"""
+    if request.method == 'GET':
+        import email_utils
+        return jsonify({
+            'success': True,
+            'config': {
+                'smtp_server': email_utils.SMTP_SERVER,
+                'smtp_port': email_utils.SMTP_PORT,
+                'smtp_user': email_utils.SMTP_USER,
+                'sender_email': email_utils.SENDER_EMAIL,
+                'configured': bool(email_utils.SMTP_USER and email_utils.SMTP_PASSWORD)
+            }
+        })
+    
+    # POST method would update config, but we use environment variables
+    return jsonify({
+        'success': False,
+        'error': 'Email configuration is managed via environment variables (.env file)'
+    })
+
+
+@admin_api_bp.route('/test-email', methods=['POST'])
+@login_required
+@_require_admin
+def api_test_email():
+    """Send a test email to verify SMTP configuration"""
+    try:
+        test_email = request.json.get('email') or current_user.email
+        if not test_email:
+            return jsonify({'success': False, 'error': 'No email address provided'}), 400
+        
+        import email_utils
+        html_body = """
+        <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #28a745;">✅ SMTP Configuration Test</h2>
+                <p>If you received this email, your SMTP configuration is working correctly!</p>
+                <hr>
+                <small>Sent from Firebed Admin Panel</small>
+            </body>
+        </html>
+        """
+        
+        success = email_utils.send_email(test_email, '✅ SMTP Test - Firebed', html_body)
+        
+        if success:
+            return jsonify({'success': True, 'message': f'Test email sent to {test_email}'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to send test email. Check SMTP configuration.'}), 400
+    except Exception as e:
+        logger.error(f"Error sending test email: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_api_bp.route('/backups', methods=['GET'])
 @login_required
 @_require_admin

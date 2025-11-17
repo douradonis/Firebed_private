@@ -289,8 +289,21 @@
             <input type="checkbox" class="w-4 h-4" checked disabled />
             <span>✅ Activity Logging</span>
           </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" id="smtp-status" class="w-4 h-4" disabled />
+            <span id="smtp-status-text">📧 SMTP Email</span>
+          </label>
+          
+          <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+            <h4 class="font-medium text-blue-800 mb-2">📧 Email Configuration</h4>
+            <div class="text-sm text-blue-700 mb-3" id="email-config-info">Loading...</div>
+            <button onclick="testEmailConfiguration()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+              🧪 Test SMTP
+            </button>
+          </div>
+          
           <p class="text-xs text-gray-500 mt-4 p-3 bg-gray-50 rounded">
-            💡 Τυχόν αλλαγές ρυθμίσεων θα γίνουν μέσω περιβαλλοντικών μεταβλητών.
+            💡 Email ρυθμίσεις: SMTP_SERVER, SMTP_USER, SMTP_PASSWORD στο .env αρχείο
           </p>
         </div>
       </div>
@@ -1083,15 +1096,25 @@ document.getElementById('email-form')?.addEventListener('submit', async (e) => {
   
   const userIds = Array.from(document.querySelectorAll('.user-email-checkbox:checked')).map(cb => cb.value);
   if (userIds.length === 0) {
-    alert('Παρακαλώ επιλέξτε τουλάχιστον έναν χρήστη');
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ επιλέξτε τουλάχιστον έναν χρήστη');
     return;
   }
   
-  const subject = e.target.subject.value;
-  const message = e.target.message.value;
+  const subject = e.target.subject.value.trim();
+  const message = e.target.message.value.trim();
+  
+  if (!subject || !message) {
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ συμπληρώστε θέμα και μήνυμα');
+    return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Αποστολή...';
   
   try {
-    const response = await fetch('/admin/send-email', {
+    const response = await fetch('/admin/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -1101,24 +1124,97 @@ document.getElementById('email-form')?.addEventListener('submit', async (e) => {
       })
     });
     
-    if (response.ok) {
-      alert('✅ Email στάλθηκε');
-      e.target.reset();
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Email στάλθηκε επιτυχώς σε ${data.results?.sent || userIds.length} χρήστες!${data.results?.failed > 0 ? ` (${data.results.failed} αποτυχίες)` : ''}`, 
+        () => {
+          e.target.reset();
+          document.querySelectorAll('.user-email-checkbox').forEach(cb => cb.checked = false);
+          document.getElementById('selectAllUsers').checked = false;
+        });
     } else {
-      alert('❌ Σφάλμα αποστολής');
+      showErrorModal('❌ Σφάλμα Αποστολής', data.error || 'Άγνωστο σφάλμα αποστολής email');
     }
   } catch (err) {
-    alert('❌ Σφάλμα');
+    console.error('Email send error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα δικτύου κατά την αποστολή email');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
   }
 });
 
 // ==================== SETTINGS TAB ====================
+async function loadEmailConfiguration() {
+  try {
+    const response = await fetch('/admin/api/email-config');
+    const data = await response.json();
+    
+    if (data.success) {
+      const config = data.config;
+      const statusEl = document.getElementById('smtp-status');
+      const statusTextEl = document.getElementById('smtp-status-text');
+      const infoEl = document.getElementById('email-config-info');
+      
+      if (config.configured) {
+        statusEl.checked = true;
+        statusTextEl.textContent = '✅ SMTP Email (Configured)';
+        infoEl.innerHTML = `
+          <strong>Server:</strong> ${config.smtp_server}:${config.smtp_port}<br>
+          <strong>User:</strong> ${config.smtp_user}<br>
+          <strong>Sender:</strong> ${config.sender_email}
+        `;
+      } else {
+        statusEl.checked = false;
+        statusTextEl.textContent = '❌ SMTP Email (Not Configured)';
+        infoEl.innerHTML = '<span class="text-red-600">SMTP not configured. Add SMTP_SERVER, SMTP_USER, SMTP_PASSWORD to .env file.</span>';
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load email config:', err);
+    document.getElementById('email-config-info').textContent = 'Failed to load email configuration';
+  }
+}
+
+async function testEmailConfiguration() {
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Testing...';
+  
+  try {
+    const testEmail = prompt('Enter email address for test (leave empty to use your account email):');
+    if (testEmail === null) return; // User cancelled
+    
+    const response = await fetch('/admin/api/test-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ SMTP Test Success', data.message);
+    } else {
+      showErrorModal('❌ SMTP Test Failed', data.error);
+    }
+  } catch (err) {
+    showErrorModal('❌ Test Error', 'Failed to test SMTP configuration');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
 async function clearActivityLogs() {
   try {
     // TODO: Implement clear activity logs
-    alert('Δεν είναι ακόμα διαθέσιμο');
+    showErrorModal('🚧 Not Implemented', 'Clear activity logs feature not yet implemented');
   } catch (err) {
-    alert('Σφάλμα');
+    showErrorModal('❌ Σφάλμα', 'Error clearing logs');
   }
 }
 
@@ -1215,6 +1311,7 @@ function showErrorModal(title, message) {
 window.addEventListener('load', function() {
   loadStats();
   loadUsers();
+  loadEmailConfiguration();
 });
 </script>
 

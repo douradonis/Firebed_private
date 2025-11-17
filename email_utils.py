@@ -11,16 +11,28 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # Email config from environment
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp' or 'oauth2_outlook'
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 SENDER_EMAIL = os.getenv('SENDER_EMAIL', SMTP_USER)
 APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
+OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
-    """Send an email via SMTP"""
+    """Send an email via SMTP or OAuth2"""
+    
+    # Check email provider configuration
+    if EMAIL_PROVIDER == 'oauth2_outlook':
+        return send_oauth2_email(to_email, subject, html_body, text_body)
+    else:
+        return send_smtp_email(to_email, subject, html_body, text_body)
+
+
+def send_smtp_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via traditional SMTP"""
     if not SMTP_USER or not SMTP_PASSWORD:
         logger.warning(f"SMTP not configured; skipping email to {to_email}")
         return False
@@ -40,10 +52,33 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
         
-        logger.info(f"Email sent to {to_email}: {subject}")
+        logger.info(f"Email sent via SMTP to {to_email}: {subject}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
+        logger.error(f"Failed to send SMTP email to {to_email}: {e}")
+        return False
+
+
+def send_oauth2_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via Microsoft OAuth2"""
+    try:
+        from oauth2_email_handler import OutlookOAuth2EmailSender
+        
+        sender = OutlookOAuth2EmailSender(OAUTH2_CREDENTIALS_FILE)
+        success = sender.send_email(to_email, subject, text_body or html_body, html_body)
+        
+        if success:
+            logger.info(f"Email sent via OAuth2 to {to_email}: {subject}")
+        else:
+            logger.error(f"OAuth2 email send failed to {to_email}")
+            
+        return success
+        
+    except ImportError:
+        logger.error("OAuth2 email handler not available")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send OAuth2 email to {to_email}: {e}")
         return False
 
 

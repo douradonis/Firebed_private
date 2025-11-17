@@ -60,9 +60,19 @@
                             <i class="fas fa-sign-in-alt"></i> Log In
                         </button>
 
-                        <a href="{{ url_for('firebase_auth.firebase_password_reset') }}" class="btn btn-link btn-sm w-100">
-                            Forgot Password?
-                        </a>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <a href="{{ url_for('firebase_auth.forgot_password') }}" class="btn btn-link btn-sm w-100 text-warning">
+                                    <i class="fas fa-key"></i> Forgot Password?
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-link btn-sm w-100 text-info" 
+                                        data-bs-toggle="modal" data-bs-target="#resendModal">
+                                    <i class="fas fa-envelope"></i> Resend Verification
+                                </button>
+                            </div>
+                        </div>
                     </form>
 
                     <hr class="my-3">
@@ -78,10 +88,58 @@
 
             <div class="alert alert-info mt-3">
                 <i class="fas fa-shield-alt"></i>
-                <strong>Secure Login:</strong> This system uses Firebase for secure authentication.
-                Your credentials are never stored locally.
+                <strong>Ασφαλής Σύνδεση:</strong> Το σύστημα χρησιμοποιεί Firebase για ασφαλή authentication.
+                Τα στοιχεία σας δεν αποθηκεύονται τοπικά.
+            </div>
+
+            <!-- Email Verification Notice -->
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-envelope-open-text"></i>
+                <strong>Email Verification:</strong> Πρέπει να επιβεβαιώσετε το email σας πριν συνδεθείτε.
+                Ελέγξτε το email σας για τον σύνδεσμο επιβεβαίωσης.
             </div>
         </div>
     </div>
 </div>
+
+<!-- Resend Verification Modal -->
+<div class="modal fade" id="resendModal" tabindex="-1" aria-labelledby="resendModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="resendModalLabel">
+                    <i class="fas fa-envelope"></i> Επαναποστολή Email Επιβεβαίωσης
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{{ url_for('firebase_auth.resend_verification') }}">
+                <div class="modal-body">
+                    <p>Εισάγετε το email σας για να λάβετε νέο email επιβεβαίωσης:</p>
+                    
+                    <div class="form-group">
+                        <label for="resend_email" class="form-label">Email Address</label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="resend_email" 
+                               name="email" 
+                               required 
+                               placeholder="Το email σας">
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i>
+                        Θα λάβετε νέο email εάν ο λογαριασμός σας δεν έχει επιβεβαιωθεί ακόμα.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ακύρωση</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-paper-plane"></i> Αποστολή Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -9,3 +9,4 @@
 {"user_id": 5, "group": "admin", "action": "group_restored", "timestamp": "2025-11-17T17:04:52.206561+00:00", "details": {"group_id": 1, "group_name": "dd", "backup_name": "dd_backup_20251117_142218"}}
 {"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T17:07:40.872589+00:00", "details": {"group_id": 1, "group_name": "dd", "backup_path": "/workspaces/Firebed_private/data/_backups/dd_backup_20251117_170740"}}
 {"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-17T17:22:57.111075+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-17T17:22:23_125920+00:00"}}
+{"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T19:58:09.557805+00:00", "details": {"group_id": 1, "group_name": "dourtest", "backup_path": "/workspaces/Firebed_private/data/_backups/dourtest_backup_20251117_195809"}}

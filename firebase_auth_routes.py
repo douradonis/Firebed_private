@@ -9,12 +9,133 @@ from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime, timezone
 import firebase_config
 from firebase_auth_handlers import FirebaseAuthHandler
+from firebed_email_verification import FirebedEmailVerification
 from models import db, User, Group, UserGroup
 from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
 
 firebase_auth_bp = Blueprint('firebase_auth', __name__, url_prefix='/firebase-auth')
+
+
+@firebase_auth_bp.route('/verify-email')
+def verify_email():
+    """Handle email verification from link"""
+    token = request.args.get('token')
+    if not token:
+        flash('❌ Μη έγκυρος σύνδεσμος επιβεβαίωσης.', 'danger')
+        return redirect(url_for('firebase_auth.firebase_login'))
+    
+    success, email, error = FirebedEmailVerification.verify_email_token(token)
+    
+    if success:
+        flash(f'✅ Το email {email} επιβεβαιώθηκε επιτυχώς! Μπορείτε τώρα να συνδεθείτε.', 'success')
+        return redirect(url_for('firebase_auth.firebase_login'))
+    else:
+        flash(f'❌ {error or "Αποτυχία επιβεβαίωσης email"}', 'danger')
+        return redirect(url_for('firebase_auth.firebase_login'))
+
+
+@firebase_auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Forgot password page and handler"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        
+        if not email or '@' not in email:
+            flash('❌ Παρακαλώ εισάγετε έγκυρο email.', 'danger')
+            return redirect(url_for('firebase_auth.forgot_password'))
+        
+        # Send password reset email
+        success = FirebedEmailVerification.send_password_reset_email(email)
+        
+        if success:
+            flash('📧 Οδηγίες επαναφοράς κωδικού στάλθηκαν στο email σας!', 'success')
+        else:
+            flash('❌ Το email δεν βρέθηκε ή υπήρξε σφάλμα.', 'danger')
+        
+        return redirect(url_for('firebase_auth.firebase_login'))
+    
+    return render_template('firebase_auth/forgot_password.html')
+
+
+@firebase_auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Password reset page and handler"""
+    token = request.args.get('token') or request.form.get('token')
+    
+    if not token:
+        flash('❌ Μη έγκυρος σύνδεσμος επαναφοράς κωδικού.', 'danger')
+        return redirect(url_for('firebase_auth.firebase_login'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        if not new_password or len(new_password) < 6:
+            flash('❌ Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.', 'danger')
+            return render_template('firebase_auth/reset_password.html', token=token)
+        
+        if new_password != confirm_password:
+            flash('❌ Οι κωδικοί δεν ταιριάζουν.', 'danger')
+            return render_template('firebase_auth/reset_password.html', token=token)
+        
+        # Verify reset token
+        try:
+            email, token_type = FirebedEmailVerification.verify_token(token)
+            if not email or token_type != 'password_reset':
+                flash('❌ Μη έγκυρος ή ληγμένος σύνδεσμος επαναφοράς.', 'danger')
+                return redirect(url_for('firebase_auth.firebase_login'))
+            
+            # Update password in Firebase
+            from firebase_admin import auth as firebase_auth
+            user = firebase_auth.get_user_by_email(email)
+            firebase_auth.update_user(user.uid, password=new_password)
+            
+            logger.info(f"Password reset successful for {email}")
+            
+            # Log activity
+            firebase_config.firebase_log_activity(
+                user.uid,
+                'user',
+                'password_reset_completed',
+                {'email': email, 'timestamp': datetime.now(timezone.utc).isoformat()}
+            )
+            
+            flash('✅ Ο κωδικός επαναφέρθηκε επιτυχώς! Μπορείτε τώρα να συνδεθείτε.', 'success')
+            return redirect(url_for('firebase_auth.firebase_login'))
+            
+        except Exception as e:
+            logger.error(f"Password reset error: {e}")
+            flash('❌ Σφάλμα επαναφοράς κωδικού. Δοκιμάστε ξανά.', 'danger')
+            return render_template('firebase_auth/reset_password.html', token=token)
+    
+    return render_template('firebase_auth/reset_password.html', token=token)
+
+
+@firebase_auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Resend verification email"""
+    email = request.form.get('email', '').strip()
+    
+    if not email or '@' not in email:
+        flash('❌ Παρακαλώ εισάγετε έγκυρο email.', 'danger')
+        return redirect(url_for('firebase_auth.firebase_login'))
+    
+    # Check if user exists and is not verified
+    if FirebedEmailVerification.is_email_verified(email):
+        flash('✅ Το email είναι ήδη επιβεβαιωμένο!', 'info')
+        return redirect(url_for('firebase_auth.firebase_login'))
+    
+    # Send verification email
+    success = FirebedEmailVerification.send_signup_verification_email(email)
+    
+    if success:
+        flash('📧 Νέο email επιβεβαίωσης στάλθηκε!', 'success')
+    else:
+        flash('❌ Αποτυχία αποστολής email επιβεβαίωσης.', 'danger')
+    
+    return redirect(url_for('firebase_auth.firebase_login'))
 
 
 @firebase_auth_bp.route('/signup', methods=['GET', 'POST'])
@@ -49,17 +170,30 @@ def firebase_signup():
             flash(f'Registration failed: {error}', 'danger')
             return redirect(url_for('firebase_auth.firebase_signup'))
         
+        # Check if admin email - skip verification
+        is_admin = FirebedEmailVerification.is_admin_email(email)
+        verification_sent = False
+        
+        if not is_admin:
+            # Send verification email for non-admin users
+            verification_sent = FirebedEmailVerification.send_signup_verification_email(email, display_name)
+            
+            if not verification_sent:
+                logger.warning(f"Failed to send verification email to {email}")
+                flash('Η εγγραφή ολοκληρώθηκε, αλλά το email επιβεβαίωσης δεν στάλθηκε. Επικοινωνήστε με τον διαχειριστή.', 'warning')
+        else:
+            logger.info(f"Admin email {email} registered - skipping email verification")
+        
         # Create local user entry. Store username as the full email to allow email-login.
         try:
             user = User.query.filter_by(username=email).first()
             if not user:
                 user = User(
                     username=email,
-                    pw_hash=uid  # Store Firebase UID
+                    pw_hash=uid,  # Store Firebase UID
+                    email=email,
+                    firebase_uid=uid
                 )
-                # store explicit email and firebase uid
-                user.email = email
-                user.firebase_uid = uid
                 db.session.add(user)
                 try:
                     db.session.commit()
@@ -73,10 +207,16 @@ def firebase_signup():
                 uid,
                 'system',
                 'user_signup_complete',
-                {'email': email}
+                {'email': email, 'verification_email_sent': verification_sent}
             )
             
-            flash('Η εγγραφή ολοκληρώθηκε! Συνδεθείτε.', 'success')
+            if is_admin:
+                flash('🎉 Η εγγραφή admin ολοκληρώθηκε! Μπορείτε να συνδεθείτε απευθείας.', 'success')
+            elif verification_sent:
+                flash('🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε το email σας για επιβεβαίωση πριν συνδεθείτε.', 'success')
+            else:
+                flash('Η εγγραφή ολοκληρώθηκε! Μπορείτε να συνδεθείτε.', 'success')
+            
             return redirect(url_for('firebase_auth.firebase_login'))
             
         except Exception as e:
@@ -131,6 +271,25 @@ def firebase_login():
         if not success:
             flash(f'Login failed: {error}', 'danger')
             return redirect(url_for('firebase_auth.firebase_login'))
+        
+        # Check email verification status (skip for admin emails)
+        is_admin = FirebedEmailVerification.is_admin_email(firebase_email)
+        
+        if not is_admin and not FirebedEmailVerification.is_email_verified(firebase_email):
+            flash('📧 Πρέπει να επιβεβαιώσετε το email σας πριν συνδεθείτε. Ελέγξτε το email σας για τον σύνδεσμο επιβεβαίωσης.', 'warning')
+            
+            # Option to resend verification email
+            resend = request.form.get('resend_verification')
+            if resend:
+                verification_sent = FirebedEmailVerification.send_signup_verification_email(firebase_email)
+                if verification_sent:
+                    flash('📧 Νέο email επιβεβαίωσης στάλθηκε!', 'success')
+                else:
+                    flash('❌ Αποτυχία αποστολής email επιβεβαίωσης.', 'danger')
+            
+            return redirect(url_for('firebase_auth.firebase_login'))
+        elif is_admin:
+            logger.info(f"Admin login bypass for {firebase_email} - no email verification required")
         
         # Get or create local user. Prefer finding by username OR email to avoid creating duplicates
         from sqlalchemy import or_
