@@ -20,6 +20,7 @@ SENDER_EMAIL = os.getenv('SENDER_EMAIL', SMTP_USER)
 APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
 OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_EMAIL_SENDER = os.getenv('RESEND_EMAIL_SENDER', '')
 
 
 def get_email_provider() -> str:
@@ -123,9 +124,12 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         # Set the API key
         resend.api_key = RESEND_API_KEY
         
+        # Use RESEND_EMAIL_SENDER if set, otherwise fall back to SENDER_EMAIL
+        sender = RESEND_EMAIL_SENDER or SENDER_EMAIL or "noreply@yourdomain.com"
+        
         # Prepare email params - Resend requires 'from' to be a verified domain
         params = {
-            "from": SENDER_EMAIL or "noreply@yourdomain.com",
+            "from": sender,
             "to": [to_email],
             "subject": subject,
             "html": html_body,

@@ -103,7 +103,7 @@ SENDER_EMAIL=your@email.com
 
 # For Resend (NEW!)
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-SENDER_EMAIL=verified@yourdomain.com
+RESEND_EMAIL_SENDER=verified@yourdomain.com
 ```
 
 **Admin Settings (data/credentials_settings.json):**
@@ -153,7 +153,7 @@ pip install -r requirements.txt
 Add to `.env`:
 ```bash
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-SENDER_EMAIL=noreply@yourdomain.com  # Must be from verified domain
+RESEND_EMAIL_SENDER=noreply@yourdomain.com  # Must be from verified domain
 ```
 
 ### Step 4: Enable in Admin Panel

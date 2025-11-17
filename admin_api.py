@@ -1118,7 +1118,7 @@ def api_email_config():
                 } if smtp_configured else None,
                 'resend': {
                     'api_key_set': bool(email_utils.RESEND_API_KEY),
-                    'sender': email_utils.SENDER_EMAIL
+                    'sender': email_utils.RESEND_EMAIL_SENDER or email_utils.SENDER_EMAIL
                 } if resend_configured else None
             }
             
