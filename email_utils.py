@@ -35,15 +35,20 @@ def get_email_provider() -> str:
             from app import load_settings
             settings = load_settings()
             provider = settings.get('email_provider', '').strip()
+            logger.info(f"get_email_provider: loaded from settings: {provider}")
             if provider in ['smtp', 'oauth2_outlook', 'resend']:
                 return provider
-        except (ImportError, Exception):
+        except (ImportError, Exception) as e:
+            logger.warning(f"get_email_provider: failed to load from settings: {e}")
             pass
-    except Exception:
+    except Exception as e:
+        logger.warning(f"get_email_provider: outer exception: {e}")
         pass
     
     # Fallback to environment variable
-    return EMAIL_PROVIDER
+    fallback = EMAIL_PROVIDER
+    logger.info(f"get_email_provider: falling back to env: {fallback}")
+    return fallback
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
@@ -51,13 +56,17 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
     
     # Get current provider from settings or environment
     provider = get_email_provider()
+    logger.info(f"send_email called: to={to_email}, subject={subject}, provider={provider}")
     
     # Route to appropriate sending function
     if provider == 'resend':
+        logger.info(f"Routing to Resend for {to_email}")
         return send_resend_email(to_email, subject, html_body, text_body)
     elif provider == 'oauth2_outlook':
+        logger.info(f"Routing to OAuth2 for {to_email}")
         return send_oauth2_email(to_email, subject, html_body, text_body)
     else:
+        logger.info(f"Routing to SMTP for {to_email}")
         return send_smtp_email(to_email, subject, html_body, text_body)
 
 
@@ -118,14 +127,19 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         logger.warning(f"Resend API key not configured; skipping email to {to_email}")
         return False
     
+    # Check if using test domain - warn and suggest SMTP fallback
+    sender = RESEND_EMAIL_SENDER or SENDER_EMAIL or "noreply@yourdomain.com"
+    if sender == "onboarding@resend.dev":
+        logger.warning(f"Using Resend test domain 'onboarding@resend.dev' - this only sends to verified emails!")
+        logger.warning(f"For production, configure a verified domain in RESEND_EMAIL_SENDER")
+        logger.warning(f"Falling back to SMTP for {to_email}")
+        return send_smtp_email(to_email, subject, html_body, text_body)
+    
     try:
         import resend
         
         # Set the API key
         resend.api_key = RESEND_API_KEY
-        
-        # Use RESEND_EMAIL_SENDER if set, otherwise fall back to SENDER_EMAIL
-        sender = RESEND_EMAIL_SENDER or SENDER_EMAIL or "noreply@yourdomain.com"
         
         # Prepare email params - Resend requires 'from' to be a verified domain
         params = {
@@ -140,6 +154,7 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
             params["text"] = text_body
         
         # Send email using Resend API
+        logger.info(f"Attempting to send via Resend: from={sender}, to={to_email}")
         email = resend.Emails.send(params)
         
         logger.info(f"Email sent via Resend to {to_email}: {subject} (ID: {email.get('id', 'unknown')})")
@@ -150,7 +165,12 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         return False
     except Exception as e:
         logger.error(f"Failed to send Resend email to {to_email}: {e}")
-        return False
+        logger.error(f"Resend error details - Type: {type(e).__name__}, Args: {e.args}")
+        logger.error(f"Resend sender was: {sender}, API key present: {bool(RESEND_API_KEY)}")
+        
+        # Fallback to SMTP if Resend fails
+        logger.warning(f"Falling back to SMTP for {to_email}")
+        return send_smtp_email(to_email, subject, html_body, text_body)
 
 
 def create_verification_token(user_id: int, token_type: str = 'email_verify', expires_in_hours: int = 24) -> Optional[str]:
