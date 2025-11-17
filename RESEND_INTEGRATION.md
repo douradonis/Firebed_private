@@ -34,12 +34,16 @@ pip install -r requirements.txt
 
 ```env
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
-SENDER_EMAIL=noreply@yourdomain.com
+RESEND_EMAIL_SENDER=noreply@yourdomain.com
 ```
 
-**Σημαντικό:** Το email που χρησιμοποιείτε στο `SENDER_EMAIL` πρέπει να είναι από domain που έχετε επαληθεύσει στο Resend dashboard.
+**Σημαντικό:** Το email που χρησιμοποιείτε στο `RESEND_EMAIL_SENDER` πρέπει να είναι από domain που έχετε επαληθεύσει στο Resend dashboard.
 
-**Important:** The email you use in `SENDER_EMAIL` must be from a domain you have verified in the Resend dashboard.
+**Important:** The email you use in `RESEND_EMAIL_SENDER` must be from a domain you have verified in the Resend dashboard.
+
+**Σημείωση:** Υπάρχει επίσης το `SENDER_EMAIL` που χρησιμοποιείται για SMTP. Το `RESEND_EMAIL_SENDER` είναι ξεχωριστό και χρησιμοποιείται μόνο για το Resend.
+
+**Note:** There is also `SENDER_EMAIL` which is used for SMTP. The `RESEND_EMAIL_SENDER` is separate and used only for Resend.
 
 ### 3. Επαλήθευση Domain στο Resend
 
@@ -137,7 +141,7 @@ Total: 4/4 tests passed
 
 **Ελέγξτε:**
 1. Το API key είναι σωστό
-2. Το SENDER_EMAIL είναι από verified domain
+2. Το RESEND_EMAIL_SENDER είναι από verified domain
 3. Τα logs για το ακριβές error message
 
 ## Σύγκριση Providers (Provider Comparison)

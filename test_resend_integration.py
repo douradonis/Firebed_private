@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, load_settings, save_settings
-from email_utils import get_email_provider, send_resend_email, RESEND_API_KEY, SENDER_EMAIL
+from email_utils import get_email_provider, send_resend_email, RESEND_API_KEY, RESEND_EMAIL_SENDER
 
 
 def test_resend_config():
@@ -17,13 +17,19 @@ def test_resend_config():
     print("=" * 60)
     
     print(f"RESEND_API_KEY set: {bool(RESEND_API_KEY)}")
-    print(f"SENDER_EMAIL: {SENDER_EMAIL or 'Not set'}")
+    print(f"RESEND_EMAIL_SENDER: {RESEND_EMAIL_SENDER or 'Not set'}")
     
     if RESEND_API_KEY:
         print("✅ Resend API key is configured")
     else:
         print("⚠️  Resend API key not set in environment")
         print("   Set RESEND_API_KEY in .env to test actual email sending")
+    
+    if RESEND_EMAIL_SENDER:
+        print(f"✅ Resend email sender is configured: {RESEND_EMAIL_SENDER}")
+    else:
+        print("⚠️  RESEND_EMAIL_SENDER not set in environment")
+        print("   Set RESEND_EMAIL_SENDER in .env for Resend emails")
     
     print()
     return True
