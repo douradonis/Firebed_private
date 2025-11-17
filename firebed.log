@@ -465,3 +465,9 @@
 2025-11-17 20:35:08,696 - __main__ - INFO - Firebase initialized
 2025-11-17 20:35:08,714 - __main__ - INFO - Firebase Auth routes registered
 2025-11-17 20:35:08,729 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 22:03:09,611 - __main__ - INFO - Firebase initialized
+2025-11-17 22:03:09,621 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 22:03:09,644 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup
+2025-11-17 22:03:10,659 - __main__ - INFO - Firebase initialized
+2025-11-17 22:03:10,665 - __main__ - INFO - Firebase Auth routes registered
+2025-11-17 22:03:10,678 - __main__ - WARNING - Firebase initialization failed: View function mapping is overwriting an existing endpoint function: admin_api.api_delete_local_backup

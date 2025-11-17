@@ -4082,3 +4082,5 @@ NameError: name 'auto_flag' is not defined
 2025-11-17 22:33:37+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
 2025-11-17 22:33:39+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
 2025-11-17 22:35:08+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-18 00:03:09+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-18 00:03:10+0200 INFO Starting app - MYDATA_ENV=sandbox
