@@ -947,13 +947,32 @@ def api_activity_logs():
     try:
         group_filter = request.args.get('group', '')
         action_filter = request.args.get('action', '')
+        search_filter = request.args.get('search', '')
         limit = int(request.args.get('limit', 100))
         
         logs = admin_panel.admin_get_activity_logs(group_filter if group_filter else None, limit)
         
         # Filter by action if provided
         if action_filter:
-            logs = [log for log in logs if action_filter.lower() in (log.get('action') or '').lower()]
+            logs = [log for log in logs if action_filter.lower() in (log.get('event_type') or log.get('action') or '').lower()]
+        
+        # Filter by search term (searches in multiple fields)
+        if search_filter:
+            search_lower = search_filter.lower()
+            filtered_logs = []
+            for log in logs:
+                # Search in user_id, action, event_type, and details
+                searchable_text = ' '.join([
+                    str(log.get('user_id') or ''),
+                    str(log.get('action') or ''),
+                    str(log.get('event_type') or ''),
+                    str(log.get('details') or ''),
+                    str(log.get('group') or '')
+                ]).lower()
+                
+                if search_lower in searchable_text:
+                    filtered_logs.append(log)
+            logs = filtered_logs
         
         return jsonify({'success': True, 'logs': logs})
     except Exception as e:

@@ -1,13 +1,53 @@
 #!/usr/bin/env python3
 """
-Simple script to stop all ports from 5000 and above
-Χρήση: python stop_ports_5000_plus.py
+Simple script to stop all ports 5000 and above
 """
-
-import subprocess
-import sys
+import psutil
 import os
 import signal
+import sys
+
+def stop_ports_from_5000():
+    """Stop all processes using ports 5000 and above"""
+    stopped = 0
+    
+    try:
+        print("🔧 Σταμάτημα θυρών από 5000 και πάνω...")
+        
+        for conn in psutil.net_connections(kind='inet'):
+            if (conn.status == psutil.CONN_LISTEN and 
+                conn.laddr and 
+                conn.laddr.port >= 5000 and 
+                conn.pid):
+                
+                try:
+                    proc = psutil.Process(conn.pid)
+                    print(f"Σταματά: PID {conn.pid} - {proc.name()} στη θύρα {conn.laddr.port}")
+                    
+                    # Try graceful termination first
+                    proc.terminate()
+                    
+                    # Wait a bit, then force kill if needed
+                    try:
+                        proc.wait(timeout=3)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+                    
+                    stopped += 1
+                    
+                except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                    print(f"Δεν μπόρεσα να σταματήσω PID {conn.pid}: {e}")
+                    continue
+        
+        print(f"✅ Σταμάτησαν {stopped} διεργασίες")
+        return stopped
+        
+    except Exception as e:
+        print(f"❌ Σφάλμα: {e}")
+        return 0
+
+if __name__ == "__main__":
+    stop_ports_from_5000()
 from typing import List, Dict
 
 

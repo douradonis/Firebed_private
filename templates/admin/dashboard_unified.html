@@ -474,7 +474,11 @@ async function viewUserDetails(userId) {
         <div>
           <span class="font-medium">Ομάδες:</span> 
           <div class="mt-2 flex flex-wrap gap-2">
-            ${(data.user?.groups || []).map(g => `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm">${g}</span>`).join('')}
+            ${(data.user?.groups || []).map(g => {
+              const groupName = typeof g === 'object' ? (g.name || g.group_name) : g;
+              const groupRole = typeof g === 'object' && g.role ? ` (${g.role})` : '';
+              return `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm">${groupName}${groupRole}</span>`;
+            }).join('')}
           </div>
         </div>
       </div>
@@ -579,7 +583,11 @@ async function viewGroupDetails(groupId) {
         <div>
           <span class="font-medium">Μέλη:</span> 
           <div class="mt-2">
-            ${(data.group?.members || data.members || []).map(m => `<div class="text-sm">${m}</div>`).join('')}
+            ${(data.group?.members || data.members || []).map(m => {
+              const memberName = typeof m === 'object' ? (m.username || m.name) : m;
+              const memberRole = typeof m === 'object' ? (m.role ? ` (${m.role})` : '') : '';
+              return `<div class="text-sm">${memberName}${memberRole}</div>`;
+            }).join('')}
           </div>
         </div>
       </div>
@@ -629,42 +637,69 @@ async function performGroupDeletion(groupId, groupName) {
 }
 
 // ==================== ACTIVITY TAB ====================
-async function loadActivity() {
-  try {
-    const groupFilter = document.getElementById('activity-group').value || '';
-    const actionFilter = document.getElementById('activity-action').value || '';
-    const limit = document.getElementById('activity-limit').value || 100;
-    
-    let url = `/admin/api/activity-logs?limit=${limit}`;
-    if (groupFilter) url += `&group=${groupFilter}`;
-    if (actionFilter) url += `&action=${actionFilter}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    const tbody = document.getElementById('activity-tbody');
-    
-    if (!data.logs || data.logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν υπάρχουν δραστηριότητες</td></tr>';
-      return;
-    }
+// ==================== ACTIVITY TAB ====================
+let activitySearchTimeout = null;
 
-    tbody.innerHTML = data.logs.map(log => `
-      <tr class="border-b border-gray-200 hover:bg-gray-50">
-        <td class="px-4 py-3 text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('el-GR')}</td>
-        <td class="px-4 py-3 text-sm">${log.user_id || '-'}</td>
-        <td class="px-4 py-3 text-sm">${log.group || '-'}</td>
-        <td class="px-4 py-3">
-          <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded whitespace-nowrap">
-            ${log.action || log.event_type || '-'}
-          </span>
-        </td>
-        <td class="px-4 py-3 text-xs text-gray-600 truncate">${JSON.stringify(log.details || log.data || {}).substring(0, 50)}...</td>
-      </tr>
-    `).join('');
-  } catch (error) {
-    console.error('Error loading activity:', error);
-    document.getElementById('activity-tbody').innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
+async function loadActivity() {
+  return loadActivityDynamic();
+}
+
+async function loadActivityDynamic() {
+  // Clear previous timeout to debounce rapid typing
+  if (activitySearchTimeout) {
+    clearTimeout(activitySearchTimeout);
   }
+  
+  activitySearchTimeout = setTimeout(async () => {
+    try {
+      const groupFilter = document.getElementById('activity-group')?.value || '';
+      const actionFilter = document.getElementById('activity-action')?.value || '';
+      const searchFilter = document.getElementById('activity-search')?.value || '';
+      const limit = document.getElementById('activity-limit')?.value || 100;
+      
+      let url = `/admin/api/activity-logs?limit=${limit}`;
+      if (groupFilter) url += `&group=${encodeURIComponent(groupFilter)}`;
+      if (actionFilter) url += `&action=${encodeURIComponent(actionFilter)}`;
+      if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
+      
+      if (document.getElementById('activity-count')) {
+        document.getElementById('activity-count').textContent = 'Αναζήτηση...';
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      const tbody = document.getElementById('activity-tbody');
+      
+      if (!data.logs || data.logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν βρέθηκαν αποτελέσματα</td></tr>';
+        if (document.getElementById('activity-count')) {
+          document.getElementById('activity-count').textContent = '0 καταχωρήσεις';
+        }
+        return;
+      }
+      
+      if (document.getElementById('activity-count')) {
+        document.getElementById('activity-count').textContent = `${data.logs.length} καταχωρήσεις`;
+      }
+
+      tbody.innerHTML = data.logs.map(log => `
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="px-4 py-3 text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('el-GR')}</td>
+          <td class="px-4 py-3 text-sm">${log.user_id || '-'}</td>
+          <td class="px-4 py-3 text-sm">${log.group || '-'}</td>
+          <td class="px-4 py-3">
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded whitespace-nowrap">
+              ${log.action || log.event_type || '-'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-600 truncate">${JSON.stringify(log.details || log.data || {}).substring(0, 50)}...</td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading activity:', error);
+      document.getElementById('activity-tbody').innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
+    }
+  }, 300); // 300ms debounce
 }
 
 // ==================== BACKUPS TAB ====================

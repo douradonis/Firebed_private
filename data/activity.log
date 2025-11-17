@@ -3123,3 +3123,604 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2025-11-17 19:12:25+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
 2025-11-17 19:12:26+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
 2025-11-17 19:12:28+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:12:55+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:13:01+0200 INFO Incoming request: method=GET path=/admin/api/users/6 remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:13:05+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:13:06+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:13:33+0200 INFO Incoming request: method=GET path=/admin/api/users/6 remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:13:47+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:13:49+0200 INFO Incoming request: method=GET path=/admin/api/groups/1 remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:14:14+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:14:35+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:14:40+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:17:05+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:18:03+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:19:24+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:19:31+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=None
+2025-11-17 19:21:48+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:21:49+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:21:52+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6.github.dev/
+2025-11-17 19:21:52+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:52+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:52+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:53+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:55+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:56+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:57+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:58+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:21:59+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:00+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:01+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:02+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:05+0200 INFO Incoming request: method=GET path=/admin/api/backups/remote remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:07+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:23+0200 INFO Incoming request: method=POST path=/admin/api/backup/all remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:24+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:34+0200 INFO Incoming request: method=DELETE path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:35+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:36+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:36+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:38+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:41+0200 INFO Incoming request: method=DELETE path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:42+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:43+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:43+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:44+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:46+0200 INFO Incoming request: method=GET path=/admin/api/backups/remote remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:57+0200 INFO Incoming request: method=DELETE path=/admin/api/backup remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:22:58+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:01+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:02+0200 INFO Incoming request: method=GET path=/admin/api/backups/remote remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:05+0200 INFO Incoming request: method=POST path=/admin/api/backup/all remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:06+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:09+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:09+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/admin remote=127.0.0.1 ref=None
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:12+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:13+0200 INFO Incoming request: method=GET path=/admin/api/users remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:13+0200 INFO Incoming request: method=GET path=/admin/api/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:13+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:13+0200 INFO Incoming request: method=GET path=/admin/api/activity-logs remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:13+0200 INFO Incoming request: method=GET path=/admin/api/backups/local remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:15+0200 INFO Incoming request: method=GET path=/admin/api/backups/remote remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:32+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:32+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/admin
+2025-11-17 19:23:32+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:32+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:32+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:33+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:33+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:38+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:38+0200 INFO Incoming request: method=GET path=/ remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:38+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:38+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:38+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:39+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:39+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:39+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:40+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/
+2025-11-17 19:23:40+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:40+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:40+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:41+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:41+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:41+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:42+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:42+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:43+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:44+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:45+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:48+0200 INFO Incoming request: method=GET path=/logout remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:48+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:23:49+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:49+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:49+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:50+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:23:50+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:25:37+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:41:39+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:41:41+0200 INFO Starting app - MYDATA_ENV=sandbox
+2025-11-17 19:41:44+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=None
+2025-11-17 19:41:45+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:45+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:45+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:45+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:45+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:52+0200 INFO Incoming request: method=POST path=/firebase-auth/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/login
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:41:53+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:03+0200 INFO Incoming request: method=POST path=/groups/create remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:03+0200 INFO Incoming request: method=GET path=/groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:04+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/groups
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:06+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:14+0200 INFO Incoming request: method=POST path=/api/data_backup/inspect remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:17+0200 INFO Incoming request: method=POST path=/api/data_backup/restore remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:18+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:21+0200 INFO Incoming request: method=POST path=/set_active remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:21+0200 INFO Incoming request: method=GET path=/credentials remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:21+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:21+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:21+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:22+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:22+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:22+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/credentials
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:23+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:24+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:26+0200 INFO Incoming request: method=POST path=/api/qr/remote/start remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:26+0200 INFO remote.start session=RKsboSQuorNs mode=invoices repeat=False auto=False owner=8sy0lrHW… ip=127.0.0.1
+2025-11-17 19:42:26+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:26+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:28+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:28+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:29+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:29+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:30+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:30+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:31+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:31+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:32+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:32+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:34+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:34+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:34+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:34+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:36+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:36+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:36+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:36+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:38+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:38+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:39+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:39+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:40+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:40+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:41+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:41+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:42+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:42+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:44+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:44+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:44+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:44+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:46+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:46+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:47+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:47+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:49+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:49+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:49+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:49+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:51+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:51+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:51+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:51+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:53+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:53+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:54+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:54+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:55+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:55+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:56+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:56+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:57+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:57+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:42:59+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:59+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:42:59+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:42:59+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:01+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:01+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:01+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:01+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:03+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:03+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:04+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:04+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:05+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:05+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:06+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:06+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:08+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:08+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:09+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:09+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:10+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:10+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:11+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:11+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:12+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:12+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:14+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:14+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:14+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:16+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:16+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:16+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:16+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:18+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:18+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:19+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:20+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:20+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:21+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:21+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:22+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:22+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:24+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:24+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:24+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:24+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:26+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:26+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:26+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:26+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:29+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:29+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:29+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:29+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:31+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:31+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:31+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:31+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:33+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:33+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:34+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:34+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:35+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:35+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:36+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:36+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:37+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:37+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:39+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:39+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:39+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:39+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:41+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:41+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:41+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:41+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:43+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:43+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:44+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:44+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:45+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:45+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:46+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:46+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:48+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:48+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:49+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:49+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:50+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:50+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:51+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:51+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:52+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:52+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:54+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:54+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:54+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:54+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:56+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:56+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:43:56+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:56+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:58+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:58+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:43:59+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:43:59+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:00+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:00+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:01+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:01+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:03+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:03+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:04+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:04+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:05+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:05+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:06+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:06+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:07+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:07+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:09+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:09+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:09+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:09+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:11+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:11+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:11+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:11+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:13+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:13+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:14+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:15+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:15+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:16+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:16+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:17+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:17+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:19+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:19+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:19+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:21+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:21+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:21+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:21+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:24+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:24+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:24+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:24+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:26+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:26+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=False
+2025-11-17 19:44:26+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:26+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:26+0200 INFO Incoming request: method=GET path=/mobile/qr-scanner remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6.github.dev/
+2025-11-17 19:44:27+0200 INFO Incoming request: method=POST path=/api/qr/remote/attach remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:27+0200 INFO remote.attach session=RKsboSQuorNs mode=invoices repeat=False auto=False
+2025-11-17 19:44:27+0200 INFO Incoming request: method=GET path=/login remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:28+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:28+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:29+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:29+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:30+0200 INFO Incoming request: method=POST path=/api/qr/remote/heartbeat remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:30+0200 ERROR Unhandled exception: name 'auto_flag' is not defined
+Traceback (most recent call last):
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python/3.12.1/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/Firebed_private/app.py", line 4783, in api_qr_remote_heartbeat
+    if auto_flag is not None:
+       ^^^^^^^^^
+NameError: name 'auto_flag' is not defined
+
+2025-11-17 19:44:30+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:30+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:31+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:31+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:33+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:33+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:34+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:34+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:36+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:36+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:37+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:37+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:39+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:39+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:39+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:39+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:41+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:41+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:41+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:41+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=invoices repeat=False auto=False summary=True
+2025-11-17 19:44:42+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:42+0200 INFO remote.update session=RKsboSQuorNs owner=- mode=receipts repeat=False auto=False summary=False
+2025-11-17 19:44:43+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:43+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:44+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:44+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=False auto=False summary=True
+2025-11-17 19:44:44+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:44+0200 INFO remote.update session=RKsboSQuorNs owner=- mode=receipts repeat=True auto=False summary=False
+2025-11-17 19:44:45+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:45+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:45+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:46+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:46+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:48+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:48+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=0 attached=True
+2025-11-17 19:44:49+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:49+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:50+0200 INFO Incoming request: method=POST path=/api/qr/remote/push remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/mobile/qr-scanner?session=RKsboSQuorNs&token=d5W57k_oQgI_-teY74b4Yq9WHV5MIDT7HL5zzGUE09g
+2025-11-17 19:44:50+0200 INFO remote.push session=RKsboSQuorNs mark=- url=True repeat=True auto=False
+2025-11-17 19:44:51+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:51+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=0 version=1 attached=True
+2025-11-17 19:44:52+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:52+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:52+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:52+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:44:54+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:54+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:54+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:54+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:44:54+0200 INFO Incoming request: method=POST path=/api/scrape_receipt remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:54+0200 INFO api_scrape_receipt: incoming url=https://einvoice.impact.gr/v/EL094439854-758231285-9EC08E92DD04DFF8D8E269FCC5094AF7DB923E0D-EDBD27D0085F49CB8858AE9501650310
+2025-11-17 19:44:55+0200 INFO api_scrape_receipt: scraped url=https://einvoice.impact.gr/v/EL094439854-758231285-9EC08E92DD04DFF8D8E269FCC5094AF7DB923E0D-EDBD27D0085F49CB8858AE9501650310 is_invoice=False mark=400011269481493
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/api/next_receipt_mark remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:55+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:55+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-17 19:44:55+0200 INFO Incoming request: method=POST path=/save_summary remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:55+0200 INFO save_summary: start request from 127.0.0.1
+2025-11-17 19:44:55+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/tony/epsilon/12345679_epsilon_invoices.json
+2025-11-17 19:44:55+0200 INFO _safe_save_epsilon_cache: saved epsilon to /workspaces/Firebed_private/data/tony/epsilon/12345679_epsilon_invoices.json
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/search remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/static/dialogs.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/static/dialogs.css remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/static/modal_utils.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/static/repeat_flow_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:55+0200 INFO Incoming request: method=GET path=/static/loop_hard_guard.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/static/receipts_repeat_direct.js remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/api/repeat_entry/get remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/api/char_profiles remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/get_fiscal_year remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=GET path=/api/user_groups remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=POST path=/api/repeat_entry/save remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:56+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:57+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:57+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:44:59+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:59+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:44:59+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:44:59+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:01+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:01+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:01+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:01+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:03+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:03+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:04+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:04+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:06+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:06+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:06+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:06+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:08+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:08+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:09+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:09+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:10+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:10+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:11+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:11+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:12+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:12+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:14+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:14+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:14+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:14+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:16+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:16+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:16+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:16+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:18+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:18+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:19+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:19+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:20+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:20+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:21+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:21+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:22+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:22+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:24+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:24+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:24+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:24+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:27+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:27+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:27+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:27+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:30+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:30+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:30+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:30+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:32+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:32+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:33+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:33+0200 INFO remote.status session=RKsboSQuorNs owner=8sy0lrHW… since=1 version=1 attached=True
+2025-11-17 19:45:35+0200 INFO Incoming request: method=POST path=/api/qr/remote/update remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1
+2025-11-17 19:45:35+0200 INFO remote.update session=RKsboSQuorNs owner=8sy0lrHW… mode=receipts repeat=True auto=False summary=True
+2025-11-17 19:45:36+0200 INFO Incoming request: method=GET path=/api/qr/remote/status remote=127.0.0.1 ref=https://super-duper-funicular-7vrx5q6rrrv6hxvj6-5000.app.github.dev/search?use_receipts=1

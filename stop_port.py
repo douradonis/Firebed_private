@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Stop Port Script - Σταματά όλες τις θύρες που χρησιμοποιούνται
-Χρήση: python stop_port.py [--port PORT] [--all] [--dev] [--from PORT] [--force]
+Χρήση: python stop_port.py [--port PORT] [--all] [--force] [--from 5000]
 """
 
 import subprocess
@@ -10,19 +10,47 @@ import argparse
 import os
 import signal
 import time
+import psutil
 from typing import List, Dict, Optional
 
 
 def get_processes_using_ports() -> List[Dict]:
-    """Βρίσκει όλες τις διεργασίες που χρησιμοποιούν θύρες"""
+    """Βρίσκει όλες τις διεργασίες που χρησιμοποιούν θύρες με psutil"""
     try:
-        # Χρήση lsof για να βρούμε διεργασίες που χρησιμοποιούν θύρες
+        processes = []
+        
+        # Χρήση psutil για αξιόπιστη ανίχνευση
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.status == psutil.CONN_LISTEN and conn.laddr:
+                try:
+                    if conn.pid:
+                        proc = psutil.Process(conn.pid)
+                        processes.append({
+                            'pid': conn.pid,
+                            'port': conn.laddr.port,
+                            'command': proc.name(),
+                            'address': f"{conn.laddr.ip}:{conn.laddr.port}",
+                            'user': proc.username() if hasattr(proc, 'username') else 'unknown'
+                        })
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        
+        return processes
+    
+    except Exception as e:
+        print(f"❌ Σφάλμα κατά την αναζήτηση διεργασιών: {e}")
+        # Fallback to lsof if psutil fails
+        return get_processes_using_lsof_fallback()
+
+
+def get_processes_using_lsof_fallback() -> List[Dict]:
+    """Εναλλακτικός τρόπος με lsof (fallback)"""
+    try:
         result = subprocess.run(['lsof', '-i', '-P', '-n'], 
-                              capture_output=True, text=True, check=False)
+                              capture_output=True, text=True, check=False, timeout=10)
         
         if result.returncode != 0:
-            print("⚠️  lsof δεν είναι διαθέσιμο, δοκιμάζω με netstat...")
-            return get_processes_using_netstat()
+            return []
         
         lines = result.stdout.split('\n')
         processes = []
@@ -35,31 +63,54 @@ def get_processes_using_ports() -> List[Dict]:
                         pid = int(parts[1])
                         address = parts[8]
                         
-                        # Εξαγωγή θύρας από address (format: *:PORT ή IP:PORT)
                         if ':' in address:
                             port = address.split(':')[-1]
-                            try:
-                                port_num = int(port)
-                                processes.append({
-                                    'pid': pid,
-                                    'port': port_num,
-                                    'command': parts[0],
-                                    'address': address,
-                                    'user': parts[2] if len(parts) > 2 else 'unknown'
-                                })
-                            except ValueError:
-                                continue
+                            port_num = int(port)
+                            processes.append({
+                                'pid': pid,
+                                'port': port_num,
+                                'command': parts[0],
+                                'address': address,
+                                'user': parts[2] if len(parts) > 2 else 'unknown'
+                            })
                     except (ValueError, IndexError):
                         continue
         
         return processes
     
-    except FileNotFoundError:
-        print("❌ lsof δεν βρέθηκε, δοκιμάζω με netstat...")
-        return get_processes_using_netstat()
-    except Exception as e:
-        print(f"❌ Σφάλμα κατά την αναζήτηση διεργασιών: {e}")
+    except Exception:
         return []
+
+
+def stop_ports_from_5000():
+    """Σταματά όλες τις θύρες από 5000 και πάνω - κύρια συνάρτηση"""
+    return stop_ports_from_range(5000, force=True)
+
+
+def stop_ports_from_range(min_port: int, force: bool = False) -> int:
+    """Σταματά όλες τις διεργασίες που χρησιμοποιούν θύρες από min_port και πάνω"""
+    processes = get_processes_using_ports()
+    
+    if not processes:
+        print("ℹ️  Δεν βρέθηκαν διεργασίες που χρησιμοποιούν θύρες")
+        return 0
+    
+    # Φίλτρο για θύρες >= min_port
+    filtered_processes = [p for p in processes if p['port'] >= min_port]
+    
+    if not filtered_processes:
+        print(f"ℹ️  Δεν βρέθηκαν διεργασίες σε θύρες >= {min_port}")
+        return 0
+    
+    print(f"🎯 Βρέθηκαν {len(filtered_processes)} διεργασίες σε θύρες >= {min_port}:")
+    
+    stopped_count = 0
+    for proc in filtered_processes:
+        print(f"   PID: {proc['pid']}, Port: {proc['port']}, Command: {proc['command']}")
+        if kill_process(proc['pid'], force):
+            stopped_count += 1
+    
+    return stopped_count
 
 
 def get_processes_using_netstat() -> List[Dict]:
