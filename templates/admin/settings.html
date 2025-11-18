@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Admin Settings</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Email Configuration</h5>
+            <form method="POST" action="/admin/settings/save">
+                <div class="form-group">
+                    <label for="email_provider">Email Provider</label>
+                    <select name="email_provider" id="email_provider" class="form-control">
+                        <option value="smtp" {% if settings.get('email_provider', 'smtp') == 'smtp' %}selected{% endif %}>
+                            SMTP (Traditional Email)
+                        </option>
+                        <option value="resend" {% if settings.get('email_provider') == 'resend' %}selected{% endif %}>
+                            Resend (API-based)
+                        </option>
+                        <option value="oauth2_outlook" {% if settings.get('email_provider') == 'oauth2_outlook' %}selected{% endif %}>
+                            OAuth2 Outlook
+                        </option>
+                    </select>
+                    <small class="form-text text-muted">
+                        Select the email service to use for sending emails.
+                        <br>
+                        <strong>SMTP:</strong> Traditional email using SMTP server (configured via environment variables)
+                        <br>
+                        <strong>Resend:</strong> Modern API-based email service (requires RESEND_API_KEY in .env)
+                        <br>
+                        <strong>OAuth2 Outlook:</strong> Microsoft Outlook with OAuth2 authentication
+                    </small>
+                </div>
+                
+                <hr>
+                
+                <div class="form-group">
+                    <label>Site Title</label>
+                    <input name="site_title" class="form-control" value="{{ settings.get('site_title', '') }}" />
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Email Configuration Guide</h5>
+            <div class="alert alert-info">
+                <h6>SMTP Configuration</h6>
+                <p>Set these environment variables in your .env file:</p>
+                <pre>SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SENDER_EMAIL=your-email@gmail.com</pre>
+            </div>
+            
+            <div class="alert alert-info">
+                <h6>Resend Configuration</h6>
+                <p>Set this environment variable in your .env file:</p>
+                <pre>RESEND_API_KEY=re_xxxxxxxxxxxxx
+SENDER_EMAIL=your-verified-sender@yourdomain.com</pre>
+                <p><small><strong>Note:</strong> You need to verify your sending domain in Resend dashboard first.</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

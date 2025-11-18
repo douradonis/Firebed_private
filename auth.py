@@ -2,8 +2,11 @@ from flask import Blueprint, request, render_template, redirect, url_for, flash,
 from werkzeug.utils import secure_filename
 import os
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+import firebase_config
 from models import db, User, Group
 import datetime
+from firebase_auth_handlers import FirebaseAuthHandler
+import email_utils
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -37,8 +40,21 @@ def signup():
             flash('Username already exists', 'warning')
             return redirect(url_for('auth.signup'))
 
+        # Try to register user in Firebase (if enabled). If successful, store firebase_uid.
+        firebase_uid = None
+        try:
+            success, uid, err = FirebaseAuthHandler.register_user(username, password, display_name=username)
+            if success and uid:
+                firebase_uid = uid
+        except Exception:
+            # If Firebase fails or not enabled, continue with local-only user
+            firebase_uid = None
+
         user = User(username=username)
+        user.email = username
         user.set_password(password)
+        if firebase_uid:
+            user.firebase_uid = firebase_uid
 
         db.session.add(user)
         db.session.flush()
@@ -80,7 +96,38 @@ def signup():
                 user.add_to_group(grp, role='member')
 
         db.session.commit()
-        flash('Account created. Please log in.', 'success')
+
+        # If we registered in Firebase, generate a verification link via Firebase Admin SDK
+        try:
+            if firebase_uid:
+                ok, link_or_err = FirebaseAuthHandler.generate_email_verification_link(user.email)
+                if ok:
+                    # Try to send verification email via SMTP; fallback to logging
+                    verify_link = link_or_err
+                    html_body = f"""
+                    <html><body>
+                        <h2>Email Verification</h2>
+                        <p>Hello {user.username},</p>
+                        <p>Please verify your email address by clicking the link below:</p>
+                        <p><a href=\"{verify_link}\">Verify Email</a></p>
+                        <p>If you did not sign up, ignore this email.</p>
+                    </body></html>
+                    """
+                    sent = email_utils.send_email(user.email, 'Verify your email - Firebed', html_body)
+                    if sent:
+                        flash('Account created! A verification email has been sent to your inbox.', 'success')
+                    else:
+                        current_app.logger.info(f"Firebase verification link for {user.email}: {verify_link}")
+                        flash('Account created! Verification link generated (logged on server during development).', 'success')
+                else:
+                    current_app.logger.warning(f"Could not generate Firebase verification link: {link_or_err}")
+                    flash('Account created. Please verify your email via Firebase (check inbox).', 'success')
+            else:
+                flash('Account created. Please log in.', 'success')
+        except Exception as e:
+            current_app.logger.exception('Failed to generate Firebase verification link')
+            flash('Account created. Please log in.', 'success')
+
         return redirect(url_for('auth.login'))
 
     # render signup form
@@ -90,11 +137,14 @@ def signup():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = (request.form.get('username') or '').strip()
+        identifier = (request.form.get('username') or '').strip()
         password = request.form.get('password') or ''
-        user = User.query.filter_by(username=username).first()
+        # Support login by username or email
+        user = User.query.filter_by(username=identifier).first()
+        if not user:
+            user = User.query.filter_by(email=identifier).first()
         if not user or not user.check_password(password):
-            flash('Invalid username or password', 'error')
+            flash('Invalid username/email or password', 'error')
             return redirect(url_for('auth.login'))
 
         # Successful login: clear any previous active credential selection
@@ -102,21 +152,28 @@ def login():
         session.pop('_remote_qr_owner', None)
 
         login_user(user)
-        next_url = request.args.get('next') or url_for('home')
+        # record last login
+        try:
+            user.last_login = datetime.datetime.utcnow()
+            db.session.commit()
+        except Exception:
+            pass
 
         if not session.get('active_group'):
             user_groups = list(getattr(user, 'groups', []) or [])
             if len(user_groups) == 1:
                 session['active_group'] = user_groups[0].name
+                flash('Logged in', 'success')
+                return redirect(url_for('home'))
             else:
                 if user_groups:
-                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'warning')
+                    flash('Επίλεξε ενεργή ομάδα για να συνεχίσεις.', 'info')
                 else:
                     flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα. Επίλεξε ή δημιούργησε μία.', 'warning')
                 return redirect(url_for('auth.list_groups'))
 
         flash('Logged in', 'success')
-        return redirect(next_url)
+        return redirect(request.args.get('next') or url_for('home'))
 
     # GET -> render login form
     return render_template('auth/login.html')
@@ -125,11 +182,36 @@ def login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    # if user has an active group, sync it to Firebase before clearing session
+    try:
+        active_group_name = session.get('active_group')
+        if active_group_name:
+            grp = Group.query.filter_by(name=active_group_name).first()
+            if grp:
+                # Cancel any idle timers for this user and run an immediate sync
+                try:
+                    firebase_config.firebase_cancel_idle_sync_for_user(current_user.id)
+                except Exception:
+                    pass
+                try:
+                    # First, push any local file changes back to Firebase
+                    firebase_config.firebase_push_group_files(grp.data_folder)
+                except Exception:
+                    current_app.logger.exception('Failed to push files on logout')
+                try:
+                    firebase_config.firebase_sync_group_folder(grp.data_folder)
+                except Exception:
+                    current_app.logger.exception('Failed to sync data on logout')
+    except Exception:
+        # continue with logout even if sync fails
+        pass
+
     logout_user()
-    flash('Logged out', 'danger')
-    # clear any active client/credential selection from session to avoid stale state
+    flash('Έχετε αποσυνδεθεί.', 'info')
+    # clear any active client/credential selection and active group from session to avoid stale state
     session.pop('active_credential', None)
     session.pop('_remote_qr_owner', None)
+    session.pop('active_group', None)
     return redirect(url_for('auth.login'))
 
 
@@ -182,6 +264,45 @@ def list_groups():
     except Exception:
         groups = []
     return render_template('auth/groups.html', groups=groups)
+
+
+@auth_bp.route('/groups/assign-user', methods=['POST'])
+@login_required
+def assign_user_to_group():
+    """Assign a user to a group by email or username (admin/group-admin only)"""
+    try:
+        group_name = (request.form.get('group_name') or '').strip()
+        user_identifier = (request.form.get('user_identifier') or '').strip()  # email or username
+        role = (request.form.get('role') or 'member').strip()
+        
+        if not group_name or not user_identifier:
+            return jsonify({'ok': False, 'error': 'group_name and user_identifier required'}), 400
+        
+        grp = Group.query.filter_by(name=group_name).first()
+        if not grp:
+            return jsonify({'ok': False, 'error': 'group not found'}), 404
+        
+        # Check if current user is admin or group admin
+        from admin_panel import is_admin
+        if not (is_admin(current_user) or current_user.role_for_group(grp) == 'admin'):
+            return jsonify({'ok': False, 'error': 'not authorized'}), 403
+        
+        # Find user by email or username
+        user = User.query.filter_by(username=user_identifier).first()
+        if not user:
+            user = User.query.filter_by(email=user_identifier).first()
+        
+        if not user:
+            return jsonify({'ok': False, 'error': f'user not found: {user_identifier}'}), 404
+        
+        # Add user to group with specified role
+        user.add_to_group(grp, role=role)
+        db.session.commit()
+        
+        return jsonify({'ok': True, 'message': f'User {user.username} assigned to {group_name} as {role}'})
+    except Exception as e:
+        current_app.logger.exception('Error assigning user to group')
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @auth_bp.route('/groups/create', methods=['POST'])
@@ -244,7 +365,7 @@ def create_group():
 
 @auth_bp.route('/groups/assign', methods=['POST'])
 @login_required
-def assign_user_to_group():
+def assign_user_to_group_legacy():
     username = (request.form.get('username') or '').strip()
     group_name = (request.form.get('group') or '').strip()
     role = (request.form.get('role') or request.args.get('role') or 'member').strip()
@@ -492,6 +613,7 @@ def _append_group_log(group: Group, message: str) -> None:
 def select_group():
     """Set the active group for the session. Expects form param 'group' (group name).
     Only allows selecting groups the current user belongs to.
+    Also attempts to ensure group data is available locally (lazy-pull from Firebase).
     """
     group_name = (request.form.get('group') or request.json.get('group') if request.is_json else request.form.get('group')) or ''
     group_name = (group_name or '').strip()
@@ -505,6 +627,15 @@ def select_group():
     # verify membership
     if grp not in current_user.groups:
         return jsonify({'ok': False, 'error': 'not a member of group'}), 403
+
+    # Attempt lazy-pull if group data missing locally
+    try:
+        import firebase_config
+        if getattr(grp, 'data_folder', None):
+            firebase_config.ensure_group_data_local(grp.data_folder)
+    except Exception as e:
+        # Log but don't fail - lazy-pull is non-critical
+        current_app.logger.debug(f"Lazy-pull failed when selecting group {group_name}: {e}")
 
     session['active_group'] = grp.name
     return jsonify({'ok': True, 'group': grp.name})
@@ -581,3 +712,104 @@ def api_user_groups():
         current_app.logger.exception("api_user_groups failed")
         return jsonify({'error': str(e)}), 500
 
+
+# =====================================================================
+# Email Verification & Password Reset
+# =====================================================================
+
+@auth_bp.route('/verify-email', methods=['GET'])
+def verify_email():
+    """Verify user email via token link"""
+    # When using Firebase Authentication, email verification is handled by Firebase.
+    # The generated Firebase verification link will verify the user's email in Firebase.
+    # Here we simply inform the user and, if possible, sync local user record.
+    email = request.args.get('email')
+    if email:
+        try:
+            # Try to sync verification status from Firebase
+            from firebase_admin import auth as firebase_auth
+            fb_user = firebase_auth.get_user_by_email(email)
+            if fb_user and getattr(fb_user, 'email_verified', False):
+                # Update local user record if present
+                user = User.query.filter_by(email=email).first()
+                if user:
+                    user.email_verified = True
+                    user.email_verified_at = datetime.datetime.utcnow()
+                    db.session.commit()
+                    flash('Email verified successfully! You can now log in.', 'success')
+                    return redirect(url_for('auth.login'))
+        except Exception:
+            pass
+
+    flash('Email verification is handled by Firebase. Please check your inbox and follow the link sent by Firebase to verify your email.', 'info')
+    return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request password reset link"""
+    if request.method == 'POST':
+        email = (request.form.get('email') or '').strip()
+        if not email:
+            flash('Email is required', 'danger')
+            return redirect(url_for('auth.forgot_password'))
+        
+        try:
+            # Use Firebase to generate password reset link and let Firebase handle sending.
+            ok, link_or_err = FirebaseAuthHandler.generate_password_reset_link(email)
+            if ok:
+                reset_link = link_or_err
+                # Enhanced email template for password reset
+                html_body = f"""
+                <html>
+                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                            <h1 style="margin: 0; font-size: 28px;">🔐 Επαναφορά Κωδικού</h1>
+                        </div>
+                        
+                        <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-radius: 0 0 10px 10px;">
+                            <h2 style="color: #333; margin-top: 0;">Αλλαγή Κωδικού Πρόσβασης</h2>
+                            <p style="color: #666; font-size: 16px; line-height: 1.6;">Λάβαμε αίτημα για επαναφορά του κωδικού πρόσβασής σας. Κάντε κλικ στο παρακάτω κουμπί για να ορίσετε νέο κωδικό:</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{reset_link}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);">🔑 Επαναφορά Κωδικού</a>
+                            </div>
+                            
+                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                <p style="margin: 0; color: #856404; font-size: 14px;">⏰ <strong>Σημαντικό:</strong> Αυτός ο σύνδεσμος λήγει σε 1 ώρα για λόγους ασφαλείας.</p>
+                            </div>
+                            
+                            <p style="color: #888; font-size: 14px; margin-top: 30px;">Εάν το κουμπί δεν λειτουργεί, αντιγράψτε αυτό το link:</p>
+                            <p style="background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all; font-family: monospace; font-size: 12px;">{reset_link}</p>
+                            
+                            <hr style="border: none; height: 1px; background: #eee; margin: 30px 0;">
+                            <p style="color: #888; font-size: 12px; text-align: center;">Εάν δεν ζητήσατε αυτή την αλλαγή, παραβλέψτε αυτό το email. Ο κωδικός σας θα παραμείνει αμετάβλητος.</p>
+                        </div>
+                    </body>
+                </html>
+                """
+                sent = email_utils.send_email(email, '🔐 Επαναφορά Κωδικού - Firebed', html_body)
+                if sent:
+                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+                else:
+                    current_app.logger.info(f"Firebase password reset link for {email}: {reset_link}")
+                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+            else:
+                current_app.logger.warning(f"Could not generate Firebase password reset link: {link_or_err}")
+                flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            current_app.logger.exception('Forgot password failed')
+            flash('Error processing password reset request', 'danger')
+            return redirect(url_for('auth.forgot_password'))
+    
+    return render_template('auth/forgot_password.html')
+
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Reset password via token link"""
+    # With Firebase-based flows, password reset is handled by Firebase links.
+    # Users should follow the link sent by Firebase to reset their password.
+    flash('Password reset is handled by Firebase. Please use the link sent to your email to reset your password.', 'info')
+    return redirect(url_for('auth.login'))

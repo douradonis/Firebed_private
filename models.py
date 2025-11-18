@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 from flask_login import UserMixin
 
 db = SQLAlchemy()
@@ -20,9 +21,37 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    # Explicit user email field (previously `email` was an alias of username)
+    email = db.Column(db.String(150), unique=False, nullable=True)
+    # Firebase UID if user is managed by Firebase
+    firebase_uid = db.Column(db.String(128), unique=False, nullable=True)
+    # optional timestamps
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.datetime.utcnow)
+    last_login = db.Column(db.DateTime(), nullable=True)
     active = db.Column(db.Boolean, default=True, nullable=False)
+    # Admin flag for global admin privileges (separate from group-level admin role)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    # Email verification
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verified_at = db.Column(db.DateTime(), nullable=True)
 
     user_groups = db.relationship('UserGroup', back_populates='user', cascade='all, delete-orphan')
+
+    # Compatibility properties for legacy code that expects `email` and `pw_hash`
+    # `email` column now exists. Keep alias for `username` compatibility only
+    @property
+    def username_email(self) -> str:
+        """Legacy alias returning the username (not used for actual email storage)."""
+        return self.username
+
+    @property
+    def pw_hash(self) -> str:
+        return self.password_hash
+
+    @pw_hash.setter
+    def pw_hash(self, value: str) -> None:
+        # store raw value; if it's a Firebase UID we keep it here
+        self.password_hash = value
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -67,3 +96,24 @@ class Group(db.Model):
 
     def __repr__(self):
         return f"<Group {self.name} -> {self.data_folder}>"
+
+
+class VerificationToken(db.Model):
+    __tablename__ = 'verification_token'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(256), unique=True, nullable=False)
+    token_type = db.Column(db.String(32), nullable=False)  # 'email_verify', 'password_reset', etc.
+    created_at = db.Column(db.DateTime(), nullable=False, default=datetime.datetime.utcnow)
+    expires_at = db.Column(db.DateTime(), nullable=False)
+    used = db.Column(db.Boolean, default=False, nullable=False)
+
+    user = db.relationship('User')
+
+    def is_valid(self) -> bool:
+        """Check if token is still valid (not expired and not used)"""
+        if self.used:
+            return False
+        if datetime.datetime.utcnow() > self.expires_at:
+            return False
+        return True

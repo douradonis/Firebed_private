@@ -1,0 +1,9 @@
+firebase-key.json
+.env
+*.pem
+__pycache__/
+*.pyc
+*.db
+*.log
+data/activity.log
+data/credentials_settings.json

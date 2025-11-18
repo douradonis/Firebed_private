@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Backups</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="alert alert-info">
+        💾 Local & Remote backups of group data. Use these to restore groups if needed.
+    </div>
+
+    <!-- Tabs: Local vs Remote Backups -->
+    <ul class="nav nav-tabs" id="backupTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="local-tab" data-bs-toggle="tab" href="#local" role="tab">Local Backups</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="remote-tab" data-bs-toggle="tab" href="#remote" role="tab">Remote Backups (Firebase)</a>
+        </li>
+    </ul>
+
+    <!-- LOCAL BACKUPS TAB -->
+    <div class="tab-content" id="backupTabContent">
+        <div class="tab-pane fade show active" id="local" role="tabpanel">
+            {% if backups %}
+            <table class="table table-striped mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Backup Name</th>
+                        <th>Size</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td><code>{{ backup.name }}</code></td>
+                        <td>{{ backup.size_mb }} MB</td>
+                        <td>{{ backup.created_at }}</td>
+                        <td>
+                            <form style="display:inline;">
+                                <select class="form-control" id="groupSelect_{{ backup.name }}" style="display:inline-block; width:auto;">
+                                    <option value="">Select group...</option>
+                                    {% for grp in (groups or []) %}
+                                        <option value="{{ grp.id }}">{{ grp.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-sm btn-success" onclick="restoreLocalBackupAjax('{{ backup.name }}')">Restore</button>
+                            </form>
+                            <a class="btn btn-sm btn-primary" href="/admin/backups/download/{{ backup.name }}">Download</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted mt-3">No local backups available</p>
+            {% endif %}
+        </div>
+
+        <!-- REMOTE BACKUPS TAB -->
+        <div class="tab-pane fade" id="remote" role="tabpanel">
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="loadRemoteBackups()">Load Remote Backups</button>
+            </div>
+            <div id="remoteBackupsContainer" class="mt-3">
+                <!-- populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for selecting groups to restore -->
+<div class="modal fade" id="remoteRestoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Restore from Remote Backup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalBackupPath"></p>
+                <label>
+                    <input type="checkbox" id="selectAllGroups" onchange="toggleAllGroups()">
+                    <strong>Select all groups in backup</strong>
+                </label>
+                <div id="groupChecklistContainer"></div>
+                <p class="text-muted small mt-2">Or select individual groups below to restore</p>
+                <label>Target Group (for single-group restore):</label>
+                <select id="targetGroupId" class="form-control">
+                    <option value="">None (auto-detect from backup)</option>
+                    {% for grp in (groups or []) %}
+                        <option value="{{ grp.id }}">{{ grp.name }} ({{ grp.data_folder }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="doRemoteRestore()">Restore</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/admin_backups.js"></script>
+{% endblock %}

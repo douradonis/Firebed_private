@@ -1,0 +1,1468 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Firebed Private{% endblock %}
+
+{% block content %}
+<div class="content-wrap">
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold mb-1">⚙️ Admin Dashboard</h1>
+    <p class="text-gray-600">Διαχείριση χρηστών, ομάδων, backup & δραστηριότητας συστήματος</p>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="flex gap-2 mb-6 border-b border-gray-300 flex-wrap">
+    <button onclick="showTab('overview')" class="tab-button active px-4 py-3 border-b-2 border-sky-600 font-medium text-sky-600">
+      📊 Επισκόπηση
+    </button>
+    <button onclick="showTab('users')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      👥 Χρήστες
+    </button>
+    <button onclick="showTab('groups')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📁 Ομάδες
+    </button>
+    <button onclick="showTab('activity')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📋 Δραστηριότητα
+    </button>
+    <button onclick="showTab('backups')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      💾 Backups
+    </button>
+    <button onclick="showTab('email')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      📧 Email
+    </button>
+    <button onclick="showTab('settings')" class="tab-button px-4 py-3 border-b-2 border-transparent font-medium text-gray-600 hover:text-gray-900">
+      ⚙️ Ρυθμίσεις
+    </button>
+  </div>
+
+  <!-- ==================== OVERVIEW TAB ==================== -->
+  <div id="overview" class="tab-content active">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- Stat Cards -->
+      <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-blue-700">Συνολικοί Χρήστες</div>
+        <div class="text-3xl font-bold text-blue-900 mt-2" id="stat-users">-</div>
+        <div class="text-xs text-blue-600 mt-2" id="stat-users-loading">🔄 Ενημέρωση...</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-green-700">Ενεργές Ομάδες</div>
+        <div class="text-3xl font-bold text-green-900 mt-2" id="stat-groups">-</div>
+        <div class="text-xs text-green-600 mt-2" id="stat-groups-loading">🔄 Ενημέρωση...</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-purple-700">Δραστηριότητα (24h)</div>
+        <div class="text-3xl font-bold text-purple-900 mt-2" id="stat-activity">-</div>
+        <div class="text-xs text-purple-600 mt-2">📊 Σύνολο ενεργειών</div>
+      </div>
+      
+      <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
+        <div class="text-sm font-medium text-orange-700">Σύστημα</div>
+        <div class="text-3xl font-bold text-orange-900 mt-2">🟢</div>
+        <div class="text-xs text-orange-600 mt-2">Σε λειτουργία</div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-bold mb-4">📝 Πρόσφατη Δραστηριότητα</h2>
+      <div id="recent-activity" class="space-y-3">
+        <p class="text-gray-500">Φόρτωση...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== USERS TAB ==================== -->
+  <div id="users" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">👥 Διαχείριση Χρηστών</h2>
+        <button onclick="loadUsers()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">
+          🔄 Ανανέωση
+        </button>
+      </div>
+      
+      <!-- Users Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Email</th>
+              <th class="text-left px-4 py-3 font-medium">Όνομα</th>
+              <th class="text-left px-4 py-3 font-medium">Ομάδες</th>
+              <th class="text-left px-4 py-3 font-medium">Δημιουργία</th>
+              <th class="text-left px-4 py-3 font-medium">Μέγεθος (MB)</th>
+              <th class="text-center px-4 py-3 font-medium">Ενέργειες</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr>
+              <td colspan="6" class="px-4 py-3 text-center text-gray-500">Φόρτωση...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GROUPS TAB ==================== -->
+  <div id="groups" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Create Group -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">➕ Νέα Ομάδα</h3>
+        <form id="create-group-form" class="space-y-3">
+          <input type="text" name="group_name" placeholder="Όνομα ομάδας" class="w-full px-3 py-2 border rounded" required />
+          <textarea name="description" placeholder="Περιγραφή" class="w-full px-3 py-2 border rounded" rows="3"></textarea>
+          <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            ✓ Δημιουργία
+          </button>
+        </form>
+      </div>
+
+      <!-- Groups List -->
+      <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold">📁 Ομάδες</h3>
+          <button onclick="loadGroups()" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
+            🔄 Ανανέωση
+          </button>
+        </div>
+        
+        <div id="groups-list" class="space-y-3">
+          <p class="text-gray-500">Φόρτωση...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ACTIVITY TAB ==================== -->
+  <div id="activity" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+        <h2 class="text-lg font-bold">📋 Δραστηριότητα Συστήματος</h2>
+        <div class="flex gap-2">
+          <select id="activity-group" class="px-3 py-2 border rounded text-sm">
+            <option value="">Όλες οι ομάδες</option>
+          </select>
+          <input type="text" id="activity-action" placeholder="Φίλτρο ενέργειας" class="px-3 py-2 border rounded text-sm" />
+          <input type="number" id="activity-limit" value="100" placeholder="Όριο" class="px-3 py-2 border rounded text-sm w-24" />
+          <button onclick="loadActivity()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">
+            🔄 Φίλτρο
+          </button>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Ώρα</th>
+              <th class="text-left px-4 py-3 font-medium">Χρήστης</th>
+              <th class="text-left px-4 py-3 font-medium">Ομάδα</th>
+              <th class="text-left px-4 py-3 font-medium">Ενέργεια</th>
+              <th class="text-left px-4 py-3 font-medium">Λεπτομέρειες</th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody">
+            <tr>
+              <td colspan="5" class="px-4 py-3 text-center text-gray-500">Φόρτωση...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BACKUPS TAB ==================== -->
+  <div id="backups" class="tab-content hidden">
+    <div class="grid grid-cols-1 gap-6">
+      <!-- Backup Actions -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">💾 Backup Ενέργειες</h3>
+        <div class="space-y-3">
+          <button onclick="backupAllData()" class="w-full px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+            💾 Backup Όλων των Δεδομένων
+          </button>
+          <div class="flex gap-2">
+            <select id="group-select" class="flex-1 px-3 py-2 border rounded">
+              <option value="">-- Επιλέξτε Ομάδα --</option>
+            </select>
+            <button onclick="backupSpecificGroup()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+              📁 Backup
+            </button>
+          </div>
+          <div id="backup-status" class="text-sm text-gray-600 mt-3 hidden">
+            <span id="backup-message"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup Tabs -->
+      <div class="bg-white border border-gray-200 rounded-lg">
+        <div class="flex border-b">
+          <button onclick="showBackupTab('local')" id="local-backup-tab" class="backup-tab-btn flex-1 px-4 py-3 text-sm font-medium border-r border-gray-200 bg-blue-50 text-blue-700">
+            💻 Server Backups
+          </button>
+          <button onclick="showBackupTab('remote')" id="remote-backup-tab" class="backup-tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
+            ☁️ Firebase Backups
+          </button>
+        </div>
+        
+        <!-- Local Backups -->
+        <div id="local-backups" class="backup-tab-content p-6">
+          <h4 class="font-bold mb-3">💻 Τοπικά Backups (Server)</h4>
+          <div class="space-y-3" id="local-backups-list">
+            <p class="text-gray-500">Φόρτωση τοπικών backups...</p>
+          </div>
+        </div>
+        
+        <!-- Remote Backups -->
+        <div id="remote-backups" class="backup-tab-content hidden p-6">
+          <h4 class="font-bold mb-3">☁️ Remote Backups (Firebase)</h4>
+          <div class="space-y-3" id="remote-backups-list">
+            <p class="text-gray-500">Φόρτωση remote backups...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== EMAIL TAB ==================== -->
+  <div id="email" class="tab-content hidden">
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-bold mb-4">📧 Αποστολή Email σε Χρήστες</h2>
+      <p class="text-sm text-gray-600 mb-4">Αποστείλτε αλληλογραφία σε επιλεγμένους χρήστες</p>
+      
+      <form id="email-form" class="space-y-4">
+        <!-- Select Users -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Επιλέξτε Χρήστες</label>
+          <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+            <div class="mb-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="selectAllUsers" onchange="toggleAllEmailUsers()" />
+                <span class="font-medium">Επιλογή Όλων</span>
+              </label>
+            </div>
+            <hr class="my-2">
+            <div id="users-email-list">
+              <p class="text-gray-500">Φόρτωση χρηστών...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subject & Message -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Θέμα</label>
+          <input type="text" name="subject" class="w-full px-3 py-2 border rounded" placeholder="Θέμα email" required />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Μήνυμα</label>
+          <textarea name="message" class="w-full px-3 py-2 border rounded" rows="6" placeholder="Περιεχόμενο email" required></textarea>
+        </div>
+
+        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          📧 Αποστολή Email
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== SETTINGS TAB ==================== -->
+  <div id="settings" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Email Provider Settings -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">📧 Email Provider Configuration</h3>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Επιλέξτε Πάροχο Email</label>
+          <select id="email-provider-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+            <option value="smtp">SMTP (Traditional Email)</option>
+            <option value="resend">Resend API (Modern)</option>
+            <option value="oauth2_outlook">OAuth2 Outlook</option>
+          </select>
+        </div>
+
+        <!-- Provider-specific help text -->
+        <div id="provider-help" class="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded">
+          <div id="help-smtp" class="hidden">
+            <strong>SMTP:</strong> Παραδοσιακό email μέσω SMTP server<br>
+            <small>Απαιτεί: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD στο .env</small>
+          </div>
+          <div id="help-resend" class="hidden">
+            <strong>Resend:</strong> Σύγχρονο API-based email service<br>
+            <small>Απαιτεί: RESEND_API_KEY στο .env και επαληθευμένο domain</small>
+          </div>
+          <div id="help-oauth2_outlook" class="hidden">
+            <strong>OAuth2 Outlook:</strong> Microsoft Outlook με OAuth2<br>
+            <small>Απαιτεί: OAuth2 credentials configuration</small>
+          </div>
+        </div>
+
+        <button onclick="saveEmailProvider()" class="w-full px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+          💾 Αποθήκευση Επιλογής
+        </button>
+
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <h4 class="font-medium text-blue-800 mb-2">📊 Status Email Συστήματος</h4>
+          <div class="text-sm text-blue-700 mb-3" id="email-config-info">Loading...</div>
+          <div class="flex gap-2">
+            <button onclick="testEmailConfiguration()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+              🧪 Test Email
+            </button>
+            <button onclick="loadEmailProviderSettings()" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Settings -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4">⚙️ Ρυθμίσεις Συστήματος</h3>
+        <div class="space-y-4">
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked disabled />
+            <span>✅ Firebase Authentication</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked disabled />
+            <span>✅ Encryption</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4" checked disabled />
+            <span>✅ Activity Logging</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" id="smtp-status" class="w-4 h-4" disabled />
+            <span id="smtp-status-text">📧 Email Service</span>
+          </label>
+          
+          <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+            <h4 class="font-medium text-green-800 mb-2">💡 Configuration Tips</h4>
+            <ul class="text-sm text-green-700 space-y-1">
+              <li>• <strong>SMTP:</strong> Καλύτερο για εσωτερικές εφαρμογές</li>
+              <li>• <strong>Resend:</strong> Καλύτερο για production με analytics</li>
+              <li>• <strong>OAuth2:</strong> Για ασφαλή Microsoft integration</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 class="text-lg font-bold mb-4 text-red-600">⚠️ Επικίνδυνες Ενέργειες</h3>
+        <div class="space-y-3">
+          <button onclick="if(confirm('Είστε σίγουρος; Αυτό δεν μπορεί να αναιρεθεί.')) clearActivityLogs()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            🗑️ Διαγραφή Δραστηριότητας
+          </button>
+          <button onclick="if(confirm('ΠΡΟΣΟΧΗ! Θα γίνει reset ολόκληρο το σύστημα. Συνεχίζετε;')) resetSystem()" class="w-full px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">
+            🔴 Reset Συστήματος
+          </button>
+          <p class="text-sm text-red-600 mt-3 p-3 bg-red-100 rounded">
+            ⚠️ Αυτές οι ενέργειες δεν μπορούν να αναιρεθούν!
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<!-- User Detail Modal -->
+<div id="userDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold" id="userDetailTitle">User Details</h3>
+      <button onclick="closeUserDetailModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+    </div>
+    <div id="userDetailContent">Loading...</div>
+  </div>
+</div>
+
+<!-- Group Detail Modal -->
+<div id="groupDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold" id="groupDetailTitle">Group Details</h3>
+      <button onclick="closeGroupDetailModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+    </div>
+    <div id="groupDetailContent">Loading...</div>
+  </div>
+</div>
+
+<script>
+// ==================== TAB MANAGEMENT ====================
+function showTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-button').forEach(el => {
+    el.classList.remove('border-b-2', 'border-sky-600', 'text-sky-600');
+    el.classList.add('border-transparent', 'text-gray-600');
+  });
+  
+  // Show selected tab
+  document.getElementById(tabName).classList.remove('hidden');
+  event.target.classList.add('border-b-2', 'border-sky-600', 'text-sky-600');
+  event.target.classList.remove('border-transparent', 'text-gray-600');
+  
+  // Load data for specific tabs
+  if (tabName === 'users') loadUsers();
+  else if (tabName === 'groups') loadGroups();
+  else if (tabName === 'activity') loadActivity();
+  else if (tabName === 'backups') loadBackups();
+  else if (tabName === 'email') loadEmailUsers();
+}
+
+// ==================== OVERVIEW TAB ====================
+async function loadStats() {
+  try {
+    const response = await fetch('/admin/api/users');
+    const data = await response.json();
+    document.getElementById('stat-users').textContent = data.users ? data.users.length : 0;
+    document.getElementById('stat-users-loading').style.display = 'none';
+  } catch (err) {
+    console.error('Error loading users stats:', err);
+  }
+
+  try {
+    const response = await fetch('/admin/api/groups');
+    const data = await response.json();
+    document.getElementById('stat-groups').textContent = data.groups ? data.groups.length : 0;
+    document.getElementById('stat-groups-loading').style.display = 'none';
+  } catch (err) {
+    console.error('Error loading groups stats:', err);
+  }
+
+  try {
+    const response = await fetch('/admin/api/activity-logs?limit=100');
+    const data = await response.json();
+    document.getElementById('stat-activity').textContent = data.logs ? data.logs.length : 0;
+    loadRecentActivity();
+  } catch (err) {
+    console.error('Error loading activity stats:', err);
+  }
+}
+
+async function loadRecentActivity() {
+  try {
+    const response = await fetch('/admin/api/activity-logs?limit=5');
+    const data = await response.json();
+    const container = document.getElementById('recent-activity');
+    
+    if (!data.logs || data.logs.length === 0) {
+      container.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν δραστηριότητες</p>';
+      return;
+    }
+
+    container.innerHTML = data.logs.map(log => `
+      <div class="p-3 border rounded bg-gray-50">
+        <div class="text-xs text-gray-500">${new Date(log.timestamp).toLocaleString('el-GR')}</div>
+        <div class="text-sm font-medium">${log.user_id || 'System'}</div>
+        <div class="text-sm text-gray-700">${log.action}</div>
+        <div class="text-xs text-gray-600">${log.group || '-'}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading recent activity:', err);
+  }
+}
+
+// ==================== USERS TAB ====================
+async function loadUsers() {
+  try {
+    const response = await fetch('/admin/api/users');
+    const data = await response.json();
+    const tbody = document.getElementById('users-tbody');
+    
+    if (!data.users || data.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Δεν υπάρχουν χρήστες</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.users.map(user => `
+      <tr class="border-b border-gray-200 hover:bg-gray-50">
+        <td class="px-4 py-3">${user.email || '-'}</td>
+        <td class="px-4 py-3">${user.username || user.display_name || '-'}</td>
+        <td class="px-4 py-3">
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            ${user.groups ? user.groups.length : 0} ομάδες
+          </span>
+        </td>
+        <td class="px-4 py-3 text-xs text-gray-500">${user.created_at ? user.created_at.split('T')[0] : '-'}</td>
+        <td class="px-4 py-3 text-xs">${user.total_size_mb || 0}</td>
+        <td class="px-4 py-3 text-center space-x-1">
+          <button onclick="viewUserDetails(${user.id})" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">👁️</button>
+          <button onclick="deleteUser(${user.id}, '${user.username}')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading users:', error);
+    document.getElementById('users-tbody').innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
+  }
+}
+
+async function viewUserDetails(userId) {
+  try {
+    const response = await fetch(`/admin/api/users/${userId}`);
+    const data = await response.json();
+    
+    const content = `
+      <div class="space-y-3">
+        <div>
+          <span class="font-medium">ID:</span> ${data.user?.id || userId}
+        </div>
+        <div>
+          <span class="font-medium">Email:</span> ${data.user?.email || '-'}
+        </div>
+        <div>
+          <span class="font-medium">Δημιουργία:</span> ${data.user?.created_at || '-'}
+        </div>
+        <div>
+          <span class="font-medium">Τελευταία είσοδος:</span> ${data.user?.last_login || 'Ποτέ'}
+        </div>
+        <div>
+          <span class="font-medium">Συνολικό μέγεθος:</span> ${data.user?.total_size_mb || 0} MB
+        </div>
+        <div>
+          <span class="font-medium">Ομάδες:</span> 
+          <div class="mt-2 flex flex-wrap gap-2">
+            ${(data.user?.groups || []).map(g => {
+              const groupName = typeof g === 'object' ? (g.name || g.group_name) : g;
+              const groupRole = typeof g === 'object' && g.role ? ` (${g.role})` : '';
+              return `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm">${groupName}${groupRole}</span>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('userDetailTitle').textContent = `Λεπτομέρειες Χρήστη - ${data.user?.username || 'Unknown'}`;
+    document.getElementById('userDetailContent').innerHTML = content;
+    document.getElementById('userDetailModal').classList.remove('hidden');
+  } catch (err) {
+    alert('Σφάλμα φόρτωσης λεπτομερειών χρήστη');
+  }
+}
+
+function closeUserDetailModal() {
+  document.getElementById('userDetailModal').classList.add('hidden');
+}
+
+async function deleteUser(userId, username) {
+  showDeleteConfirmationModal(
+    `Διαγραφή Χρήστη`,
+    `Είστε σίγουρος ότι θέλετε να διαγράψετε τον χρήστη "${username}";`,
+    () => performUserDeletion(userId, username)
+  );
+}
+
+async function performUserDeletion(userId, username) {
+  try {
+    const response = await fetch(`/admin/api/users/${userId}`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Χρήστης διαγράφθηκε επιτυχώς', () => {
+        location.reload();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('User deletion error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα διαγραφής χρήστη');
+  }
+}
+
+// ==================== GROUPS TAB ====================
+async function loadGroups() {
+  try {
+    const response = await fetch('/admin/api/groups');
+    const data = await response.json();
+    const list = document.getElementById('groups-list');
+    
+    // Also populate group select for backups
+    populateGroupSelect(data.groups || []);
+    
+    if (!data.groups || data.groups.length === 0) {
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν ομάδες</p>';
+      return;
+    }
+
+    list.innerHTML = data.groups.map(group => `
+      <div class="border border-gray-200 rounded p-4 flex justify-between items-center hover:bg-gray-50">
+        <div>
+          <div class="font-medium">${group.name || group.group_name}</div>
+          <div class="text-xs text-gray-500">
+            ${group.members ? group.members.length : 0} μέλη
+            ${group.folder_size_mb ? ' • ' + group.folder_size_mb + ' MB' : ''}
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="viewGroupDetails(${group.id})" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">👁️</button>
+          <button onclick="deleteGroup(${group.id}, '${group.name || group.group_name}')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading groups:', error);
+    document.getElementById('groups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+  }
+}
+
+async function viewGroupDetails(groupId) {
+  try {
+    const response = await fetch(`/admin/api/groups/${groupId}`);
+    const data = await response.json();
+    
+    const content = `
+      <div class="space-y-3">
+        <div>
+          <span class="font-medium">Όνομα:</span> ${data.group?.name || data.name || '-'}
+        </div>
+        <div>
+          <span class="font-medium">Φάκελος δεδομένων:</span> <code>${data.group?.data_folder || data.data_folder || '-'}</code>
+        </div>
+        <div>
+          <span class="font-medium">Μέγεθος:</span> ${data.group?.folder_size_mb || data.folder_size_mb || 0} MB
+        </div>
+        <div>
+          <span class="font-medium">Δημιουργία:</span> ${data.group?.created_at || data.created_at || '-'}
+        </div>
+        <div>
+          <span class="font-medium">Μέλη:</span> 
+          <div class="mt-2">
+            ${(data.group?.members || data.members || []).map(m => {
+              const memberName = typeof m === 'object' ? (m.username || m.name) : m;
+              const memberRole = typeof m === 'object' ? (m.role ? ` (${m.role})` : '') : '';
+              return `<div class="text-sm">${memberName}${memberRole}</div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('groupDetailTitle').textContent = `Λεπτομέρειες Ομάδας - ${data.group?.name || data.name || 'Unknown'}`;
+    document.getElementById('groupDetailContent').innerHTML = content;
+    document.getElementById('groupDetailModal').classList.remove('hidden');
+  } catch (err) {
+    alert('Σφάλμα φόρτωσης λεπτομερειών ομάδας');
+  }
+}
+
+function closeGroupDetailModal() {
+  document.getElementById('groupDetailModal').classList.add('hidden');
+}
+
+async function deleteGroup(groupId, groupName) {
+  showDeleteConfirmationModal(
+    `Διαγραφή Ομάδας`,
+    `Είστε σίγουρος ότι θέλετε να διαγράψετε την ομάδα "${groupName}"; Θα δημιουργηθεί αυτόματα backup πριν τη διαγραφή.`,
+    () => performGroupDeletion(groupId, groupName)
+  );
+}
+
+async function performGroupDeletion(groupId, groupName) {
+  try {
+    const response = await fetch(`/admin/api/groups/${groupId}`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Ομάδα διαγράφθηκε επιτυχώς.${data.backup_path ? ' Backup: ' + data.backup_path : ''}`, 
+        () => {
+          location.reload();
+        });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('Group deletion error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα διαγραφής ομάδας');
+  }
+}
+
+// ==================== ACTIVITY TAB ====================
+// ==================== ACTIVITY TAB ====================
+let activitySearchTimeout = null;
+
+async function loadActivity() {
+  return loadActivityDynamic();
+}
+
+async function loadActivityDynamic() {
+  // Clear previous timeout to debounce rapid typing
+  if (activitySearchTimeout) {
+    clearTimeout(activitySearchTimeout);
+  }
+  
+  activitySearchTimeout = setTimeout(async () => {
+    try {
+      const groupFilter = document.getElementById('activity-group')?.value || '';
+      const actionFilter = document.getElementById('activity-action')?.value || '';
+      const searchFilter = document.getElementById('activity-search')?.value || '';
+      const limit = document.getElementById('activity-limit')?.value || 100;
+      
+      let url = `/admin/api/activity-logs?limit=${limit}`;
+      if (groupFilter) url += `&group=${encodeURIComponent(groupFilter)}`;
+      if (actionFilter) url += `&action=${encodeURIComponent(actionFilter)}`;
+      if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
+      
+      if (document.getElementById('activity-count')) {
+        document.getElementById('activity-count').textContent = 'Αναζήτηση...';
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      const tbody = document.getElementById('activity-tbody');
+      
+      if (!data.logs || data.logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν βρέθηκαν αποτελέσματα</td></tr>';
+        if (document.getElementById('activity-count')) {
+          document.getElementById('activity-count').textContent = '0 καταχωρήσεις';
+        }
+        return;
+      }
+      
+      if (document.getElementById('activity-count')) {
+        document.getElementById('activity-count').textContent = `${data.logs.length} καταχωρήσεις`;
+      }
+
+      tbody.innerHTML = data.logs.map(log => `
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="px-4 py-3 text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('el-GR')}</td>
+          <td class="px-4 py-3 text-sm">${log.user_id || '-'}</td>
+          <td class="px-4 py-3 text-sm">${log.group || '-'}</td>
+          <td class="px-4 py-3">
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded whitespace-nowrap">
+              ${log.action || log.event_type || '-'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-600 truncate">${JSON.stringify(log.details || log.data || {}).substring(0, 50)}...</td>
+        </tr>
+      `).join('');
+    } catch (error) {
+      console.error('Error loading activity:', error);
+      document.getElementById('activity-tbody').innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
+    }
+  }, 300); // 300ms debounce
+}
+
+// ==================== BACKUPS TAB ====================
+function populateGroupSelect(groups) {
+  const select = document.getElementById('group-select');
+  select.innerHTML = '<option value="">-- Επιλέξτε Ομάδα --</option>' + 
+    (groups || []).map(g => `<option value="${g.id}">${g.name || g.group_name}</option>`).join('');
+}
+
+function showBackupTab(type) {
+  // Update tab buttons
+  document.querySelectorAll('.backup-tab-btn').forEach(btn => {
+    btn.classList.remove('bg-blue-50', 'text-blue-700');
+    btn.classList.add('text-gray-600');
+  });
+  
+  // Update tab content
+  document.querySelectorAll('.backup-tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+  
+  // Show selected tab
+  const tabBtn = document.getElementById(`${type}-backup-tab`);
+  const tabContent = document.getElementById(`${type}-backups`);
+  
+  tabBtn.classList.add('bg-blue-50', 'text-blue-700');
+  tabBtn.classList.remove('text-gray-600');
+  tabContent.classList.remove('hidden');
+  
+  // Load appropriate backups
+  if (type === 'local') {
+    loadLocalBackups();
+  } else {
+    loadRemoteBackups();
+  }
+}
+
+async function loadBackups() {
+  // Load both local and remote backups, starting with local
+  showBackupTab('local');
+}
+
+async function loadLocalBackups() {
+  try {
+    const response = await fetch('/admin/api/backups/local');
+    const data = await response.json();
+    const list = document.getElementById('local-backups-list');
+    
+    if (!data.backups || data.backups.length === 0) {
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν τοπικά backups</p>';
+      return;
+    }
+
+    list.innerHTML = '<div class="space-y-2">' + 
+      (data.backups || []).map(backup => `
+        <div class="p-3 border rounded bg-gray-50 flex justify-between items-center">
+          <div class="text-sm">
+            <div class="font-medium">💻 ${backup.name}</div>
+            <div class="text-xs text-gray-500">${backup.size_mb || 0} MB • ${backup.created_at || ''}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="compareBackup('${backup.name}', 'local')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">
+              🔍 Σύγκριση
+            </button>
+            <button onclick="restoreBackup('${backup.name}', 'local')" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+              ♻️ Restore
+            </button>
+            <button onclick="deleteBackup('${backup.name}', 'local')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('') +
+      '</div>';
+  } catch (err) {
+    console.error('Error loading local backups:', err);
+    document.getElementById('local-backups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+  }
+}
+
+async function loadRemoteBackups() {
+  try {
+    const response = await fetch('/admin/api/backups/remote');
+    const data = await response.json();
+    const list = document.getElementById('remote-backups-list');
+    
+    if (!data.backups || data.backups.length === 0) {
+      list.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν remote backups</p>';
+      return;
+    }
+
+    list.innerHTML = '<div class="space-y-2">' + 
+      (data.backups || []).map(backup => `
+        <div class="p-3 border rounded bg-blue-50 flex justify-between items-center">
+          <div class="text-sm">
+            <div class="font-medium">☁️ ${backup.name}</div>
+            <div class="text-xs text-gray-500">${backup.size_mb || 0} MB • ${backup.created_at || ''}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="compareBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">
+              🔍 Σύγκριση
+            </button>
+            <button onclick="restoreBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+              ♻️ Restore
+            </button>
+            <button onclick="deleteBackup('${backup.name}', 'remote')" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('') +
+      '</div>';
+  } catch (err) {
+    console.error('Error loading remote backups:', err);
+    document.getElementById('remote-backups-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+  }
+}
+
+async function compareBackup(backupName, type) {
+  try {
+    const response = await fetch('/admin/api/backup/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        backup_path: backupName, 
+        type: type 
+      })
+    });
+    const data = await response.json();
+    
+    if (data.success && data.comparison) {
+      showBackupComparisonModal(data.comparison, backupName, type);
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Δεν ήταν δυνατή η σύγκριση: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα σύγκρισης backup');
+  }
+}
+
+function showBackupComparisonModal(comparison, backupName, type) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">🔍 Σύγκριση Backup</h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      
+      <div class="mb-4">
+        <p><strong>Backup:</strong> ${backupName} (${type})</p>
+        <p><strong>Ομάδες στο backup:</strong> ${comparison.summary?.groups_in_backup || 0}</p>
+        <p><strong>Τρέχουσες ομάδες:</strong> ${comparison.summary?.groups_in_current || 0}</p>
+      </div>
+      
+      ${comparison.summary?.groups_to_add?.length > 0 ? `
+        <div class="mb-3">
+          <h4 class="font-medium text-green-700">✅ Νέες ομάδες που θα προστεθούν:</h4>
+          <ul class="text-sm text-green-600 ml-4">
+            ${comparison.summary.groups_to_add.map(g => `<li>• ${g}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      ${comparison.summary?.groups_to_update?.length > 0 ? `
+        <div class="mb-3">
+          <h4 class="font-medium text-blue-700">🔄 Ομάδες που θα ενημερωθούν:</h4>
+          <ul class="text-sm text-blue-600 ml-4">
+            ${comparison.summary.groups_to_update.map(g => `<li>• ${g}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      <div class="flex gap-2 mt-4">
+        <button onclick="proceedWithRestore('${backupName}', '${type}'); this.closest('.fixed').remove();" 
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          ✅ Επιβεβαίωση Επαναφοράς
+        </button>
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+          ❌ Ακύρωση
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function deleteBackup(backupName, type) {
+  showDeleteConfirmationModal(
+    'Διαγραφή Backup',
+    `Είστε σίγουρος ότι θέλετε να διαγράψετε το backup "${backupName}";`,
+    () => performBackupDeletion(backupName, type)
+  );
+}
+
+async function performBackupDeletion(backupName, type) {
+  try {
+    let response;
+    console.log(`Deleting ${type} backup: ${backupName}`);
+    
+    if (type === 'remote') {
+      response = await fetch('/admin/api/backup', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_path: backupName })
+      });
+    } else {
+      // For local backups - use the new endpoint
+      response = await fetch('/admin/api/backups/local', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_name: backupName })
+      });
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Delete response:', data);
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        data.message || 'Backup διαγράφθηκε επιτυχώς', 
+        () => {
+          location.reload();
+        });
+    } else {
+      console.error('Delete failed:', data.error);
+      showErrorModal('❌ Σφάλμα', 
+        'Σφάλμα διαγραφής: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('Delete backup error:', err);
+    showErrorModal('❌ Σφάλμα', 
+      `Σφάλμα διαγραφής ${type} backup: ${err.message || err}`);
+  }
+}
+
+function proceedWithRestore(backupName, type) {
+  performBackupRestore(backupName, type);
+}
+
+async function performBackupRestore(backupName, type) {
+  try {
+    // Use the unified restore endpoint
+    const response = await fetch(`/admin/api/backups/restore/${encodeURIComponent(backupName)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        type: type
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Backup επαναφέρθηκε επιτυχώς', () => {
+        location.reload();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα επαναφοράς: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    console.error('Backup restore error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα επαναφοράς backup');
+  }
+}
+
+async function restoreBackup(backupName, type) {
+  // First show comparison, then let user decide
+  compareBackup(backupName, type);
+}
+
+async function backupAllData() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Δημιουργία backup...';
+  
+  try {
+    const response = await fetch('/admin/api/backup/all', { method: 'POST' });
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 'Backup δημιουργήθηκε επιτυχώς', () => {
+        loadBackups();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα backup');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Backup Όλων των Δεδομένων';
+  }
+}
+
+async function backupSpecificGroup() {
+  const groupId = document.getElementById('group-select').value;
+  if (!groupId) {
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ επιλέξτε ομάδα');
+    return;
+  }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Δημιουργία backup...';
+  
+  try {
+    const response = await fetch(`/admin/groups/${groupId}/backup`, { method: 'POST' });
+    const data = await response.json();
+    
+    if (data.ok) {
+      showSuccessModal('✅ Επιτυχία', 'Backup ομάδας δημιουργήθηκε επιτυχώς', () => {
+        loadBackups();
+      });
+    } else {
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Άγνωστο σφάλμα'));
+    }
+  } catch (err) {
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα backup ομάδας');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📁 Backup';
+  }
+}
+
+async function restoreBackup(backupName) {
+  if (!confirm('Είστε σίγουρος ότι θέλετε να κάνετε restore αυτό το backup;')) return;
+  
+  try {
+    const response = await fetch(`/admin/backups/restore/${backupName}`, { method: 'POST' });
+    const data = await response.json();
+    
+    if (data.ok) {
+      alert('✅ Backup εφαρμόστηκε');
+      loadBackups();
+    } else {
+      alert('❌ Σφάλμα: ' + (data.error || 'Unknown'));
+    }
+  } catch (err) {
+    alert('❌ Σφάλμα restore');
+  }
+}
+
+// ==================== EMAIL TAB ====================
+async function loadEmailUsers() {
+  try {
+    const response = await fetch('/admin/api/users');
+    const data = await response.json();
+    const container = document.getElementById('users-email-list');
+    
+    if (!data.users || data.users.length === 0) {
+      container.innerHTML = '<p class="text-gray-500">Δεν υπάρχουν χρήστες</p>';
+      return;
+    }
+
+    container.innerHTML = (data.users || []).map(user => `
+      <label class="flex items-center gap-2 cursor-pointer mb-2 p-1 hover:bg-gray-100 rounded">
+        <input type="checkbox" class="user-email-checkbox" value="${user.id}" name="user_ids" />
+        <span class="text-sm">${user.username || user.email || 'Unknown'}</span>
+      </label>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading email users:', err);
+    document.getElementById('users-email-list').innerHTML = '<p class="text-red-500">Σφάλμα φόρτωσης</p>';
+  }
+}
+
+function toggleAllEmailUsers() {
+  const checked = document.getElementById('selectAllUsers').checked;
+  document.querySelectorAll('.user-email-checkbox').forEach(cb => cb.checked = checked);
+}
+
+document.getElementById('email-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const userIds = Array.from(document.querySelectorAll('.user-email-checkbox:checked')).map(cb => cb.value);
+  if (userIds.length === 0) {
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ επιλέξτε τουλάχιστον έναν χρήστη');
+    return;
+  }
+  
+  const subject = e.target.subject.value.trim();
+  const message = e.target.message.value.trim();
+  
+  if (!subject || !message) {
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ συμπληρώστε θέμα και μήνυμα');
+    return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Αποστολή...';
+  
+  try {
+    const response = await fetch('/admin/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        subject: subject,
+        message: message,
+        user_ids: userIds.join(',')
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Email στάλθηκε επιτυχώς σε ${data.results?.sent || userIds.length} χρήστες!${data.results?.failed > 0 ? ` (${data.results.failed} αποτυχίες)` : ''}`, 
+        () => {
+          e.target.reset();
+          document.querySelectorAll('.user-email-checkbox').forEach(cb => cb.checked = false);
+          document.getElementById('selectAllUsers').checked = false;
+        });
+    } else {
+      showErrorModal('❌ Σφάλμα Αποστολής', data.error || 'Άγνωστο σφάλμα αποστολής email');
+    }
+  } catch (err) {
+    console.error('Email send error:', err);
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα δικτύου κατά την αποστολή email');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
+});
+
+// ==================== SETTINGS TAB ====================
+async function loadEmailConfiguration() {
+  try {
+    const response = await fetch('/admin/api/email-config');
+    const data = await response.json();
+    
+    if (data.success) {
+      const statusEl = document.getElementById('smtp-status');
+      const statusTextEl = document.getElementById('smtp-status-text');
+      const infoEl = document.getElementById('email-config-info');
+      
+      const provider = data.current_provider;
+      const isConfigured = data.configured;
+      
+      if (isConfigured) {
+        statusEl.checked = true;
+        statusTextEl.textContent = `✅ Email Service (${provider.toUpperCase()})`;
+        
+        let configInfo = `<strong>Τρέχων πάροχος:</strong> ${provider.toUpperCase()}<br>`;
+        
+        if (provider === 'smtp' && data.provider_info.smtp) {
+          const smtp = data.provider_info.smtp;
+          configInfo += `<strong>SMTP Server:</strong> ${smtp.server}:${smtp.port}<br>`;
+          configInfo += `<strong>User:</strong> ${smtp.user}<br>`;
+          configInfo += `<strong>Sender:</strong> ${smtp.sender}`;
+        } else if (provider === 'resend' && data.provider_info.resend) {
+          const resend = data.provider_info.resend;
+          configInfo += `<strong>API Key:</strong> ${resend.api_key_set ? 'Configured' : 'Not set'}<br>`;
+          configInfo += `<strong>Sender:</strong> ${resend.sender || 'Not set'}`;
+        } else {
+          configInfo += `<strong>Status:</strong> Configured`;
+        }
+        
+        infoEl.innerHTML = configInfo;
+      } else {
+        statusEl.checked = false;
+        statusTextEl.textContent = `❌ Email Service (${provider.toUpperCase()})`;
+        infoEl.innerHTML = `<span class="text-red-600">Provider "${provider}" not configured. Check environment variables.</span>`;
+      }
+      
+      // Update the provider select dropdown
+      const providerSelect = document.getElementById('email-provider-select');
+      if (providerSelect && providerSelect.value !== provider) {
+        providerSelect.value = provider;
+        showProviderHelp(provider);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load email config:', err);
+    document.getElementById('email-config-info').textContent = 'Failed to load email configuration';
+  }
+}
+
+async function loadEmailProviderSettings() {
+  // Just reload the email configuration, which now includes provider info
+  await loadEmailConfiguration();
+}
+
+function showProviderHelp(provider) {
+  // Hide all help texts
+  document.getElementById('help-smtp').classList.add('hidden');
+  document.getElementById('help-resend').classList.add('hidden');
+  document.getElementById('help-oauth2_outlook').classList.add('hidden');
+  
+  // Show relevant help text
+  const helpEl = document.getElementById(`help-${provider}`);
+  if (helpEl) {
+    helpEl.classList.remove('hidden');
+  }
+}
+
+async function saveEmailProvider() {
+  const provider = document.getElementById('email-provider-select').value;
+  const btn = event.target;
+  const originalText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ Αποθήκευση...';
+  
+  try {
+    const formData = new URLSearchParams();
+    formData.append('email_provider', provider);
+    formData.append('site_title', ''); // Keep existing site title (backend handles this)
+    
+    const response = await fetch('/admin/settings/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData
+    });
+    
+    if (response.ok) {
+      showSuccessModal('✅ Επιτυχία', 
+        `Ο πάροχος email άλλαξε σε "${provider}". Οι αλλαγές θα εφαρμοστούν στην επόμενη αποστολή email.`,
+        () => {
+          loadEmailProviderSettings();
+        });
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (err) {
+    console.error('Failed to save email provider:', err);
+    showErrorModal('❌ Σφάλμα', 'Αποτυχία αποθήκευσης επιλογής παρόχου email');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Add event listener for provider selection change
+document.addEventListener('DOMContentLoaded', function() {
+  const providerSelect = document.getElementById('email-provider-select');
+  if (providerSelect) {
+    providerSelect.addEventListener('change', function() {
+      showProviderHelp(this.value);
+    });
+  }
+});
+
+async function testEmailConfiguration() {
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Testing...';
+  
+  try {
+    const testEmail = prompt('Enter email address for test (leave empty to use your account email):');
+    if (testEmail === null) return; // User cancelled
+    
+    const response = await fetch('/admin/api/test-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccessModal('✅ SMTP Test Success', data.message);
+    } else {
+      showErrorModal('❌ SMTP Test Failed', data.error);
+    }
+  } catch (err) {
+    showErrorModal('❌ Test Error', 'Failed to test SMTP configuration');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function clearActivityLogs() {
+  try {
+    // TODO: Implement clear activity logs
+    showErrorModal('🚧 Not Implemented', 'Clear activity logs feature not yet implemented');
+  } catch (err) {
+    showErrorModal('❌ Σφάλμα', 'Error clearing logs');
+  }
+}
+
+async function resetSystem() {
+  try {
+    // TODO: Implement reset system
+    alert('Δεν είναι ακόμα διαθέσιμο');
+  } catch (err) {
+    alert('Σφάλμα');
+  }
+}
+
+// ==================== MODAL FUNCTIONS ====================
+function showDeleteConfirmationModal(title, message, onConfirm) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-red-600 text-2xl mr-3">⚠️</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+          Ακύρωση
+        </button>
+        <button onclick="this.closest('.fixed').remove(); window._confirmCallback();" 
+                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          Διαγραφή
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Store the callback globally so it can be accessed
+  window._confirmCallback = onConfirm;
+  
+  document.body.appendChild(modal);
+}
+
+function showSuccessModal(title, message, onClose = null) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-green-600 text-2xl mr-3">✅</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex justify-end">
+        <button onclick="this.closest('.fixed').remove(); ${onClose ? 'onClose()' : ''}" 
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          ΟΚ
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  if (onClose) {
+    // Store the callback globally so it can be called from the onclick
+    window._successModalCallback = onClose;
+    modal.querySelector('button').setAttribute('onclick', 
+      "this.closest('.fixed').remove(); if(window._successModalCallback) { window._successModalCallback(); window._successModalCallback = null; }"
+    );
+  }
+}
+
+function showErrorModal(title, message) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center mb-4">
+        <div class="text-red-600 text-2xl mr-3">❌</div>
+        <h3 class="text-lg font-bold">${title}</h3>
+      </div>
+      <p class="text-gray-700 mb-6">${message}</p>
+      <div class="flex justify-end">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          ΟΚ
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// ==================== INITIALIZATION ====================
+window.addEventListener('load', function() {
+  loadStats();
+  loadUsers();
+  loadEmailConfiguration();
+  loadEmailProviderSettings();
+});
+</script>
+
+<style>
+.tab-button {
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  border-bottom-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+</style>
+{% endblock %}

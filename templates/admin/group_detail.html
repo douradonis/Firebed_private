@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Group Details</h1>
+    <p><a href="/admin/groups" class="btn btn-secondary">← Back</a></p>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Group Information</h5>
+            <p><strong>ID:</strong> {{ group.id }}</p>
+            <p><strong>Name:</strong> {{ group.name }}</p>
+            <p><strong>Data Folder:</strong> <code>{{ group.data_folder }}</code></p>
+            <p><strong>Folder Size:</strong> {{ group.folder_size_mb }} MB</p>
+            <p><strong>Created:</strong> {{ group.created_at }}</p>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Members ({{ group.members|length }})</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in group.members %}
+                    <tr>
+                        <td>{{ member.user_id }}</td>
+                        <td>{{ member.username }}</td>
+                        <td>
+                            {% if member.role == 'admin' %}
+                                <span class="badge badge-danger">Admin</span>
+                            {% else %}
+                                <span class="badge badge-info">Member</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5>Actions</h5>
+        <form method="POST" action="/admin/groups/{{ group.id }}/backup" style="display:inline;">
+            <button class="btn btn-info">📦 Create Backup</button>
+        </form>
+        <form method="POST" action="/admin/groups/{{ group.id }}/delete" style="display:inline;">
+            <button class="btn btn-danger" onclick="return confirm('Delete this group and all its data? A backup will be created first.')">🗑️ Delete Group</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

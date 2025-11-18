@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Send Email to Users</h1>
+    <p><a href="/admin" class="btn btn-secondary">← Back to Dashboard</a></p>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="form-group mb-3">
+                    <label>Select Users</label>
+                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleAllUsers()" />
+                            <label class="form-check-label" for="selectAll">
+                                <strong>Select All</strong>
+                            </label>
+                        </div>
+                        <hr>
+                        {% for user in users %}
+                        <div class="form-check">
+                            <input class="form-check-input user-checkbox" type="checkbox" name="user_ids" value="{{ user.id }}" id="user_{{ user.id }}" />
+                            <label class="form-check-label" for="user_{{ user.id }}">
+                                {{ user.username }} ({{ user.email or 'no email' }})
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="subject">Subject</label>
+                    <input type="text" class="form-control" id="subject" name="subject" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="message">Message</label>
+                    <textarea class="form-control" id="message" name="message" rows="8" required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Send Email</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAllUsers() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    userCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Group Files{% endblock %}
+
+{% block content %}
+<style>
+  .files-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin: 20px 0;
+  }
+  
+  .file-browser {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #f9f9f9;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  
+  .file-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .file-item:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .file-item.folder {
+    font-weight: 500;
+    color: #0066cc;
+  }
+  
+  .file-item.file {
+    color: #333;
+  }
+  
+  .file-icon {
+    margin-right: 10px;
+    font-size: 16px;
+  }
+  
+  .file-name {
+    flex: 1;
+    word-break: break-word;
+  }
+  
+  .file-size {
+    color: #999;
+    font-size: 12px;
+    margin-right: 15px;
+  }
+  
+  .file-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .file-action-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-view {
+    background: #0066cc;
+    color: white;
+  }
+  
+  .btn-view:hover {
+    background: #0052a3;
+  }
+  
+  .btn-download {
+    background: #28a745;
+    color: white;
+  }
+  
+  .btn-download:hover {
+    background: #218838;
+  }
+  
+  .breadcrumb-nav {
+    margin: 15px 0;
+    padding: 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .breadcrumb-item {
+    display: inline-block;
+    cursor: pointer;
+    color: #0066cc;
+    margin: 0 5px;
+  }
+  
+  .breadcrumb-item:hover {
+    text-decoration: underline;
+  }
+  
+  .breadcrumb-separator {
+    margin: 0 5px;
+    color: #999;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+  }
+  
+  .error {
+    background: #fee;
+    color: #c00;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 15px 0;
+  }
+  
+  .success {
+    background: #efe;
+    color: #060;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 15px 0;
+  }
+</style>
+
+<div class="admin-container">
+  <h1>📁 Group Files Browser</h1>
+  
+  <div class="files-container">
+    {% if group %}
+      <div style="margin-bottom: 20px;">
+        <h3>Group: {{ group.name }}</h3>
+        <p style="color: #666; font-size: 14px;">Data folder: <code>{{ group.data_folder }}</code></p>
+      </div>
+      
+      <div id="message-area"></div>
+      
+      <!-- Breadcrumb navigation -->
+      <div class="breadcrumb-nav">
+        <span class="breadcrumb-item" onclick="goToFolder('')">📂 Root</span>
+        <span id="breadcrumb-path"></span>
+      </div>
+      
+      <!-- File browser -->
+      <div class="file-browser" id="file-browser">
+        <div class="loading">Loading files...</div>
+      </div>
+    {% else %}
+      <p style="color: #999;">Group not found or not accessible.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- File preview modal -->
+<div id="preview-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:1000; overflow:auto;">
+  <div style="background:white; margin:50px auto; padding:20px; max-width:800px; border-radius:8px; max-height:80vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 id="preview-title">File Preview</h3>
+      <button onclick="closePreview()" style="padding:5px 15px; cursor:pointer;">✕ Close</button>
+    </div>
+    <div id="preview-content" style="background:#f5f5f5; padding:15px; border-radius:6px; font-family:monospace; white-space:pre-wrap; word-wrap:break-word; max-height:60vh; overflow:auto;"></div>
+  </div>
+</div>
+
+<script>
+const groupId = {{ group.id if group else 'null' }};
+const currentPath = new URLSearchParams(location.search).get('path') || '';
+
+function showMessage(text, type = 'info') {
+  const area = document.getElementById('message-area');
+  area.innerHTML = `<div class="${type}">${text}</div>`;
+  setTimeout(() => { area.innerHTML = ''; }, 5000);
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function goToFolder(path) {
+  const newUrl = `?path=${encodeURIComponent(path)}`;
+  window.location.href = newUrl;
+}
+
+function loadFiles(path) {
+  if (!groupId) return;
+  
+  const browser = document.getElementById('file-browser');
+  browser.innerHTML = '<div class="loading">Loading files...</div>';
+  
+  fetch(`/admin/api/group/${groupId}/files`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        browser.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+        return;
+      }
+      
+      const files = data.files || [];
+      
+      if (files.length === 0) {
+        browser.innerHTML = '<div style="padding:20px; color:#999;">No files in this folder</div>';
+        return;
+      }
+      
+      let html = '';
+      
+      // Sort: folders first, then files
+      const folders = files.filter(f => f.type === 'folder').sort((a,b) => a.name.localeCompare(b.name));
+      const filesList = files.filter(f => f.type === 'file').sort((a,b) => a.name.localeCompare(b.name));
+      
+      [...folders, ...filesList].forEach(f => {
+        const icon = f.type === 'folder' ? '📁' : '📄';
+        const className = f.type === 'folder' ? 'folder' : 'file';
+        const size = f.type === 'file' ? formatSize(f.size) : '';
+        
+        let actions = '';
+        if (f.type === 'file') {
+          actions = `
+            <div class="file-actions">
+              <button class="file-action-btn btn-view" onclick="viewFile('${f.path}')">👁️ View</button>
+              <button class="file-action-btn btn-download" onclick="downloadFile('${f.path}')">⬇️ Download</button>
+            </div>
+          `;
+        }
+        
+        const clickHandler = f.type === 'folder' ? `onclick="goToFolder('${f.path}')"` : '';
+        
+        html += `
+          <div class="file-item ${className}" ${clickHandler}>
+            <span class="file-icon">${icon}</span>
+            <span class="file-name">${f.name}</span>
+            ${size ? `<span class="file-size">${size}</span>` : ''}
+            ${actions}
+          </div>
+        `;
+      });
+      
+      browser.innerHTML = html;
+    })
+    .catch(err => {
+      browser.innerHTML = `<div class="error">Error loading files: ${err.message}</div>`;
+    });
+}
+
+function viewFile(path) {
+  fetch(`/admin/api/group/${groupId}/file/${path}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        showMessage('Error reading file: ' + data.error, 'error');
+        return;
+      }
+      
+      document.getElementById('preview-title').textContent = `Preview: ${path.split('/').pop()}`;
+      document.getElementById('preview-content').textContent = data.content;
+      document.getElementById('preview-modal').style.display = 'block';
+    })
+    .catch(err => showMessage('Error: ' + err.message, 'error'));
+}
+
+function downloadFile(path) {
+  window.location.href = `/admin/api/group/${groupId}/file/${path}?download=1`;
+}
+
+function closePreview() {
+  document.getElementById('preview-modal').style.display = 'none';
+}
+
+// Load files on page load
+loadFiles(currentPath);
+</script>
+{% endblock %}
