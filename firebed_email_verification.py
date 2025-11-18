@@ -175,7 +175,10 @@ class FirebedEmailVerification:
             verify_url = f"{base_url}/firebase-auth/verify-email?token={token}"
             
             # Greek subject and body
-            subject = "🔥 Επιβεβαίωση Email - Firebed Account"
+            subject = "✅ Επιβεβαίωση Email - ScanmyData Account"
+            
+            # Logo URL
+            logo_url = f"{base_url}/icons/scanmydata_logo_3000w.png"
             
             # HTML Email Template
             html_body = f"""
@@ -184,7 +187,7 @@ class FirebedEmailVerification:
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Επιβεβαίωση Email - Firebed</title>
+                <title>Επιβεβαίωση Email - ScanmyData</title>
                 <style>
                     body {{ 
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -261,8 +264,10 @@ class FirebedEmailVerification:
             <body>
                 <div class="container">
                     <div class="header">
-                        <div class="logo">🔥 Firebed</div>
-                        <h2 style="color: #2c3e50; margin: 0;">Καλώς ήρθες στο Firebed!</h2>
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="{logo_url}" alt="ScanmyData" style="height: 80px; width: auto;">
+                        </div>
+                        <h2 style="color: #0ea5e9; margin: 0; text-align: center;">Καλώς ήρθες στο ScanmyData!</h2>
                     </div>
                     
                     <div class="welcome">
@@ -270,7 +275,7 @@ class FirebedEmailVerification:
                     </div>
                     
                     <p>
-                        Σε ευχαριστούμε που εγγράφηκες στο <strong>Firebed</strong>! 
+                        Σε ευχαριστούμε που εγγράφηκες στο <strong>ScanmyData</strong>! 
                         Για να ενεργοποιήσεις τον λογαριασμό σου και να έχεις πρόσβαση 
                         σε όλες τις δυνατότητες, χρειάζεται να επιβεβαιώσεις το email σου.
                     </p>
@@ -301,8 +306,11 @@ class FirebedEmailVerification:
                     </p>
                     
                     <div class="footer">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <img src="{logo_url}" alt="ScanmyData" style="height: 50px; width: auto; opacity: 0.6;">
+                        </div>
                         <p>
-                            <strong>Firebed Team</strong><br>
+                            <strong>ScanmyData Team</strong><br>
                             Αυτό το email στάλθηκε στις {datetime.now().strftime('%d/%m/%Y %H:%M')} ΕΕΤ
                         </p>
                         <p style="font-size: 12px; color: #999;">
@@ -316,11 +324,11 @@ class FirebedEmailVerification:
             
             # Plain text fallback
             text_body = f"""
-🔥 Firebed - Επιβεβαίωση Email
+ScanmyData - Επιβεβαίωση Email
 
 Γεια σου {display_name or email.split('@')[0]}!
 
-Σε ευχαριστούμε που εγγράφηκες στο Firebed!
+Σε ευχαριστούμε που εγγράφηκες στο ScanmyData!
 Για να ενεργοποιήσεις τον λογαριασμό σου, κάνε κλικ στο παρακάτω link:
 
 {verify_url}
@@ -332,7 +340,7 @@ class FirebedEmailVerification:
 
 🔒 Ασφάλεια: Αν δεν δημιούργησες εσύ αυτόν τον λογαριασμό, αγνόησε αυτό το email.
 
-Firebed Team
+ScanmyData Team
 Αποστολή: {datetime.now().strftime('%d/%m/%Y %H:%M')} ΕΕΤ
 Το link ισχύει για 24 ώρες.
             """
@@ -389,7 +397,7 @@ Firebed Team
             base_url = FirebedEmailVerification.get_base_url()
             reset_url = f"{base_url}/firebase-auth/reset-password?token={token}"
             
-            subject = "🔐 Επαναφορά Κωδικού - Firebed Account"
+            subject = "🔐 Επαναφορά Κωδικού - ScanmyData Account"
             
             # HTML Email Template
             html_body = f"""
@@ -398,7 +406,7 @@ Firebed Team
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Επαναφορά Κωδικού - Firebed</title>
+                <title>Επαναφορά Κωδικού - ScanmyData</title>
                 <style>
                     body {{ 
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -470,12 +478,14 @@ Firebed Team
             <body>
                 <div class="container">
                     <div class="header">
-                        <div class="logo">🔥 Firebed</div>
-                        <h2 style="color: #f39c12; margin: 0;">Επαναφορά Κωδικού</h2>
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="{logo_url}" alt="ScanmyData" style="height: 80px; width: auto;">
+                        </div>
+                        <h2 style="color: #f39c12; margin: 0; text-align: center;">Επαναφορά Κωδικού - ScanmyData</h2>
                     </div>
                     
                     <p>
-                        Λάβαμε αίτημα για επαναφορά του κωδικού για τον λογαριασμό σου στο Firebed.
+                        Λάβαμε αίτημα για επαναφορά του κωδικού για τον λογαριασμό σου στο <strong>ScanmyData</strong>.
                     </p>
                     
                     <div style="text-align: center; margin: 30px 0;">
@@ -506,8 +516,11 @@ Firebed Team
                     </p>
                     
                     <div class="footer">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <img src="{logo_url}" alt="ScanmyData" style="height: 50px; width: auto; opacity: 0.6;">
+                        </div>
                         <p>
-                            <strong>Firebed Security Team</strong><br>
+                            <strong>ScanmyData Security Team</strong><br>
                             Αποστολή: {datetime.now().strftime('%d/%m/%Y %H:%M')} ΕΕΤ
                         </p>
                     </div>
@@ -516,9 +529,12 @@ Firebed Team
             </html>
             """
             
+            # Logo URL for password reset
+            logo_url = f"{base_url}/icons/scanmydata_logo_3000w.png"
+            
             # Plain text version
             text_body = f"""
-🔥 Firebed - Επαναφορά Κωδικού
+ScanmyData - Επαναφορά Κωδικού
 
 Λάβαμε αίτημα για επαναφορά του κωδικού σου.
 
@@ -535,7 +551,7 @@ Firebed Team
 • Το link ισχύει για 1 ώρα
 • Αν δεν ζήτησες επαναφορά, αγνόησε το email
 
-Firebed Security Team
+ScanmyData Security Team
 {datetime.now().strftime('%d/%m/%Y %H:%M')} ΕΕΤ
             """
             

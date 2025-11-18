@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}myDATA - Μενού{% endblock %}
+{% block title %}ScanmyData - Μενού{% endblock %}
 {% block content %}
-<div class="card p-4">
-  <h1>myDATA - Κεντρικό Μενού</h1>
-  <p>Επέλεξε λειτουργία:</p>
-  <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-primary" href="{{ url_for('fetch') }}">📥 Εισαγωγή / Bulk Fetch</a>
-    <a class="btn btn-secondary" href="{{ url_for('search') }}">🔍 Αναζήτηση MARK</a>
-    <a class="btn btn-success" href="{{ url_for('list_invoices') }}">📄 Λίστα / Excel</a>
-    <a class="btn btn-outline-dark" href="{{ url_for('credentials') }}">🔐 Credentials</a>
+<div class="content-wrap">
+  <h1 class="text-3xl font-bold mb-4 text-gray-900">ScanmyData - Κεντρικό Μενού</h1>
+  <p class="text-gray-600 mb-6">Επέλεξε λειτουργία:</p>
+  <div class="flex flex-wrap gap-3">
+    <a class="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors" href="{{ url_for('fetch') }}">📥 Εισαγωγή / Bulk Fetch</a>
+    <a class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors" href="{{ url_for('search') }}">🔍 Αναζήτηση MARK</a>
+    <a class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors" href="{{ url_for('list_invoices') }}">📄 Λίστα / Excel</a>
+    <a class="px-6 py-3 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg font-medium transition-colors" href="{{ url_for('credentials') }}">🔐 Credentials</a>
   </div>
 </div>
 {% endblock %}
