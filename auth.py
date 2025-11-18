@@ -104,16 +104,30 @@ def signup():
                 if ok:
                     # Try to send verification email via SMTP; fallback to logging
                     verify_link = link_or_err
+                    app_url = os.getenv('APP_URL', 'http://localhost:5001')
+                    logo_url = f"{app_url}/icons/scanmydata_logo_3000w.png"
                     html_body = f"""
-                    <html><body>
-                        <h2>Email Verification</h2>
-                        <p>Hello {user.username},</p>
-                        <p>Please verify your email address by clicking the link below:</p>
-                        <p><a href=\"{verify_link}\">Verify Email</a></p>
-                        <p>If you did not sign up, ignore this email.</p>
-                    </body></html>
+                    <html>
+                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <div style="text-align: center; margin-bottom: 30px;">
+                                    <img src="{logo_url}" alt="ScanmyData" style="height: 60px; width: auto;">
+                                </div>
+                                <h2 style="color: #0ea5e9;">Επαλήθευση Email</h2>
+                                <p>Γεια σου {user.username},</p>
+                                <p>Παρακαλώ επαλήθευσε τη διεύθυνση email σου πατώντας τον παρακάτω σύνδεσμο:</p>
+                                <p style="margin: 25px 0;">
+                                    <a href="{verify_link}" style="background-color: #0ea5e9; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Επαλήθευση Email</a>
+                                </p>
+                                <p><small style="color: #6b7280;">Εάν δεν δημιούργησες αυτόν τον λογαριασμό, παρακαλώ αγνόησε αυτό το email.</small></p>
+                                <div style="text-align: center; margin-top: 30px;">
+                                    <img src="{logo_url}" alt="ScanmyData" style="height: 40px; width: auto; opacity: 0.6;">
+                                </div>
+                            </div>
+                        </body>
+                    </html>
                     """
-                    sent = email_utils.send_email(user.email, 'Verify your email - ScanmyData', html_body)
+                    sent = email_utils.send_email(user.email, 'Επαλήθευση Email - ScanmyData', html_body)
                     if sent:
                         flash('Ο λογαριασμός δημιουργήθηκε! Ένα email επαλήθευσης έχει σταλεί στα εισερχόμενά σας.', 'success')
                     else:
@@ -760,30 +774,40 @@ def forgot_password():
             if ok:
                 reset_link = link_or_err
                 # Enhanced email template for password reset
+                app_url = os.getenv('APP_URL', 'http://localhost:5001')
+                logo_url = f"{app_url}/icons/scanmydata_logo_3000w.png"
                 html_body = f"""
                 <html>
-                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                            <h1 style="margin: 0; font-size: 28px;">🔐 Επαναφορά Κωδικού</h1>
-                        </div>
-                        
-                        <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-radius: 0 0 10px 10px;">
-                            <h2 style="color: #333; margin-top: 0;">Αλλαγή Κωδικού Πρόσβασης</h2>
-                            <p style="color: #666; font-size: 16px; line-height: 1.6;">Λάβαμε αίτημα για επαναφορά του κωδικού πρόσβασής σας. Κάντε κλικ στο παρακάτω κουμπί για να ορίσετε νέο κωδικό:</p>
-                            
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="{reset_link}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);">🔑 Επαναφορά Κωδικού</a>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <img src="{logo_url}" alt="ScanmyData" style="height: 60px; width: auto;">
+                            </div>
+                            <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                                <h1 style="margin: 0; font-size: 28px;">🔐 Επαναφορά Κωδικού</h1>
                             </div>
                             
-                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                                <p style="margin: 0; color: #856404; font-size: 14px;">⏰ <strong>Σημαντικό:</strong> Αυτός ο σύνδεσμος λήγει σε 1 ώρα για λόγους ασφαλείας.</p>
+                            <div style="background: white; padding: 30px; border: 1px solid #e1e5e9; border-radius: 0 0 10px 10px;">
+                                <h2 style="color: #333; margin-top: 0;">Αλλαγή Κωδικού Πρόσβασης</h2>
+                                <p style="color: #666; font-size: 16px; line-height: 1.6;">Λάβαμε αίτημα για επαναφορά του κωδικού πρόσβασής σας. Κάντε κλικ στο παρακάτω κουμπί για να ορίσετε νέο κωδικό:</p>
+                                
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="{reset_link}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);">🔑 Επαναφορά Κωδικού</a>
+                                </div>
+                                
+                                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                    <p style="margin: 0; color: #856404; font-size: 14px;">⏰ <strong>Σημαντικό:</strong> Αυτός ο σύνδεσμος λήγει σε 1 ώρα για λόγους ασφαλείας.</p>
+                                </div>
+                                
+                                <p style="color: #888; font-size: 14px; margin-top: 30px;">Εάν το κουμπί δεν λειτουργεί, αντιγράψτε αυτό το link:</p>
+                                <p style="background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all; font-family: monospace; font-size: 12px;">{reset_link}</p>
+                                
+                                <hr style="border: none; height: 1px; background: #eee; margin: 30px 0;">
+                                <p style="color: #888; font-size: 12px; text-align: center;">Εάν δεν ζητήσατε αυτή την αλλαγή, παραβλέψτε αυτό το email. Ο κωδικός σας θα παραμείνει αμετάβλητος.</p>
+                                <div style="text-align: center; margin-top: 30px;">
+                                    <img src="{logo_url}" alt="ScanmyData" style="height: 40px; width: auto; opacity: 0.6;">
+                                </div>
                             </div>
-                            
-                            <p style="color: #888; font-size: 14px; margin-top: 30px;">Εάν το κουμπί δεν λειτουργεί, αντιγράψτε αυτό το link:</p>
-                            <p style="background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all; font-family: monospace; font-size: 12px;">{reset_link}</p>
-                            
-                            <hr style="border: none; height: 1px; background: #eee; margin: 30px 0;">
-                            <p style="color: #888; font-size: 12px; text-align: center;">Εάν δεν ζητήσατε αυτή την αλλαγή, παραβλέψτε αυτό το email. Ο κωδικός σας θα παραμείνει αμετάβλητος.</p>
                         </div>
                     </body>
                 </html>

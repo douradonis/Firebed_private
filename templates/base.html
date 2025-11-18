@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}ScanmyData{% endblock %}</title>
   
-  <link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="192x192" />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="shortcut icon" href="/icons/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="256x256" href="/icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="ScanmyData" />
   <link rel="manifest" href="/icons/site.webmanifest" />
 
@@ -32,12 +32,12 @@
     }
     
     [data-theme="dark"] {
-      --bg-primary: #1f2937;
-      --bg-secondary: #374151;
+      --bg-primary: #111827;
+      --bg-secondary: #1f2937;
       --text-primary: #f9fafb;
-      --text-secondary: #d1d5db;
-      --border-color: #4b5563;
-      --shadow-color: rgba(0,0,0,0.3);
+      --text-secondary: #e5e7eb;
+      --border-color: #6b7280;
+      --shadow-color: rgba(0,0,0,0.5);
     }
     
     html { font-size: calc(16px * var(--device-font-scale, 1)); }
@@ -176,33 +176,150 @@
     .flash-warning { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
     .flash-info    { background:#e0f2fe; color:#075985; border:1px solid #bae6fd; }
     
+    /* Dark mode overrides for flash messages */
+    [data-theme="dark"] .flash-success { background:#064e3b; color:#d1fae5; border-color:#065f46; }
+    [data-theme="dark"] .flash-error   { background:#7f1d1d; color:#fecaca; border-color:#991b1b; }
+    [data-theme="dark"] .flash-warning { background:#78350f; color:#fef3c7; border-color:#92400e; }
+    [data-theme="dark"] .flash-info    { background:#0c4a6e; color:#bae6fd; border-color:#075985; }
+    
     /* Dark mode overrides for UI elements */
     [data-theme="dark"] input,
     [data-theme="dark"] select,
     [data-theme="dark"] textarea,
     [data-theme="dark"] button:not(.bg-sky-600):not(.bg-red-600):not(.bg-emerald-600) {
-      background-color: var(--bg-secondary);
-      color: var(--text-primary);
-      border-color: var(--border-color);
+      background-color: #1f2937;
+      color: #f9fafb;
+      border-color: #6b7280;
+      border-width: 1px;
+    }
+    
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: #9ca3af;
+    }
+    
+    [data-theme="dark"] input:focus,
+    [data-theme="dark"] select:focus,
+    [data-theme="dark"] textarea:focus {
+      background-color: #111827;
+      border-color: #60a5fa;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
     }
     
     [data-theme="dark"] .layout-header__nav a:not(.bg-sky-600) {
-      background-color: var(--bg-secondary);
-      color: var(--text-primary);
-      border-color: var(--border-color);
+      background-color: #1f2937;
+      color: #f9fafb;
+      border-color: #6b7280;
+      border-width: 1px;
     }
     
     [data-theme="dark"] .layout-header__nav a:not(.bg-sky-600):hover {
-      background-color: #4b5563;
+      background-color: #374151;
+      border-color: #9ca3af;
     }
     
     [data-theme="dark"] #sideMenu {
-      background-color: var(--bg-secondary);
+      background-color: #1f2937;
+      border-left: 1px solid #6b7280;
     }
     
     [data-theme="dark"] .modal-warning-panel {
       background-color: var(--bg-secondary);
       color: var(--text-primary);
+    }
+    
+    /* Additional dark mode overrides for better visibility */
+    [data-theme="dark"] table {
+      color: var(--text-primary);
+      background-color: #1f2937;
+    }
+    
+    [data-theme="dark"] table th {
+      background-color: #374151;
+      color: #f9fafb;
+      border-color: #6b7280;
+    }
+    
+    [data-theme="dark"] table td {
+      border-color: #4b5563;
+    }
+    
+    [data-theme="dark"] table tbody tr:hover {
+      background-color: #374151;
+    }
+    
+    [data-theme="dark"] .dataTables_wrapper {
+      color: var(--text-primary);
+    }
+    
+    [data-theme="dark"] .dataTables_wrapper .dataTables_length,
+    [data-theme="dark"] .dataTables_wrapper .dataTables_filter,
+    [data-theme="dark"] .dataTables_wrapper .dataTables_info,
+    [data-theme="dark"] .dataTables_wrapper .dataTables_paginate {
+      color: var(--text-primary);
+    }
+    
+    [data-theme="dark"] label,
+    [data-theme="dark"] .text-gray-500,
+    [data-theme="dark"] .text-gray-600,
+    [data-theme="dark"] .text-gray-700 {
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] .text-gray-900,
+    [data-theme="dark"] h1, [data-theme="dark"] h2, 
+    [data-theme="dark"] h3, [data-theme="dark"] h4,
+    [data-theme="dark"] h5, [data-theme="dark"] h6 {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .bg-white {
+      background-color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .bg-gray-100 {
+      background-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] .bg-gray-200 {
+      background-color: #4b5563 !important;
+      color: #f3f4f6 !important;
+    }
+    
+    [data-theme="dark"] .border {
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .content-wrap {
+      background-color: #1f2937;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      border: 1px solid #374151;
+    }
+    
+    [data-theme="dark"] .rounded,
+    [data-theme="dark"] .rounded-md,
+    [data-theme="dark"] .rounded-lg {
+      border: 1px solid #4b5563;
+    }
+    
+    [data-theme="dark"] a:not(.bg-sky-600):not(.bg-red-600):not(.bg-emerald-600) {
+      color: #60a5fa;
+    }
+    
+    [data-theme="dark"] a:not(.bg-sky-600):not(.bg-red-600):not(.bg-emerald-600):hover {
+      color: #93c5fd;
+    }
+    
+    /* Preserve red color for Admin button in dark mode */
+    [data-theme="dark"] .layout-header__nav a.bg-red-600 {
+      background-color: #dc2626 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .layout-header__nav a.bg-red-600:hover {
+      background-color: #b91c1c !important;
     }
 
     /* Warning modal styling (shared look & feel) */
@@ -350,7 +467,7 @@
     }
     
     .logo-img {
-      height: 50px;
+      height: 80px;
       width: auto;
     }
     
@@ -399,7 +516,7 @@
             <!-- Active credential badge moved to second row -->
             <div class="ml-4 flex items-center gap-3">
               <!-- Dark mode toggle -->
-              <label class="theme-switch" title="Εναλλαγή θέματος">
+              <label class="theme-switch" title="Σκούρο θέμα: Ενεργοποιήστε για να μειώσετε την κόπωση των ματιών σε συνθήκες χαμηλού φωτισμού">
                 <input type="checkbox" id="themeToggle">
                 <span class="theme-slider"></span>
               </label>

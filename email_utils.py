@@ -220,24 +220,66 @@ def send_email_verification(user_email: str, user_id: int, user_username: str) -
         return False
     
     verify_url = f"{APP_URL}/auth/verify-email?token={token}"
+    logo_url = f"{APP_URL}/icons/scanmydata_logo_3000w.png"
     
     html_body = f"""
     <html>
-        <body>
-            <h2>Email Verification</h2>
-            <p>Hello {user_username},</p>
-            <p>Please verify your email address by clicking the link below:</p>
-            <p><a href="{verify_url}">Verify Email</a></p>
-            <p>Or paste this URL in your browser:</p>
-            <p><small>{verify_url}</small></p>
-            <p>This link expires in 24 hours.</p>
-            <hr>
-            <p>If you did not create this account, please ignore this email.</p>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+                <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 80px; width: auto;">
+                    </div>
+                    <h2 style="color: #0ea5e9; text-align: center;">Επαλήθευση Email - ScanmyData</h2>
+                    <p>Γεια σου {user_username},</p>
+                    <p>Σε ευχαριστούμε που εγγράφηκες στο <strong>ScanmyData</strong>! Για να ενεργοποιήσεις τον λογαριασμό σου και να έχεις πρόσβαση σε όλες τις δυνατότητες, παρακαλώ επαλήθευσε τη διεύθυνση email σου:</p>
+                    <p style="margin: 25px 0; text-align: center;">
+                        <a href="{verify_url}" style="background-color: #0ea5e9; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">✅ Επαλήθευση Email</a>
+                    </p>
+                    <div style="background: #e8f4fd; border-left: 4px solid #0ea5e9; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                        <strong>📧 Τι θα συμβεί μετά:</strong><br>
+                        • Θα ενεργοποιηθεί ο λογαριασμός σου<br>
+                        • Θα μπορείς να κάνεις login<br>
+                        • Θα έχεις πρόσβαση στο dashboard<br>
+                        • Θα λαμβάνεις σημαντικές ενημερώσεις
+                    </div>
+                    <p style="font-size: 14px; color: #666;"><strong>Δεν μπορείς να κάνεις κλικ στο κουμπί;</strong><br>Αντίγραψε αυτό το URL στον browser σου:</p>
+                    <p style="background-color: #f3f4f6; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px;"><small>{verify_url}</small></p>
+                    <p style="font-size: 12px; color: #999; text-align: center;">Ο σύνδεσμος λήγει σε 24 ώρες.</p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                    <p style="color: #6b7280; font-size: 0.9em; text-align: center;">🔒 Εάν δεν δημιούργησες αυτόν τον λογαριασμό, παρακαλώ αγνόησε αυτό το email.</p>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 50px; width: auto; opacity: 0.6;">
+                        <p style="font-size: 12px; color: #999; margin-top: 10px;"><strong>ScanmyData Team</strong></p>
+                    </div>
+                </div>
+            </div>
         </body>
     </html>
     """
     
-    return send_email(user_email, 'Email Verification - ScanmyData', html_body)
+    text_body = f"""
+ScanmyData - Επαλήθευση Email
+
+Γεια σου {user_username}!
+
+Σε ευχαριστούμε που εγγράφηκες στο ScanmyData!
+Για να ενεργοποιήσεις τον λογαριασμό σου, κάνε κλικ στο παρακάτω link:
+
+{verify_url}
+
+Τι θα συμβεί μετά:
+✅ Θα ενεργοποιηθεί ο λογαριασμός σου
+✅ Θα μπορείς να κάνεις login  
+✅ Θα έχεις πρόσβαση στο dashboard
+
+🔒 Ασφάλεια: Αν δεν δημιούργησες εσύ αυτόν τον λογαριασμό, αγνόησε αυτό το email.
+
+ScanmyData Team
+Ο σύνδεσμος λήγει σε 24 ώρες.
+    """
+    
+    return send_email(user_email, 'Επαλήθευση Email - ScanmyData', html_body, text_body)
 
 
 def send_password_reset(user_email: str, user_id: int, user_username: str) -> bool:
@@ -247,24 +289,74 @@ def send_password_reset(user_email: str, user_id: int, user_username: str) -> bo
         return False
     
     reset_url = f"{APP_URL}/auth/reset-password?token={token}"
+    logo_url = f"{APP_URL}/icons/scanmydata_logo_3000w.png"
     
     html_body = f"""
     <html>
-        <body>
-            <h2>Password Reset Request</h2>
-            <p>Hello {user_username},</p>
-            <p>We received a request to reset your password. Click the link below to set a new password:</p>
-            <p><a href="{reset_url}">Reset Password</a></p>
-            <p>Or paste this URL in your browser:</p>
-            <p><small>{reset_url}</small></p>
-            <p>This link expires in 1 hour.</p>
-            <hr>
-            <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+                <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 80px; width: auto;">
+                    </div>
+                    <h2 style="color: #f39c12; text-align: center;">🔐 Επαναφορά Κωδικού - ScanmyData</h2>
+                    <p>Γεια σου {user_username},</p>
+                    <p>Λάβαμε αίτημα για επαναφορά του κωδικού σου στο <strong>ScanmyData</strong>. Πάτησε τον παρακάτω σύνδεσμο για να ορίσεις νέο κωδικό:</p>
+                    <p style="margin: 25px 0; text-align: center;">
+                        <a href="{reset_url}" style="background-color: #f39c12; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">🔐 Επαναφορά Κωδικού</a>
+                    </p>
+                    <div style="background: #e8f4fd; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                        <strong>📋 Διαδικασία Επαναφοράς:</strong><br>
+                        1. Κάνε κλικ στο κουμπί παραπάνω<br>
+                        2. Εισάγαγε νέο κωδικό (τουλάχιστον 6 χαρακτήρες)<br>
+                        3. Επιβεβαίωσε τον νέο κωδικό<br>
+                        4. Κάνε login με τα νέα στοιχεία
+                    </div>
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <strong>⚠️ Σημαντικό:</strong><br>
+                        • Το link ισχύει για 1 ώρα από την αποστολή<br>
+                        • Αν δεν ζήτησες εσύ επαναφορά, αγνόησε αυτό το email<br>
+                        • Ο κωδικός σου δεν θα αλλάξει χωρίς την επιβεβαίωσή σου
+                    </div>
+                    <p style="font-size: 14px; color: #666;"><strong>Δεν μπορείς να κάνεις κλικ στο κουμπί;</strong><br>Αντίγραψε αυτό το URL στον browser σου:</p>
+                    <p style="background-color: #f3f4f6; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px;"><small>{reset_url}</small></p>
+                    <p style="font-size: 12px; color: #999; text-align: center;">Ο σύνδεσμος λήγει σε 1 ώρα.</p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                    <p style="color: #6b7280; font-size: 0.9em; text-align: center;">Εάν δεν ζήτησες αυτό, παρακαλώ αγνόησε αυτό το email και ο κωδικός σου θα παραμείνει αμετάβλητος.</p>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 50px; width: auto; opacity: 0.6;">
+                        <p style="font-size: 12px; color: #999; margin-top: 10px;"><strong>ScanmyData Security Team</strong></p>
+                    </div>
+                </div>
+            </div>
         </body>
     </html>
     """
     
-    return send_email(user_email, 'Password Reset - ScanmyData', html_body)
+    text_body = f"""
+ScanmyData - Επαναφορά Κωδικού
+
+Γεια σου {user_username}!
+
+Λάβαμε αίτημα για επαναφορά του κωδικού σου στο ScanmyData.
+
+Για να ορίσεις νέο κωδικό, κάνε κλικ στο link:
+{reset_url}
+
+Διαδικασία:
+1. Κάνε κλικ στο link
+2. Εισάγαγε νέο κωδικό  
+3. Επιβεβαίωσε τον κωδικό
+4. Login με τα νέα στοιχεία
+
+⚠️ Σημαντικό:
+• Το link ισχύει για 1 ώρα
+• Αν δεν ζήτησες επαναφορά, αγνόησε το email
+
+ScanmyData Security Team
+    """
+    
+    return send_email(user_email, 'Επαναφορά Κωδικού - ScanmyData', html_body, text_body)
 
 
 def send_bulk_email_to_users(user_ids: list, subject: str, html_body: str) -> dict:
