@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # Email config from environment
-EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', or 'resend'
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', 'resend', or 'mailpit'
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
@@ -21,6 +21,9 @@ APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
 OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_EMAIL_SENDER = os.getenv('RESEND_EMAIL_SENDER', '')
+MAILPIT_API_URL = os.getenv('MAILPIT_API_URL', 'http://localhost:8025')
+MAILPIT_API_USERNAME = os.getenv('MAILPIT_API_USERNAME', '')
+MAILPIT_API_PASSWORD = os.getenv('MAILPIT_API_PASSWORD', '')
 
 
 def get_email_provider() -> str:
@@ -36,7 +39,7 @@ def get_email_provider() -> str:
             settings = load_settings()
             provider = settings.get('email_provider', '').strip()
             logger.info(f"get_email_provider: loaded from settings: {provider}")
-            if provider in ['smtp', 'oauth2_outlook', 'resend']:
+            if provider in ['smtp', 'oauth2_outlook', 'resend', 'mailpit']:
                 return provider
         except (ImportError, Exception) as e:
             logger.warning(f"get_email_provider: failed to load from settings: {e}")
@@ -52,7 +55,7 @@ def get_email_provider() -> str:
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
-    """Send an email via SMTP, OAuth2, or Resend based on configuration"""
+    """Send an email via SMTP, OAuth2, Resend, or Mailpit based on configuration"""
     
     # Get current provider from settings or environment
     provider = get_email_provider()
@@ -65,6 +68,9 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
     elif provider == 'oauth2_outlook':
         logger.info(f"Routing to OAuth2 for {to_email}")
         return send_oauth2_email(to_email, subject, html_body, text_body)
+    elif provider == 'mailpit':
+        logger.info(f"Routing to Mailpit for {to_email}")
+        return send_mailpit_email(to_email, subject, html_body, text_body)
     else:
         logger.info(f"Routing to SMTP for {to_email}")
         return send_smtp_email(to_email, subject, html_body, text_body)
@@ -169,6 +175,65 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         logger.error(f"Resend sender was: {sender}, API key present: {bool(RESEND_API_KEY)}")
         
         # Fallback to SMTP if Resend fails
+        logger.warning(f"Falling back to SMTP for {to_email}")
+        return send_smtp_email(to_email, subject, html_body, text_body)
+
+
+def send_mailpit_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via Mailpit API for development/testing"""
+    if not MAILPIT_API_URL:
+        logger.warning(f"Mailpit API URL not configured; skipping email to {to_email}")
+        return False
+    
+    try:
+        import requests
+        
+        # Prepare the sender email
+        sender = SENDER_EMAIL or SMTP_USER or "noreply@test.local"
+        
+        # Prepare email payload for Mailpit API
+        payload = {
+            "from": sender,
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        }
+        
+        # Add text body if provided
+        if text_body:
+            payload["text"] = text_body
+        
+        # Prepare authentication if configured
+        auth = None
+        if MAILPIT_API_USERNAME and MAILPIT_API_PASSWORD:
+            auth = (MAILPIT_API_USERNAME, MAILPIT_API_PASSWORD)
+        
+        # Send email using Mailpit API
+        api_endpoint = f"{MAILPIT_API_URL.rstrip('/')}/api/v1/send"
+        logger.info(f"Attempting to send via Mailpit: endpoint={api_endpoint}, from={sender}, to={to_email}")
+        
+        response = requests.post(
+            api_endpoint,
+            json=payload,
+            auth=auth,
+            timeout=10
+        )
+        
+        response.raise_for_status()
+        
+        logger.info(f"Email sent via Mailpit to {to_email}: {subject}")
+        logger.info(f"Mailpit response: {response.status_code} - Email captured for testing")
+        return True
+        
+    except ImportError:
+        logger.error("Requests library not available. Install it with: pip install requests")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send Mailpit email to {to_email}: {e}")
+        logger.error(f"Mailpit error details - Type: {type(e).__name__}, Args: {e.args}")
+        logger.error(f"Mailpit API URL: {MAILPIT_API_URL}, sender: {sender}")
+        
+        # Fallback to SMTP if Mailpit fails
         logger.warning(f"Falling back to SMTP for {to_email}")
         return send_smtp_email(to_email, subject, html_body, text_body)
 

@@ -9376,7 +9376,7 @@ def admin_settings_save():
     
     # Save email provider setting
     email_provider = form.get('email_provider', '').strip()
-    if email_provider in ['smtp', 'resend', 'oauth2_outlook']:
+    if email_provider in ['smtp', 'resend', 'oauth2_outlook', 'mailpit']:
         settings['email_provider'] = email_provider
     
     save_settings(settings)

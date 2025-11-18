@@ -21,6 +21,9 @@
                         <option value="oauth2_outlook" {% if settings.get('email_provider') == 'oauth2_outlook' %}selected{% endif %}>
                             OAuth2 Outlook
                         </option>
+                        <option value="mailpit" {% if settings.get('email_provider') == 'mailpit' %}selected{% endif %}>
+                            Mailpit (Testing/Development)
+                        </option>
                     </select>
                     <small class="form-text text-muted">
                         Select the email service to use for sending emails.
@@ -30,6 +33,8 @@
                         <strong>Resend:</strong> Modern API-based email service (requires RESEND_API_KEY in .env)
                         <br>
                         <strong>OAuth2 Outlook:</strong> Microsoft Outlook with OAuth2 authentication
+                        <br>
+                        <strong>Mailpit:</strong> Email testing tool for development (captures emails locally, requires Mailpit server running)
                     </small>
                 </div>
                 
@@ -64,6 +69,25 @@ SENDER_EMAIL=your-email@gmail.com</pre>
                 <pre>RESEND_API_KEY=re_xxxxxxxxxxxxx
 SENDER_EMAIL=your-verified-sender@yourdomain.com</pre>
                 <p><small><strong>Note:</strong> You need to verify your sending domain in Resend dashboard first.</small></p>
+            </div>
+            
+            <div class="alert alert-warning">
+                <h6>Mailpit Configuration (Development/Testing)</h6>
+                <p>Mailpit is an email testing tool that captures emails locally instead of sending them.</p>
+                <p><strong>Installation:</strong></p>
+                <ul>
+                    <li>Mac: <code>brew install mailpit</code> or <code>brew services start mailpit</code></li>
+                    <li>Docker: <code>docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit</code></li>
+                    <li>Linux/Windows: Download from <a href="https://github.com/axllent/mailpit/releases" target="_blank">GitHub releases</a></li>
+                </ul>
+                <p>Set these environment variables in your .env file:</p>
+                <pre>MAILPIT_API_URL=http://localhost:8025
+SENDER_EMAIL=noreply@test.local</pre>
+                <p><small><strong>Optional authentication:</strong></small></p>
+                <pre>MAILPIT_API_USERNAME=your-username
+MAILPIT_API_PASSWORD=your-password</pre>
+                <p><small><strong>Access:</strong> After starting Mailpit, view captured emails at <a href="http://localhost:8025" target="_blank">http://localhost:8025</a></small></p>
+                <p><small><strong>Note:</strong> Emails are NOT actually sent - they are captured for testing only.</small></p>
             </div>
         </div>
     </div>
