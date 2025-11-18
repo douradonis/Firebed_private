@@ -115,3 +115,13 @@
 {"user_id": "AfPwuFZzFxRR4a7daxMnxMFEsgD2", "group": "system", "action": "user_signup_complete", "timestamp": "2025-11-18T11:22:05.672924+00:00", "details": {"email": "douradonis@hotmail.com", "verification_email_sent": true}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T11:23:06.735255+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T11:23:06.844835+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T15:21:14.009511+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T15:21:14.299068+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T15:30:03.846634+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T15:30:04.129237+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T15:30:29.929584+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T15:30:30.026931+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T15:34:29.287192+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T15:34:29.482382+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-18T15:37:17.727743+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-18T15:37:17.993956+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}

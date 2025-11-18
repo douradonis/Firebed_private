@@ -893,7 +893,7 @@ try:
         if endpoint.startswith('auth.') or endpoint.startswith('static') or endpoint.startswith('firebase_auth.'):
             return None
         # allow public API endpoints (if any) - keep a whitelist here if needed
-        public = {'home', 'index', 'healthcheck'}
+        public = {'home', 'index', 'healthcheck', 'serve_icons'}
         remote_public_endpoints = {
             'mobile_qr_scanner',
             'api_qr_remote_attach',
