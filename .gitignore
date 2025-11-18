@@ -7,3 +7,5 @@ __pycache__/
 *.log
 data/activity.log
 data/credentials_settings.json
+node_modules/
+package-lock.json

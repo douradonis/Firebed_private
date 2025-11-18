@@ -1,0 +1,11 @@
+{
+  "name": "firebed-private",
+  "version": "1.0.0",
+  "description": "Firebed myDATA tools",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./input.css -o ./static/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
