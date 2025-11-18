@@ -33,11 +33,11 @@ def signup():
         new_group_folder = (request.form.get('new_group_folder') or '').strip()
 
         if not username or not password:
-            flash('Username and password required', 'danger')
+            flash('Απαιτείται όνομα χρήστη και κωδικός πρόσβασης', 'danger')
             return redirect(url_for('auth.signup'))
 
         if User.query.filter_by(username=username).first():
-            flash('Username already exists', 'warning')
+            flash('Το όνομα χρήστη υπάρχει ήδη', 'warning')
             return redirect(url_for('auth.signup'))
 
         # Try to register user in Firebase (if enabled). If successful, store firebase_uid.
@@ -63,18 +63,18 @@ def signup():
         if new_group_name and new_group_folder:
             existing = Group.query.filter_by(name=new_group_name).first()
             if existing:
-                flash('Group name already exists; choose another or join it.', 'warning')
+                flash('Το όνομα ομάδας υπάρχει ήδη. Επιλέξτε άλλο ή εγγραφείτε σε αυτή.', 'warning')
                 db.session.rollback()
                 return redirect(url_for('auth.signup'))
             # sanitize folder name to avoid path traversal and ensure filesystem-safe name
             safe_folder = secure_filename(new_group_folder)
             if not safe_folder:
-                flash('Invalid folder name for group', 'danger')
+                flash('Μη έγκυρο όνομα φακέλου για ομάδα', 'danger')
                 db.session.rollback()
                 return redirect(url_for('auth.signup'))
             # ensure no other group uses the same data_folder
             if Group.query.filter_by(data_folder=safe_folder).first():
-                flash('Folder name already in use; choose another', 'warning')
+                flash('Το όνομα φακέλου χρησιμοποιείται ήδη. Επιλέξτε άλλο', 'warning')
                 db.session.rollback()
                 return redirect(url_for('auth.signup'))
 
@@ -113,20 +113,20 @@ def signup():
                         <p>If you did not sign up, ignore this email.</p>
                     </body></html>
                     """
-                    sent = email_utils.send_email(user.email, 'Verify your email - Firebed', html_body)
+                    sent = email_utils.send_email(user.email, 'Verify your email - ScanmyData', html_body)
                     if sent:
-                        flash('Account created! A verification email has been sent to your inbox.', 'success')
+                        flash('Ο λογαριασμός δημιουργήθηκε! Ένα email επαλήθευσης έχει σταλεί στα εισερχόμενά σας.', 'success')
                     else:
                         current_app.logger.info(f"Firebase verification link for {user.email}: {verify_link}")
-                        flash('Account created! Verification link generated (logged on server during development).', 'success')
+                        flash('Ο λογαριασμός δημιουργήθηκε! Ο σύνδεσμος επαλήθευσης έχει καταγραφεί (ανάπτυξη).', 'success')
                 else:
                     current_app.logger.warning(f"Could not generate Firebase verification link: {link_or_err}")
-                    flash('Account created. Please verify your email via Firebase (check inbox).', 'success')
+                    flash('Ο λογαριασμός δημιουργήθηκε. Παρακαλώ επαληθεύστε το email σας μέσω Firebase (ελέγξτε τα εισερχόμενά σας).', 'success')
             else:
-                flash('Account created. Please log in.', 'success')
+                flash('Ο λογαριασμός δημιουργήθηκε. Παρακαλώ συνδεθείτε.', 'success')
         except Exception as e:
             current_app.logger.exception('Failed to generate Firebase verification link')
-            flash('Account created. Please log in.', 'success')
+            flash('Ο λογαριασμός δημιουργήθηκε. Παρακαλώ συνδεθείτε.', 'success')
 
         return redirect(url_for('auth.login'))
 
@@ -144,7 +144,7 @@ def login():
         if not user:
             user = User.query.filter_by(email=identifier).first()
         if not user or not user.check_password(password):
-            flash('Invalid username/email or password', 'error')
+            flash('Μη έγκυρο όνομα χρήστη/email ή κωδικός πρόσβασης', 'error')
             return redirect(url_for('auth.login'))
 
         # Successful login: clear any previous active credential selection
@@ -163,7 +163,7 @@ def login():
             user_groups = list(getattr(user, 'groups', []) or [])
             if len(user_groups) == 1:
                 session['active_group'] = user_groups[0].name
-                flash('Logged in', 'success')
+                flash('Συνδεθήκατε επιτυχώς', 'success')
                 return redirect(url_for('home'))
             else:
                 if user_groups:
@@ -172,7 +172,7 @@ def login():
                     flash('Δεν έχεις ακόμη αντιστοιχιστεί σε ομάδα. Επίλεξε ή δημιούργησε μία.', 'warning')
                 return redirect(url_for('auth.list_groups'))
 
-        flash('Logged in', 'success')
+        flash('Συνδεθήκατε επιτυχώς', 'success')
         return redirect(request.args.get('next') or url_for('home'))
 
     # GET -> render login form
@@ -311,20 +311,20 @@ def create_group():
     name = (request.form.get('name') or '').strip()
     data_folder = (request.form.get('data_folder') or '').strip()
     if not name or not data_folder:
-        flash('Group name and data_folder required', 'danger')
+        flash('Απαιτείται όνομα ομάδας και φάκελος δεδομένων', 'danger')
         return redirect(url_for('auth.list_groups'))
 
     if Group.query.filter_by(name=name).first():
-        flash('Group already exists', 'warning')
+        flash('Η ομάδα υπάρχει ήδη', 'warning')
         return redirect(url_for('auth.list_groups'))
 
     # sanitize folder name and validate uniqueness
     safe_folder = secure_filename(data_folder)
     if not safe_folder:
-        flash('Invalid data folder name', 'danger')
+        flash('Μη έγκυρο όνομα φακέλου δεδομένων', 'danger')
         return redirect(url_for('auth.list_groups'))
     if Group.query.filter_by(data_folder=safe_folder).first():
-        flash('Data folder already in use by another group', 'warning')
+        flash('Ο φάκελος δεδομένων χρησιμοποιείται ήδη από άλλη ομάδα', 'warning')
         return redirect(url_for('auth.list_groups'))
 
     # Enforce: a user may be admin in at most one group
@@ -332,7 +332,7 @@ def create_group():
         if getattr(current_user, 'is_authenticated', False):
             for ug in current_user.user_groups:
                 if ug.role == 'admin':
-                    flash('You are already admin of another group; cannot create another.', 'danger')
+                    flash('Είστε ήδη διαχειριστής σε άλλη ομάδα. Δεν μπορείτε να δημιουργήσετε άλλη.', 'danger')
                     return redirect(url_for('auth.list_groups'))
     except Exception:
         pass
@@ -359,7 +359,7 @@ def create_group():
         _append_group_log(grp, f"Group created by {user.username}")
     except Exception:
         pass
-    flash('Group created', 'success')
+    flash('Η ομάδα δημιουργήθηκε επιτυχώς', 'success')
     return redirect(url_for('auth.list_groups'))
 
 
@@ -736,12 +736,12 @@ def verify_email():
                     user.email_verified = True
                     user.email_verified_at = datetime.datetime.utcnow()
                     db.session.commit()
-                    flash('Email verified successfully! You can now log in.', 'success')
+                    flash('Το email επαληθεύτηκε επιτυχώς! Μπορείτε τώρα να συνδεθείτε.', 'success')
                     return redirect(url_for('auth.login'))
         except Exception:
             pass
 
-    flash('Email verification is handled by Firebase. Please check your inbox and follow the link sent by Firebase to verify your email.', 'info')
+    flash('Η επαλήθευση email διαχειρίζεται από το Firebase. Παρακαλώ ελέγξτε τα εισερχόμενά σας και ακολουθήστε τον σύνδεσμο που στάλθηκε από το Firebase για να επαληθεύσετε το email σας.', 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -751,7 +751,7 @@ def forgot_password():
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip()
         if not email:
-            flash('Email is required', 'danger')
+            flash('Απαιτείται το email', 'danger')
             return redirect(url_for('auth.forgot_password'))
         
         try:
@@ -788,19 +788,19 @@ def forgot_password():
                     </body>
                 </html>
                 """
-                sent = email_utils.send_email(email, '🔐 Επαναφορά Κωδικού - Firebed', html_body)
+                sent = email_utils.send_email(email, '🔐 Επαναφορά Κωδικού - ScanmyData', html_body)
                 if sent:
-                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+                    flash('Εάν το email υπάρχει στο σύστημά μας, θα λάβετε σύνδεσμο επαναφοράς κωδικού (ελέγξτε τα εισερχόμενά σας).', 'info')
                 else:
                     current_app.logger.info(f"Firebase password reset link for {email}: {reset_link}")
-                    flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+                    flash('Εάν το email υπάρχει στο σύστημά μας, θα λάβετε σύνδεσμο επαναφοράς κωδικού (ελέγξτε τα εισερχόμενά σας).', 'info')
             else:
                 current_app.logger.warning(f"Could not generate Firebase password reset link: {link_or_err}")
-                flash('If this email exists in our system you will receive a password reset link (check your inbox).', 'info')
+                flash('Εάν το email υπάρχει στο σύστημά μας, θα λάβετε σύνδεσμο επαναφοράς κωδικού (ελέγξτε τα εισερχόμενά σας).', 'info')
             return redirect(url_for('auth.login'))
         except Exception as e:
             current_app.logger.exception('Forgot password failed')
-            flash('Error processing password reset request', 'danger')
+            flash('Σφάλμα κατά την επεξεργασία του αιτήματος επαναφοράς κωδικού', 'danger')
             return redirect(url_for('auth.forgot_password'))
     
     return render_template('auth/forgot_password.html')
@@ -811,5 +811,5 @@ def reset_password():
     """Reset password via token link"""
     # With Firebase-based flows, password reset is handled by Firebase links.
     # Users should follow the link sent by Firebase to reset their password.
-    flash('Password reset is handled by Firebase. Please use the link sent to your email to reset your password.', 'info')
+    flash('Η επαναφορά κωδικού διαχειρίζεται από το Firebase. Παρακαλώ χρησιμοποιήστε τον σύνδεσμο που στάλθηκε στο email σας για να επαναφέρετε τον κωδικό σας.', 'info')
     return redirect(url_for('auth.login'))

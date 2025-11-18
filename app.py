@@ -5112,13 +5112,13 @@ def credentials_add():
         from flask_login import current_user
         grp = get_active_group()
         if not grp:
-            flash('No active group selected', 'error')
+            flash('Δεν έχει επιλεγεί ενεργή ομάδα', 'error')
             return redirect(url_for('credentials'))
         if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
-            flash('Admin privileges required to add credentials', 'error')
+            flash('Απαιτούνται δικαιώματα διαχειριστή για προσθήκη credentials', 'error')
             return redirect(url_for('credentials'))
     except Exception:
-        flash('Permission check failed', 'error')
+        flash('Αποτυχία ελέγχου δικαιωμάτων', 'error')
         return redirect(url_for('credentials'))
 
     credentials = load_credentials()
@@ -5150,7 +5150,7 @@ def credentials_add():
     credentials.append(new_cred)
     save_credentials(credentials)
     # <-- added flash to ensure message appears if this route is used
-    flash("Saved", "success")
+    flash("Αποθηκεύτηκε", "success")
     return redirect(url_for('credentials'))
 
 
@@ -5182,18 +5182,18 @@ def credentials_delete_post(name):
         from flask_login import current_user
         grp = get_active_group()
         if not grp:
-            flash('No active group selected', 'error')
+            flash('Δεν έχει επιλεγεί ενεργή ομάδα', 'error')
             return redirect(url_for('credentials'))
         if not getattr(current_user, 'is_authenticated', False) or current_user.role_for_group(grp) != 'admin':
-            flash('Admin privileges required to delete credentials', 'error')
+            flash('Απαιτούνται δικαιώματα διαχειριστή για διαγραφή credentials', 'error')
             return redirect(url_for('credentials'))
     except Exception:
-        flash('Permission check failed', 'error')
+        flash('Αποτυχία ελέγχου δικαιωμάτων', 'error')
         return redirect(url_for('credentials'))
 
     credential, was_active, cleanup = _delete_credential_and_related_data(name)
     if not credential:
-        flash(f"Credential '{name}' not found", "error")
+        flash(f"Το credential '{name}' δεν βρέθηκε", "error")
         return redirect(url_for('credentials'))
 
     suffix = ''
@@ -5216,7 +5216,7 @@ def credentials_set_active():
         c['active'] = (c['name'] == active_name)
     save_credentials(credentials)
     # <-- added flash in case this route is used
-    flash(f"Active credential set to {active_name}", "success")
+    flash(f"Το ενεργό credential ορίστηκε σε {active_name}", "success")
     return redirect(url_for('credentials'))
 
 @app.route('/credentials/save_settings', methods=['POST'])
@@ -5645,7 +5645,7 @@ def credentials():
             apodeixakia_other_expenses = False
 
         if not name:
-            flash("Name required", "error")
+            flash("Απαιτείται όνομα", "error")
         else:
             entry = {
                 "name": name,
@@ -5672,9 +5672,9 @@ def credentials():
                         _append_group_log(grp, f"Credential '{name}' added by {current_user.username if getattr(current_user, 'is_authenticated', False) else 'anonymous'}")
                 except Exception:
                     pass
-                flash("Saved", "success")
+                flash("Αποθηκεύτηκε", "success")
             else:
-                flash(err or "Could not save", "error")
+                flash(err or "Αδυναμία αποθήκευσης", "error")
         return redirect(url_for("credentials"))
 
     # GET: φορτώνουμε τα credentials και αφήνουμε το context_processor να περάσει το active credential/ΑΦΜ
@@ -5687,7 +5687,7 @@ def credentials_edit(name):
     creds = load_credentials()
     credential = next((c for c in creds if c.get("name") == name), None)
     if not credential:
-        flash("Credential not found", "error")
+        flash("Το credential δεν βρέθηκε", "error")
         return redirect(url_for("credentials"))
 
     if request.method == "POST":
@@ -5719,11 +5719,11 @@ def credentials_edit(name):
 
 
         if not new_name:
-            flash("Name required", "error")
+            flash("Απαιτείται όνομα", "error")
             return redirect(url_for("credentials_edit", name=name))
 
         if new_name != name and any(c.get("name") == new_name for c in creds):
-            flash("Another credential with that name already exists", "error")
+            flash("Υπάρχει ήδη άλλο credential με αυτό το όνομα", "error")
             return redirect(url_for("credentials_edit", name=name))
 
         new_entry = {
@@ -5758,15 +5758,15 @@ def credentials_edit(name):
         # Αν το credential που επεξεργάστηκε ήταν ενεργό — ενημέρωσε session
         if session.get("active_credential") == name:
             session["active_credential"] = new_name
-            flash(f"Active credential updated to '{new_name}'", "success")
+            flash(f"Το ενεργό credential ενημερώθηκε σε '{new_name}'", "success")
         else:
-            flash(f"Credential '{new_name}' updated successfully", "success")
+            flash(f"Το credential '{new_name}' ενημερώθηκε επιτυχώς", "success")
 
         return redirect(url_for("credentials"))
 
     # GET -> εμφανίζουμε τη φόρμα επεξεργασίας
     # Προσθέτουμε flash πληροφορία (παραμένει ως έχει)
-    flash(f"Editing credential: {credential.get('name')}", "info")
+    flash(f"Επεξεργασία credential: {credential.get('name')}", "info")
     return safe_render(
         "credentials_edit.html",
         credential=credential,
@@ -5782,7 +5782,7 @@ def credentials_delete(name):
         # Αν είναι AJAX, επιστρέφουμε JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'status': 'error', 'error': 'not found'}), 404
-        flash(f"Credential '{name}' not found", "error")
+        flash(f"Το credential '{name}' δεν βρέθηκε", "error")
         return redirect(url_for("credentials"))
 
     # Log credential deletion
@@ -5811,9 +5811,9 @@ def credentials_delete(name):
         suffix = f" Αφαιρέθηκαν {removed_count} αρχεία δεδομένων πελάτη."
 
     if was_active:
-        flash(f"Active credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.{suffix}", "success")
+        flash(f"Το ενεργό credential '{name}' διαγράφηκε και αφαιρέθηκε από τα ενεργά.{suffix}", "success")
     else:
-        flash(f"Credential '{name}' διαγράφηκε.{suffix}", "success")
+        flash(f"Το credential '{name}' διαγράφηκε.{suffix}", "success")
 
     if failed_count:
         flash(f"Δεν ήταν δυνατή η διαγραφή {failed_count} αρχείων. Έλεγξε τα δικαιώματα πρόσβασης.", "error")
@@ -5826,14 +5826,14 @@ def credentials_delete(name):
 def set_active_credential():
     name = request.form.get("active_name")
     if not name:
-        flash("No credential selected", "error")
+        flash("Δεν έχει επιλεγεί credential", "error")
     else:
         cred = get_cred_by_name(name)
         if not cred:
-            flash("Credential not found", "error")
+            flash("Το credential δεν βρέθηκε", "error")
         else:
             session["active_credential"] = name
-            flash(f"Active credential set to {name}", "success")
+            flash(f"Το ενεργό credential ορίστηκε σε {name}", "success")
     return redirect(url_for("credentials"))
 
 
@@ -7513,7 +7513,7 @@ def save_accounts():
             payload = request.get_json()
             accounts = payload.get("accounts", {})
             save_global_accounts_to_credentials(accounts)
-            flash("Global accounts saved", "success")
+            flash("Οι γενικοί λογαριασμοί αποθηκεύτηκαν", "success")
             return redirect(url_for("credentials"))
         # αλλιώς form fields
         form = request.form
@@ -7535,10 +7535,10 @@ def save_accounts():
             accounts[vat_key][expense_tag] = code
         # αποθηκεύουμε
         save_global_accounts_to_credentials(accounts)
-        flash("Global accounts saved", "success")
+        flash("Οι γενικοί λογαριασμοί αποθηκεύτηκαν", "success")
     except Exception as e:
         log.exception("save_accounts failed")
-        flash(f"Could not save accounts: {e}", "error")
+        flash(f"Αδυναμία αποθήκευσης λογαριασμών: {e}", "error")
     return redirect(url_for("credentials"))
 
 # ---------------- Save summary from modal to Excel & per-customer JSON ----------------
@@ -7712,7 +7712,7 @@ def save_summary():
                 summary["issueDate"] = request.form.get("issueDate")
     except Exception:
         log.exception("save_summary: cannot parse payload")
-        flash("Invalid summary payload", "error")
+        flash("Μη έγκυρα δεδομένα περίληψης", "error")
         return redirect(url_for("search"))
 
     # ---------------- active VAT ----------------
@@ -7720,7 +7720,7 @@ def save_summary():
     vat = (active.get("vat") if active else None) or summary.get("AFM") or summary.get("AFM_issuer") or summary.get("AFM")
     if not vat:
         log.error("save_summary: missing vat - active=%s summary_afm=%s", bool(active), summary.get("AFM"))
-        flash("No active customer selected (VAT)", "error")
+        flash("Δεν έχει επιλεγεί ενεργός πελάτης (ΑΦΜ)", "error")
         return redirect(url_for("search"))
 
     # ---------------- ensure lines / normalize ----------------
@@ -7957,7 +7957,7 @@ def save_summary():
                 return redirect(url_for("search"))
         except Exception:
             log.exception("save_summary: error processing existing detailed epsilon entry")
-            flash("Server error while processing update", "error")
+            flash("Σφάλμα διακομιστή κατά την επεξεργασία ενημέρωσης", "error")
             return redirect(url_for("search"))
 
     # ---------------- create/write excel + append epsilon entry ----------------
@@ -8026,7 +8026,7 @@ def save_summary():
 
                     row_aligned = {c: row_full.get(c, "") for c in cols}
                     pd.concat([df_existing, pd.DataFrame([row_aligned], columns=cols)], ignore_index=True, sort=False).to_excel(excel_path, index=False, engine="openpyxl")
-                    flash("Saved to Excel.", "success")
+                    flash("Αποθηκεύτηκε στο Excel.", "success")
                 except Exception:
                     log.exception("save_summary: inline append to excel failed")
                     raise
@@ -8034,13 +8034,13 @@ def save_summary():
                 try:
                     os.makedirs(os.path.dirname(excel_path) or ".", exist_ok=True)
                     df_new.to_excel(excel_path, index=False, engine="openpyxl")
-                    flash("Saved to Excel.", "success")
+                    flash("Αποθηκεύτηκε στο Excel.", "success")
                 except Exception:
                     log.exception("save_summary: create/write new excel failed")
                     raise
     except Exception:
         log.exception("save_summary: Excel write failed")
-        flash("Excel save failed", "error")
+        flash("Αποτυχία αποθήκευσης Excel", "error")
 
     # ---------------- Build epsilon entry & append ----------------
     try:
@@ -8087,13 +8087,13 @@ def save_summary():
         try:
             epsilon_cache.append(epsilon_entry)
             _safe_save_epsilon_cache(vat, epsilon_cache)
-            flash("Saved summary and appended new epsilon entry.", "success")
+            flash("Η περίληψη αποθηκεύτηκε και προστέθηκε νέα εγγραφή epsilon.", "success")
         except Exception:
             log.exception("save_summary: failed saving new epsilon cache")
-            flash("Failed updating epsilon cache (see server logs)", "error")
+            flash("Αποτυχία ενημέρωσης cache epsilon (δείτε τα logs του διακομιστή)", "error")
     except Exception:
         log.exception("save_summary: failed building/appending epsilon entry")
-        flash("Failed updating epsilon cache", "error")
+        flash("Αποτυχία ενημέρωσης cache epsilon", "error")
 
     return redirect(url_for("search"))
 # --- END PATCH v3 ---
