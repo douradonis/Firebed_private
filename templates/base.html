@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}ScanmyData{% endblock %}</title>
   
-  <link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="192x192" />
+  <link rel="icon" type="image/png" href="/icons/web-app-manifest-192x192.png" sizes="192x192" />
+  <link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="shortcut icon" href="/icons/favicon.ico" />
   <link rel="apple-touch-icon" sizes="256x256" href="/icons/apple-touch-icon.png" />
@@ -467,8 +468,17 @@
     }
     
     .logo-img {
-      height: 80px;
+      height: 120px;
       width: auto;
+      max-width: 100%;
+    }
+    
+    body[data-device='mobile'] .logo-img {
+      height: 90px;
+    }
+    
+    body[data-device='tablet'] .logo-img {
+      height: 100px;
     }
     
     [data-theme="dark"] .logo-light {
