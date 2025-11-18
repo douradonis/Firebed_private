@@ -237,7 +237,7 @@ def send_email_verification(user_email: str, user_id: int, user_username: str) -
     </html>
     """
     
-    return send_email(user_email, 'Email Verification - Firebed', html_body)
+    return send_email(user_email, 'Email Verification - ScanmyData', html_body)
 
 
 def send_password_reset(user_email: str, user_id: int, user_username: str) -> bool:
@@ -264,7 +264,7 @@ def send_password_reset(user_email: str, user_id: int, user_username: str) -> bo
     </html>
     """
     
-    return send_email(user_email, 'Password Reset - Firebed', html_body)
+    return send_email(user_email, 'Password Reset - ScanmyData', html_body)
 
 
 def send_bulk_email_to_users(user_ids: list, subject: str, html_body: str) -> dict:

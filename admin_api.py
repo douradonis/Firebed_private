@@ -1058,7 +1058,7 @@ def api_send_email():
                 </div>
                 
                 <div style="margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 5px; text-align: center;">
-                    <small style="color: #6c757d;">Αυτό το email στάλθηκε από το Firebed System</small>
+                    <small style="color: #6c757d;">Αυτό το email στάλθηκε από το ScanmyData System</small>
                 </div>
             </body>
         </html>
@@ -1157,12 +1157,12 @@ def api_test_email():
                 <h2 style="color: #28a745;">✅ SMTP Configuration Test</h2>
                 <p>If you received this email, your SMTP configuration is working correctly!</p>
                 <hr>
-                <small>Sent from Firebed Admin Panel</small>
+                <small>Sent from ScanmyData Admin Panel</small>
             </body>
         </html>
         """
         
-        success = email_utils.send_email(test_email, '✅ SMTP Test - Firebed', html_body)
+        success = email_utils.send_email(test_email, '✅ SMTP Test - ScanmyData', html_body)
         
         if success:
             return jsonify({'success': True, 'message': f'Test email sent to {test_email}'})
