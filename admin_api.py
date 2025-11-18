@@ -1043,22 +1043,31 @@ def api_send_email():
             return jsonify({'success': False, 'error': 'No valid user IDs provided'}), 400
         
         # Create HTML email body
+        import os
+        app_url = os.getenv('APP_URL', 'http://localhost:5001')
+        logo_url = f"{app_url}/icons/scanmydata_logo_3000w.png"
         html_body = f"""
         <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h2 style="color: #333; margin: 0;">📧 Μήνυμα από Διαχειριστή</h2>
-                </div>
-                
-                <div style="background-color: white; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px;">
-                    <h3 style="color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">{subject}</h3>
-                    <div style="margin: 20px 0; line-height: 1.6; color: #495057;">
-                        {message.replace(chr(10), '<br>')}
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 60px; width: auto;">
                     </div>
-                </div>
-                
-                <div style="margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 5px; text-align: center;">
-                    <small style="color: #6c757d;">Αυτό το email στάλθηκε από το ScanmyData System</small>
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h2 style="color: #333; margin: 0;">📧 Μήνυμα από Διαχειριστή</h2>
+                    </div>
+                    
+                    <div style="background-color: white; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px;">
+                        <h3 style="color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">{subject}</h3>
+                        <div style="margin: 20px 0; line-height: 1.6; color: #495057;">
+                            {message.replace(chr(10), '<br>')}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 40px; width: auto; opacity: 0.6;">
+                        <p style="color: #6c757d; font-size: 0.9em; margin-top: 10px;">Αυτό το email στάλθηκε από το ScanmyData</p>
+                    </div>
                 </div>
             </body>
         </html>
@@ -1151,13 +1160,24 @@ def api_test_email():
             return jsonify({'success': False, 'error': 'No email address provided'}), 400
         
         import email_utils
-        html_body = """
+        import os
+        app_url = os.getenv('APP_URL', 'http://localhost:5001')
+        logo_url = f"{app_url}/icons/scanmydata_logo_3000w.png"
+        html_body = f"""
         <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #28a745;">✅ SMTP Configuration Test</h2>
-                <p>If you received this email, your SMTP configuration is working correctly!</p>
-                <hr>
-                <small>Sent from ScanmyData Admin Panel</small>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 60px; width: auto;">
+                    </div>
+                    <h2 style="color: #28a745;">✅ SMTP Configuration Test</h2>
+                    <p>If you received this email, your SMTP configuration is working correctly!</p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                    <div style="text-align: center; margin-top: 30px;">
+                        <img src="{logo_url}" alt="ScanmyData" style="height: 40px; width: auto; opacity: 0.6;">
+                        <p style="color: #6c757d; font-size: 0.9em; margin-top: 10px;">Sent from ScanmyData Admin Panel</p>
+                    </div>
+                </div>
             </body>
         </html>
         """

@@ -3828,6 +3828,12 @@ def safe_render(template_name, **ctx):
         return body
 
 # ---------------- Routes ----------------
+@app.route("/icons/<path:filename>")
+def serve_icons(filename):
+    """Serve files from the icons directory"""
+    icons_dir = os.path.join(os.path.dirname(__file__), 'icons')
+    return send_file(os.path.join(icons_dir, filename))
+
 @app.route("/")
 def home():
     return safe_render("nav.html", active_page="home")
