@@ -576,6 +576,7 @@
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="{{ url_for('static', filename='mobile_ocr_scanner.js') }}"></script>
 </head>
 <body>
   <main>
@@ -760,10 +761,7 @@
       let countdownTimer = null;
       let frameHighlightTimer = null;
       let lastSummaryHash = '';
-      let ocrWorker = null;
-      let ocrProcessing = false;
-      let videoElement = null;
-      let ocrIntervalId = null;
+      let ocrScanner = null;
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -1110,70 +1108,6 @@
         });
       }
 
-      function extractMARKFromText(text){
-        // Extract 15-digit MARK from OCR text
-        // Look for patterns like: 15 digits, possibly with spaces or dashes
-        const cleaned = text.replace(/[\s\-]/g, '');
-        const matches = cleaned.match(/\d{15}/g);
-        return matches && matches.length > 0 ? matches[0] : null;
-      }
-
-      async function initOCRWorker(){
-        if (ocrWorker) return ocrWorker;
-        try {
-          if (typeof Tesseract === 'undefined') {
-            console.error('Tesseract.js not loaded');
-            return null;
-          }
-          setStatus('Φόρτωση OCR engine...', 'info');
-          ocrWorker = await Tesseract.createWorker('ell+eng', 1, {
-            logger: m => {
-              if (m.status === 'recognizing text') {
-                const progress = Math.round(m.progress * 100);
-                if (progress % 20 === 0) {
-                  console.log('OCR progress:', progress + '%');
-                }
-              }
-            }
-          });
-          setStatus('OCR engine έτοιμο', 'success');
-          return ocrWorker;
-        } catch (err) {
-          console.error('Failed to initialize OCR worker:', err);
-          setStatus('Σφάλμα φόρτωσης OCR', 'error');
-          return null;
-        }
-      }
-
-      async function processOCRFrame(){
-        if (ocrProcessing || !videoElement || !ocrWorker) return;
-        
-        ocrProcessing = true;
-        try {
-          // Create canvas to capture video frame
-          const canvas = document.createElement('canvas');
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(videoElement, 0, 0);
-          
-          // Run OCR on the frame
-          const { data: { text } } = await ocrWorker.recognize(canvas);
-          
-          if (text) {
-            const mark = extractMARKFromText(text);
-            if (mark && mark !== lastSentText) {
-              pulseFrame('detected');
-              pushPayload(mark);
-            }
-          }
-        } catch (err) {
-          console.warn('OCR processing error:', err);
-        } finally {
-          ocrProcessing = false;
-        }
-      }
-
       async function sendSessionUpdate(payload, options){
         options = options || {};
         if (!CFG.sessionId || !CFG.token) return null;
@@ -1446,49 +1380,42 @@
 
       async function startOCRScanner(preferredId){
         try {
-          // Initialize OCR worker if not already done
-          if (!ocrWorker) {
-            ocrWorker = await initOCRWorker();
-            if (!ocrWorker) {
-              setStatus('Δεν ήταν δυνατή η εκκίνηση του OCR engine', 'error');
-              return;
-            }
+          // Initialize OCR scanner if not already done
+          if (!ocrScanner) {
+            ocrScanner = new window.MobileOCRScanner({
+              scanInterval: 2000,
+              languages: 'ell+eng',
+              onSuccess: (mark, text) => {
+                if (mark && mark !== lastSentText) {
+                  pulseFrame('detected');
+                  pushPayload(mark);
+                }
+              },
+              onError: (err) => {
+                console.warn('OCR error:', err);
+              },
+              onStatusChange: (status, tone) => {
+                setStatus(status, tone);
+              }
+            });
           }
 
-          // Get camera stream
-          const cameraConfig = preferredId 
-            ? { video: { deviceId: { exact: preferredId }, facingMode: 'environment' } }
-            : { video: { facingMode: 'environment' } };
+          // Start OCR scanning and get video element
+          const videoEl = await ocrScanner.start(preferredId);
           
-          const stream = await navigator.mediaDevices.getUserMedia(cameraConfig);
-          
-          // Create or get video element
+          // Insert video element into the reader div
           const readerDiv = document.getElementById(readerId);
-          if (!readerDiv) return;
-          
-          // Clear any existing content
-          readerDiv.innerHTML = '';
-          
-          // Create video element
-          videoElement = document.createElement('video');
-          videoElement.setAttribute('playsinline', 'true');
-          videoElement.style.width = '100%';
-          videoElement.style.height = 'auto';
-          videoElement.srcObject = stream;
-          videoElement.play();
-          
-          readerDiv.appendChild(videoElement);
+          if (readerDiv && videoEl) {
+            readerDiv.innerHTML = '';
+            readerDiv.appendChild(videoEl);
+          }
           
           scanning = true;
-          setStatus('OCR σάρωση ενεργή. Κατέθεσε το έγγραφο στη φωτογραφική μηχανή.', 'success');
           
           if (startStopBtn) {
             startStopBtn.disabled = false;
             startStopBtn.textContent = 'Παύση σάρωσης';
           }
-          
-          // Start OCR processing interval (every 2 seconds to avoid overload)
-          ocrIntervalId = setInterval(processOCRFrame, 2000);
           
         } catch (err) {
           console.error('startOCRScanner failed', err);
@@ -1506,10 +1433,9 @@
           countdownTimer = null;
         }
         
-        // Stop OCR interval if running
-        if (ocrIntervalId) {
-          clearInterval(ocrIntervalId);
-          ocrIntervalId = null;
+        // Stop OCR scanner if running
+        if (ocrScanner && ocrScanner.isScanning()) {
+          await ocrScanner.stop();
         }
         
         // Stop QR scanner if running
@@ -1519,14 +1445,6 @@
           } catch (err) {
             console.warn('stopScanner', err);
           }
-        }
-        
-        // Stop video stream if using OCR
-        if (videoElement && videoElement.srcObject) {
-          const tracks = videoElement.srcObject.getTracks();
-          tracks.forEach(track => track.stop());
-          videoElement.srcObject = null;
-          videoElement = null;
         }
         
         scanning = false;
