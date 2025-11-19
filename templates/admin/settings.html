@@ -18,6 +18,9 @@
                         <option value="resend" {% if settings.get('email_provider') == 'resend' %}selected{% endif %}>
                             Resend (API-based)
                         </option>
+                        <option value="mailgun" {% if settings.get('email_provider') == 'mailgun' %}selected{% endif %}>
+                            Mailgun (HTTP API)
+                        </option>
                         <option value="oauth2_outlook" {% if settings.get('email_provider') == 'oauth2_outlook' %}selected{% endif %}>
                             OAuth2 Outlook
                         </option>
@@ -28,6 +31,8 @@
                         <strong>SMTP:</strong> Traditional email using SMTP server (configured via environment variables)
                         <br>
                         <strong>Resend:</strong> Modern API-based email service (requires RESEND_API_KEY in .env)
+                        <br>
+                        <strong>Mailgun:</strong> HTTP API email service - works on Render free tier (requires MAILGUN_API_KEY and MAILGUN_DOMAIN in .env)
                         <br>
                         <strong>OAuth2 Outlook:</strong> Microsoft Outlook with OAuth2 authentication
                     </small>
@@ -64,6 +69,15 @@ SENDER_EMAIL=your-email@gmail.com</pre>
                 <pre>RESEND_API_KEY=re_xxxxxxxxxxxxx
 SENDER_EMAIL=your-verified-sender@yourdomain.com</pre>
                 <p><small><strong>Note:</strong> You need to verify your sending domain in Resend dashboard first.</small></p>
+            </div>
+            
+            <div class="alert alert-info">
+                <h6>Mailgun Configuration</h6>
+                <p>Set these environment variables in your .env file:</p>
+                <pre>MAILGUN_API_KEY=your-api-key-xxxxxxxx
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_SENDER_EMAIL=noreply@mg.yourdomain.com</pre>
+                <p><small><strong>Note:</strong> Mailgun uses HTTP API (port 443), so it works on Render free tier. You need to verify your domain in Mailgun dashboard first.</small></p>
             </div>
         </div>
     </div>

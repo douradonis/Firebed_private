@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # Email config from environment
-EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', or 'resend'
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', 'resend', or 'mailgun'
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
@@ -21,6 +21,9 @@ APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
 OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_EMAIL_SENDER = os.getenv('RESEND_EMAIL_SENDER', '')
+MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY', '')
+MAILGUN_DOMAIN = os.getenv('MAILGUN_DOMAIN', '')
+MAILGUN_SENDER_EMAIL = os.getenv('MAILGUN_SENDER_EMAIL', '')
 
 
 def get_email_provider() -> str:
@@ -36,7 +39,7 @@ def get_email_provider() -> str:
             settings = load_settings()
             provider = settings.get('email_provider', '').strip()
             logger.info(f"get_email_provider: loaded from settings: {provider}")
-            if provider in ['smtp', 'oauth2_outlook', 'resend']:
+            if provider in ['smtp', 'oauth2_outlook', 'resend', 'mailgun']:
                 return provider
         except (ImportError, Exception) as e:
             logger.warning(f"get_email_provider: failed to load from settings: {e}")
@@ -52,7 +55,7 @@ def get_email_provider() -> str:
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
-    """Send an email via SMTP, OAuth2, or Resend based on configuration"""
+    """Send an email via SMTP, OAuth2, Resend, or Mailgun based on configuration"""
     
     # Get current provider from settings or environment
     provider = get_email_provider()
@@ -62,6 +65,9 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
     if provider == 'resend':
         logger.info(f"Routing to Resend for {to_email}")
         return send_resend_email(to_email, subject, html_body, text_body)
+    elif provider == 'mailgun':
+        logger.info(f"Routing to Mailgun for {to_email}")
+        return send_mailgun_email(to_email, subject, html_body, text_body)
     elif provider == 'oauth2_outlook':
         logger.info(f"Routing to OAuth2 for {to_email}")
         return send_oauth2_email(to_email, subject, html_body, text_body)
@@ -171,6 +177,62 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         # Fallback to SMTP if Resend fails
         logger.warning(f"Falling back to SMTP for {to_email}")
         return send_smtp_email(to_email, subject, html_body, text_body)
+
+
+def send_mailgun_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via Mailgun HTTP API"""
+    if not MAILGUN_API_KEY or not MAILGUN_DOMAIN:
+        logger.warning(f"Mailgun not configured; skipping email to {to_email}")
+        return False
+    
+    try:
+        import requests
+        
+        # Determine sender email
+        sender = MAILGUN_SENDER_EMAIL or SENDER_EMAIL or f"noreply@{MAILGUN_DOMAIN}"
+        
+        # Mailgun API endpoint for sending emails
+        url = f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages"
+        
+        # Prepare email data - Mailgun uses form-encoded data
+        data = {
+            "from": sender,
+            "to": to_email,
+            "subject": subject,
+            "html": html_body,
+        }
+        
+        # Add text body if provided
+        if text_body:
+            data["text"] = text_body
+        
+        # Send email using Mailgun HTTP API with basic auth
+        logger.info(f"Attempting to send via Mailgun: from={sender}, to={to_email}, domain={MAILGUN_DOMAIN}")
+        response = requests.post(
+            url,
+            auth=("api", MAILGUN_API_KEY),
+            data=data,
+            timeout=10
+        )
+        
+        # Check response
+        if response.status_code == 200:
+            response_data = response.json()
+            message_id = response_data.get('id', 'unknown')
+            logger.info(f"Email sent via Mailgun to {to_email}: {subject} (ID: {message_id})")
+            return True
+        else:
+            logger.error(f"Mailgun API error: Status {response.status_code}, Response: {response.text}")
+            return False
+        
+    except ImportError:
+        logger.error("Requests library not available. Install it with: pip install requests")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send Mailgun email to {to_email}: {e}")
+        logger.error(f"Mailgun error details - Type: {type(e).__name__}, Args: {e.args}")
+        logger.error(f"Mailgun sender was: {sender}, Domain: {MAILGUN_DOMAIN}, API key present: {bool(MAILGUN_API_KEY)}")
+        return False
 
 
 def create_verification_token(user_id: int, token_type: str = 'email_verify', expires_in_hours: int = 24) -> Optional[str]:
