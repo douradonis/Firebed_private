@@ -23,6 +23,82 @@
 
   <div class="flex items-center gap-3 mb-4">
     <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <style>
+          @media (prefers-color-scheme: dark) {
+            /* Ensure XLSX download button remains blue in dark mode */
+            #downloadToggle {
+              background-color: #0d6efd !important;
+              color: #ffffff !important;
+            }
+            #downloadToggle:hover { background-color: #0b5ed7 !important; }
+
+            /* Keep table header color same as light mode */
+            .summary-table thead th {
+              background-color: #0d6efd !important;
+              color: #ffffff !important;
+            }
+
+            /* Make even rows visible and readable in dark mode */
+            .summary-table tr:nth-child(even) {
+              background-color: rgba(255,255,255,0.03) !important;
+            }
+
+            .summary-table tr td, .summary-table tr th {
+              color: #e5e7eb !important; /* text-gray-200 */
+              border-color: rgba(255,255,255,0.06) !important;
+            }
+
+            .summary-table tr:hover {
+              background-color: rgba(59,130,246,0.06) !important; /* subtle blue hover */
+            }
+
+            .dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td:first-child::before{
+              color: #ffffff !important;
+            }
+          }
+
+          /* Same rules when the site theme is set via the page toggle (data-theme="dark") */
+          [data-theme="dark"] #downloadToggle {
+            background-color: #0d6efd !important;
+            color: #ffffff !important;
+          }
+          [data-theme="dark"] #downloadToggle:hover { background-color: #0b5ed7 !important; }
+
+          [data-theme="dark"] .summary-table thead th {
+            background-color: #0d6efd !important;
+            color: #ffffff !important;
+          }
+
+          [data-theme="dark"] .summary-table tr:nth-child(even) {
+            background-color: rgba(255,255,255,0.03) !important;
+          }
+
+          [data-theme="dark"] .summary-table tr td, [data-theme="dark"] .summary-table tr th {
+            color: #e5e7eb !important;
+            border-color: rgba(255,255,255,0.06) !important;
+          }
+
+          [data-theme="dark"] .summary-table tr:hover {
+            background-color: rgba(59,130,246,0.06) !important;
+          }
+
+          [data-theme="dark"] .dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td:first-child::before{
+            color: #ffffff !important;
+          }
+          /* Dark-mode styling for the dynamic totals row */
+          [data-theme="dark"] .dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td{
+            background-color: #111827 !important; /* match page bg */
+            color: #e5e7eb !important;
+            border-top: 1px solid rgba(255,255,255,0.06) !important;
+          }
+          @media (prefers-color-scheme: dark) {
+            .dataTables_wrapper .dataTables_scrollFoot table tfoot tr[data-totals="1"] td{
+              background-color: #111827 !important;
+              color: #e5e7eb !important;
+              border-top: 1px solid rgba(255,255,255,0.06) !important;
+            }
+          }
+          </style>
     <button id="deleteBtn" type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition">🗑️ Διαγραφή Επιλεγμένων</button>
     <div id="deleteSpinner" class="ml-2 hidden text-gray-700">Αποστολή…</div>
   </div>

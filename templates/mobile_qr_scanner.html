@@ -762,6 +762,8 @@
       let frameHighlightTimer = null;
       let lastSummaryHash = '';
       let ocrScanner = null;
+      let sendingInProgress = false;
+      let lastOcrHighlight = null;
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -1364,6 +1366,8 @@
             disableFlip: true,
           };
           clearFrameHighlights();
+          // ensure static scan frame is visible for QR mode
+          try { if (scanFrame) scanFrame.style.display = ''; if (scanFlash) scanFlash.style.display = ''; } catch(e){}
           await html5QrCode.start(cameraConfig, config, onScanSuccess, onScanFailure);
           scanning = true;
           setStatus('Η κάμερα είναι ενεργή. Σάρωσε έναν κωδικό QR.', 'success');
@@ -1385,17 +1389,25 @@
             ocrScanner = new window.MobileOCRScanner({
               scanInterval: 2000,
               languages: 'ell+eng',
-              onSuccess: (mark, text) => {
-                if (mark && mark !== lastSentText) {
-                  pulseFrame('detected');
-                  pushPayload(mark);
-                }
+              // Called when a MARK is recognized by OCR
+              onSuccess: (mark, text, meta) => {
+                try {
+                  if (sendingInProgress) return; // avoid queuing multiple sends
+                  if (mark && mark !== lastSentText) {
+                    // rely on MobileOCRScanner overlay (yellow) for immediate visual feedback
+                    pushPayload(mark);
+                  }
+                } catch (e) { console.warn('ocr onSuccess handler error', e); }
               },
               onError: (err) => {
                 console.warn('OCR error:', err);
               },
               onStatusChange: (status, tone) => {
                 setStatus(status, tone);
+              },
+              // receives scaled overlay coordinates from the worker drawing helper
+              onHighlight: (info) => {
+                try { lastOcrHighlight = Object.assign({}, info, { ts: Date.now() }); } catch(e){}
               }
             });
           }
@@ -1409,6 +1421,11 @@
             readerDiv.innerHTML = '';
             readerDiv.appendChild(videoEl);
           }
+          // Hide the static scan frame for OCR mode so the image remains clean; the OCR overlay will show highlights
+          try {
+            if (scanFrame) scanFrame.style.display = 'none';
+            if (scanFlash) scanFlash.style.display = 'none';
+          } catch (e) { /* ignore */ }
           
           scanning = true;
           
@@ -1451,6 +1468,7 @@
         torchSupported = false;
         torchOn = false;
         clearFrameHighlights();
+        lastOcrHighlight = null;
         if (torchBtn){
           torchBtn.disabled = true;
           torchBtn.textContent = 'Φλας μη διαθέσιμο';
@@ -1580,6 +1598,13 @@
         setTimeout(() => { lastSentText = ''; }, 1800);
         setStatus('Παρακαλώ περιμένετε…', null);
         updateResultBox(`<strong>Αποστολή:</strong> ${escapeHtml(text)}`, null);
+        // lock sending to avoid duplicate transmissions
+        sendingInProgress = true;
+        if (startStopBtn) startStopBtn.disabled = true;
+        if (cameraSelect) cameraSelect.disabled = true;
+        if (torchBtn) torchBtn.disabled = true;
+        // also disable mode/toggle buttons while sending to avoid races
+        try { scanModeButtons.forEach(b => { if (b) b.disabled = true; }); modeButtons.forEach(b => { if (b) b.disabled = true; }); autoButtons.forEach(b => { if (b) b.disabled = true; }); repeatToggle && (repeatToggle.disabled = true); } catch(e){}
         try {
           const res = await fetch('/api/qr/remote/push', {
             method: 'POST',
@@ -1599,7 +1624,23 @@
           const info = mark ? `MARK ${mark}` : text;
           updateResultBox(`<strong>Εστάλη:</strong> ${escapeHtml(info)}`, 'success');
           setStatus('Ο κωδικός στάλθηκε στον υπολογιστή. Μπορείς να συνεχίσεις τη σάρωση.', 'success');
-          pulseFrame('success');
+          // On OCR mode use the scanner overlay to draw a green confirmation rectangle
+          if (CFG.scanMode === 'ocr' && ocrScanner && ocrScanner.overlayCanvas && lastOcrHighlight && (Date.now() - lastOcrHighlight.ts) < 2500) {
+            try {
+              const c = ocrScanner.overlayCanvas;
+              const ctx = c.getContext('2d');
+              ctx.clearRect(0,0,c.width,c.height);
+              ctx.fillStyle = 'rgba(34,197,94,0.12)';
+              ctx.strokeStyle = 'rgba(34,197,94,0.95)';
+              ctx.lineWidth = Math.max(2, Math.min(6, (c.width + c.height) / 300));
+              const { x, y, w, h } = lastOcrHighlight;
+              ctx.fillRect(x, y, w, h);
+              ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+              setTimeout(() => { try { ctx.clearRect(0,0,c.width,c.height); } catch(e){} }, 700);
+            } catch (e) { pulseFrame('success'); }
+          } else {
+            pulseFrame('success');
+          }
           if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
           }
@@ -1611,6 +1652,13 @@
           setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
           pulseFrame('error');
           updateResultBox('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+        } finally {
+          sendingInProgress = false;
+          if (startStopBtn) startStopBtn.disabled = false;
+          if (cameraSelect) cameraSelect.disabled = false;
+          if (torchBtn) torchBtn.disabled = !torchSupported;
+          try { scanModeButtons.forEach(b => { if (b) b.disabled = false; }); modeButtons.forEach(b => { if (b) b.disabled = false; }); autoButtons.forEach(b => { if (b) b.disabled = false; }); repeatToggle && (repeatToggle.disabled = false); } catch(e){}
+          setTimeout(() => { lastOcrHighlight = null; }, 1200);
         }
       }
 
@@ -1618,6 +1666,7 @@
         const clean = (decodedText || '').trim();
         if (!clean) return;
         if (clean === lastSentText) return;
+        if (sendingInProgress) return;
         pulseFrame('detected');
         pushPayload(clean);
       }
