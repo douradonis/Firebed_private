@@ -153,6 +153,42 @@ def get_base_url():
 - Αυτόματη προσαρμογή σε κάθε environment
 - Future-proof για domain changes
 
+## 📱 Mobile QR/OCR Scanner Feature
+
+### ✨ New Feature: QR και OCR Scanning από Mobile
+
+**Τι Προστέθηκε:**
+- Toggle switch QR/OCR στην mobile συσκευή (μόνο για τιμολόγια)
+- Live OCR scanning με Tesseract.js για εξαγωγή 15ψήφιου MARK
+- Πλήρης συγχρονισμός PC ↔️ Mobile για όλα τα toggles (mode, repeat, auto-submit)
+
+**Τεχνικά Χαρακτηριστικά:**
+1. **Client-Side OCR**: Χρησιμοποιεί Tesseract.js (JavaScript library)
+   - Δεν χρειάζεται server-side OCR engine
+   - Κατάλληλο για Render Free Tier (χωρίς επιπλέον CPU/memory)
+   - Υποστηρίζει Ελληνικά + Αγγλικά
+
+2. **Separate OCR Module**: `static/mobile_ocr_scanner.js`
+   - Καθαρός, επαναχρησιμοποιήσιμος κώδικας
+   - Class-based architecture
+   - Clean API με callbacks
+
+3. **Smart Mode Switching**:
+   - QR/OCR toggle εμφανίζεται μόνο όταν είναι επιλεγμένα τα Τιμολόγια
+   - Αυτόματη εναλλαγή scanners κατά την αλλαγή mode
+   - Προστασία από memory leaks με proper cleanup
+
+**Render Compatibility:**
+- ✅ Δεν χρειάζονται επιπλέον system dependencies
+- ✅ Όλη η επεξεργασία OCR γίνεται στο browser
+- ✅ Minimal server load
+- ✅ Free tier friendly
+
+**Browser Requirements:**
+- Modern browser με WebRTC support
+- Camera access permissions
+- JavaScript enabled
+
 ### 📞 Support:
 
 Αν χρειάζεσαι βοήθεια:
@@ -160,5 +196,6 @@ def get_base_url():
 2. Test το `/test-url` endpoint
 3. Verify environment variables
 4. Check email SMTP settings
+5. Verify camera permissions στο mobile device
 
 **Όλα είναι έτοιμα για production! 🚀**

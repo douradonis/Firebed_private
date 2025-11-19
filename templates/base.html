@@ -215,9 +215,20 @@
       border-width: 1px;
     }
     
+    /* stronger header nav hover in light mode */
+    .layout-header__nav a:not(.bg-sky-600):hover {
+      background-color: #e6f7ff;
+      color: #075985;
+      box-shadow: 0 6px 18px rgba(14,165,233,0.06);
+      transform: translateY(-1px);
+    }
+
     [data-theme="dark"] .layout-header__nav a:not(.bg-sky-600):hover {
-      background-color: #374151;
-      border-color: #9ca3af;
+      background-color: #0ea5e9;
+      color: #04263a;
+      border-color: #0ea5e9;
+      box-shadow: 0 6px 22px rgba(14,165,233,0.18);
+      transform: translateY(-1px);
     }
     
     [data-theme="dark"] #sideMenu {
@@ -314,13 +325,26 @@
     }
     
     /* Preserve red color for Admin button in dark mode */
+    /* make admin/logout style consistent with side-logout in dark mode */
     [data-theme="dark"] .layout-header__nav a.bg-red-600 {
-      background-color: #dc2626 !important;
+      background-color: #7f1d1d !important;
       color: white !important;
+      box-shadow: 0 8px 24px rgba(127,29,29,0.18);
     }
-    
+
     [data-theme="dark"] .layout-header__nav a.bg-red-600:hover {
-      background-color: #b91c1c !important;
+      background-color: #5f1212 !important;
+    }
+
+    /* make admin button match logout tone in light mode as well */
+    .layout-header__nav a.bg-red-600 {
+      background-color: #fee2e2 !important;
+      color: #7f1d1d !important;
+      border: 1px solid transparent;
+    }
+    .layout-header__nav a.bg-red-600:hover {
+      background-color: #fca5a5 !important;
+      color: #7f1d1d !important;
     }
 
     /* Warning modal styling (shared look & feel) */
@@ -398,6 +422,15 @@
     .modal-warning-btn--confirm:hover {
       background: #9f1239;
     }
+
+    /* Brighter modal warning background in dark mode for improved contrast */
+    [data-theme="dark"] .modal-warning-panel {
+      background-color: #374151 !important; /* lighter than var(--bg-secondary) */
+      color: #f8fafc !important;
+      border: 1px solid #4b5563;
+      box-shadow: 0 18px 42px rgba(2,6,23,0.35);
+    }
+    [data-theme="dark"] .modal-warning-body { color: #f8fafc !important; }
 
     .modal-warning-close {
       position: absolute;
@@ -498,6 +531,108 @@
     }
   </style>
 
+  <style>
+    /* Dark-mode button hover improvements */
+    [data-theme="dark"] button:hover,
+    [data-theme="dark"] .btn:hover,
+    [data-theme="dark"] .theme-slider:hover,
+    [data-theme="dark"] a:hover {
+      filter: brightness(1.06);
+      opacity: 0.98;
+    }
+
+    /* Stronger header menu hover for both themes */
+    .layout-header__nav a:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    [data-theme="dark"] .layout-header__nav a:hover {
+      filter: brightness(1.12);
+      background-color: rgba(14,165,233,0.12) !important;
+      color: #e6f7ff !important;
+    }
+
+    /* Side menu active / emphasized links */
+    #sideMenu a.side-menu-active {
+      background-color: #e6f7ff;
+      color: #075985;
+      border-radius: 6px;
+    }
+    [data-theme="dark"] #sideMenu a.side-menu-active {
+      background-color: #0ea5e9;
+      color: #04263a;
+      box-shadow: 0 6px 18px rgba(14,165,233,0.15);
+    }
+
+    /* Stronger logout/manage-groups colours in side menu */
+    #sideMenu a.side-logout { background-color: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] #sideMenu a.side-logout { background-color: #7f1d1d; color: #fff; }
+
+    #sideMenu a.side-manage-groups { background-color: #e0f2fe; color: #075985; }
+    [data-theme="dark"] #sideMenu a.side-manage-groups { background-color: #0369a1; color: #fff; }
+    /* Quick Links hover should match header hover intensity */
+    #sideMenu .space-y-2 a:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+      background-color: #e6f7ff;
+      color: #075985;
+    }
+    [data-theme="dark"] #sideMenu .space-y-2 a:hover {
+      background-color: rgba(14,165,233,0.12) !important;
+      color: #e6f7ff !important;
+    }
+  </style>
+
+  <style>
+    /* Standardize danger buttons to match logout tone */
+    .btn-danger, button.btn-danger, .btn.btn-danger, .modal-warning-btn--danger, .modal-warning-btn--confirm {
+      background: #fee2e2 !important;
+      color: #7f1d1d !important;
+      border-color: transparent !important;
+    }
+
+    /* Specific delete / leave / admin danger controls */
+    .btn-delete-credential, .leave-group-btn, .remove-member-btn, .btn-admin, .btn-delete {
+      background: #fee2e2 !important;
+      color: #7f1d1d !important;
+      border: 1px solid transparent !important;
+    }
+
+    /* Specific IDs used in lists */
+    #deleteSelected, #deleteBtn {
+      background: #fee2e2 !important;
+      color: #7f1d1d !important;
+      border: 1px solid transparent !important;
+    }
+
+    [data-theme="dark"] .btn-danger,
+    [data-theme="dark"] button.btn-danger,
+    [data-theme="dark"] .btn.btn-danger,
+    [data-theme="dark"] .modal-warning-btn--danger,
+    [data-theme="dark"] .modal-warning-btn--confirm,
+    [data-theme="dark"] #deleteSelected,
+    [data-theme="dark"] #deleteBtn {
+      background: #7f1d1d !important;
+      color: #fff !important;
+      border-color: transparent !important;
+      box-shadow: 0 8px 20px rgba(127,29,29,0.14);
+    }
+  </style>
+
+  <style>
+    /* Dark mode overrides for common Tailwind classes used in forms and panels */
+    [data-theme="dark"] .bg-gray-50 {
+      background-color: var(--bg-secondary) !important;
+    }
+    [data-theme="dark"] .text-gray-700 {
+      color: var(--text-primary) !important;
+    }
+    [data-theme="dark"] .border-gray-200 {
+      border-color: var(--border-color) !important;
+    }
+  </style>
+    
   {% block head_extra %}{% endblock %}
 </head>
 <body>
@@ -595,14 +730,14 @@
               </svg>
             </a>
           </div>
-          <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200 text-center">Αποσύνδεση</a>
+          <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200 text-center side-logout">Αποσύνδεση</a>
         </div>
 
         <!-- Groups Selector -->
         <div class="border-b pb-4">
           <p class="text-sm font-medium text-gray-700 mb-3">Ομάδες</p>
           <div id="groupsList" class="space-y-2 max-h-64 overflow-y-auto"></div>
-          <a href="{{ url_for('auth.list_groups') }}" class="block mt-3 px-4 py-2 rounded text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 text-center">Διαχείριση ομάδων</a>
+          <a href="{{ url_for('auth.list_groups') }}" class="block mt-3 px-4 py-2 rounded text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 text-center side-manage-groups">Διαχείριση ομάδων</a>
         </div>
 
         <!-- Quick Links -->
@@ -1182,5 +1317,27 @@
         localStorage.setItem('theme', newTheme);
       });
     }
+    
+    // Highlight matching links inside the side menu (both light & dark)
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        const side = document.getElementById('sideMenu');
+        if (!side) return;
+        const anchors = Array.from(side.querySelectorAll('a'));
+        const path = window.location.pathname.replace(/\/$/, '');
+        anchors.forEach(a => {
+          try {
+            const href = (a.getAttribute('href') || '').replace(/\/$/, '');
+            if (!href) return;
+            // mark active when the current path starts with the link href (covers subpages)
+            if (path === href || path.indexOf(href) === 0 || href.indexOf(path) === 0) {
+              a.classList.add('side-menu-active');
+            } else {
+              a.classList.remove('side-menu-active');
+            }
+          } catch(_){ }
+        });
+      } catch (e) { console.warn('side menu highlight error', e); }
+    });
   </script></body>
 </html>

@@ -35,7 +35,7 @@
                     <small>{{ group.created_at }}</small>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-info" onclick="showGroupDetailsModal({{ group.id }}, '{{ group.name }}')">View</button>
+                    <button class="btn btn-sm btn-info btn-admin" onclick="showGroupDetailsModal({{ group.id }}, '{{ group.name }}')">View</button>
                     <a href="/admin/groups/{{ group.id }}/files" class="btn btn-sm btn-secondary" title="Browse Files">📁</a>
                     <button class="btn btn-sm btn-danger" onclick="deleteGroupAjax({{ group.id }}, '{{ group.name }}')">Delete</button>
                 </td>

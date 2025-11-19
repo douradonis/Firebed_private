@@ -575,6 +575,8 @@
     }
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="{{ url_for('static', filename='mobile_ocr_scanner.js') }}"></script>
 </head>
 <body>
   <main>
@@ -611,6 +613,11 @@
           <span class="slider" aria-hidden="true"></span>
           <span class="label">Επαναληπτική εισαγωγή</span>
         </label>
+      </div>
+
+      <div class="mode-toggle" role="group" aria-label="Επιλογή τρόπου σάρωσης" id="scanModeToggle" style="display: none;">
+        <button type="button" data-scan-mode="qr">QR Scan</button>
+        <button type="button" data-scan-mode="ocr">OCR Live</button>
       </div>
 
       <div class="scanner-wrapper" id="scannerWrapper">
@@ -734,11 +741,14 @@
       const scanFrame = document.getElementById('scanFrame');
       const scanFlash = document.getElementById('scanFlash');
       const defaultResultText = resultEl ? resultEl.innerHTML : '';
+      const scanModeToggle = document.getElementById('scanModeToggle');
+      const scanModeButtons = Array.from(document.querySelectorAll('[data-scan-mode]'));
 
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
       CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
       CFG.summaryVersion = CFG.summaryVersion || 0;
       CFG.autoSubmit = CFG.autoSubmit === true || CFG.autoSubmit === 'true' || CFG.autoSubmit === 1 ? true : !!CFG.autoSubmit;
+      CFG.scanMode = 'qr'; // default to QR scanning
 
       let html5QrCode = null;
       let cameras = [];
@@ -751,6 +761,9 @@
       let countdownTimer = null;
       let frameHighlightTimer = null;
       let lastSummaryHash = '';
+      let ocrScanner = null;
+      let sendingInProgress = false;
+      let lastOcrHighlight = null;
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -1065,7 +1078,36 @@
         const changed = normalized !== CFG.mode;
         CFG.mode = normalized;
         updateModeBadge();
+        updateScanModeToggleVisibility();
         return { mode: normalized, changed };
+      }
+
+      function updateScanModeToggleVisibility(){
+        if (!scanModeToggle) return;
+        // Only show QR/OCR toggle when in invoices mode
+        if (CFG.mode === 'invoices') {
+          scanModeToggle.style.display = '';
+        } else {
+          scanModeToggle.style.display = 'none';
+        }
+      }
+
+      function applyScanMode(newScanMode){
+        const normalized = newScanMode === 'ocr' ? 'ocr' : 'qr';
+        const changed = normalized !== CFG.scanMode;
+        CFG.scanMode = normalized;
+        updateScanModeButtons();
+        return { scanMode: normalized, changed };
+      }
+
+      function updateScanModeButtons(){
+        if (!scanModeButtons || !scanModeButtons.length) return;
+        scanModeButtons.forEach(btn => {
+          if (!btn) return;
+          const target = btn.getAttribute('data-scan-mode');
+          const active = target === CFG.scanMode;
+          btn.classList.toggle('active', active);
+        });
       }
 
       async function sendSessionUpdate(payload, options){
@@ -1294,6 +1336,16 @@
 
       async function startScanner(preferredId){
         if (!ensureSecureContext()) return;
+        
+        // Check scan mode and start appropriate scanner
+        if (CFG.scanMode === 'ocr' && CFG.mode === 'invoices') {
+          await startOCRScanner(preferredId);
+        } else {
+          await startQRScanner(preferredId);
+        }
+      }
+
+      async function startQRScanner(preferredId){
         if (typeof window.Html5Qrcode === 'undefined') {
           setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
           return;
@@ -1314,6 +1366,8 @@
             disableFlip: true,
           };
           clearFrameHighlights();
+          // ensure static scan frame is visible for QR mode
+          try { if (scanFrame) scanFrame.style.display = ''; if (scanFlash) scanFlash.style.display = ''; } catch(e){}
           await html5QrCode.start(cameraConfig, config, onScanSuccess, onScanFailure);
           scanning = true;
           setStatus('Η κάμερα είναι ενεργή. Σάρωσε έναν κωδικό QR.', 'success');
@@ -1323,8 +1377,66 @@
           }
           await evaluateTorchSupport();
         } catch (err) {
-          console.error('startScanner failed', err);
+          console.error('startQRScanner failed', err);
           setStatus('Αποτυχία εκκίνησης της κάμερας. Έλεγξε τα δικαιώματα.', 'error');
+        }
+      }
+
+      async function startOCRScanner(preferredId){
+        try {
+          // Initialize OCR scanner if not already done
+          if (!ocrScanner) {
+            ocrScanner = new window.MobileOCRScanner({
+              scanInterval: 2000,
+              languages: 'ell+eng',
+              // Called when a MARK is recognized by OCR
+              onSuccess: (mark, text, meta) => {
+                try {
+                  if (sendingInProgress) return; // avoid queuing multiple sends
+                  if (mark && mark !== lastSentText) {
+                    // rely on MobileOCRScanner overlay (yellow) for immediate visual feedback
+                    pushPayload(mark);
+                  }
+                } catch (e) { console.warn('ocr onSuccess handler error', e); }
+              },
+              onError: (err) => {
+                console.warn('OCR error:', err);
+              },
+              onStatusChange: (status, tone) => {
+                setStatus(status, tone);
+              },
+              // receives scaled overlay coordinates from the worker drawing helper
+              onHighlight: (info) => {
+                try { lastOcrHighlight = Object.assign({}, info, { ts: Date.now() }); } catch(e){}
+              }
+            });
+          }
+
+          // Start OCR scanning and get video element
+          const videoEl = await ocrScanner.start(preferredId);
+          
+          // Insert video element into the reader div
+          const readerDiv = document.getElementById(readerId);
+          if (readerDiv && videoEl) {
+            readerDiv.innerHTML = '';
+            readerDiv.appendChild(videoEl);
+          }
+          // Hide the static scan frame for OCR mode so the image remains clean; the OCR overlay will show highlights
+          try {
+            if (scanFrame) scanFrame.style.display = 'none';
+            if (scanFlash) scanFlash.style.display = 'none';
+          } catch (e) { /* ignore */ }
+          
+          scanning = true;
+          
+          if (startStopBtn) {
+            startStopBtn.disabled = false;
+            startStopBtn.textContent = 'Παύση σάρωσης';
+          }
+          
+        } catch (err) {
+          console.error('startOCRScanner failed', err);
+          setStatus('Αποτυχία εκκίνησης της κάμερας για OCR. Έλεγξε τα δικαιώματα.', 'error');
         }
       }
 
@@ -1337,6 +1449,13 @@
           clearInterval(countdownTimer);
           countdownTimer = null;
         }
+        
+        // Stop OCR scanner if running
+        if (ocrScanner && ocrScanner.isScanning()) {
+          await ocrScanner.stop();
+        }
+        
+        // Stop QR scanner if running
         if (html5QrCode && scanning){
           try {
             await html5QrCode.stop();
@@ -1344,10 +1463,12 @@
             console.warn('stopScanner', err);
           }
         }
+        
         scanning = false;
         torchSupported = false;
         torchOn = false;
         clearFrameHighlights();
+        lastOcrHighlight = null;
         if (torchBtn){
           torchBtn.disabled = true;
           torchBtn.textContent = 'Φλας μη διαθέσιμο';
@@ -1477,6 +1598,13 @@
         setTimeout(() => { lastSentText = ''; }, 1800);
         setStatus('Παρακαλώ περιμένετε…', null);
         updateResultBox(`<strong>Αποστολή:</strong> ${escapeHtml(text)}`, null);
+        // lock sending to avoid duplicate transmissions
+        sendingInProgress = true;
+        if (startStopBtn) startStopBtn.disabled = true;
+        if (cameraSelect) cameraSelect.disabled = true;
+        if (torchBtn) torchBtn.disabled = true;
+        // also disable mode/toggle buttons while sending to avoid races
+        try { scanModeButtons.forEach(b => { if (b) b.disabled = true; }); modeButtons.forEach(b => { if (b) b.disabled = true; }); autoButtons.forEach(b => { if (b) b.disabled = true; }); repeatToggle && (repeatToggle.disabled = true); } catch(e){}
         try {
           const res = await fetch('/api/qr/remote/push', {
             method: 'POST',
@@ -1496,7 +1624,23 @@
           const info = mark ? `MARK ${mark}` : text;
           updateResultBox(`<strong>Εστάλη:</strong> ${escapeHtml(info)}`, 'success');
           setStatus('Ο κωδικός στάλθηκε στον υπολογιστή. Μπορείς να συνεχίσεις τη σάρωση.', 'success');
-          pulseFrame('success');
+          // On OCR mode use the scanner overlay to draw a green confirmation rectangle
+          if (CFG.scanMode === 'ocr' && ocrScanner && ocrScanner.overlayCanvas && lastOcrHighlight && (Date.now() - lastOcrHighlight.ts) < 2500) {
+            try {
+              const c = ocrScanner.overlayCanvas;
+              const ctx = c.getContext('2d');
+              ctx.clearRect(0,0,c.width,c.height);
+              ctx.fillStyle = 'rgba(34,197,94,0.12)';
+              ctx.strokeStyle = 'rgba(34,197,94,0.95)';
+              ctx.lineWidth = Math.max(2, Math.min(6, (c.width + c.height) / 300));
+              const { x, y, w, h } = lastOcrHighlight;
+              ctx.fillRect(x, y, w, h);
+              ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+              setTimeout(() => { try { ctx.clearRect(0,0,c.width,c.height); } catch(e){} }, 700);
+            } catch (e) { pulseFrame('success'); }
+          } else {
+            pulseFrame('success');
+          }
           if (Object.prototype.hasOwnProperty.call(data, 'repeat_enabled')){
             applyRepeat(data.repeat_enabled);
           }
@@ -1508,6 +1652,13 @@
           setStatus('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
           pulseFrame('error');
           updateResultBox('Προσωρινό σφάλμα αποστολής. Προσπάθησε ξανά.', 'error');
+        } finally {
+          sendingInProgress = false;
+          if (startStopBtn) startStopBtn.disabled = false;
+          if (cameraSelect) cameraSelect.disabled = false;
+          if (torchBtn) torchBtn.disabled = !torchSupported;
+          try { scanModeButtons.forEach(b => { if (b) b.disabled = false; }); modeButtons.forEach(b => { if (b) b.disabled = false; }); autoButtons.forEach(b => { if (b) b.disabled = false; }); repeatToggle && (repeatToggle.disabled = false); } catch(e){}
+          setTimeout(() => { lastOcrHighlight = null; }, 1200);
         }
       }
 
@@ -1515,6 +1666,7 @@
         const clean = (decodedText || '').trim();
         if (!clean) return;
         if (clean === lastSentText) return;
+        if (sendingInProgress) return;
         pulseFrame('detected');
         pushPayload(clean);
       }
@@ -1591,6 +1743,22 @@
         }
       });
 
+      scanModeButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const choice = btn.getAttribute('data-scan-mode');
+          const { scanMode, changed } = applyScanMode(choice);
+          if (changed){
+            setStatus(scanMode === 'ocr' ? 'Λειτουργία OCR ενεργοποιήθηκε.' : 'Λειτουργία QR ενεργοποιήθηκε.', 'info');
+            // Restart scanner with new mode if already scanning
+            if (scanning) {
+              await stopScanner();
+              await startScanner(cameraSelect ? cameraSelect.value : undefined);
+            }
+          }
+        });
+      });
+
       summarySaveBtn?.addEventListener('click', () => {
         setSummaryStatus('Αποστολή αποθήκευσης…', null);
         sendControlCommand({ type: 'summary_save' });
@@ -1609,6 +1777,8 @@
       updateModeBadge();
       updateAutoSubmitControls();
       updateRepeatToggle();
+      updateScanModeToggleVisibility();
+      updateScanModeButtons();
       attach();
     })();
   </script>

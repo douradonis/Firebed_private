@@ -22,6 +22,42 @@
     <style>
       ul li.selected { background: #e6f7ff; border-color: #38bdf8; }
       .member-pill button { border: none; background: transparent; cursor: pointer; color: #c53030; }
+
+      /* Dark mode adjustments for selection and modals */
+      [data-theme="dark"] ul li.selected {
+        background-color: #083344; /* deep teal / highlighted row */
+        border-color: #0369a1;
+        color: #f8fafc;
+      }
+
+      /* leave-group button should match logout color */
+      .leave-group-btn {
+        background: #fee2e2;
+        color: #7f1d1d;
+        border: 1px solid transparent;
+      }
+      [data-theme="dark"] .leave-group-btn {
+        background: #7f1d1d;
+        color: #ffffff;
+        border: 1px solid rgba(0,0,0,0.08);
+      }
+
+      /* Modal visual improvements — larger, more readable */
+      .gm-modal-backdrop {
+        display: none; position: fixed; inset:0; background: rgba(0,0,0,0.55); align-items:center; justify-content:center; z-index:60;
+      }
+      .gm-modal {
+        background: #fff; padding: 28px; border-radius:10px; width: calc(100% - 48px); max-width: 900px; margin: 28px auto; box-shadow: 0 10px 30px rgba(2,6,23,0.2); color: #0f172a;
+      }
+
+      /* Dark theme modal colors */
+      [data-theme="dark"] .gm-modal { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid #374151; }
+      [data-theme="dark"] .gm-modal-backdrop { background: rgba(2,6,23,0.6); }
+
+      .gm-modal h3 { margin-top: 0; margin-bottom: 8px; font-size:1.1rem; }
+      .gm-modal .actions { margin-top: 14px; display:flex; gap:8px; justify-content:flex-end; }
+      .gm-modal .muted-btn { background: #e5e7eb; color:#111827; }
+      [data-theme="dark"] .gm-modal .muted-btn { background:#374151; color:#e5e7eb; }
     </style>
 
     <div class="grid grid-cols-2 gap-6">
@@ -36,29 +72,29 @@
       </div>
     </div>
 
-    <!-- Create modal -->
-    <div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
-      <div style="background:#fff;padding:20px;border-radius:6px;max-width:480px;margin:40px auto;">
+    <!-- Create modal (larger, styled) -->
+    <div id="modal-create" class="gm-modal-backdrop">
+      <div class="gm-modal">
         <h3>Δημιουργία ομάδας</h3>
         <form method="post" action="{{ url_for('auth.create_group') }}" class="grid gap-3">
           <input type="text" name="name" placeholder="Όνομα ομάδας" class="px-3 py-2 border rounded" required />
           <input type="text" name="data_folder" placeholder="Φάκελος δεδομένων (κάτω από data/)" class="px-3 py-2 border rounded" required />
-          <div class="mt-3">
+          <div class="actions">
             <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Δημιουργία</button>
-            <button type="button" id="close-create" class="px-4 py-2 rounded bg-gray-200">Άκυρο</button>
+            <button type="button" id="close-create" class="px-4 py-2 rounded muted-btn">Άκυρο</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Assign modal -->
-    <div id="modal-assign" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
-      <div style="background:#fff;padding:20px;border-radius:6px;max-width:640px;margin:40px auto;">
+    <!-- Assign modal (larger, styled) -->
+    <div id="modal-assign" class="gm-modal-backdrop">
+      <div class="gm-modal" style="max-width:720px;">
         <h3>Ανάθεση χρήστη σε ομάδα</h3>
         <form id="assign-form" method="post" action="{{ url_for('auth.assign_user_to_group') }}" class="grid gap-3">
           <div class="flex items-center gap-2">
             <input id="assign-username" type="text" name="username" placeholder="Όνομα χρήστη ή ID" class="px-3 py-2 border rounded flex-1" />
-            <button id="check-user" type="button" class="px-3 py-2 rounded bg-gray-200">Έλεγχος</button>
+            <button id="check-user" type="button" class="px-3 py-2 rounded muted-btn">Έλεγχος</button>
           </div>
           <div id="user-check-result" class="text-sm text-gray-600"></div>
           <input id="assign-group" type="text" name="group" placeholder="Όνομα ομάδας" class="px-3 py-2 border rounded" />
@@ -66,9 +102,9 @@
             <option value="member">Μέλος</option>
             <option value="admin">Διαχειριστής</option>
           </select>
-          <div class="mt-3">
+          <div class="actions">
             <button type="submit" class="px-4 py-2 rounded bg-sky-600 text-white">Ανάθεση</button>
-            <button type="button" id="close-assign" class="px-4 py-2 rounded bg-gray-200">Άκυρο</button>
+            <button type="button" id="close-assign" class="px-4 py-2 rounded muted-btn">Άκυρο</button>
           </div>
         </form>
       </div>
@@ -193,6 +229,6 @@
       });
     </script>
 
-    <p class="mt-6"><a href="{{ url_for('auth.logout') }}" class="text-sky-600">Αποσύνδεση</a></p>
+    <!-- logout link removed from this page (handled in side menu) -->
   </div>
 {% endblock %}
