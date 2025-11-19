@@ -131,6 +131,40 @@ API_KEY=your-super-secret-key-here
 
 Στο Firebed_private, θα χρειαστεί να περάσεις το API key στα requests.
 
+### Προσθήκη Rate Limiting (Προτεινόμενο για Production)
+
+Για να προστατέψεις το service από abuse, πρόσθεσε rate limiting:
+
+```bash
+npm install express-rate-limit
+```
+
+Edit το `server.js`:
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+// Add after other middleware
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: {
+        success: false,
+        error: 'Too many requests, please try again later.'
+    }
+});
+
+// Apply to /send-mail route
+app.post('/send-mail', limiter, async (req, res) => {
+    // ... existing code
+});
+```
+
+**Προτεινόμενα όρια:**
+- Development: 100 requests / 15 minutes
+- Production: 50 requests / 15 minutes (ή λιγότερο)
+- Per IP tracking για να αποτρέψεις spam
+
 ## 📋 API Reference
 
 ### GET /

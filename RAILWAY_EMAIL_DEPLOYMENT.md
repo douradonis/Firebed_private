@@ -258,9 +258,10 @@ SENDER_EMAIL=your-email@gmail.com
 
 **ΣΗΜΑΝΤΙΚΟ:** Το Railway proxy στέλνει SMTP credentials με κάθε request. Αυτό σημαίνει:
 
-1. **HTTPS Only**: Βεβαιώσου ότι το Railway URL είναι HTTPS
+1. **HTTPS Only**: Βεβαιώσου ότι το Railway URL είναι HTTPS (αυτόματο στο Railway)
 2. **Trusted Network**: Μην το expose publicly αν είναι production
-3. **API Key Authentication**: Προσθήκη authentication στο proxy (optional)
+3. **API Key Authentication**: Προσθήκη authentication στο proxy (προτεινόμενο)
+4. **Rate Limiting**: Προσθήκη rate limiting για προστασία από abuse (προτεινόμενο)
 
 ### Προσθήκη API Key Authentication (Προτεινόμενο)
 
@@ -293,6 +294,40 @@ headers = {
     'Authorization': f'Bearer {os.getenv("RAILWAY_API_KEY", "")}'
 }
 response = requests.post(proxy_url, json=payload, timeout=30, headers=headers)
+```
+
+### Προσθήκη Rate Limiting (Προτεινόμενο)
+
+Για production, πρόσθεσε rate limiting στο Railway service:
+
+**1. Install dependency:**
+```bash
+cd railway-email-relay
+npm install express-rate-limit
+```
+
+**2. Update server.js:**
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // Limit each IP to 50 requests per 15 minutes
+    message: {
+        success: false,
+        error: 'Too many requests, please try again later.'
+    }
+});
+
+// Apply to /send-mail route
+app.post('/send-mail', limiter, async (req, res) => {
+    // ... existing code
+});
+```
+
+**3. Redeploy:**
+```bash
+railway up
 ```
 
 ---
