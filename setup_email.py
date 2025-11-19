@@ -199,6 +199,30 @@ SMTP_PASSWORD={password}
 SENDER_EMAIL={username}
 
 # ========================================
+# Email Provider Selection
+# ========================================
+# Choose which email service to use (can be changed in Admin Panel)
+# Options: smtp, resend, oauth2_outlook, mailpit
+# EMAIL_PROVIDER=smtp
+
+# ========================================
+# Resend Configuration (Optional)
+# ========================================
+# Resend is a modern API-based email service
+# RESEND_API_KEY=re_xxxxxxxxxxxxx
+# RESEND_EMAIL_SENDER=noreply@yourdomain.com
+
+# ========================================
+# Mailpit Configuration (Optional - Development/Testing)
+# ========================================
+# Mailpit is an email testing tool for development
+# Install: brew install mailpit (Mac) or docker run -p 8025:8025 -p 1025:1025 axllent/mailpit
+# Web UI: http://localhost:8025
+# MAILPIT_API_URL=http://localhost:8025
+# MAILPIT_API_USERNAME=
+# MAILPIT_API_PASSWORD=
+
+# ========================================
 # Application Settings
 # ========================================
 APP_URL={app_url}
@@ -411,6 +435,13 @@ def main():
         print("   ✅ Password reset emails")
         print("   ✅ Admin bulk email system")
         
+        print("\n📨 Email Provider Options:")
+        print("   • SMTP (configured above) - default")
+        print("   • Resend - API-based email (uncomment in .env)")
+        print("   • OAuth2 Outlook - Microsoft authentication")
+        print("   • Mailpit - Email testing tool (uncomment in .env)")
+        print("   Switch providers in Admin Panel > Settings")
+        
         if firebase_config:
             print("\n🔥 Firebase Features Configured:")
             print("   ✅ Enhanced authentication")
@@ -423,6 +454,7 @@ def main():
         print("   3. Try password reset functionality")
         print("   4. Use Admin Panel > Email tab for bulk emails")
         print("   5. Run comprehensive test: python test_email_setup.py")
+        print("   6. (Optional) For testing: Install Mailpit and run test_mailpit_integration.py")
         
         if firebase_config and not os.path.exists(firebase_config.get('key_path', '')):
             print("\n⚠️  Firebase Key File Missing:")
