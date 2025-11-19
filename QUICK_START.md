@@ -6,15 +6,29 @@
 
 ## Γρήγορη Εγκατάσταση (3 βήματα)
 
-### 1️⃣ Deploy στο Railway
+### 1️⃣ Deploy στο Railway (Free Tier)
 
+**Επιλογή A: Railway CLI (από το railway-email-relay directory)**
 ```bash
 cd railway-email-relay
 railway login
-railway init
-railway up
-railway domain  # Θα πάρεις URL όπως: https://your-app.railway.app
+railway init       # Δημιουργεί νέο project
+railway up         # Deploy μόνο τα αρχεία του directory
+railway domain     # Θα πάρεις URL όπως: https://your-app.railway.app
 ```
+
+**Επιλογή B: Ξεχωριστό GitHub Repo (για Web UI)**
+```bash
+# Δημιούργησε νέο repository και copy τα αρχεία:
+git clone https://github.com/YOUR-USERNAME/firebed-email-relay.git
+cd firebed-email-relay
+cp ../Firebed_private/railway-email-relay/* .
+git add . && git commit -m "Initial" && git push
+
+# Μετά deploy από Railway Web UI → GitHub repo
+```
+
+⚠️ **Railway Free Tier:** Δεν επιτρέπει custom root directory, γι' αυτό χρησιμοποιούμε CLI από subdirectory ή ξεχωριστό repo.
 
 ### 2️⃣ Configure Firebed Admin
 

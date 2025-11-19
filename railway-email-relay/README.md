@@ -2,6 +2,15 @@
 
 Ένα απλό HTTP-to-SMTP proxy service που επιτρέπει την αποστολή email μέσω HTTP requests. Ιδανικό για platforms όπως το Render free tier που μπλοκάρουν SMTP outbound connections.
 
+## ⚠️ Railway Free Tier Note
+
+Το **Railway free tier δεν επιτρέπει custom root directory**. Για να κάνεις deploy:
+
+- **Επιλογή 1 (Προτεινόμενο):** Χρησιμοποίησε Railway CLI από αυτό το directory
+- **Επιλογή 2:** Δημιούργησε ξεχωριστό GitHub repository με τα αρχεία αυτού του directory
+
+Δες παρακάτω για λεπτομερείς οδηγίες.
+
 ## 🎯 Σκοπός
 
 Το Firebed_private Python app τρέχει στο Render (free tier) που δεν επιτρέπει SMTP connections. Αυτό το service:
@@ -12,47 +21,67 @@
 
 ## 🚀 Deployment στο Railway
 
-### 1. Προετοιμασία
+**ΣΗΜΑΝΤΙΚΟ για Railway Free Tier:** Το free tier δεν επιτρέπει custom root directory. Έχεις 2 επιλογές:
 
-Κάνε fork ή clone το repository και πήγαινε στο directory:
+### Επιλογή 1: Deploy με Railway CLI (Προτεινόμενο για Free Tier)
+
+Από το parent repository, navigate στο railway-email-relay directory:
 
 ```bash
+# Navigate στο directory
 cd railway-email-relay
-```
 
-### 2. Deploy με Railway CLI
-
-```bash
 # Install Railway CLI (αν δεν το έχεις)
 npm install -g @railway/cli
 
 # Login στο Railway
 railway login
 
-# Initialize project
+# Initialize νέο project
 railway init
+# Επίλεξε "Create a new project"
+# Δώσε όνομα π.χ. "firebed-email-relay"
 
-# Deploy
+# Deploy (θα ανεβάσει μόνο τα αρχεία του current directory)
 railway up
+
+# Generate public domain
+railway domain
 ```
 
-### 3. Deploy με Railway Web UI
-
-1. Πήγαινε στο [railway.app](https://railway.app)
-2. Κάνε click στο "New Project"
-3. Επίλεξε "Deploy from GitHub repo"
-4. Διάλεξε το repository σου
-5. Όρισε το root directory ως `railway-email-relay`
-6. Κάνε deploy
-
-### 4. Πάρε το Public URL
-
-Μετά το deployment, το Railway θα σου δώσει ένα public URL όπως:
+Μετά το deployment, θα πάρεις ένα public URL όπως:
 ```
-https://your-app-name.railway.app
+https://firebed-email-relay.railway.app
 ```
 
-Αυτό το URL θα το χρησιμοποιήσεις στο Firebed_private configuration.
+### Επιλογή 2: Deploy σε Ξεχωριστό GitHub Repository (Για Web UI)
+
+Αν προτιμάς να χρησιμοποιήσεις το Railway Web UI:
+
+1. **Δημιούργησε νέο GitHub repository:**
+   ```bash
+   # Clone νέο repository
+   git clone https://github.com/YOUR-USERNAME/firebed-email-relay.git
+   cd firebed-email-relay
+   
+   # Copy τα αρχεία από αυτό το directory
+   cp /path/to/Firebed_private/railway-email-relay/* .
+   
+   # Commit και push
+   git add .
+   git commit -m "Initial commit - Railway email relay"
+   git push
+   ```
+
+2. **Deploy από Railway Web UI:**
+   - Πήγαινε στο [railway.app](https://railway.app)
+   - Κάνε click "New Project" → "Deploy from GitHub repo"
+   - Επίλεξε το νέο repository `firebed-email-relay`
+   - Άφησε το **Root Directory** κενό (χρησιμοποιεί root)
+   - Το Railway auto-detects το `package.json` και κάνει build
+
+3. **Generate Domain:**
+   - Settings → Networking → Generate Domain
 
 ## 📝 Configuration στο Firebed_private
 
