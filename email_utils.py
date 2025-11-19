@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # Email config from environment
-EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', or 'resend'
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'smtp')  # 'smtp', 'oauth2_outlook', 'resend', or 'railway_proxy'
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
@@ -21,6 +21,7 @@ APP_URL = os.getenv('APP_URL', 'http://localhost:5001')
 OAUTH2_CREDENTIALS_FILE = os.getenv('OAUTH2_CREDENTIALS_FILE', 'outlook_oauth2_credentials.json')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_EMAIL_SENDER = os.getenv('RESEND_EMAIL_SENDER', '')
+RAILWAY_PROXY_URL = os.getenv('RAILWAY_PROXY_URL', '')
 
 
 def get_email_provider() -> str:
@@ -36,7 +37,7 @@ def get_email_provider() -> str:
             settings = load_settings()
             provider = settings.get('email_provider', '').strip()
             logger.info(f"get_email_provider: loaded from settings: {provider}")
-            if provider in ['smtp', 'oauth2_outlook', 'resend']:
+            if provider in ['smtp', 'oauth2_outlook', 'resend', 'railway_proxy']:
                 return provider
         except (ImportError, Exception) as e:
             logger.warning(f"get_email_provider: failed to load from settings: {e}")
@@ -52,14 +53,17 @@ def get_email_provider() -> str:
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
-    """Send an email via SMTP, OAuth2, or Resend based on configuration"""
+    """Send an email via SMTP, OAuth2, Resend, or Railway Proxy based on configuration"""
     
     # Get current provider from settings or environment
     provider = get_email_provider()
     logger.info(f"send_email called: to={to_email}, subject={subject}, provider={provider}")
     
     # Route to appropriate sending function
-    if provider == 'resend':
+    if provider == 'railway_proxy':
+        logger.info(f"Routing to Railway Proxy for {to_email}")
+        return send_railway_proxy_email(to_email, subject, html_body, text_body)
+    elif provider == 'resend':
         logger.info(f"Routing to Resend for {to_email}")
         return send_resend_email(to_email, subject, html_body, text_body)
     elif provider == 'oauth2_outlook':
@@ -171,6 +175,91 @@ def send_resend_email(to_email: str, subject: str, html_body: str, text_body: Op
         # Fallback to SMTP if Resend fails
         logger.warning(f"Falling back to SMTP for {to_email}")
         return send_smtp_email(to_email, subject, html_body, text_body)
+
+
+def send_railway_proxy_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
+    """Send an email via Railway HTTP-to-SMTP proxy"""
+    try:
+        # Get Railway proxy URL from settings or environment
+        from app import load_settings
+        settings = load_settings()
+        proxy_url = settings.get('railway_proxy_url', '').strip() or RAILWAY_PROXY_URL
+    except Exception:
+        proxy_url = RAILWAY_PROXY_URL
+    
+    if not proxy_url:
+        logger.warning(f"Railway proxy URL not configured; skipping email to {to_email}")
+        logger.warning(f"Falling back to SMTP for {to_email}")
+        return send_smtp_email(to_email, subject, html_body, text_body)
+    
+    # Validate SMTP credentials are available
+    if not SMTP_USER or not SMTP_PASSWORD:
+        logger.error(f"SMTP credentials not configured for Railway proxy; cannot send email to {to_email}")
+        return False
+    
+    try:
+        import requests
+        
+        # Prepare the request payload
+        payload = {
+            "smtp": {
+                "host": SMTP_SERVER,
+                "port": SMTP_PORT,
+                "secure": SMTP_PORT == 465,  # SSL for port 465, STARTTLS for others
+                "user": SMTP_USER,
+                "pass": SMTP_PASSWORD
+            },
+            "mail": {
+                "from": SENDER_EMAIL,
+                "to": to_email,
+                "subject": subject,
+                "html": html_body
+            }
+        }
+        
+        # Add text body if provided
+        if text_body:
+            payload["mail"]["text"] = text_body
+        
+        # Ensure proxy URL ends with /send-mail
+        if not proxy_url.endswith('/send-mail'):
+            proxy_url = proxy_url.rstrip('/') + '/send-mail'
+        
+        # Send request to Railway proxy
+        logger.info(f"Sending email via Railway proxy: {proxy_url} to {to_email}")
+        response = requests.post(
+            proxy_url,
+            json=payload,
+            timeout=30,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        # Check response
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                logger.info(f"Email sent via Railway proxy to {to_email}: {subject}")
+                logger.info(f"Railway proxy response: messageId={result.get('messageId')}")
+                return True
+            else:
+                logger.error(f"Railway proxy returned success=false: {result.get('error')}")
+                return False
+        else:
+            logger.error(f"Railway proxy returned status {response.status_code}: {response.text}")
+            return False
+            
+    except ImportError:
+        logger.error("Requests library not available. Install it with: pip install requests")
+        return False
+    except requests.exceptions.Timeout:
+        logger.error(f"Railway proxy request timeout for {to_email}")
+        return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Railway proxy request failed for {to_email}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send email via Railway proxy to {to_email}: {e}")
+        return False
 
 
 def create_verification_token(user_id: int, token_type: str = 'email_verify', expires_in_hours: int = 24) -> Optional[str]:

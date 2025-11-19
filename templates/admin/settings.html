@@ -15,6 +15,9 @@
                         <option value="smtp" {% if settings.get('email_provider', 'smtp') == 'smtp' %}selected{% endif %}>
                             SMTP (Traditional Email)
                         </option>
+                        <option value="railway_proxy" {% if settings.get('email_provider') == 'railway_proxy' %}selected{% endif %}>
+                            Railway Proxy (HTTP-to-SMTP Relay)
+                        </option>
                         <option value="resend" {% if settings.get('email_provider') == 'resend' %}selected{% endif %}>
                             Resend (API-based)
                         </option>
@@ -27,9 +30,21 @@
                         <br>
                         <strong>SMTP:</strong> Traditional email using SMTP server (configured via environment variables)
                         <br>
+                        <strong>Railway Proxy:</strong> HTTP-to-SMTP relay service for platforms that block SMTP (e.g., Render free tier)
+                        <br>
                         <strong>Resend:</strong> Modern API-based email service (requires RESEND_API_KEY in .env)
                         <br>
                         <strong>OAuth2 Outlook:</strong> Microsoft Outlook with OAuth2 authentication
+                    </small>
+                </div>
+                
+                <div class="form-group" id="railway_proxy_url_group" style="display: none;">
+                    <label for="railway_proxy_url">Railway Proxy URL</label>
+                    <input type="url" name="railway_proxy_url" id="railway_proxy_url" class="form-control" 
+                           value="{{ settings.get('railway_proxy_url', '') }}" 
+                           placeholder="https://your-app.railway.app">
+                    <small class="form-text text-muted">
+                        The URL of your Railway email relay service (e.g., https://your-app.railway.app)
                     </small>
                 </div>
                 
@@ -48,6 +63,19 @@
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">Email Configuration Guide</h5>
+            
+            <div class="alert alert-info">
+                <h6>Railway Proxy Configuration</h6>
+                <p>For platforms that block SMTP (like Render free tier):</p>
+                <ol>
+                    <li>Deploy the Railway email relay service from <code>railway-email-relay/</code> directory</li>
+                    <li>Get the public URL from Railway (e.g., https://your-app.railway.app)</li>
+                    <li>Configure SMTP credentials in Railway environment variables or pass them in requests</li>
+                    <li>Enter the Railway URL above</li>
+                </ol>
+                <p><small><strong>Note:</strong> The Railway service still needs SMTP credentials to send emails.</small></p>
+            </div>
+            
             <div class="alert alert-info">
                 <h6>SMTP Configuration</h6>
                 <p>Set these environment variables in your .env file:</p>
@@ -68,4 +96,26 @@ SENDER_EMAIL=your-verified-sender@yourdomain.com</pre>
         </div>
     </div>
 </div>
+
+<script>
+// Show/hide Railway Proxy URL field based on email provider selection
+document.addEventListener('DOMContentLoaded', function() {
+    const emailProviderSelect = document.getElementById('email_provider');
+    const railwayProxyUrlGroup = document.getElementById('railway_proxy_url_group');
+    
+    function toggleRailwayProxyUrl() {
+        if (emailProviderSelect.value === 'railway_proxy') {
+            railwayProxyUrlGroup.style.display = 'block';
+        } else {
+            railwayProxyUrlGroup.style.display = 'none';
+        }
+    }
+    
+    // Initial state
+    toggleRailwayProxyUrl();
+    
+    // On change
+    emailProviderSelect.addEventListener('change', toggleRailwayProxyUrl);
+});
+</script>
 {% endblock %}
