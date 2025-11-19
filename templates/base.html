@@ -620,6 +620,18 @@
     }
   </style>
 
+  <style>
+    /* Dark mode overrides for common Tailwind classes used in forms and panels */
+    [data-theme="dark"] .bg-gray-50 {
+      background-color: var(--bg-secondary) !important;
+    }
+    [data-theme="dark"] .text-gray-700 {
+      color: var(--text-primary) !important;
+    }
+    [data-theme="dark"] .border-gray-200 {
+      border-color: var(--border-color) !important;
+    }
+  </style>
     
   {% block head_extra %}{% endblock %}
 </head>
