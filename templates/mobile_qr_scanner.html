@@ -575,6 +575,7 @@
     }
   </style>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
   <main>
@@ -611,6 +612,11 @@
           <span class="slider" aria-hidden="true"></span>
           <span class="label">Επαναληπτική εισαγωγή</span>
         </label>
+      </div>
+
+      <div class="mode-toggle" role="group" aria-label="Επιλογή τρόπου σάρωσης" id="scanModeToggle" style="display: none;">
+        <button type="button" data-scan-mode="qr">QR Scan</button>
+        <button type="button" data-scan-mode="ocr">OCR Live</button>
       </div>
 
       <div class="scanner-wrapper" id="scannerWrapper">
@@ -734,11 +740,14 @@
       const scanFrame = document.getElementById('scanFrame');
       const scanFlash = document.getElementById('scanFlash');
       const defaultResultText = resultEl ? resultEl.innerHTML : '';
+      const scanModeToggle = document.getElementById('scanModeToggle');
+      const scanModeButtons = Array.from(document.querySelectorAll('[data-scan-mode]'));
 
       CFG.mode = CFG.mode === 'receipts' ? 'receipts' : 'invoices';
       CFG.repeatEnabled = CFG.repeatEnabled === true || CFG.repeatEnabled === 'true' || CFG.repeatEnabled === 1 ? true : !!CFG.repeatEnabled;
       CFG.summaryVersion = CFG.summaryVersion || 0;
       CFG.autoSubmit = CFG.autoSubmit === true || CFG.autoSubmit === 'true' || CFG.autoSubmit === 1 ? true : !!CFG.autoSubmit;
+      CFG.scanMode = 'qr'; // default to QR scanning
 
       let html5QrCode = null;
       let cameras = [];
@@ -751,6 +760,10 @@
       let countdownTimer = null;
       let frameHighlightTimer = null;
       let lastSummaryHash = '';
+      let ocrWorker = null;
+      let ocrProcessing = false;
+      let videoElement = null;
+      let ocrIntervalId = null;
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -1065,7 +1078,100 @@
         const changed = normalized !== CFG.mode;
         CFG.mode = normalized;
         updateModeBadge();
+        updateScanModeToggleVisibility();
         return { mode: normalized, changed };
+      }
+
+      function updateScanModeToggleVisibility(){
+        if (!scanModeToggle) return;
+        // Only show QR/OCR toggle when in invoices mode
+        if (CFG.mode === 'invoices') {
+          scanModeToggle.style.display = '';
+        } else {
+          scanModeToggle.style.display = 'none';
+        }
+      }
+
+      function applyScanMode(newScanMode){
+        const normalized = newScanMode === 'ocr' ? 'ocr' : 'qr';
+        const changed = normalized !== CFG.scanMode;
+        CFG.scanMode = normalized;
+        updateScanModeButtons();
+        return { scanMode: normalized, changed };
+      }
+
+      function updateScanModeButtons(){
+        if (!scanModeButtons || !scanModeButtons.length) return;
+        scanModeButtons.forEach(btn => {
+          if (!btn) return;
+          const target = btn.getAttribute('data-scan-mode');
+          const active = target === CFG.scanMode;
+          btn.classList.toggle('active', active);
+        });
+      }
+
+      function extractMARKFromText(text){
+        // Extract 15-digit MARK from OCR text
+        // Look for patterns like: 15 digits, possibly with spaces or dashes
+        const cleaned = text.replace(/[\s\-]/g, '');
+        const matches = cleaned.match(/\d{15}/g);
+        return matches && matches.length > 0 ? matches[0] : null;
+      }
+
+      async function initOCRWorker(){
+        if (ocrWorker) return ocrWorker;
+        try {
+          if (typeof Tesseract === 'undefined') {
+            console.error('Tesseract.js not loaded');
+            return null;
+          }
+          setStatus('Φόρτωση OCR engine...', 'info');
+          ocrWorker = await Tesseract.createWorker('ell+eng', 1, {
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                const progress = Math.round(m.progress * 100);
+                if (progress % 20 === 0) {
+                  console.log('OCR progress:', progress + '%');
+                }
+              }
+            }
+          });
+          setStatus('OCR engine έτοιμο', 'success');
+          return ocrWorker;
+        } catch (err) {
+          console.error('Failed to initialize OCR worker:', err);
+          setStatus('Σφάλμα φόρτωσης OCR', 'error');
+          return null;
+        }
+      }
+
+      async function processOCRFrame(){
+        if (ocrProcessing || !videoElement || !ocrWorker) return;
+        
+        ocrProcessing = true;
+        try {
+          // Create canvas to capture video frame
+          const canvas = document.createElement('canvas');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(videoElement, 0, 0);
+          
+          // Run OCR on the frame
+          const { data: { text } } = await ocrWorker.recognize(canvas);
+          
+          if (text) {
+            const mark = extractMARKFromText(text);
+            if (mark && mark !== lastSentText) {
+              pulseFrame('detected');
+              pushPayload(mark);
+            }
+          }
+        } catch (err) {
+          console.warn('OCR processing error:', err);
+        } finally {
+          ocrProcessing = false;
+        }
       }
 
       async function sendSessionUpdate(payload, options){
@@ -1294,6 +1400,16 @@
 
       async function startScanner(preferredId){
         if (!ensureSecureContext()) return;
+        
+        // Check scan mode and start appropriate scanner
+        if (CFG.scanMode === 'ocr' && CFG.mode === 'invoices') {
+          await startOCRScanner(preferredId);
+        } else {
+          await startQRScanner(preferredId);
+        }
+      }
+
+      async function startQRScanner(preferredId){
         if (typeof window.Html5Qrcode === 'undefined') {
           setStatus('Δεν φορτώθηκε η βιβλιοθήκη html5-qrcode.', 'error');
           return;
@@ -1323,8 +1439,60 @@
           }
           await evaluateTorchSupport();
         } catch (err) {
-          console.error('startScanner failed', err);
+          console.error('startQRScanner failed', err);
           setStatus('Αποτυχία εκκίνησης της κάμερας. Έλεγξε τα δικαιώματα.', 'error');
+        }
+      }
+
+      async function startOCRScanner(preferredId){
+        try {
+          // Initialize OCR worker if not already done
+          if (!ocrWorker) {
+            ocrWorker = await initOCRWorker();
+            if (!ocrWorker) {
+              setStatus('Δεν ήταν δυνατή η εκκίνηση του OCR engine', 'error');
+              return;
+            }
+          }
+
+          // Get camera stream
+          const cameraConfig = preferredId 
+            ? { video: { deviceId: { exact: preferredId }, facingMode: 'environment' } }
+            : { video: { facingMode: 'environment' } };
+          
+          const stream = await navigator.mediaDevices.getUserMedia(cameraConfig);
+          
+          // Create or get video element
+          const readerDiv = document.getElementById(readerId);
+          if (!readerDiv) return;
+          
+          // Clear any existing content
+          readerDiv.innerHTML = '';
+          
+          // Create video element
+          videoElement = document.createElement('video');
+          videoElement.setAttribute('playsinline', 'true');
+          videoElement.style.width = '100%';
+          videoElement.style.height = 'auto';
+          videoElement.srcObject = stream;
+          videoElement.play();
+          
+          readerDiv.appendChild(videoElement);
+          
+          scanning = true;
+          setStatus('OCR σάρωση ενεργή. Κατέθεσε το έγγραφο στη φωτογραφική μηχανή.', 'success');
+          
+          if (startStopBtn) {
+            startStopBtn.disabled = false;
+            startStopBtn.textContent = 'Παύση σάρωσης';
+          }
+          
+          // Start OCR processing interval (every 2 seconds to avoid overload)
+          ocrIntervalId = setInterval(processOCRFrame, 2000);
+          
+        } catch (err) {
+          console.error('startOCRScanner failed', err);
+          setStatus('Αποτυχία εκκίνησης της κάμερας για OCR. Έλεγξε τα δικαιώματα.', 'error');
         }
       }
 
@@ -1337,6 +1505,14 @@
           clearInterval(countdownTimer);
           countdownTimer = null;
         }
+        
+        // Stop OCR interval if running
+        if (ocrIntervalId) {
+          clearInterval(ocrIntervalId);
+          ocrIntervalId = null;
+        }
+        
+        // Stop QR scanner if running
         if (html5QrCode && scanning){
           try {
             await html5QrCode.stop();
@@ -1344,6 +1520,15 @@
             console.warn('stopScanner', err);
           }
         }
+        
+        // Stop video stream if using OCR
+        if (videoElement && videoElement.srcObject) {
+          const tracks = videoElement.srcObject.getTracks();
+          tracks.forEach(track => track.stop());
+          videoElement.srcObject = null;
+          videoElement = null;
+        }
+        
         scanning = false;
         torchSupported = false;
         torchOn = false;
@@ -1591,6 +1776,22 @@
         }
       });
 
+      scanModeButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          const choice = btn.getAttribute('data-scan-mode');
+          const { scanMode, changed } = applyScanMode(choice);
+          if (changed){
+            setStatus(scanMode === 'ocr' ? 'Λειτουργία OCR ενεργοποιήθηκε.' : 'Λειτουργία QR ενεργοποιήθηκε.', 'info');
+            // Restart scanner with new mode if already scanning
+            if (scanning) {
+              await stopScanner();
+              await startScanner(cameraSelect ? cameraSelect.value : undefined);
+            }
+          }
+        });
+      });
+
       summarySaveBtn?.addEventListener('click', () => {
         setSummaryStatus('Αποστολή αποθήκευσης…', null);
         sendControlCommand({ type: 'summary_save' });
@@ -1609,6 +1810,8 @@
       updateModeBadge();
       updateAutoSubmitControls();
       updateRepeatToggle();
+      updateScanModeToggleVisibility();
+      updateScanModeButtons();
       attach();
     })();
   </script>
