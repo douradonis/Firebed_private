@@ -1111,10 +1111,12 @@ def api_email_config():
             # Check configuration status for different providers
             smtp_configured = bool(email_utils.SMTP_USER and email_utils.SMTP_PASSWORD)
             resend_configured = bool(email_utils.RESEND_API_KEY)
+            railway_proxy_configured = bool(settings.get('railway_proxy_url') or email_utils.RAILWAY_PROXY_URL)
             
             config_status = {
                 'smtp': smtp_configured,
                 'resend': resend_configured,
+                'railway_proxy': railway_proxy_configured and smtp_configured,
                 'oauth2_outlook': False  # TODO: Add OAuth2 check
             }
             
@@ -1128,7 +1130,11 @@ def api_email_config():
                 'resend': {
                     'api_key_set': bool(email_utils.RESEND_API_KEY),
                     'sender': email_utils.RESEND_EMAIL_SENDER or email_utils.SENDER_EMAIL
-                } if resend_configured else None
+                } if resend_configured else None,
+                'railway_proxy': {
+                    'proxy_url': settings.get('railway_proxy_url') or email_utils.RAILWAY_PROXY_URL,
+                    'smtp_configured': smtp_configured
+                } if railway_proxy_configured else None
             }
             
             return jsonify({

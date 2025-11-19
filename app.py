@@ -9376,8 +9376,13 @@ def admin_settings_save():
     
     # Save email provider setting
     email_provider = form.get('email_provider', '').strip()
-    if email_provider in ['smtp', 'resend', 'oauth2_outlook']:
+    if email_provider in ['smtp', 'resend', 'oauth2_outlook', 'railway_proxy']:
         settings['email_provider'] = email_provider
+    
+    # Save railway proxy URL if provided
+    railway_proxy_url = form.get('railway_proxy_url', '').strip()
+    if railway_proxy_url:
+        settings['railway_proxy_url'] = railway_proxy_url
     
     save_settings(settings)
     flash('Settings saved', 'success')
