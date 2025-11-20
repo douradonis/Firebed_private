@@ -124,7 +124,7 @@
         <!-- HEADER -->
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold">
-                Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
+                 Περίληψη Παραστατικού - <span id="summaryModalMark">MARK</span>
             </h3>
             <button id="modalCloseX" class="text-gray-500 text-xl font-bold">✕</button>
         </div>
@@ -2984,7 +2984,9 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
 
     function schedulePoll(delay){
       stopPoll();
-      pollTimer = setTimeout(runPoll, delay || 1500);
+      // Adaptive polling: γρηγορότερο όταν υπάρχει ενεργή συσκευή, πιο αργό όταν περιμένουμε
+      const adaptiveDelay = delay || (hasRemoteDevice && isAttached ? 1000 : (hasRemoteDevice ? 1500 : 2500));
+      pollTimer = setTimeout(runPoll, adaptiveDelay);
     }
 
     async function runPoll(){
@@ -3135,10 +3137,24 @@ document.addEventListener('DOMContentLoaded', replayPersistedReceiptFlash, { onc
         }
 
         persistSessionState();
-        schedulePoll(data.payload ? 800 : 2000);
+        
+        // Adaptive polling: πιο γρήγορο όταν υπάρχουν δεδομένα ή ενεργή συσκευή
+        let nextPollDelay = 2000; // default
+        if (data.payload) {
+          nextPollDelay = 600; // Πολύ γρήγορο μετά από scan
+        } else if (isAttached) {
+          nextPollDelay = 1000; // Γρήγορο όταν συνδεδεμένο
+        } else if (hasRemoteDevice) {
+          const idleTime = Date.now() - lastRemoteActivity;
+          nextPollDelay = idleTime < 30000 ? 1200 : 2000; // Πιο γρήγορο αν πρόσφατα ενεργό
+        } else {
+          nextPollDelay = 2500; // Πιο αργό όταν περιμένουμε σύνδεση
+        }
+        
+        schedulePoll(nextPollDelay);
       } catch (err){
         console.warn('remote poll error', err);
-        setStatus('Προσωρινό σφάλμα σύνδεσης. Επανέλεγχος…', 'error');
+        setStatus('⚠️ Προσωρινό σφάλμα σύνδεσης. Επανέλεγχος…', 'error');
         schedulePoll(4000);
       }
     }

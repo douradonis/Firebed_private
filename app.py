@@ -6402,7 +6402,7 @@ def search():
                             except Exception:
                                 log.exception("Receipt detect_and_scrape failed for URL %s", mark)
                         if not scraped_marks:
-                            error = "Άγνωστο URL για scraping."
+                            flash("Άγνωστο URL για scraping.", "error")
                 except Exception as e:
                     log.exception("Scraping failed for URL %s", mark)
                     error = f"Αποτυχία ανάγνωσης URL: {str(e)}"
@@ -6471,7 +6471,7 @@ def search():
             if not docs_for_mark:
                 # ΜΗ βγάζεις error αν υπάρχει modal_warning — αφήνουμε το warning modal να εμφανιστεί
                 if not modal_warning:
-                    error = f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch."
+                    flash(f"MARK {mark} όχι στην cache του πελάτη {vat}. Κάνε πρώτα Fetch.", "error")
             else:
                 if not classified_flag:
                     try:

@@ -11,6 +11,36 @@
 .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+
+/* Dark mode table styling */
+[data-theme="dark"] #epsilonTable {
+  border: 2px solid #4b5563 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+[data-theme="dark"] #epsilonTable thead {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+}
+
+[data-theme="dark"] #epsilonTable thead th {
+  color: #f9fafb !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #60a5fa !important;
+  padding: 12px 8px !important;
+}
+
+[data-theme="dark"] #epsilonTable tbody tr {
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] #epsilonTable tbody tr:hover {
+  background-color: #1e3a5f !important;
+}
+
+[data-theme="dark"] #epsilonTable tbody td {
+  color: #e5e7eb !important;
+}
 </style>
 <style>
   .container { max-width: min(1800px, 96vw); }

@@ -17,7 +17,7 @@
       this.onSuccess = this.config.onSuccess || function() {};
       this.onError = this.config.onError || function() {};
       this.onStatusChange = this.config.onStatusChange || function() {};
-      this.scanInterval = this.config.scanInterval || 2000; // ms between scans
+      this.scanInterval = this.config.scanInterval || 200; // ms between scans
       this.languages = this.config.languages || 'ell+eng'; // Greek + English
       this.overlayCanvas = null;
       this.highlightTimeout = null;

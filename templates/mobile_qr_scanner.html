@@ -755,7 +755,7 @@
       let scanning = false;
       let torchSupported = false;
       let torchOn = false;
-      const HEARTBEAT_INTERVAL = 5000;
+      const HEARTBEAT_INTERVAL = 200; // Πιο συχνό heartbeat (5000 → 2000ms) για καλύτερη ανίχνευση αποσύνδεσης
       let heartbeatTimer = null;
       let lastSentText = '';
       let countdownTimer = null;
@@ -764,6 +764,8 @@
       let ocrScanner = null;
       let sendingInProgress = false;
       let lastOcrHighlight = null;
+      let missedHeartbeats = 0; // Counter για ανίχνευση αποσύνδεσης
+      const MAX_MISSED_HEARTBEATS = 3; // Μετά από 3 αποτυχημένα heartbeats, ειδοποίηση
 
       function setStatus(text, tone){
         if (!statusEl) return;
@@ -1511,12 +1513,31 @@
             credentials: 'same-origin',
             body: JSON.stringify({ session_id: CFG.sessionId, token: CFG.token, mode: CFG.mode, repeat_enabled: CFG.repeatEnabled, auto_submit_enabled: CFG.autoSubmit })
           });
+          
           if (res.status === 410) {
-            setStatus('Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
+            setStatus('⚠️ Η συνεδρία έληξε. Δημιούργησε νέα από τον υπολογιστή.', 'error');
             disableControls();
             await stopScanner();
             return;
           }
+          
+          if (!res.ok) {
+            missedHeartbeats++;
+            if (missedHeartbeats >= MAX_MISSED_HEARTBEATS) {
+              setStatus('⚠️ Χάθηκε η σύνδεση με τον υπολογιστή. Έλεγξε τη σύνδεση δικτύου.', 'error');
+              // Συνεχίζουμε να προσπαθούμε, δεν σταματάμε αυτόματα
+            } else {
+              console.warn(`Heartbeat failed (${missedHeartbeats}/${MAX_MISSED_HEARTBEATS})`);
+            }
+            return;
+          }
+          
+          // Reset counter επιτυχημένου heartbeat
+          if (missedHeartbeats > 0) {
+            setStatus('✅ Η σύνδεση αποκαταστάθηκε!', 'success');
+            missedHeartbeats = 0;
+          }
+          
           const data = await res.json().catch(() => null);
           if (data && data.expires_at) {
             CFG.expiresAt = data.expires_at;
@@ -1532,13 +1553,24 @@
             applyAutoSubmit(data.auto_submit_enabled);
           }
           if (data && Object.prototype.hasOwnProperty.call(data, 'summary_version')){
-            CFG.summaryVersion = data.summary_version || CFG.summaryVersion;
+            const newVersion = data.summary_version || 0;
+            if (newVersion > (CFG.summaryVersion || 0)) {
+              CFG.summaryVersion = newVersion;
+              // Ενημέρωση UI με νέα δεδομένα
+              if (data.summary_state) {
+                applySummaryState(data.summary_state, newVersion);
+              }
+            }
           }
           if (data && data.summary_state){
             applySummaryState(data.summary_state, CFG.summaryVersion);
           }
         } catch (err) {
-          console.warn('heartbeat failed', err);
+          missedHeartbeats++;
+          console.warn(`heartbeat failed (${missedHeartbeats}/${MAX_MISSED_HEARTBEATS})`, err);
+          if (missedHeartbeats >= MAX_MISSED_HEARTBEATS) {
+            setStatus('⚠️ Δεν μπορεί να επικοινωνήσει με τον server. Έλεγξε τη σύνδεση.', 'error');
+          }
         }
       }
 
