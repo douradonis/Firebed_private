@@ -273,6 +273,60 @@
       0% { opacity: 0.85; transform: scale(0.92); }
       100% { opacity: 0; transform: scale(1); }
     }
+    /* OCR Focus Guide - Android-style scanning frame */
+    .ocr-focus-guide {
+      position: absolute;
+      pointer-events: none;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+    .ocr-focus-guide.active {
+      display: flex;
+    }
+    .ocr-guide-frame {
+      position: relative;
+      width: min(420px, 85%);
+      height: min(280px, 45%);
+      border: 2px dashed rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.15);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+    }
+    .ocr-guide-corner {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border: 3px solid #00ff00;
+    }
+    .ocr-guide-corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 14px; }
+    .ocr-guide-corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 14px; }
+    .ocr-guide-corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 14px; }
+    .ocr-guide-corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 14px; }
+    .ocr-guide-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      line-height: 1.4;
+    }
+    .ocr-guide-label .icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 8px;
+      animation: pulse-icon 2s ease-in-out infinite;
+    }
+    @keyframes pulse-icon {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
     #mobileResult {
       background: rgba(15, 23, 42, 0.08);
       border-radius: 16px;
@@ -630,6 +684,19 @@
             <span class="scan-corner br"></span>
           </div>
           <div id="scanFlash" class="scan-flash"></div>
+        </div>
+        <!-- OCR Focus Guide (Android-style) -->
+        <div id="ocrFocusGuide" class="ocr-focus-guide">
+          <div class="ocr-guide-frame">
+            <span class="ocr-guide-corner tl"></span>
+            <span class="ocr-guide-corner tr"></span>
+            <span class="ocr-guide-corner bl"></span>
+            <span class="ocr-guide-corner br"></span>
+            <div class="ocr-guide-label">
+              <span class="icon">📄</span>
+              Τοποθέτησε το MARK<br>εδώ
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1389,8 +1456,11 @@
           // Initialize OCR scanner if not already done
           if (!ocrScanner) {
             ocrScanner = new window.MobileOCRScanner({
-              scanInterval: 2000,
-              languages: 'ell+eng',
+              scanInterval: 150, // Fast scanning like native Android OCR
+              languages: 'eng', // English-only for maximum speed
+              usePreprocessing: true, // Enable image enhancement
+              focusCenter: true, // Crop to center area for speed
+              cropFactor: 0.65, // Use center 65% of frame
               // Called when a MARK is recognized by OCR
               onSuccess: (mark, text, meta) => {
                 try {
@@ -1427,6 +1497,9 @@
           try {
             if (scanFrame) scanFrame.style.display = 'none';
             if (scanFlash) scanFlash.style.display = 'none';
+            // Show OCR focus guide
+            const ocrGuide = document.getElementById('ocrFocusGuide');
+            if (ocrGuide) ocrGuide.classList.add('active');
           } catch (e) { /* ignore */ }
           
           scanning = true;
@@ -1451,6 +1524,12 @@
           clearInterval(countdownTimer);
           countdownTimer = null;
         }
+        
+        // Hide OCR focus guide
+        try {
+          const ocrGuide = document.getElementById('ocrFocusGuide');
+          if (ocrGuide) ocrGuide.classList.remove('active');
+        } catch (e) { /* ignore */ }
         
         // Stop OCR scanner if running
         if (ocrScanner && ocrScanner.isScanning()) {

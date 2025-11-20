@@ -17,13 +17,16 @@
       this.onSuccess = this.config.onSuccess || function() {};
       this.onError = this.config.onError || function() {};
       this.onStatusChange = this.config.onStatusChange || function() {};
-      this.scanInterval = this.config.scanInterval || 200; // ms between scans
-      this.languages = this.config.languages || 'ell+eng'; // Greek + English
+      this.scanInterval = this.config.scanInterval || 150; // ms between scans (faster for real-time)
+      this.languages = this.config.languages || 'eng'; // English-only for maximum speed
       this.overlayCanvas = null;
       this.highlightTimeout = null;
       this.showOverlay = this.config.showOverlay !== false; // default true
       this.highlightDuration = this.config.highlightDuration || 800; // ms
       this.onHighlight = this.config.onHighlight || function() {};
+      this.usePreprocessing = this.config.usePreprocessing !== false; // default true
+      this.focusCenter = this.config.focusCenter !== false; // default true (crop to center for speed)
+      this.cropFactor = this.config.cropFactor || 0.6; // use center 60% of image
     }
 
     /**
@@ -50,6 +53,13 @@
               }
             }
           }
+        });
+
+        // Configure for speed and accuracy with numbers
+        await this.worker.setParameters({
+          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // PSM 6: uniform text block
+          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω.,:-/ ',
+          preserve_interword_spaces: '0'
         });
 
         this.onStatusChange('OCR engine έτοιμο', 'success');
@@ -121,6 +131,35 @@
     }
 
     /**
+     * Preprocess image for better OCR accuracy (like Android native OCR)
+     */
+    preprocessImage(canvas) {
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Convert to grayscale and apply contrast enhancement
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Grayscale conversion
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        
+        // Contrast enhancement (increase difference from mid-gray)
+        const contrast = 1.5;
+        gray = ((gray - 128) * contrast) + 128;
+        gray = Math.max(0, Math.min(255, gray));
+        
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      return canvas;
+    }
+
+    /**
      * Process a single video frame for OCR
      */
     async processFrame() {
@@ -132,18 +171,49 @@
 
       try {
         // Create canvas to capture video frame
-        const canvas = document.createElement('canvas');
-        canvas.width = this.videoElement.videoWidth;
-        canvas.height = this.videoElement.videoHeight;
-
-        if (canvas.width === 0 || canvas.height === 0) {
+        const fullCanvas = document.createElement('canvas');
+        const vw = this.videoElement.videoWidth;
+        const vh = this.videoElement.videoHeight;
+        
+        if (vw === 0 || vh === 0) {
           // Video not ready yet
           this.processing = false;
           return;
         }
 
+        // Optionally crop to center area for faster processing
+        let canvas, sourceX, sourceY, sourceW, sourceH;
+        if (this.focusCenter && this.cropFactor < 1.0) {
+          const crop = this.cropFactor;
+          sourceW = Math.floor(vw * crop);
+          sourceH = Math.floor(vh * crop);
+          sourceX = Math.floor((vw - sourceW) / 2);
+          sourceY = Math.floor((vh - sourceH) / 2);
+          
+          canvas = document.createElement('canvas');
+          // Reduce resolution for speed (max 800px width)
+          const scale = Math.min(1.0, 800 / sourceW);
+          canvas.width = Math.floor(sourceW * scale);
+          canvas.height = Math.floor(sourceH * scale);
+        } else {
+          sourceX = 0;
+          sourceY = 0;
+          sourceW = vw;
+          sourceH = vh;
+          canvas = fullCanvas;
+          // Reduce resolution for speed (max 800px width)
+          const scale = Math.min(1.0, 800 / vw);
+          canvas.width = Math.floor(vw * scale);
+          canvas.height = Math.floor(vh * scale);
+        }
+
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(this.videoElement, 0, 0);
+        ctx.drawImage(this.videoElement, sourceX, sourceY, sourceW, sourceH, 0, 0, canvas.width, canvas.height);
+        
+        // Apply preprocessing for better OCR
+        if (this.usePreprocessing) {
+          this.preprocessImage(canvas);
+        }
 
         // Run OCR on the frame
         const result = await this.worker.recognize(canvas);
@@ -167,10 +237,26 @@
                 if (joinedDigits === match.mark) {
                   // Combine bounding boxes from words i..j
                   const boxes = words.slice(i, j + 1).map(w => w.bbox || w);
-                  const x0 = Math.min(...boxes.map(b => b.x0 ?? b.x0));
-                  const y0 = Math.min(...boxes.map(b => b.y0 ?? b.y0));
-                  const x1 = Math.max(...boxes.map(b => b.x1 ?? b.x1));
-                  const y1 = Math.max(...boxes.map(b => b.y1 ?? b.y1));
+                  let x0 = Math.min(...boxes.map(b => b.x0 ?? b.x0));
+                  let y0 = Math.min(...boxes.map(b => b.y0 ?? b.y0));
+                  let x1 = Math.max(...boxes.map(b => b.x1 ?? b.x1));
+                  let y1 = Math.max(...boxes.map(b => b.y1 ?? b.y1));
+                  
+                  // Adjust bbox coordinates back to full video dimensions if cropped
+                  if (this.focusCenter && this.cropFactor < 1.0) {
+                    const scaleBack = sourceW / canvas.width;
+                    x0 = (x0 * scaleBack) + sourceX;
+                    y0 = (y0 * scaleBack) + sourceY;
+                    x1 = (x1 * scaleBack) + sourceX;
+                    y1 = (y1 * scaleBack) + sourceY;
+                  } else {
+                    const scaleBack = vw / canvas.width;
+                    x0 *= scaleBack;
+                    y0 *= scaleBack;
+                    x1 *= scaleBack;
+                    y1 *= scaleBack;
+                  }
+                  
                   bbox = { x0, y0, x1, y1 };
                   break;
                 }
@@ -179,7 +265,7 @@
 
             // If overlay is enabled, draw highlight
             if (this.showOverlay && bbox && this.videoElement) {
-              this._drawHighlight(bbox, canvas.width, canvas.height);
+              this._drawHighlight(bbox, vw, vh);
             }
 
             // Log / notify prefix detection
@@ -333,6 +419,7 @@
 
     /**
      * Draw highlight box over detected bbox. bbox coordinates are in camera image space.
+     * Enhanced visual feedback like Android native OCR with animated border and corner markers
      */
     _drawHighlight(bbox, imageWidth, imageHeight) {
       if (!this.overlayCanvas || !this.videoElement) return;
@@ -355,15 +442,77 @@
       const w = (bbox.x1 - bbox.x0) * scaleX;
       const h = (bbox.y1 - bbox.y0) * scaleY;
 
-      // Draw semi-transparent fill and border
-      ctx.fillStyle = 'rgba(255, 230, 0, 0.18)';
-      ctx.strokeStyle = 'rgba(255, 180, 0, 0.95)';
-      ctx.lineWidth = Math.max(2, Math.min(6, (ctx.canvas.width + ctx.canvas.height) / 300));
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      // Add padding around detected text
+      const padding = Math.min(w, h) * 0.1;
+      const drawX = Math.max(0, x - padding);
+      const drawY = Math.max(0, y - padding);
+      const drawW = Math.min(this.overlayCanvas.width - drawX, w + 2 * padding);
+      const drawH = Math.min(this.overlayCanvas.height - drawY, h + 2 * padding);
+
+      // Draw semi-transparent fill
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.15)';
+      ctx.fillRect(drawX, drawY, drawW, drawH);
+
+      // Draw vibrant border (like Android green highlight)
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = Math.max(3, Math.min(8, (ctx.canvas.width + ctx.canvas.height) / 200));
+      ctx.shadowColor = '#00ff00';
+      ctx.shadowBlur = 15;
+      ctx.strokeRect(drawX + 0.5, drawY + 0.5, drawW - 1, drawH - 1);
+      
+      // Reset shadow for corner markers
+      ctx.shadowBlur = 0;
+      
+      // Draw corner markers (like Android camera focus)
+      const cornerLength = Math.min(drawW, drawH) * 0.15;
+      const cornerWidth = ctx.lineWidth + 2;
+      ctx.lineWidth = cornerWidth;
+      ctx.strokeStyle = '#00ff00';
+      
+      // Top-left corner
+      ctx.beginPath();
+      ctx.moveTo(drawX, drawY + cornerLength);
+      ctx.lineTo(drawX, drawY);
+      ctx.lineTo(drawX + cornerLength, drawY);
+      ctx.stroke();
+      
+      // Top-right corner
+      ctx.beginPath();
+      ctx.moveTo(drawX + drawW - cornerLength, drawY);
+      ctx.lineTo(drawX + drawW, drawY);
+      ctx.lineTo(drawX + drawW, drawY + cornerLength);
+      ctx.stroke();
+      
+      // Bottom-left corner
+      ctx.beginPath();
+      ctx.moveTo(drawX, drawY + drawH - cornerLength);
+      ctx.lineTo(drawX, drawY + drawH);
+      ctx.lineTo(drawX + cornerLength, drawY + drawH);
+      ctx.stroke();
+      
+      // Bottom-right corner
+      ctx.beginPath();
+      ctx.moveTo(drawX + drawW - cornerLength, drawY + drawH);
+      ctx.lineTo(drawX + drawW, drawY + drawH);
+      ctx.lineTo(drawX + drawW, drawY + drawH - cornerLength);
+      ctx.stroke();
+
+      // Add "MARK DETECTED" label
+      const fontSize = Math.max(12, Math.min(20, drawH * 0.25));
+      ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      ctx.fillStyle = '#00ff00';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      const labelText = 'MARK ✓';
+      const labelY = drawY - 10;
+      
+      if (labelY > fontSize) {
+        ctx.strokeText(labelText, drawX, labelY);
+        ctx.fillText(labelText, drawX, labelY);
+      }
 
       // Notify listeners
-      try { this.onHighlight({ bbox, x, y, w, h }); } catch (e) { /* ignore */ }
+      try { this.onHighlight({ bbox, x: drawX, y: drawY, w: drawW, h: drawH }); } catch (e) { /* ignore */ }
 
       // Clear after duration
       if (this.highlightTimeout) {
