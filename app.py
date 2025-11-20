@@ -5246,6 +5246,34 @@ def credentials_save_settings():
         return jsonify({'status':'ok'})
     return jsonify({'status':'error'}), 400
 
+@app.route('/api/validate_vat', methods=['POST'])
+def api_validate_vat():
+    """
+    Validate Greek VAT number using EU VIES service
+    Expects JSON: { "vat": "123456789" }
+    Returns: { "valid": bool, "name": str, "address": str, "error": str }
+    """
+    try:
+        from vat_validator import validate_greek_vat
+    except ImportError:
+        log.warning("vat_validator module not available")
+        return jsonify(valid=False, error="VAT validation service not available"), 200
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        vat_number = data.get('vat', '').strip()
+        
+        if not vat_number:
+            return jsonify(valid=False, error="VAT number is required"), 400
+        
+        result = validate_greek_vat(vat_number)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        log.exception("VAT validation error")
+        return jsonify(valid=False, error=f"Validation error: {str(e)}"), 500
+
+
 @app.route('/api/save_receipt', methods=['POST'])
 def api_save_receipt():
     """
