@@ -273,59 +273,81 @@
       0% { opacity: 0.85; transform: scale(0.92); }
       100% { opacity: 0; transform: scale(1); }
     }
-    /* OCR Focus Guide - Android-style scanning frame */
+    /* OCR Focus Guide - Dynamic frame around detected MARK */
     .ocr-focus-guide {
       position: absolute;
       pointer-events: none;
       inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
       z-index: 9998;
     }
     .ocr-focus-guide.active {
-      display: flex;
+      display: block;
     }
     .ocr-guide-frame {
-      position: relative;
-      width: min(420px, 85%);
-      height: min(280px, 45%);
-      border: 2px dashed rgba(255, 255, 255, 0.5);
-      border-radius: 16px;
-      background: rgba(0, 0, 0, 0.15);
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+      position: absolute;
+      border: 3px solid #00ff00;
+      border-radius: 12px;
+      background: rgba(0, 255, 0, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.2);
+      transition: left 0.1s ease-out, top 0.1s ease-out, width 0.1s ease-out, height 0.1s ease-out;
+      will-change: left, top, width, height;
     }
     .ocr-guide-corner {
       position: absolute;
-      width: 40px;
-      height: 40px;
-      border: 3px solid #00ff00;
+      width: 28px;
+      height: 28px;
+      border: 4px solid #00ff00;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
     }
-    .ocr-guide-corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 14px; }
-    .ocr-guide-corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 14px; }
-    .ocr-guide-corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 14px; }
-    .ocr-guide-corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 14px; }
-    .ocr-guide-label {
+    .ocr-guide-corner.tl { top: -4px; left: -4px; border-right: none; border-bottom: none; border-top-left-radius: 10px; }
+    .ocr-guide-corner.tr { top: -4px; right: -4px; border-left: none; border-bottom: none; border-top-right-radius: 10px; }
+    .ocr-guide-corner.bl { bottom: -4px; left: -4px; border-right: none; border-top: none; border-bottom-left-radius: 10px; }
+    .ocr-guide-corner.br { bottom: -4px; right: -4px; border-left: none; border-top: none; border-bottom-right-radius: 10px; }
+    /* Touch-to-focus indicator (Android-style) */
+    .touch-focus-indicator {
+      position: absolute;
+      pointer-events: none;
+      width: 80px;
+      height: 80px;
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      z-index: 9999;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .touch-focus-indicator.active {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    .touch-focus-indicator::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+    }
+    .touch-focus-indicator::after {
+      content: '';
       position: absolute;
       top: 50%;
       left: 50%;
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.8);
       transform: translate(-50%, -50%);
-      color: #ffffff;
-      font-size: 1rem;
-      font-weight: 600;
-      text-align: center;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-      line-height: 1.4;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
     }
-    .ocr-guide-label .icon {
-      font-size: 2rem;
-      display: block;
-      margin-bottom: 8px;
-      animation: pulse-icon 2s ease-in-out infinite;
-    }
-    @keyframes pulse-icon {
-      0%, 100% { opacity: 0.6; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.1); }
+    .touch-focus-indicator .crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.8);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
     }
     #mobileResult {
       background: rgba(15, 23, 42, 0.08);
@@ -685,17 +707,13 @@
           </div>
           <div id="scanFlash" class="scan-flash"></div>
         </div>
-        <!-- OCR Focus Guide (Android-style) -->
+        <!-- OCR Focus Guide (Android-style) - Dynamic frame only shown when MARK detected -->
         <div id="ocrFocusGuide" class="ocr-focus-guide">
-          <div class="ocr-guide-frame">
+          <div id="ocrGuideFrame" class="ocr-guide-frame" style="display: none;">
             <span class="ocr-guide-corner tl"></span>
             <span class="ocr-guide-corner tr"></span>
             <span class="ocr-guide-corner bl"></span>
             <span class="ocr-guide-corner br"></span>
-            <div class="ocr-guide-label">
-              <span class="icon">📄</span>
-              Τοποθέτησε το MARK<br>εδώ
-            </div>
           </div>
         </div>
       </div>
@@ -1451,6 +1469,106 @@
         }
       }
 
+      function setupTouchToFocus(videoElement) {
+        if (!videoElement) return;
+        
+        const wrapper = document.getElementById('scannerWrapper');
+        if (!wrapper) return;
+        
+        // Ensure wrapper has position context
+        if (getComputedStyle(wrapper).position === 'static') {
+          wrapper.style.position = 'relative';
+        }
+        
+        // Create touch focus indicator if it doesn't exist
+        let indicator = wrapper.querySelector('.touch-focus-indicator');
+        if (!indicator) {
+          indicator = document.createElement('div');
+          indicator.className = 'touch-focus-indicator';
+          const crosshair = document.createElement('div');
+          crosshair.className = 'crosshair';
+          indicator.appendChild(crosshair);
+          wrapper.appendChild(indicator);
+        }
+        
+        // Handle touch events on video
+        const handleTouch = async (e) => {
+          e.preventDefault();
+          
+          const touch = e.touches ? e.touches[0] : e;
+          const rect = videoElement.getBoundingClientRect();
+          const wrapperRect = wrapper.getBoundingClientRect();
+          
+          // Calculate position relative to video element
+          const videoX = touch.clientX - rect.left;
+          const videoY = touch.clientY - rect.top;
+          
+          // Calculate position relative to wrapper for indicator placement
+          const relativeX = touch.clientX - wrapperRect.left;
+          const relativeY = touch.clientY - wrapperRect.top;
+          
+          // Position indicator relative to wrapper
+          indicator.style.left = relativeX + 'px';
+          indicator.style.top = relativeY + 'px';
+          indicator.classList.add('active');
+          
+          // Try to apply camera focus if supported
+          try {
+            const stream = videoElement.srcObject;
+            if (stream) {
+              const videoTrack = stream.getVideoTracks()[0];
+              const capabilities = videoTrack.getCapabilities();
+              
+              // Try point-of-interest focus first (if supported)
+              if (capabilities.pointsOfInterest) {
+                const normalizedX = videoX / rect.width;
+                const normalizedY = videoY / rect.height;
+                
+                await videoTrack.applyConstraints({
+                  advanced: [{
+                    pointsOfInterest: [{ x: normalizedX, y: normalizedY }]
+                  }]
+                });
+              } else if (capabilities.focusMode) {
+                // Fallback to manual focus mode
+                const supportedModes = capabilities.focusMode;
+                
+                if (supportedModes.includes('manual')) {
+                  await videoTrack.applyConstraints({
+                    advanced: [{ focusMode: 'manual' }]
+                  });
+                  
+                  // Try to refocus to continuous after a delay
+                  setTimeout(async () => {
+                    try {
+                      await videoTrack.applyConstraints({
+                        advanced: [{ focusMode: 'continuous' }]
+                      });
+                    } catch (e) { /* ignore */ }
+                  }, 1500);
+                } else if (supportedModes.includes('single-shot')) {
+                  // Trigger single autofocus
+                  await videoTrack.applyConstraints({
+                    advanced: [{ focusMode: 'single-shot' }]
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.log('Focus not supported or failed:', err);
+          }
+          
+          // Fade out indicator
+          setTimeout(() => {
+            indicator.classList.remove('active');
+          }, 1200);
+        };
+        
+        videoElement.addEventListener('touchstart', handleTouch, { passive: false });
+        videoElement.addEventListener('click', handleTouch);
+        videoElement.style.cursor = 'crosshair';
+      }
+
       async function startOCRScanner(preferredId){
         try {
           // Initialize OCR scanner if not already done
@@ -1479,7 +1597,41 @@
               },
               // receives scaled overlay coordinates from the worker drawing helper
               onHighlight: (info) => {
-                try { lastOcrHighlight = Object.assign({}, info, { ts: Date.now() }); } catch(e){}
+                try { 
+                  lastOcrHighlight = Object.assign({}, info, { ts: Date.now() });
+                  // Position dynamic frame around detected MARK
+                  const guideFrame = document.getElementById('ocrGuideFrame');
+                  const wrapper = document.getElementById('scannerWrapper');
+                  const readerDiv = document.getElementById(readerId);
+                  
+                  if (guideFrame && wrapper && readerDiv && info.x !== undefined) {
+                    // Get video element inside reader
+                    const videoEl = readerDiv.querySelector('video');
+                    if (!videoEl) return;
+                    
+                    // Get bounding rectangles
+                    const videoRect = videoEl.getBoundingClientRect();
+                    const wrapperRect = wrapper.getBoundingClientRect();
+                    
+                    // The info coordinates are already in overlay canvas space (which matches video display size)
+                    // We need to position the frame relative to the wrapper
+                    const frameX = (videoRect.left - wrapperRect.left) + info.x;
+                    const frameY = (videoRect.top - wrapperRect.top) + info.y;
+                    
+                    // Position and size the frame
+                    guideFrame.style.display = 'block';
+                    guideFrame.style.left = frameX + 'px';
+                    guideFrame.style.top = frameY + 'px';
+                    guideFrame.style.width = info.w + 'px';
+                    guideFrame.style.height = info.h + 'px';
+                    
+                    // Auto-hide after 1.5 seconds if no new detection
+                    clearTimeout(window._ocrFrameTimeout);
+                    window._ocrFrameTimeout = setTimeout(() => {
+                      if (guideFrame) guideFrame.style.display = 'none';
+                    }, 1500);
+                  }
+                } catch(e){ console.warn('onHighlight error:', e); }
               }
             });
           }
@@ -1497,10 +1649,13 @@
           try {
             if (scanFrame) scanFrame.style.display = 'none';
             if (scanFlash) scanFlash.style.display = 'none';
-            // Show OCR focus guide
+            // Show OCR focus guide container (frame will be shown dynamically when MARK detected)
             const ocrGuide = document.getElementById('ocrFocusGuide');
             if (ocrGuide) ocrGuide.classList.add('active');
           } catch (e) { /* ignore */ }
+          
+          // Add touch-to-focus functionality
+          setupTouchToFocus(videoEl);
           
           scanning = true;
           
@@ -1525,10 +1680,13 @@
           countdownTimer = null;
         }
         
-        // Hide OCR focus guide
+        // Hide OCR focus guide and dynamic frame
         try {
           const ocrGuide = document.getElementById('ocrFocusGuide');
           if (ocrGuide) ocrGuide.classList.remove('active');
+          const guideFrame = document.getElementById('ocrGuideFrame');
+          if (guideFrame) guideFrame.style.display = 'none';
+          if (window._ocrFrameTimeout) clearTimeout(window._ocrFrameTimeout);
         } catch (e) { /* ignore */ }
         
         // Stop OCR scanner if running
