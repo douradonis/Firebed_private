@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Πολιτική Απορρήτου - ScanmyData{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Πολιτική Απορρήτου & GDPR</h1>
+    
+    <div class="prose dark:prose-invert max-w-none">
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Τελευταία ενημέρωση: {{ current_date or 'Νοέμβριος 2025' }}</p>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">1. Εισαγωγή</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Η προστασία των προσωπικών σας δεδομένων είναι υψίστης σημασίας για εμάς. Η παρούσα πολιτική 
+          περιγράφει πώς συλλέγουμε, χρησιμοποιούμε, αποθηκεύουμε και προστατεύουμε τα προσωπικά σας δεδομένα 
+          σύμφωνα με τον Γενικό Κανονισμό Προστασίας Δεδομένων (GDPR - EU 2016/679).
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">2. Υπεύθυνος Επεξεργασίας</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Υπεύθυνος επεξεργασίας των προσωπικών δεδομένων είναι το ScanmyData.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">3. Δεδομένα που Συλλέγουμε</h2>
+        
+        <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">3.1 Δεδομένα Εγγραφής</h3>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Email address</li>
+          <li>Όνομα χρήστη (username)</li>
+          <li>Κωδικός πρόσβασης (κρυπτογραφημένος)</li>
+          <li>Ημερομηνία εγγραφής</li>
+        </ul>
+
+        <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">3.2 Στοιχεία Σύνδεσης myDATA</h3>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>User ID ΑΑΔΕ</li>
+          <li>Subscription Key (κρυπτογραφημένο)</li>
+          <li>ΑΦΜ πελατών</li>
+        </ul>
+
+        <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">3.3 Δεδομένα Χρήσης</h3>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>IP addresses</li>
+          <li>Ημερομηνία και ώρα σύνδεσης</li>
+          <li>Ενέργειες χρηστών (login, logout, downloads, uploads, exports)</li>
+          <li>Browser και λειτουργικό σύστημα</li>
+        </ul>
+
+        <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">3.4 Επιχειρηματικά Δεδομένα</h3>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Παραστατικά (τιμολόγια, αποδείξεις)</li>
+          <li>Πελατολόγιο (ΑΦΜ, επωνυμίες)</li>
+          <li>Κατηγοριοποιήσεις εξόδων</li>
+          <li>Αρχεία εξαγωγής (Excel, γέφυρες)</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">4. Σκοπός Επεξεργασίας</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Επεξεργαζόμαστε τα δεδομένα σας για τους εξής σκοπούς:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Παροχή Υπηρεσίας:</strong> Ανάκτηση και επεξεργασία παραστατικών myDATA</li>
+          <li><strong>Ασφάλεια:</strong> Αναγνώριση χρήστη και προστασία λογαριασμού</li>
+          <li><strong>Βελτίωση:</strong> Ανάλυση χρήσης και βελτιστοποίηση της πλατφόρμας</li>
+          <li><strong>Υποστήριξη:</strong> Επίλυση τεχνικών προβλημάτων</li>
+          <li><strong>Νομικές Υποχρεώσεις:</strong> Τήρηση logs για audit purposes</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">5. Νομική Βάση Επεξεργασίας</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Η επεξεργασία των δεδομένων βασίζεται σε:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Συγκατάθεση:</strong> Με την εγγραφή σας αποδέχεστε την επεξεργασία</li>
+          <li><strong>Εκτέλεση Σύμβασης:</strong> Για την παροχή της υπηρεσίας</li>
+          <li><strong>Νόμιμο Συμφέρον:</strong> Ασφάλεια και βελτίωση υπηρεσιών</li>
+          <li><strong>Νομικές Υποχρεώσεις:</strong> Τήρηση αρχείων και logs</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">6. Αποθήκευση Δεδομένων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Τα δεδομένα αποθηκεύονται:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Firebase (Google Cloud):</strong> Authentication & Realtime Database</li>
+          <li><strong>Τοπικοί Διακομιστές:</strong> Αρχεία παραστατικών και εξαγωγών</li>
+          <li><strong>Κρυπτογράφηση:</strong> Ευαίσθητα δεδομένα (passwords, API keys) κρυπτογραφούνται</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">7. Κοινοποίηση σε Τρίτους</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          <strong>ΔΕΝ</strong> πουλάμε, ενοικιάζουμε ή μοιραζόμαστε τα προσωπικά σας δεδομένα με τρίτους, 
+          εκτός από τις ακόλουθες περιπτώσεις:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>ΑΑΔΕ myDATA:</strong> Για ανάκτηση παραστατικών (μέσω API)</li>
+          <li><strong>Firebase/Google Cloud:</strong> Υποδομή αποθήκευσης (GDPR compliant)</li>
+          <li><strong>Νομικές Υποχρεώσεις:</strong> Αν απαιτηθεί από δικαστική απόφαση</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">8. Διατήρηση Δεδομένων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Διατηρούμε τα δεδομένα σας:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Λογαριασμός Ενεργός:</strong> Όσο χρησιμοποιείτε την υπηρεσία</li>
+          <li><strong>Μετά τον Τερματισμό:</strong> 6-12 μήνες για logs (audit trail)</li>
+          <li><strong>Backups:</strong> Μέχρι 30 ημέρες μετά τη διαγραφή</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">9. Τα Δικαιώματά Σας (GDPR)</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Έχετε το δικαίωμα να:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Πρόσβαση:</strong> Να ζητήσετε αντίγραφο των δεδομένων σας</li>
+          <li><strong>Διόρθωση:</strong> Να διορθώσετε ανακριβή δεδομένα</li>
+          <li><strong>Διαγραφή:</strong> Να ζητήσετε τη διαγραφή των δεδομένων σας ("right to be forgotten")</li>
+          <li><strong>Περιορισμός:</strong> Να περιορίσετε την επεξεργασία</li>
+          <li><strong>Φορητότητα:</strong> Να λάβετε τα δεδομένα σε δομημένη μορφή</li>
+          <li><strong>Εναντίωση:</strong> Να αντιταχθείτε στην επεξεργασία</li>
+          <li><strong>Ανάκληση Συγκατάθεσης:</strong> Να ανακαλέσετε τη συγκατάθεσή σας</li>
+        </ul>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Για να ασκήσετε τα δικαιώματά σας, επικοινωνήστε μαζί μας στο 
+          <a href="mailto:privacy@scanmydata.gr" class="text-sky-600 hover:text-sky-800 dark:text-sky-400">privacy@scanmydata.gr</a>
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">10. Cookies</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Χρησιμοποιούμε cookies για:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li><strong>Απαραίτητα:</strong> Session cookies για authentication (δεν μπορούν να απενεργοποιηθούν)</li>
+          <li><strong>Λειτουργικά:</strong> Αποθήκευση προτιμήσεων (dark mode, επιλεγμένη ομάδα)</li>
+          <li><strong>Ανάλυσης:</strong> Για βελτίωση της εμπειρίας χρήστη (μπορούν να απενεργοποιηθούν)</li>
+        </ul>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Μπορείτε να διαχειριστείτε τα cookies από τις ρυθμίσεις του browser σας.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">11. Ασφάλεια</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Εφαρμόζουμε μέτρα ασφαλείας όπως:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>SSL/TLS encryption για όλες τις επικοινωνίες</li>
+          <li>Κρυπτογράφηση ευαίσθητων δεδομένων σε ηρεμία (at rest)</li>
+          <li>Έλεγχος πρόσβασης με authentication/authorization</li>
+          <li>Τακτικά backups και disaster recovery plans</li>
+          <li>Logging και monitoring για ανίχνευση παραβιάσεων</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">12. Παραβίαση Δεδομένων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Σε περίπτωση παραβίασης δεδομένων θα ενημερώσουμε:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Την Αρχή Προστασίας Δεδομένων Προσωπικού Χαρακτήρα εντός 72 ωρών</li>
+          <li>Τους επηρεαζόμενους χρήστες άμεσα</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">13. Ανήλικοι</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Η υπηρεσία απευθύνεται σε χρήστες άνω των 18 ετών. Δεν συλλέγουμε εν γνώσει μας δεδομένα ανηλίκων.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">14. Αλλαγές στην Πολιτική</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Ενδέχεται να ενημερώσουμε την πολιτική απορρήτου. Θα σας ειδοποιήσουμε για σημαντικές αλλαγές μέσω email.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">15. Επικοινωνία</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Για ερωτήσεις σχετικά με την πολιτική απορρήτου:
+        </p>
+        <ul class="list-none text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>📧 Email: <a href="mailto:privacy@scanmydata.gr" class="text-sky-600 hover:text-sky-800 dark:text-sky-400">privacy@scanmydata.gr</a></li>
+          <li>📧 DPO: <a href="mailto:dpo@scanmydata.gr" class="text-sky-600 hover:text-sky-800 dark:text-sky-400">dpo@scanmydata.gr</a></li>
+        </ul>
+      </section>
+
+      <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <a href="/" class="inline-flex items-center text-sky-600 hover:text-sky-800 dark:text-sky-400">
+          ← Επιστροφή στην Αρχική
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

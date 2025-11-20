@@ -335,7 +335,26 @@ def firebase_login():
         except Exception:
             pass
         
-        # Log the login
+        # Log the login with enhanced details
+        try:
+            from utils import log_user_activity
+            log_user_activity(
+                user_id=uid,
+                group_name='system',
+                action='login',
+                details={
+                    'email': firebase_email,
+                    'username': user.username,
+                    'is_admin': getattr(user, 'is_admin', False),
+                    'groups_count': len(list(getattr(user, 'groups', []) or []))
+                },
+                user_email=firebase_email,
+                user_username=user.username
+            )
+        except Exception as e:
+            logger.error(f"Failed to log login activity: {e}")
+        
+        # Fallback to original logging
         firebase_config.firebase_log_activity(
             uid,
             'system',
@@ -369,8 +388,38 @@ def firebase_logout():
     """Logout user"""
     uid = current_user.pw_hash
     email = current_user.email
+    username = current_user.username
     
-    # Log the logout
+    # Calculate session duration if possible
+    session_duration_minutes = None
+    try:
+        if hasattr(current_user, 'last_login') and current_user.last_login:
+            from datetime import datetime
+            now = datetime.utcnow()
+            duration = now - current_user.last_login
+            session_duration_minutes = int(duration.total_seconds() / 60)
+    except Exception:
+        pass
+    
+    # Enhanced logout logging
+    try:
+        from utils import log_user_activity
+        log_user_activity(
+            user_id=uid,
+            group_name='system',
+            action='logout',
+            details={
+                'email': email,
+                'username': username,
+                'duration_minutes': session_duration_minutes
+            },
+            user_email=email,
+            user_username=username
+        )
+    except Exception as e:
+        logger.exception(f"Failed to log logout activity: {e}")
+    
+    # Fallback to original logging
     firebase_config.firebase_log_activity(
         uid,
         'system',

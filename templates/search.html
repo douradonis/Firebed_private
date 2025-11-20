@@ -6,10 +6,6 @@
 <div class="bg-white rounded shadow p-6">
     <h2 class="text-lg font-semibold mb-2">Αναζήτηση MARK</h2>
 
-    {% if error %}
-    <div class="mb-3 p-2 rounded bg-red-50 text-red-800">{{ error }}</div>
-    {% endif %}
-
     <form method="post" class="flex gap-2 items-center" id="markSearchForm">
         <!-- Auto-submit segmented toggle (scoped to client) -->
         <div class="flex items-center gap-2 ml-4" id="autoSubmitGroup">

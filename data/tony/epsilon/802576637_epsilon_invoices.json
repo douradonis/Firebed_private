@@ -59,36 +59,6 @@
     "_updated_at": "2025-11-07T12:32:57.362051+00:00"
   },
   {
-    "mark": "400011186892779",
-    "issueDate": "04/10/2025",
-    "series": "8Μ0ΤΔΑ",
-    "aa": "8970",
-    "AA": "8970",
-    "type": "Τιμολόγιο Πώλησης",
-    "vatCategory": "",
-    "totalNetValue": "48,39",
-    "totalVatAmount": "11,61",
-    "totalValue": "60,00",
-    "classification": "",
-    "category": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "094439854",
-    "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-    "AFM": "094439854",
-    "lines": [
-      {
-        "id": "400011186892779_inst0",
-        "description": "ΤΡΑΚΑΔΑΣ Α.Ε.",
-        "amount": "48,39",
-        "vat": "11,61",
-        "category": "custom_custom",
-        "vat_category": "ΦΠΑ 24%"
-      }
-    ],
-    "_updated_at": "2025-11-20T12:22:09.520685+00:00"
-  },
-  {
     "mark": "400011184830173",
     "issueDate": "04/10/2025",
     "series": "TΔA",
@@ -239,64 +209,6 @@
         "vat": "",
         "category": "αποδειξακια",
         "vat_category": ""
-      }
-    ]
-  },
-  {
-    "mark": "400011576793994",
-    "issueDate": "11/10/2025",
-    "series": "ΑΛΠ",
-    "aa": "8350",
-    "AA": "8350",
-    "type": "ΑΠΟΔΕΙΞΗ",
-    "vatCategory": "",
-    "totalNetValue": "3,50",
-    "totalVatAmount": "",
-    "totalValue": "3,50",
-    "classification": "",
-    "category": "αποδειξακια",
-    "χαρακτηρισμός": "αποδειξακια",
-    "characteristic": "αποδειξακια",
-    "AFM_issuer": "094439854",
-    "Name_issuer": "",
-    "AFM": "094439854",
-    "lines": [
-      {
-        "id": "r0",
-        "description": "",
-        "amount": "3,50",
-        "vat": "",
-        "category": "αποδειξακια",
-        "vat_category": ""
-      }
-    ]
-  },
-  {
-    "mark": "400011631965627",
-    "issueDate": "12/11/2025",
-    "series": "3",
-    "aa": "10806",
-    "AA": "10806",
-    "type": "Τιμολόγιο Πώλησης",
-    "vatCategory": "",
-    "totalNetValue": "4,42",
-    "totalVatAmount": "1,06",
-    "totalValue": "5,48",
-    "classification": "",
-    "category": "",
-    "χαρακτηρισμός": "",
-    "characteristic": "",
-    "AFM_issuer": "094173365",
-    "Name_issuer": "JUMBO ΑΝΩΝΥΜΗ ΕΜΠΟΡΙΚΗ ΕΤΑΙΡΕΙΑ",
-    "AFM": "094173365",
-    "lines": [
-      {
-        "id": "400011631965627_inst0",
-        "description": "JUMBO ΑΝΩΝΥΜΗ ΕΜΠΟΡΙΚΗ ΕΤΑΙΡΕΙΑ",
-        "amount": "4,42",
-        "vat": "1,06",
-        "category": "αγορες_εμπορευματων",
-        "vat_category": "ΦΠΑ 24%"
       }
     ]
   },

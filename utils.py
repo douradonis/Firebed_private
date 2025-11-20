@@ -692,3 +692,89 @@ def extract_marks_from_text(text: str):
         marks.add(match)
 
     return sorted(marks)
+
+
+# ============================================================================
+# Enhanced User Activity Logging
+# ============================================================================
+
+def log_user_activity(user_id, group_name, action, details=None, user_email=None, user_username=None):
+    """
+    Comprehensive user activity logging with detailed metadata.
+    
+    Args:
+        user_id: User identifier (can be Firebase UID, database ID, or username)
+        group_name: Group/client name (VAT number or group identifier)
+        action: Action type (e.g., 'login', 'logout', 'backup_download', 'delete_rows', etc.)
+        details: Dictionary with additional details about the action
+        user_email: Optional user email for better tracking
+        user_username: Optional username for better tracking
+    
+    Action types and expected details:
+        - 'login': {'email': str, 'ip_address': str}
+        - 'logout': {'email': str, 'duration_minutes': int}
+        - 'backup_download': {'file_size_mb': float, 'file_name': str}
+        - 'backup_upload': {'file_size_mb': float, 'file_name': str, 'files_count': int}
+        - 'delete_rows': {'marks': list, 'count': int, 'from_excel': int, 'from_epsilon': int}
+        - 'export_bridge': {'book_category': str, 'rows_count': int, 'file_size_mb': float, 'file_name': str}
+        - 'export_expenses': {'book_category': str, 'rows_count': int, 'file_size_mb': float, 'file_name': str}
+        - 'fetch_data': {'date_from': str, 'date_to': str, 'records_count': int}
+    """
+    try:
+        import firebase_config
+        from datetime import datetime, timezone
+        from flask import request
+        
+        # Build comprehensive log entry
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # Get IP address if available
+        ip_address = None
+        try:
+            if request:
+                ip_address = request.remote_addr or request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR'))
+        except:
+            pass
+        
+        log_entry = {
+            'user_id': str(user_id) if user_id else 'unknown',
+            'user_email': user_email,
+            'user_username': user_username,
+            'group': str(group_name) if group_name else 'system',
+            'action': action,
+            'timestamp': timestamp,
+            'ip_address': ip_address,
+            'details': details or {}
+        }
+        
+        # Add human-readable description based on action type
+        descriptions = {
+            'login': 'Σύνδεση χρήστη',
+            'logout': 'Αποσύνδεση χρήστη',
+            'backup_download': 'Λήψη αντιγράφου ασφαλείας',
+            'backup_upload': 'Φόρτωση αντιγράφου ασφαλείας',
+            'delete_rows': 'Διαγραφή γραμμών από πίνακα',
+            'export_bridge': 'Λήψη γέφυρας (Κινήσεις)',
+            'export_expenses': 'Λήψη εξοδολογίου',
+            'fetch_data': 'Ανάκτηση δεδομένων MyDATA',
+            'search_mark': 'Αναζήτηση MARK',
+            'save_invoice': 'Αποθήκευση παραστατικού',
+        }
+        log_entry['description'] = descriptions.get(action, action)
+        
+        # Log to Firebase
+        firebase_config.firebase_log_activity(
+            user_id=str(user_id) if user_id else 'unknown',
+            group_name=str(group_name) if group_name else 'system',
+            action=action,
+            details=log_entry
+        )
+        
+        return True
+        
+    except Exception as e:
+        # Fail silently - logging should not break application flow
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to log user activity: {e}")
+        return False

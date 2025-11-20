@@ -3945,6 +3945,20 @@ def home():
     return safe_render("nav.html", active_page="home")
 
 
+@app.route('/terms')
+def terms_page():
+    """Terms of Service page"""
+    from datetime import datetime
+    return safe_render("terms.html", current_date=datetime.now().strftime("%B %Y"))
+
+
+@app.route('/privacy')
+def privacy_page():
+    """Privacy Policy & GDPR page"""
+    from datetime import datetime
+    return safe_render("privacy.html", current_date=datetime.now().strftime("%B %Y"))
+
+
 @app.route('/get_fiscal_year', methods=['GET'])
 def route_get_fiscal_year():
     """
@@ -6567,7 +6581,7 @@ def search():
             classified_flag = False
             classified_docs = [d for d in docs_for_mark if str(d.get("classification", "")).strip().lower() == "χαρακτηρισμενο"]
             if classified_docs:
-                error = f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json."
+                flash(f"Το MARK {mark} είναι ήδη χαρακτηρισμένο στο invoices.json.", "warning")
                 classified_flag = True
 
             # check duplicate in excel
@@ -8768,11 +8782,36 @@ def data_backup_download():
         mem.seek(0)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_label = f"backup_{mode}" if mode == 'customer' else "backup"
+        file_name = f"data_{backup_label}_{ts}.zip"
+        
+        # Calculate file size
+        file_size_mb = len(mem.getvalue()) / (1024 * 1024)
+        
+        # Log backup download with enhanced details
+        try:
+            from utils import log_user_activity
+            log_user_activity(
+                user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
+                group_name=grp.name if grp else 'unknown',
+                action='backup_download',
+                details={
+                    'file_name': file_name,
+                    'file_size_mb': round(file_size_mb, 2),
+                    'mode': mode,
+                    'customers': list(selected_customers) if mode == 'customer' else None,
+                    'customers_count': len(selected_customers) if mode == 'customer' else None
+                },
+                user_email=getattr(current_user, 'email', None),
+                user_username=getattr(current_user, 'username', None)
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to log backup download: {e}")
+        
         return send_file(
             mem,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=f"data_{backup_label}_{ts}.zip",
+            download_name=file_name,
         )
     except Exception as exc:
         current_app.logger.exception("data_backup_download failed")
@@ -8842,6 +8881,28 @@ def data_backup_restore():
             raise ValueError("Το backup δεν περιέχει credentials.json.")
 
         _apply_backup_zip(tmp_path)
+        
+        # Log backup upload/restore with enhanced details
+        try:
+            from utils import log_user_activity
+            file_size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
+            log_user_activity(
+                user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
+                group_name=grp.name if grp else 'unknown',
+                action='backup_upload',
+                details={
+                    'file_name': uploaded.filename,
+                    'file_size_mb': round(file_size_mb, 2),
+                    'files_count': summary.get('total_files', 0),
+                    'contains_credentials': summary.get('contains_credentials', False),
+                    'summary': summary
+                },
+                user_email=getattr(current_user, 'email', None),
+                user_username=getattr(current_user, 'username', None)
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to log backup upload: {e}")
+        
         return jsonify({"ok": True, "summary": summary})
     except zipfile.BadZipFile:
         return jsonify({"ok": False, "error": "Μη έγκυρο αρχείο ZIP."}), 400
@@ -9055,6 +9116,40 @@ def export_fastimport_kinitseis():
     )
 
     if ok and out_path:
+        # Calculate file size and row count for logging
+        file_size_mb = 0
+        rows_count = 0
+        try:
+            if os.path.exists(out_path):
+                file_size_mb = os.path.getsize(out_path) / (1024 * 1024)
+                import pandas as pd
+                df_temp = pd.read_excel(out_path, engine="openpyxl")
+                rows_count = len(df_temp)
+        except Exception:
+            pass
+        
+        # Log export with enhanced details
+        try:
+            from utils import log_user_activity
+            from flask_login import current_user
+            log_user_activity(
+                user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
+                group_name=vat,
+                action='export_bridge',
+                details={
+                    'book_category': 'Β' if is_b_category else 'Γ',
+                    'rows_count': rows_count,
+                    'file_size_mb': round(file_size_mb, 2),
+                    'file_name': os.path.basename(out_path),
+                    'includes_b_kat': is_b_category and os.path.exists(os.path.join(BASE_DIR, "b_kat.ect")),
+                    'vat': vat
+                },
+                user_email=getattr(current_user, 'email', None),
+                user_username=getattr(current_user, 'username', None)
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to log export activity: {e}")
+        
         if is_b_category:
             bkat_path = os.path.join(BASE_DIR, "b_kat.ect")
             if os.path.exists(bkat_path):
@@ -9298,6 +9393,27 @@ def delete_invoices():
     total_requested = len(marks_to_delete)
     flash(f"Διαγράφηκαν {total_requested} επιλεγμένα mark(s). Αφαιρέθηκαν από Excel: {deleted_from_excel}, από Epsilon cache: {deleted_from_epsilon}", "success")
     log.info("delete_invoices: finished request. requested=%d excel=%d epsilon=%d", total_requested, deleted_from_excel, deleted_from_epsilon)
+
+    # Log deletion with enhanced details
+    try:
+        from utils import log_user_activity
+        from flask_login import current_user
+        log_user_activity(
+            user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
+            group_name=active.get('vat') if active else 'unknown',
+            action='delete_rows',
+            details={
+                'marks': marks_to_delete,
+                'count': total_requested,
+                'from_excel': deleted_from_excel,
+                'from_epsilon': deleted_from_epsilon,
+                'excel_path': os.path.basename(excel_path) if excel_path else None
+            },
+            user_email=getattr(current_user, 'email', None),
+            user_username=getattr(current_user, 'username', None)
+        )
+    except Exception as e:
+        log.error(f"Failed to log delete activity: {e}")
 
     return redirect(url_for("search"))
 

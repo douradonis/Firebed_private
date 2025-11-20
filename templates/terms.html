@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Όροι Χρήσης - ScanmyData{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Όροι Χρήσης</h1>
+    
+    <div class="prose dark:prose-invert max-w-none">
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Τελευταία ενημέρωση: {{ current_date or 'Νοέμβριος 2025' }}</p>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">1. Αποδοχή Όρων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Χρησιμοποιώντας την πλατφόρμα ScanmyData, αποδέχεστε πλήρως και χωρίς επιφύλαξη τους παρόντες όρους χρήσης. 
+          Εάν δεν συμφωνείτε με οποιονδήποτε από τους όρους αυτούς, παρακαλούμε να μην χρησιμοποιήσετε την υπηρεσία.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">2. Περιγραφή Υπηρεσίας</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Το ScanmyData είναι μια πλατφόρμα διαχείρισης και επεξεργασίας παραστατικών myDATA που παρέχει:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Ανάκτηση και αποθήκευση παραστατικών από το myDATA της ΑΑΔΕ</li>
+          <li>Χαρακτηρισμό και κατηγοριοποίηση παραστατικών</li>
+          <li>Εξαγωγή αρχείων γέφυρας για λογιστικά προγράμματα</li>
+          <li>Διαχείριση πολλαπλών πελατών/ΑΦΜ</li>
+          <li>Αντίγραφα ασφαλείας δεδομένων</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">3. Λογαριασμός Χρήστη</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Για τη χρήση της υπηρεσίας απαιτείται δημιουργία λογαριασμού. Αναλαμβάνετε την ευθύνη για:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Τη διατήρηση του απορρήτου των στοιχείων σύνδεσής σας</li>
+          <li>Όλες τις δραστηριότητες που πραγματοποιούνται με τον λογαριασμό σας</li>
+          <li>Την άμεση ειδοποίηση μας σε περίπτωση μη εξουσιοδοτημένης χρήσης</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">4. Προστασία Δεδομένων (GDPR)</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Η πλατφόρμα συλλέγει και επεξεργάζεται προσωπικά δεδομένα σύμφωνα με τον Γενικό Κανονισμό Προστασίας Δεδομένων (GDPR). 
+          Για λεπτομέρειες, ανατρέξτε στην <a href="/privacy" class="text-sky-600 hover:text-sky-800 dark:text-sky-400">Πολιτική Απορρήτου</a>.
+        </p>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Τα δεδομένα που επεξεργάζονται περιλαμβάνουν:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Στοιχεία εγγραφής (email, όνομα χρήστη)</li>
+          <li>Στοιχεία σύνδεσης στο myDATA (κρυπτογραφημένα)</li>
+          <li>Παραστατικά και φορολογικά δεδομένα</li>
+          <li>Logs δραστηριότητας (IP addresses, ενέργειες χρηστών)</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">5. Υποχρεώσεις Χρήστη</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">Ο χρήστης δεσμεύεται να:</p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Χρησιμοποιεί την υπηρεσία μόνο για νόμιμους σκοπούς</li>
+          <li>Παρέχει ακριβή και επικαιροποιημένα στοιχεία</li>
+          <li>Μην προσπαθήσει να παραβιάσει την ασφάλεια της πλατφόρμας</li>
+          <li>Μην χρησιμοποιήσει την υπηρεσία για παράνομες δραστηριότητες</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">6. Ασφάλεια Δεδομένων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Εφαρμόζουμε τεχνικά και οργανωτικά μέτρα ασφαλείας για την προστασία των δεδομένων σας:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Κρυπτογράφηση ευαίσθητων δεδομένων</li>
+          <li>Ασφαλής αποθήκευση στο Firebase και τοπικά</li>
+          <li>Πρόσβαση μόνο από εξουσιοδοτημένους χρήστες</li>
+          <li>Τακτικά αντίγραφα ασφαλείας</li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">7. Περιορισμός Ευθύνης</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Η υπηρεσία παρέχεται "ως έχει" χωρίς καμία εγγύηση. Δεν φέρουμε ευθύνη για:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>Απώλεια δεδομένων λόγω τεχνικών προβλημάτων</li>
+          <li>Διακοπές λειτουργίας της υπηρεσίας</li>
+          <li>Λάθη στην επεξεργασία παραστατικών</li>
+          <li>Ζημίες από μη εξουσιοδοτημένη πρόσβαση στον λογαριασμό σας</li>
+        </ul>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          <strong>Σημαντικό:</strong> Η τελική ευθύνη για την ορθότητα των δεδομένων ανήκει στον χρήστη. 
+          Συνιστάται η επαλήθευση όλων των εξαγόμενων αρχείων πριν την υποβολή τους.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">8. Τροποποιήσεις Όρων</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Διατηρούμε το δικαίωμα να τροποποιούμε τους όρους χρήσης ανά πάσα στιγμή. Οι αλλαγές θα ενημερώνονται 
+          στη σελίδα αυτή και θα ειδοποιούνται οι χρήστες μέσω email.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">9. Τερματισμός Λογαριασμού</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Μπορείτε να τερματίσετε τον λογαριασμό σας ανά πάσα στιγμή επικοινωνώντας μαζί μας. 
+          Διατηρούμε το δικαίωμα να τερματίσουμε λογαριασμούς που παραβιάζουν τους όρους χρήσης.
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">10. Επικοινωνία</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Για οποιαδήποτε ερώτηση σχετικά με τους όρους χρήσης, επικοινωνήστε μαζί μας:
+        </p>
+        <ul class="list-none text-gray-700 dark:text-gray-300 mb-4 ml-4">
+          <li>📧 Email: <a href="mailto:support@scanmydata.gr" class="text-sky-600 hover:text-sky-800 dark:text-sky-400">support@scanmydata.gr</a></li>
+        </ul>
+      </section>
+
+      <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <a href="/" class="inline-flex items-center text-sky-600 hover:text-sky-800 dark:text-sky-400">
+          ← Επιστροφή στην Αρχική
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

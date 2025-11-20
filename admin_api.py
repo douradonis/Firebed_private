@@ -943,7 +943,7 @@ def api_get_user_actions(user_id):
 @login_required
 @_require_admin
 def api_activity_logs():
-    """Get activity logs with filtering"""
+    """Get activity logs with filtering and enhanced details"""
     try:
         group_filter = request.args.get('group', '')
         action_filter = request.args.get('action', '')
@@ -952,29 +952,96 @@ def api_activity_logs():
         
         logs = admin_panel.admin_get_activity_logs(group_filter if group_filter else None, limit)
         
+        # Enhance logs with human-readable descriptions
+        enhanced_logs = []
+        for log in logs:
+            enhanced_log = log.copy()
+            
+            # Extract nested details if they exist
+            details = log.get('details', {})
+            if isinstance(details, dict):
+                # Add user info from details
+                if 'user_email' in details and not enhanced_log.get('user_email'):
+                    enhanced_log['user_email'] = details.get('user_email')
+                if 'user_username' in details and not enhanced_log.get('user_username'):
+                    enhanced_log['user_username'] = details.get('user_username')
+                
+                # Add readable summary based on action
+                action = log.get('action', '')
+                summary_parts = []
+                
+                if action == 'login':
+                    summary_parts.append(f"Σύνδεση χρήστη {details.get('email', 'N/A')}")
+                elif action == 'logout':
+                    duration = details.get('duration_minutes')
+                    if duration:
+                        summary_parts.append(f"Αποσύνδεση (διάρκεια: {duration} λεπτά)")
+                    else:
+                        summary_parts.append("Αποσύνδεση")
+                elif action == 'backup_download':
+                    summary_parts.append(f"Λήψη backup: {details.get('file_name', 'N/A')} ({details.get('file_size_mb', 0):.2f} MB)")
+                elif action == 'backup_upload':
+                    summary_parts.append(f"Φόρτωση backup: {details.get('file_name', 'N/A')} ({details.get('file_size_mb', 0):.2f} MB, {details.get('files_count', 0)} αρχεία)")
+                elif action == 'delete_rows':
+                    count = details.get('count', 0)
+                    from_excel = details.get('from_excel', 0)
+                    from_epsilon = details.get('from_epsilon', 0)
+                    summary_parts.append(f"Διαγραφή {count} γραμμών (Excel: {from_excel}, Epsilon: {from_epsilon})")
+                elif action == 'export_bridge':
+                    cat = details.get('book_category', 'N/A')
+                    rows = details.get('rows_count', 0)
+                    size = details.get('file_size_mb', 0)
+                    summary_parts.append(f"Λήψη γέφυρας κατηγορίας {cat} ({rows} γραμμές, {size:.2f} MB)")
+                elif action == 'export_expenses':
+                    cat = details.get('book_category', 'N/A')
+                    rows = details.get('rows_count', 0)
+                    size = details.get('file_size_mb', 0)
+                    summary_parts.append(f"Λήψη εξοδολογίου κατηγορίας {cat} ({rows} γραμμές, {size:.2f} MB)")
+                elif action == 'fetch_data':
+                    records = details.get('records_count', 0)
+                    date_range = f"{details.get('date_from', 'N/A')} - {details.get('date_to', 'N/A')}"
+                    summary_parts.append(f"Ανάκτηση {records} εγγραφών ({date_range})")
+                else:
+                    # Use description if available
+                    desc = details.get('description') or log.get('description')
+                    if desc:
+                        summary_parts.append(desc)
+                
+                if summary_parts:
+                    enhanced_log['summary'] = ' | '.join(summary_parts)
+                
+                # Add IP address if available
+                if 'ip_address' in details:
+                    enhanced_log['ip_address'] = details.get('ip_address')
+            
+            enhanced_logs.append(enhanced_log)
+        
         # Filter by action if provided
         if action_filter:
-            logs = [log for log in logs if action_filter.lower() in (log.get('event_type') or log.get('action') or '').lower()]
+            enhanced_logs = [log for log in enhanced_logs if action_filter.lower() in (log.get('event_type') or log.get('action') or '').lower()]
         
         # Filter by search term (searches in multiple fields)
         if search_filter:
             search_lower = search_filter.lower()
             filtered_logs = []
-            for log in logs:
-                # Search in user_id, action, event_type, and details
+            for log in enhanced_logs:
+                # Search in user_id, action, event_type, details, summary
                 searchable_text = ' '.join([
                     str(log.get('user_id') or ''),
+                    str(log.get('user_email') or ''),
+                    str(log.get('user_username') or ''),
                     str(log.get('action') or ''),
                     str(log.get('event_type') or ''),
+                    str(log.get('summary') or ''),
                     str(log.get('details') or ''),
                     str(log.get('group') or '')
                 ]).lower()
                 
                 if search_lower in searchable_text:
                     filtered_logs.append(log)
-            logs = filtered_logs
+            enhanced_logs = filtered_logs
         
-        return jsonify({'success': True, 'logs': logs})
+        return jsonify({'success': True, 'logs': enhanced_logs, 'count': len(enhanced_logs)})
     except Exception as e:
         logger.error(f"Error getting activity logs: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
