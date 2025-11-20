@@ -960,7 +960,15 @@ def api_activity_logs():
             # Extract nested details if they exist
             details = log.get('details', {})
             if isinstance(details, dict):
-                # Add user info from details
+                # Check if details has nested 'details' (from log_user_activity)
+                if 'details' in details and isinstance(details['details'], dict):
+                    # The actual action details are nested
+                    action_details = details['details']
+                else:
+                    # Old format or direct details
+                    action_details = details
+                
+                # Add user info from top-level details
                 if 'user_email' in details and not enhanced_log.get('user_email'):
                     enhanced_log['user_email'] = details.get('user_email')
                 if 'user_username' in details and not enhanced_log.get('user_username'):
@@ -971,35 +979,36 @@ def api_activity_logs():
                 summary_parts = []
                 
                 if action == 'login':
-                    summary_parts.append(f"Σύνδεση χρήστη {details.get('email', 'N/A')}")
+                    summary_parts.append(f"Σύνδεση χρήστη {details.get('user_email', 'N/A')}")
                 elif action == 'logout':
-                    duration = details.get('duration_minutes')
+                    duration = action_details.get('duration_minutes')
                     if duration:
                         summary_parts.append(f"Αποσύνδεση (διάρκεια: {duration} λεπτά)")
                     else:
                         summary_parts.append("Αποσύνδεση")
                 elif action == 'backup_download':
-                    summary_parts.append(f"Λήψη backup: {details.get('file_name', 'N/A')} ({details.get('file_size_mb', 0):.2f} MB)")
+                    summary_parts.append(f"Λήψη backup: {action_details.get('file_name', 'N/A')} ({action_details.get('file_size_mb', 0):.2f} MB)")
                 elif action == 'backup_upload':
-                    summary_parts.append(f"Φόρτωση backup: {details.get('file_name', 'N/A')} ({details.get('file_size_mb', 0):.2f} MB, {details.get('files_count', 0)} αρχεία)")
+                    summary_parts.append(f"Φόρτωση backup: {action_details.get('file_name', 'N/A')} ({action_details.get('file_size_mb', 0):.2f} MB, {action_details.get('files_count', 0)} αρχεία)")
                 elif action == 'delete_rows':
-                    count = details.get('count', 0)
-                    from_excel = details.get('from_excel', 0)
-                    from_epsilon = details.get('from_epsilon', 0)
+                    count = action_details.get('count', 0)
+                    from_excel = action_details.get('from_excel', 0)
+                    from_epsilon = action_details.get('from_epsilon', 0)
                     summary_parts.append(f"Διαγραφή {count} γραμμών (Excel: {from_excel}, Epsilon: {from_epsilon})")
                 elif action == 'export_bridge':
-                    cat = details.get('book_category', 'N/A')
-                    rows = details.get('rows_count', 0)
-                    size = details.get('file_size_mb', 0)
+                    cat = action_details.get('book_category', 'N/A')
+                    rows = action_details.get('rows_count', 0)
+                    size = action_details.get('file_size_mb', 0)
                     summary_parts.append(f"Λήψη γέφυρας κατηγορίας {cat} ({rows} γραμμές, {size:.2f} MB)")
                 elif action == 'export_expenses':
-                    cat = details.get('book_category', 'N/A')
-                    rows = details.get('rows_count', 0)
-                    size = details.get('file_size_mb', 0)
-                    summary_parts.append(f"Λήψη εξοδολογίου κατηγορίας {cat} ({rows} γραμμές, {size:.2f} MB)")
+                    cat = action_details.get('book_category', 'N/A')
+                    rows = action_details.get('rows_count', 0)
+                    size = action_details.get('file_size_mb', 0)
+                    file_name = action_details.get('file_name', '')
+                    summary_parts.append(f"Λήψη εξοδολογίου κατηγορίας {cat} ({rows} γραμμές, {size:.2f} MB) - {file_name}")
                 elif action == 'fetch_data':
-                    records = details.get('records_count', 0)
-                    date_range = f"{details.get('date_from', 'N/A')} - {details.get('date_to', 'N/A')}"
+                    records = action_details.get('records_count', 0)
+                    date_range = f"{action_details.get('date_from', 'N/A')} - {action_details.get('date_to', 'N/A')}"
                     summary_parts.append(f"Ανάκτηση {records} εγγραφών ({date_range})")
                 else:
                     # Use description if available

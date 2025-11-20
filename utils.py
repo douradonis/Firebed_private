@@ -755,7 +755,7 @@ def log_user_activity(user_id, group_name, action, details=None, user_email=None
             'backup_upload': 'Φόρτωση αντιγράφου ασφαλείας',
             'delete_rows': 'Διαγραφή γραμμών από πίνακα',
             'export_bridge': 'Λήψη γέφυρας (Κινήσεις)',
-            'export_expenses': 'Λήψη εξοδολογίου',
+            'export_expenses': 'Λήψη εξοδολογίου (Excel)',
             'fetch_data': 'Ανάκτηση δεδομένων MyDATA',
             'search_mark': 'Αναζήτηση MARK',
             'save_invoice': 'Αποθήκευση παραστατικού',

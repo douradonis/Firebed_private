@@ -892,6 +892,9 @@ try:
         endpoint = request.endpoint or ''
         if endpoint.startswith('auth.') or endpoint.startswith('static') or endpoint.startswith('firebase_auth.'):
             return None
+        # allow public pages (terms, privacy, cookie consent)
+        if endpoint in ['terms_page', 'privacy_page']:
+            return None
         # allow public API endpoints (if any) - keep a whitelist here if needed
         public = {'home', 'index', 'healthcheck', 'serve_icons'}
         remote_public_endpoints = {
@@ -3947,16 +3950,16 @@ def home():
 
 @app.route('/terms')
 def terms_page():
-    """Terms of Service page"""
+    """Terms of Service page - publicly accessible"""
     from datetime import datetime
-    return safe_render("terms.html", current_date=datetime.now().strftime("%B %Y"))
+    return render_template("terms.html", current_date=datetime.now().strftime("%B %Y"))
 
 
 @app.route('/privacy')
 def privacy_page():
-    """Privacy Policy & GDPR page"""
+    """Privacy Policy & GDPR page - publicly accessible"""
     from datetime import datetime
-    return safe_render("privacy.html", current_date=datetime.now().strftime("%B %Y"))
+    return render_template("privacy.html", current_date=datetime.now().strftime("%B %Y"))
 
 
 @app.route('/get_fiscal_year', methods=['GET'])
@@ -9830,7 +9833,7 @@ def admin_send_email():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5001"))
+    port = int(os.getenv("PORT", "5002"))
     debug_flag = True
     app.run(host="0.0.0.0", port=port, debug=debug_flag, use_reloader=True)
 

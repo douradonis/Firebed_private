@@ -686,6 +686,7 @@ async function performGroupDeletion(groupId, groupName) {
 // ==================== ACTIVITY TAB ====================
 let activityTable = null;
 let usersMap = {}; // Map user_id to display_name
+let groupsMap = {}; // Map data_folder (VAT) to group name
 
 async function loadActivity() {
   try {
@@ -700,6 +701,24 @@ async function loadActivity() {
       }
     }
     
+    // Load groups to map data_folder (VAT) to group names
+    if (Object.keys(groupsMap).length === 0) {
+      const groupsResponse = await fetch('/admin/api/groups');
+      const groupsData = await groupsResponse.json();
+      if (groupsData.groups) {
+        groupsData.groups.forEach(group => {
+          const groupName = group.name || group.group_name;
+          const dataFolder = group.data_folder;
+          
+          // Map both: group name to itself, and data_folder (VAT) to group name
+          groupsMap[groupName] = groupName;
+          if (dataFolder) {
+            groupsMap[dataFolder] = groupName;
+          }
+        });
+      }
+    }
+    
     const response = await fetch('/admin/api/activity-logs?limit=500');
     const data = await response.json();
     
@@ -709,13 +728,51 @@ async function loadActivity() {
     }
     
     // Prepare data for DataTable
-    const tableData = data.logs.map(log => [
-      new Date(log.timestamp).toLocaleString('el-GR'),
-      usersMap[log.user_id] || log.user_id || '-',
-      log.group || '-',
-      log.action || log.event_type || '-',
-      JSON.stringify(log.details || log.data || {}).substring(0, 100)
-    ]);
+    const tableData = data.logs.map(log => {
+      // User display: prefer email/username from API
+      const userDisplay = log.user_email || log.user_username || usersMap[log.user_id] || log.user_id || '-';
+      
+      // Group display: map data_folder (VAT) to group name if available
+      const groupDisplay = groupsMap[log.group] || log.group || '-';
+      
+      // Action: use summary from API (already formatted in Greek)
+      const actionDisplay = log.summary || log.description || log.action || log.event_type || '-';
+      
+      // Details: extract key fields from nested details
+      let detailsDisplay = '-';
+      const detailsObj = log.details || {};
+      if (typeof detailsObj === 'object' && Object.keys(detailsObj).length > 0) {
+        // Get actual action details (might be nested)
+        const actionDetails = detailsObj.details || detailsObj;
+        
+        // Important fields to show
+        const importantFields = ['file_name', 'file_size_mb', 'rows_count', 'count', 'marks', 'customers_count', 'files_count', 'duration_minutes'];
+        
+        const parts = importantFields
+          .filter(field => actionDetails[field] !== undefined && actionDetails[field] !== null && actionDetails[field] !== '')
+          .map(field => {
+            const val = actionDetails[field];
+            if (Array.isArray(val) && val.length <= 3) {
+              return `${field}: ${JSON.stringify(val)}`;
+            } else if (Array.isArray(val)) {
+              return `${field}: [${val.length}]`;
+            } else {
+              const str = String(val);
+              return `${field}: ${str.length > 40 ? str.substring(0, 40) + '...' : str}`;
+            }
+          });
+        
+        detailsDisplay = parts.length > 0 ? parts.join(', ') : '-';
+      }
+      
+      return [
+        new Date(log.timestamp).toLocaleString('el-GR'),
+        userDisplay,
+        groupDisplay,
+        actionDisplay,
+        detailsDisplay
+      ];
+    });
     
     // Destroy existing DataTable if it exists
     if (activityTable) {
