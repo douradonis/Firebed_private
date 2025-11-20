@@ -809,3 +809,6 @@ NameError: name 'auto_flag' is not defined
 2025-11-10 13:22:11+0200 INFO Incoming request: method=GET path=/favicon.ico remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
 2025-11-10 13:22:14+0200 INFO Incoming request: method=GET path=/api/data_backup/download remote=127.0.0.1 ref=https://musical-halibut-g4vwxqvpxqx4hvjg5-5000.app.github.dev/credentials
 2025-11-20T12:19:54.519861+00:00 - Bulk fetch performed: 01/11/2025 to 20/11/2025, VAT 802576637, 54 docs + 38 summaries by adonis.douramanis@gmail.com
+2025-11-20T15:25:48.582505+00:00 - Bulk fetch performed: 01/04/2025 to 15/04/2025, VAT 802576637, 17 docs + 14 summaries by adonis.douramanis@gmail.com
+2025-11-20T15:26:27.130900+00:00 - Bulk fetch performed: 01/10/2025 to 31/10/2025, VAT 802576637, 48 docs + 0 summaries by adonis.douramanis@gmail.com
+2025-11-20T15:28:31.246198+00:00 - Bulk fetch performed: 01/10/2025 to 20/11/2025, VAT 802576637, 114 docs + 108 summaries by adonis.douramanis@gmail.com

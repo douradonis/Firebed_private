@@ -1547,6 +1547,68 @@ if APP_DIR not in sys.path:
     sys.path.append(APP_DIR)
 
 
+def _enrich_issuer_name_from_afm(vat: str, issuer_afm: str, existing_name: str = None) -> Optional[str]:
+    """
+    Εμπλουτισμός ονόματος εκδότη με βάση το ΑΦΜ του.
+    Ψάχνει πρώτα στο client_db, αν δεν βρει ψάχνει με VAT validator.
+    
+    Args:
+        vat: ΑΦΜ ενεργού πελάτη (για εύρεση client_db)
+        issuer_afm: ΑΦΜ εκδότη που θέλουμε να βρούμε το όνομά του
+        existing_name: Υπάρχον όνομα (αν υπάρχει) - αν έχει τιμή, επιστρέφει αμέσως
+    
+    Returns:
+        Το όνομα του εκδότη αν βρεθεί, αλλιώς None
+    """
+    # Αν υπάρχει ήδη όνομα, δεν κάνουμε τίποτα
+    if existing_name and str(existing_name).strip():
+        return existing_name
+    
+    # Κανονικοποίηση ΑΦΜ εκδότη
+    issuer_afm_clean = _canon_afm(issuer_afm)
+    if not issuer_afm_clean or len(issuer_afm_clean) != 9:
+        log.debug(f"Invalid issuer AFM format: {issuer_afm}")
+        return None
+    
+    # 1) Ψάχνουμε στο client_db
+    try:
+        client_db_path = _resolve_client_db_path(vat)
+        if client_db_path and os.path.exists(client_db_path):
+            try:
+                from epsilon_bridge_multiclient_strict import _load_client_map
+                client_map = _load_client_map(client_db_path)
+                
+                # Αναζήτηση στο names dictionary
+                if issuer_afm_clean in client_map.get("names", {}):
+                    found_name = client_map["names"][issuer_afm_clean]
+                    if found_name:
+                        log.info(f"Found issuer name in client_db for AFM {issuer_afm_clean}: {found_name}")
+                        return found_name
+            except Exception as e:
+                log.warning(f"Failed to load client_db for issuer enrichment: {e}")
+    except Exception as e:
+        log.warning(f"Failed to resolve client_db path for issuer enrichment: {e}")
+    
+    # 2) Fallback: Ψάχνουμε με VAT validator
+    try:
+        from vat_validator import validate_greek_vat
+        
+        log.info(f"Attempting VAT validation for issuer AFM {issuer_afm_clean}")
+        result = validate_greek_vat(issuer_afm_clean)
+        
+        if result.get("valid") and result.get("name"):
+            log.info(f"Found issuer name via VAT validator for AFM {issuer_afm_clean}: {result['name']}")
+            return result["name"]
+        elif result.get("error"):
+            log.warning(f"VAT validator error for AFM {issuer_afm_clean}: {result['error']}")
+    except ImportError:
+        log.warning("vat_validator module not available for issuer enrichment")
+    except Exception as e:
+        log.exception(f"VAT validation failed for issuer AFM {issuer_afm_clean}: {e}")
+    
+    return None
+
+
 def _looks_like_receipt(rec: dict) -> bool:
     t = f"{rec.get('DOCTYPE','')} {rec.get('type','')} {rec.get('category','')} {rec.get('series','')}".lower()
     return any(k in t for k in ("receipt", "αποδειξ", "λιαν"))
@@ -3550,6 +3612,42 @@ def _resolved_series_for_summary(
 
 # --- Excel path helper: πάντα με VAT + fiscal_year ---
 def excel_path_for(vat: Optional[str] = None, cred_name: Optional[str] = None) -> str:
+    def update_issuer_name_in_excel(vat: str, mark: str, issuer_name: str):
+        """
+        Ενημερώνει το όνομα εκδότη στο Excel invoices (στο group excel path) για το συγκεκριμένο MARK.
+        Αντικαθιστά το πεδίο 'issuer_name' ή 'Name_issuer' ή 'Name' στη γραμμή που ταιριάζει με το MARK.
+        """
+        try:
+            import openpyxl
+            excel_path = excel_path_for(vat)
+            if not os.path.exists(excel_path):
+                return False
+            wb = openpyxl.load_workbook(excel_path)
+            ws = wb.active
+            # Βρες τις στήλες
+            header = [str(cell.value).strip() if cell.value else "" for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+            col_mark = None
+            col_name = None
+            for idx, h in enumerate(header):
+                if h.lower() in {"mark", "invoice_id", "id"}:
+                    col_mark = idx
+                if h.lower() in {"issuer_name", "name_issuer", "name"}:
+                    col_name = idx
+            if col_mark is None or col_name is None:
+                return False
+            updated = False
+            for row in ws.iter_rows(min_row=2):
+                cell_mark = str(row[col_mark].value).strip() if row[col_mark].value else ""
+                if cell_mark == str(mark).strip():
+                    row[col_name].value = issuer_name
+                    updated = True
+            if updated:
+                wb.save(excel_path)
+                return True
+            return False
+        except Exception as e:
+            log.exception(f"Failed to update issuer name in excel for mark {mark}: {e}")
+            return False
     """
     Return path to per-vat excel file: DATA_DIR/excel/<safe_vat>_<fiscal_year>_invoices.xlsx
     Fallback: if vat/cred_name missing return DEFAULT_EXCEL_FILE.
@@ -6676,11 +6774,43 @@ def search():
                                         except Exception:
                                             pass
 
+                                    # Enrich issuer name if missing
+                                    issuer_afm = pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat)
+                                    issuer_name = pick(docs_for_mark[0], "Name_issuer", "Name", default="")
+                                    
+                                    # Try to enrich issuer name from client_db or VAT validator
+                                    enriched_flag = False
+                                    if not issuer_name or not str(issuer_name).strip():
+                                        enriched_name = _enrich_issuer_name_from_afm(vat, issuer_afm, issuer_name)
+                                        if enriched_name:
+                                            issuer_name = enriched_name
+                                            # Update the source document so it gets saved back
+                                            docs_for_mark[0]["Name_issuer"] = enriched_name
+                                            docs_for_mark[0]["Name"] = enriched_name
+                                            enriched_flag = True
+                                            # Save enriched data back to customer cache file
+                                            try:
+                                                customer_file = group_path(f"{vat}_invoices.json")
+                                                for doc in cache:
+                                                    if str(doc.get("mark", "")).strip() == mark:
+                                                        doc["Name_issuer"] = enriched_name
+                                                        doc["Name"] = enriched_name
+                                                json_write(customer_file, cache)
+                                                log.info("search: saved enriched issuer name to customer cache for mark %s", mark)
+                                            except Exception:
+                                                log.exception("Failed to save enriched issuer name to customer cache")
+                                            # Save to Excel invoices
+                                            try:
+                                                update_issuer_name_in_excel(vat, mark, enriched_name)
+                                                log.info("search: saved enriched issuer name to excel for mark %s", mark)
+                                            except Exception:
+                                                log.exception("Failed to save enriched issuer name to excel")
+                                    
                                     modal_summary = {
                                         "mark": mark,
                                         "AA": pick(docs_for_mark[0], "AA", "aa", default=""),
-                                        "AFM": pick(docs_for_mark[0], "AFM_issuer", "AFM", default=vat),
-                                        "Name": pick(docs_for_mark[0], "Name_issuer", "Name", default=""),
+                                        "AFM": issuer_afm,
+                                        "Name": issuer_name,
                                         "series": pick(docs_for_mark[0], "series", "Series", default=""),
                                         "number": pick(docs_for_mark[0], "number", "aa", "AA", default=""),
                                         "issueDate": pick(docs_for_mark[0], "issueDate", "issue_date", default=""),
@@ -6767,11 +6897,38 @@ def search():
                                         except Exception:
                                             pass
 
+                                    # Enrich issuer name if missing (for invoices)
+                                    issuer_afm = pick(first, "AFM_issuer", "AFM_issuer", default=vat)
+                                    issuer_name = pick(first, "Name", "Name_issuer", default="")
+                                    
+                                    # Try to enrich issuer name from client_db or VAT validator
+                                    enriched_flag = False
+                                    if not issuer_name or not str(issuer_name).strip():
+                                        enriched_name = _enrich_issuer_name_from_afm(vat, issuer_afm, issuer_name)
+                                        if enriched_name:
+                                            issuer_name = enriched_name
+                                            # Update the source document so it gets saved back
+                                            first["Name_issuer"] = enriched_name
+                                            first["Name"] = enriched_name
+                                            enriched_flag = True
+                                            
+                                            # Save enriched data back to customer cache file
+                                            try:
+                                                customer_file = group_path(f"{vat}_invoices.json")
+                                                for doc in cache:
+                                                    if str(doc.get("mark", "")).strip() == mark:
+                                                        doc["Name_issuer"] = enriched_name
+                                                        doc["Name"] = enriched_name
+                                                json_write(customer_file, cache)
+                                                log.info("search: saved enriched issuer name to customer cache for mark %s", mark)
+                                            except Exception:
+                                                log.exception("Failed to save enriched issuer name to customer cache")
+
                                     modal_summary = {
                                         "mark": mark,
                                         "AA": pick(first, "AA", "aa", default=""),
-                                        "AFM": pick(first, "AFM_issuer", "AFM_issuer", default=vat),
-                                        "Name": pick(first, "Name", "Name_issuer", default=""),
+                                        "AFM": issuer_afm,
+                                        "Name": issuer_name,
                                         "series": pick(first, "series", "Series", "serie", default=""),
                                         "number": pick(first, "number", "aa", "AA", default=""),
                                         "issueDate": pick(first, "issueDate", "issue_date", default=pick(first, "issueDate", "issue_date", "")),
@@ -6852,6 +7009,17 @@ def search():
 
                                         if matched:
                                             modal_summary['χαρακτηρισμός'] = matched.get('χαρακτηρισμός') or matched.get('characteristic') or modal_summary.get('χαρακτηρισμός', '') or ""
+                                            
+                                            # Update epsilon cache with enriched issuer name if applicable
+                                            if enriched_flag and issuer_name:
+                                                try:
+                                                    matched["Name_issuer"] = issuer_name
+                                                    matched["Name"] = issuer_name
+                                                    _safe_save_epsilon_cache(vat, eps_list)
+                                                    log.info("search: saved enriched issuer name to epsilon cache for mark %s", mark)
+                                                except Exception:
+                                                    log.exception("Failed to save enriched issuer name to epsilon cache")
+                                            
                                             try:
                                                 eps_lines = matched.get("lines", []) or []
                                                 eps_by_id = {str(l.get("id", "")): l for l in eps_lines if l.get("id") is not None}

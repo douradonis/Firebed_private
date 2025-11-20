@@ -139,3 +139,5 @@
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-20T10:45:32.158358+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-20T11:10:31.684607+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
 {"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-20T11:10:31.776720+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_login_attempt", "timestamp": "2025-11-20T15:08:29.813163+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
+{"user_id": "ngDiP2lBsRNoEfSC9Mez4TTPJM53", "group": "system", "action": "user_logged_in", "timestamp": "2025-11-20T15:08:29.927641+00:00", "details": {"email": "adonis.douramanis@gmail.com"}}
