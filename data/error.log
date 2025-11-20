@@ -425,3 +425,8 @@ Traceback (most recent call last):
     raise NotFound() from None
 werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 
+2025-11-20 19:06:45+0200 WARNING VAT validator error for AFM 800916954: VIES service error: MS_UNAVAILABLE
+2025-11-20 19:08:01+0200 WARNING VAT validator error for AFM 800916954: VIES service error: MS_UNAVAILABLE
+2025-11-20 19:08:24+0200 WARNING VAT validator error for AFM 800916954: VIES service error: MS_UNAVAILABLE
+2025-11-20 19:13:51+0200 WARNING VAT validator error for AFM 800916954: VIES service error: MS_UNAVAILABLE
+2025-11-20 19:14:32+0200 WARNING VAT validator error for AFM 800916954: VIES service error: MS_UNAVAILABLE

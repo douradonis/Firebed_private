@@ -1550,7 +1550,7 @@ if APP_DIR not in sys.path:
 def _enrich_issuer_name_from_afm(vat: str, issuer_afm: str, existing_name: str = None) -> Optional[str]:
     """
     Εμπλουτισμός ονόματος εκδότη με βάση το ΑΦΜ του.
-    Ψάχνει πρώτα στο client_db, αν δεν βρει ψάχνει με VAT validator.
+    Ψάχνει πρώτα στο client_db του group, αν δεν βρει ψάχνει με VAT validator.
     
     Args:
         vat: ΑΦΜ ενεργού πελάτη (για εύρεση client_db)
@@ -1564,34 +1564,55 @@ def _enrich_issuer_name_from_afm(vat: str, issuer_afm: str, existing_name: str =
     if existing_name and str(existing_name).strip():
         return existing_name
     
-    # Κανονικοποίηση ΑΦΜ εκδότη
-    issuer_afm_clean = _canon_afm(issuer_afm)
-    if not issuer_afm_clean or len(issuer_afm_clean) != 9:
-        log.debug(f"Invalid issuer AFM format: {issuer_afm}")
+    if not issuer_afm or not str(issuer_afm).strip():
         return None
     
-    # 1) Ψάχνουμε στο client_db
+    # 1) Ψάχνουμε στο client_db του group
     try:
+        from epsilon_bridge_multiclient_strict import _load_client_map, _norm_afm as bridge_norm_afm
+        
+        # Χρησιμοποιούμε την ίδια κανονικοποίηση που χρησιμοποιεί το _load_client_map
+        issuer_afm_clean = bridge_norm_afm(issuer_afm)
+        
+        if not issuer_afm_clean:
+            log.debug(f"Invalid issuer AFM format: {issuer_afm}")
+            return None
+        
+        # Βρες το client_db path (ψάχνει πρώτα στο group)
         client_db_path = _resolve_client_db_path(vat)
+        
         if client_db_path and os.path.exists(client_db_path):
             try:
-                from epsilon_bridge_multiclient_strict import _load_client_map
+                log.info(f"Loading client_db from: {client_db_path}")
                 client_map = _load_client_map(client_db_path)
                 
                 # Αναζήτηση στο names dictionary
                 if issuer_afm_clean in client_map.get("names", {}):
                     found_name = client_map["names"][issuer_afm_clean]
-                    if found_name:
+                    if found_name and str(found_name).strip():
                         log.info(f"Found issuer name in client_db for AFM {issuer_afm_clean}: {found_name}")
-                        return found_name
+                        return str(found_name).strip()
+                else:
+                    log.info(f"AFM {issuer_afm_clean} not found in client_db names. Available AFMs: {len(client_map.get('names', {}))}")
             except Exception as e:
-                log.warning(f"Failed to load client_db for issuer enrichment: {e}")
+                log.exception(f"Failed to load client_db for issuer enrichment: {e}")
+        else:
+            log.info(f"No client_db found at: {client_db_path}")
+    except ImportError as e:
+        log.warning(f"Failed to import epsilon_bridge_multiclient_strict: {e}")
     except Exception as e:
-        log.warning(f"Failed to resolve client_db path for issuer enrichment: {e}")
+        log.exception(f"Failed to resolve client_db path for issuer enrichment: {e}")
     
     # 2) Fallback: Ψάχνουμε με VAT validator
     try:
         from vat_validator import validate_greek_vat
+        
+        # Χρησιμοποιούμε το normalized AFM από το βήμα 1
+        try:
+            from epsilon_bridge_multiclient_strict import _norm_afm as bridge_norm_afm
+            issuer_afm_clean = bridge_norm_afm(issuer_afm)
+        except:
+            issuer_afm_clean = str(issuer_afm).strip()
         
         log.info(f"Attempting VAT validation for issuer AFM {issuer_afm_clean}")
         result = validate_greek_vat(issuer_afm_clean)
@@ -1604,7 +1625,7 @@ def _enrich_issuer_name_from_afm(vat: str, issuer_afm: str, existing_name: str =
     except ImportError:
         log.warning("vat_validator module not available for issuer enrichment")
     except Exception as e:
-        log.exception(f"VAT validation failed for issuer AFM {issuer_afm_clean}: {e}")
+        log.exception(f"VAT validation failed for issuer AFM {issuer_afm}: {e}")
     
     return None
 
@@ -1632,19 +1653,6 @@ def _collect_missing_afm_from_preview(rows):
         if aa and len(missing[afm]["examples"]) < 5:
             missing[afm]["examples"].append(str(aa))
     return missing
-def _resolve_client_db_path(vat: str) -> str:
-    # 1) προτίμησε το global .xls όπως το έχεις
-    candidates = [
-        "data/client_db.xls",
-        "data/client_db.xlsx",
-        f"data/{vat}_client_db.xls",
-        f"data/{vat}_client_db.xlsx",
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            return p
-    # αν δεν υπάρχει τίποτα, default στο δικό σου global όνομα
-    return "data/client_db.xls"
 
 def _make_temp_client_db_with_new_ids(
     vat: str,

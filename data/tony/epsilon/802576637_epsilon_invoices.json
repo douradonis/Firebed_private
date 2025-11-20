@@ -272,6 +272,35 @@
     ]
   },
   {
+    "mark": "400011631965627",
+    "issueDate": "12/11/2025",
+    "series": "3",
+    "aa": "10806",
+    "AA": "10806",
+    "type": "Τιμολόγιο Πώλησης",
+    "vatCategory": "",
+    "totalNetValue": "4,42",
+    "totalVatAmount": "1,06",
+    "totalValue": "5,48",
+    "classification": "",
+    "category": "",
+    "χαρακτηρισμός": "",
+    "characteristic": "",
+    "AFM_issuer": "094173365",
+    "Name_issuer": "JUMBO ΑΝΩΝΥΜΗ ΕΜΠΟΡΙΚΗ ΕΤΑΙΡΕΙΑ",
+    "AFM": "094173365",
+    "lines": [
+      {
+        "id": "400011631965627_inst0",
+        "description": "JUMBO ΑΝΩΝΥΜΗ ΕΜΠΟΡΙΚΗ ΕΤΑΙΡΕΙΑ",
+        "amount": "4,42",
+        "vat": "1,06",
+        "category": "αγορες_εμπορευματων",
+        "vat_category": "ΦΠΑ 24%"
+      }
+    ]
+  },
+  {
     "mark": "400011615024455",
     "issueDate": "11/11/2025",
     "series": "TΔA",
@@ -287,23 +316,23 @@
     "χαρακτηρισμός": "",
     "characteristic": "",
     "AFM_issuer": "800916954",
-    "Name_issuer": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ||ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ",
+    "Name_issuer": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΙΚΕ",
     "AFM": "800916954",
     "lines": [
       {
         "id": "400011615024455_inst0",
-        "description": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ||ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ",
+        "description": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΙΚΕ",
         "amount": "97,83",
         "vat": "23,48",
-        "category": "custom_custom",
+        "category": "αγορες_εμπορευματων",
         "vat_category": "ΦΠΑ 24%"
       },
       {
         "id": "400011615024455_inst1",
-        "description": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ||ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΟΕ",
+        "description": "ΑΦΟΙ ΛΑΓΟΥ ΧΡΩΜΑΤΑ ΙΚΕ",
         "amount": "7,16",
         "vat": "0,43",
-        "category": "αγορες_εμπορευματων",
+        "category": "γενικες_δαπανες",
         "vat_category": "ΦΠΑ 6%"
       }
     ]
