@@ -225,8 +225,8 @@ function updateUserAjax() {
     });
 }
 
-function deleteUserAjax(userId, username) {
-    if (!confirm(`Are you sure you want to delete ${username}?`)) return;
+async function deleteUserAjax(userId, username) {
+    if (!await showModalConfirm('Επιβεβαίωση Διαγραφής', `Θέλεις σίγουρα να διαγράψεις τον χρήστη ${username}; Αυτό δεν μπορεί να αναιρεθεί.`, 'Διαγραφή', 'Άκυρο')) return;
 
     fetch(`/admin/api/users/${userId}`, {
         method: 'DELETE'
@@ -234,10 +234,10 @@ function deleteUserAjax(userId, username) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('User deleted');
+            showModalAlert('Επιτυχία', 'Ο χρήστης διαγράφηκε');
             document.getElementById(`user-row-${userId}`).remove();
         } else {
-            alert('Error: ' + data.error);
+            showErrorModal('Σφάλμα', 'Error: ' + data.error);
         }
     });
 }

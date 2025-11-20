@@ -51,9 +51,17 @@
         <form method="POST" action="/admin/groups/{{ group.id }}/backup" style="display:inline;">
             <button class="btn btn-info">📦 Create Backup</button>
         </form>
-        <form method="POST" action="/admin/groups/{{ group.id }}/delete" style="display:inline;">
-            <button class="btn btn-danger" onclick="return confirm('Delete this group and all its data? A backup will be created first.')">🗑️ Delete Group</button>
+        <form method="POST" action="/admin/groups/{{ group.id }}/delete" style="display:inline;" id="deleteGroupForm">
+            <button type="button" class="btn btn-danger" onclick="deleteGroupConfirm()">🗑️ Delete Group</button>
         </form>
     </div>
 </div>
+
+<script>
+async function deleteGroupConfirm() {
+    if (await showModalConfirm('Διαγραφή Ομάδας', 'Θέλεις σίγουρα να διαγράψεις αυτήν την ομάδα και όλα τα δεδομένα της; Θα δημιουργηθεί πρώτα backup.', 'Διαγραφή', 'Άκυρο')) {
+        document.getElementById('deleteGroupForm').submit();
+    }
+}
+</script>
 {% endblock %}

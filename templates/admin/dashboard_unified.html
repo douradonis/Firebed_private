@@ -141,20 +141,10 @@
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
         <h2 class="text-lg font-bold">📋 Δραστηριότητα Συστήματος</h2>
-        <div class="flex gap-2">
-          <select id="activity-group" class="px-3 py-2 border rounded text-sm">
-            <option value="">Όλες οι ομάδες</option>
-          </select>
-          <input type="text" id="activity-action" placeholder="Φίλτρο ενέργειας" class="px-3 py-2 border rounded text-sm" />
-          <input type="number" id="activity-limit" value="100" placeholder="Όριο" class="px-3 py-2 border rounded text-sm w-24" />
-          <button onclick="loadActivity()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 text-sm">
-            🔄 Φίλτρο
-          </button>
-        </div>
       </div>
       
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table id="activity-table" class="w-full text-sm display" style="width:100%">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="text-left px-4 py-3 font-medium">Ώρα</th>
@@ -356,10 +346,10 @@
       <div class="bg-red-50 border border-red-200 rounded-lg p-6">
         <h3 class="text-lg font-bold mb-4 text-red-600">⚠️ Επικίνδυνες Ενέργειες</h3>
         <div class="space-y-3">
-          <button onclick="if(confirm('Είστε σίγουρος; Αυτό δεν μπορεί να αναιρεθεί.')) clearActivityLogs()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          <button onclick="clearActivityLogsConfirm()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
             🗑️ Διαγραφή Δραστηριότητας
           </button>
-          <button onclick="if(confirm('ΠΡΟΣΟΧΗ! Θα γίνει reset ολόκληρο το σύστημα. Συνεχίζετε;')) resetSystem()" class="w-full px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">
+          <button onclick="resetSystemConfirm()" class="w-full px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">
             🔴 Reset Συστήματος
           </button>
           <p class="text-sm text-red-600 mt-3 p-3 bg-red-100 rounded">
@@ -694,69 +684,76 @@ async function performGroupDeletion(groupId, groupName) {
 }
 
 // ==================== ACTIVITY TAB ====================
-// ==================== ACTIVITY TAB ====================
-let activitySearchTimeout = null;
+let activityTable = null;
+let usersMap = {}; // Map user_id to display_name
 
 async function loadActivity() {
-  return loadActivityDynamic();
-}
-
-async function loadActivityDynamic() {
-  // Clear previous timeout to debounce rapid typing
-  if (activitySearchTimeout) {
-    clearTimeout(activitySearchTimeout);
-  }
-  
-  activitySearchTimeout = setTimeout(async () => {
-    try {
-      const groupFilter = document.getElementById('activity-group')?.value || '';
-      const actionFilter = document.getElementById('activity-action')?.value || '';
-      const searchFilter = document.getElementById('activity-search')?.value || '';
-      const limit = document.getElementById('activity-limit')?.value || 100;
-      
-      let url = `/admin/api/activity-logs?limit=${limit}`;
-      if (groupFilter) url += `&group=${encodeURIComponent(groupFilter)}`;
-      if (actionFilter) url += `&action=${encodeURIComponent(actionFilter)}`;
-      if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
-      
-      if (document.getElementById('activity-count')) {
-        document.getElementById('activity-count').textContent = 'Αναζήτηση...';
+  try {
+    // First load users to get display names
+    if (Object.keys(usersMap).length === 0) {
+      const usersResponse = await fetch('/admin/api/users');
+      const usersData = await usersResponse.json();
+      if (usersData.users) {
+        usersData.users.forEach(user => {
+          usersMap[user.id] = user.username || user.display_name || user.email || user.id;
+        });
       }
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      const tbody = document.getElementById('activity-tbody');
-      
-      if (!data.logs || data.logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Δεν βρέθηκαν αποτελέσματα</td></tr>';
-        if (document.getElementById('activity-count')) {
-          document.getElementById('activity-count').textContent = '0 καταχωρήσεις';
-        }
-        return;
-      }
-      
-      if (document.getElementById('activity-count')) {
-        document.getElementById('activity-count').textContent = `${data.logs.length} καταχωρήσεις`;
-      }
-
-      tbody.innerHTML = data.logs.map(log => `
-        <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="px-4 py-3 text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('el-GR')}</td>
-          <td class="px-4 py-3 text-sm">${log.user_id || '-'}</td>
-          <td class="px-4 py-3 text-sm">${log.group || '-'}</td>
-          <td class="px-4 py-3">
-            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded whitespace-nowrap">
-              ${log.action || log.event_type || '-'}
-            </span>
-          </td>
-          <td class="px-4 py-3 text-xs text-gray-600 truncate">${JSON.stringify(log.details || log.data || {}).substring(0, 50)}...</td>
-        </tr>
-      `).join('');
-    } catch (error) {
-      console.error('Error loading activity:', error);
-      document.getElementById('activity-tbody').innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-red-500">Σφάλμα φόρτωσης</td></tr>';
     }
-  }, 300); // 300ms debounce
+    
+    const response = await fetch('/admin/api/activity-logs?limit=500');
+    const data = await response.json();
+    
+    if (!data.logs) {
+      console.error('No logs data');
+      return;
+    }
+    
+    // Prepare data for DataTable
+    const tableData = data.logs.map(log => [
+      new Date(log.timestamp).toLocaleString('el-GR'),
+      usersMap[log.user_id] || log.user_id || '-',
+      log.group || '-',
+      log.action || log.event_type || '-',
+      JSON.stringify(log.details || log.data || {}).substring(0, 100)
+    ]);
+    
+    // Destroy existing DataTable if it exists
+    if (activityTable) {
+      activityTable.destroy();
+    }
+    
+    // Initialize DataTable
+    activityTable = $('#activity-table').DataTable({
+      data: tableData,
+      pageLength: 25,
+      order: [[0, 'desc']], // Sort by timestamp descending
+      language: {
+        search: "Αναζήτηση:",
+        lengthMenu: "Εμφάνιση _MENU_ εγγραφών",
+        info: "Εμφάνιση _START_ έως _END_ από _TOTAL_ εγγραφές",
+        infoEmpty: "Δεν υπάρχουν εγγραφές",
+        infoFiltered: "(φιλτραρισμένο από _MAX_ συνολικές εγγραφές)",
+        paginate: {
+          first: "Πρώτη",
+          last: "Τελευταία",
+          next: "Επόμενη",
+          previous: "Προηγούμενη"
+        },
+        zeroRecords: "Δεν βρέθηκαν αποτελέσματα"
+      },
+      columnDefs: [
+        { width: "15%", targets: 0 },
+        { width: "15%", targets: 1 },
+        { width: "15%", targets: 2 },
+        { width: "15%", targets: 3 },
+        { width: "40%", targets: 4 }
+      ]
+    });
+    
+  } catch (error) {
+    console.error('Error loading activity:', error);
+    showErrorModal('Σφάλμα', 'Αποτυχία φόρτωσης δραστηριότητας');
+  }
 }
 
 // ==================== BACKUPS TAB ====================
@@ -1089,20 +1086,20 @@ async function backupSpecificGroup() {
 }
 
 async function restoreBackup(backupName) {
-  if (!confirm('Είστε σίγουρος ότι θέλετε να κάνετε restore αυτό το backup;')) return;
+  if (!await showModalConfirm('Επιβεβαίωση Restore', 'Είστε σίγουρος ότι θέλετε να κάνετε restore αυτό το backup;', 'Restore', 'Άκυρο')) return;
   
   try {
     const response = await fetch(`/admin/backups/restore/${backupName}`, { method: 'POST' });
     const data = await response.json();
     
     if (data.ok) {
-      alert('✅ Backup εφαρμόστηκε');
+      showModalAlert('Επιτυχία', '✅ Backup εφαρμόστηκε');
       loadBackups();
     } else {
-      alert('❌ Σφάλμα: ' + (data.error || 'Unknown'));
+      showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Unknown'));
     }
   } catch (err) {
-    alert('❌ Σφάλμα restore');
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα restore');
   }
 }
 
@@ -1339,6 +1336,11 @@ async function testEmailConfiguration() {
   }
 }
 
+async function clearActivityLogsConfirm() {
+  if (!await showModalConfirm('Διαγραφή Activity Logs', 'Είστε σίγουρος; Αυτό δεν μπορεί να αναιρεθεί.', 'Διαγραφή', 'Άκυρο')) return;
+  clearActivityLogs();
+}
+
 async function clearActivityLogs() {
   try {
     // TODO: Implement clear activity logs
@@ -1348,12 +1350,17 @@ async function clearActivityLogs() {
   }
 }
 
+async function resetSystemConfirm() {
+  if (!await showModalConfirm('Reset Συστήματος', 'ΠΡΟΣΟΧΗ! Θα γίνει reset ολόκληρο το σύστημα. Συνεχίζετε;', 'Reset', 'Άκυρο')) return;
+  resetSystem();
+}
+
 async function resetSystem() {
   try {
     // TODO: Implement reset system
-    alert('Δεν είναι ακόμα διαθέσιμο');
+    showModalAlert('🚧 Not Implemented', 'Δεν είναι ακόμα διαθέσιμο');
   } catch (err) {
-    alert('Σφάλμα');
+    showErrorModal('❌ Σφάλμα', 'Σφάλμα');
   }
 }
 
@@ -1463,6 +1470,303 @@ window.addEventListener('load', function() {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Dark Mode Styles for Admin Dashboard */
+[data-theme="dark"] .content-wrap {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+[data-theme="dark"] .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #374151 !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .text-gray-700 {
+  color: #e5e7eb !important;
+}
+
+[data-theme="dark"] .text-gray-900 {
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+/* Tab buttons dark mode */
+[data-theme="dark"] .tab-button {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] .tab-button.active,
+[data-theme="dark"] .tab-button.border-sky-600 {
+  color: #38bdf8 !important;
+  border-bottom-color: #38bdf8 !important;
+}
+
+[data-theme="dark"] .tab-button:hover {
+  color: #60a5fa !important;
+  border-bottom-color: #60a5fa !important;
+}
+
+/* Stat cards dark mode */
+[data-theme="dark"] .bg-gradient-to-br {
+  background-image: none !important;
+}
+
+[data-theme="dark"] .from-blue-50 {
+  background-color: #1e3a8a !important;
+}
+
+[data-theme="dark"] .from-green-50 {
+  background-color: #14532d !important;
+}
+
+[data-theme="dark"] .from-purple-50 {
+  background-color: #581c87 !important;
+}
+
+[data-theme="dark"] .from-orange-50 {
+  background-color: #7c2d12 !important;
+}
+
+[data-theme="dark"] .text-blue-700,
+[data-theme="dark"] .text-green-700,
+[data-theme="dark"] .text-purple-700,
+[data-theme="dark"] .text-orange-700 {
+  color: #e0e7ff !important;
+}
+
+[data-theme="dark"] .text-blue-900,
+[data-theme="dark"] .text-green-900,
+[data-theme="dark"] .text-purple-900,
+[data-theme="dark"] .text-orange-900 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .text-blue-600,
+[data-theme="dark"] .text-green-600,
+[data-theme="dark"] .text-purple-600,
+[data-theme="dark"] .text-orange-600 {
+  color: #bfdbfe !important;
+}
+
+/* Badge colors in dark mode - make them vibrant */
+[data-theme="dark"] .bg-blue-100 {
+  background-color: #1e40af !important;
+}
+
+[data-theme="dark"] .text-blue-700 {
+  color: #dbeafe !important;
+}
+
+[data-theme="dark"] .bg-green-100 {
+  background-color: #15803d !important;
+}
+
+[data-theme="dark"] .text-green-700 {
+  color: #d1fae5 !important;
+}
+
+[data-theme="dark"] .bg-red-100 {
+  background-color: #991b1b !important;
+}
+
+[data-theme="dark"] .text-red-700 {
+  color: #fecaca !important;
+}
+
+[data-theme="dark"] .bg-yellow-100 {
+  background-color: #a16207 !important;
+}
+
+[data-theme="dark"] .text-yellow-700 {
+  color: #fef3c7 !important;
+}
+
+/* Button colors - keep them vibrant */
+[data-theme="dark"] .bg-sky-600 {
+  background-color: #0284c7 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .bg-sky-600:hover,
+[data-theme="dark"] .hover\:bg-sky-700:hover {
+  background-color: #0369a1 !important;
+}
+
+[data-theme="dark"] .bg-blue-600 {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .bg-blue-600:hover,
+[data-theme="dark"] .hover\:bg-blue-700:hover {
+  background-color: #1d4ed8 !important;
+}
+
+[data-theme="dark"] .bg-emerald-600 {
+  background-color: #059669 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .bg-emerald-600:hover,
+[data-theme="dark"] .hover\:bg-emerald-700:hover {
+  background-color: #047857 !important;
+}
+
+[data-theme="dark"] .bg-red-600 {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .bg-red-600:hover,
+[data-theme="dark"] .hover\:bg-red-700:hover {
+  background-color: #b91c1c !important;
+}
+
+/* Table hover */
+[data-theme="dark"] tr.hover\:bg-gray-50:hover,
+[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: #374151 !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: #4b5563 !important;
+}
+
+[data-theme="dark"] .hover\:bg-blue-200:hover {
+  background-color: #1e40af !important;
+}
+
+[data-theme="dark"] .hover\:bg-red-200:hover {
+  background-color: #991b1b !important;
+}
+
+[data-theme="dark"] .hover\:bg-emerald-200:hover {
+  background-color: #15803d !important;
+}
+
+/* Modals */
+[data-theme="dark"] #userDetailModal > div,
+[data-theme="dark"] #groupDetailModal > div {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #4b5563;
+}
+
+/* DataTables dark mode */
+[data-theme="dark"] .dataTables_wrapper .dataTables_filter input,
+[data-theme="dark"] .dataTables_wrapper .dataTables_length select {
+  background-color: #374151 !important;
+  color: #f9fafb !important;
+  border-color: #6b7280 !important;
+}
+
+[data-theme="dark"] .dataTables_wrapper .dataTables_info,
+[data-theme="dark"] .dataTables_wrapper .dataTables_paginate {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: #374151 !important;
+  color: #f9fafb !important;
+  border-color: #6b7280 !important;
+}
+
+[data-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: #0ea5e9 !important;
+  color: white !important;
+  border-color: #0ea5e9 !important;
+}
+
+/* Info boxes and panels - Dark Mode */
+[data-theme="dark"] .bg-blue-50 {
+  background-color: #1e3a8a !important;
+}
+
+[data-theme="dark"] .border-blue-200 {
+  border-color: #1e40af !important;
+}
+
+[data-theme="dark"] .text-blue-800 {
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .text-blue-700 {
+  color: #dbeafe !important;
+}
+
+[data-theme="dark"] .bg-green-50 {
+  background-color: #14532d !important;
+}
+
+[data-theme="dark"] .border-green-200 {
+  border-color: #15803d !important;
+}
+
+[data-theme="dark"] .text-green-800 {
+  color: #d1fae5 !important;
+}
+
+[data-theme="dark"] .text-green-700 {
+  color: #d1fae5 !important;
+}
+
+[data-theme="dark"] .bg-red-50 {
+  background-color: #7f1d1d !important;
+}
+
+[data-theme="dark"] .border-red-200 {
+  border-color: #991b1b !important;
+}
+
+[data-theme="dark"] .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .bg-red-100 {
+  background-color: #991b1b !important;
+}
+
+/* Remote backups list items */
+[data-theme="dark"] #remote-backups-list > div,
+[data-theme="dark"] #local-backups-list > div {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+/* Backup item text */
+[data-theme="dark"] #remote-backups-list .text-gray-600,
+[data-theme="dark"] #local-backups-list .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] #remote-backups-list .text-gray-500,
+[data-theme="dark"] #local-backups-list .text-gray-500 {
+  color: #9ca3af !important;
 }
 </style>
 {% endblock %}

@@ -10,3 +10,7 @@
 {"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T17:07:40.872589+00:00", "details": {"group_id": 1, "group_name": "dd", "backup_path": "/workspaces/Firebed_private/data/_backups/dd_backup_20251117_170740"}}
 {"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-17T17:22:57.111075+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-17T17:22:23_125920+00:00"}}
 {"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-17T19:58:09.557805+00:00", "details": {"group_id": 1, "group_name": "dourtest", "backup_path": "/workspaces/Firebed_private/data/_backups/dourtest_backup_20251117_195809"}}
+{"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-20T11:15:35.217746+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-17T17:05:22_097203+00:00"}}
+{"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-20T11:27:47.181767+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-20T11:27:36_151546+00:00"}}
+{"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-20T11:30:58.178640+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-17T17:23:05_770432+00:00"}}
+{"user_id": 5, "group": "admin", "action": "group_restored", "timestamp": "2025-11-20T11:31:10.202772+00:00", "details": {"group_id": 2, "group_name": "tony", "backup_name": "tony_backup_20251120_112732"}}

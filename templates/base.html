@@ -14,6 +14,7 @@
   <link rel="manifest" href="/icons/site.webmanifest" />
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='dialogs.css') }}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -261,6 +262,143 @@
       background-color: #374151;
     }
     
+    /* Bootstrap table-striped and table-hover - Dark Mode */
+    [data-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+      background-color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .table-striped tbody tr:nth-of-type(even) {
+      background-color: #111827 !important;
+    }
+    
+    [data-theme="dark"] .table-hover tbody tr:hover {
+      background-color: #374151 !important;
+    }
+    
+    [data-theme="dark"] .table-dark {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .table-dark th,
+    [data-theme="dark"] .table-dark td {
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] code,
+    [data-theme="dark"] pre {
+      background-color: #111827 !important;
+      color: #e5e7eb !important;
+      border: 1px solid #374151 !important;
+    }
+    
+    /* Bootstrap container and rows - Dark Mode */
+    [data-theme="dark"] .container,
+    [data-theme="dark"] .container-fluid {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .row {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] small,
+    [data-theme="dark"] .small {
+      color: #d1d5db !important;
+    }
+    
+    [data-theme="dark"] .display-4 {
+      color: inherit !important;
+    }
+    
+    /* Fix for Bootstrap text utilities */
+    [data-theme="dark"] .text-dark {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .text-white {
+      color: white !important;
+    }
+    
+    /* Custom Tab Buttons (for admin dashboard) - Dark Mode */
+    [data-theme="dark"] .tab-button {
+      color: #9ca3af !important;
+      border-bottom-color: transparent !important;
+    }
+    
+    [data-theme="dark"] .tab-button:hover {
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] .tab-button.active {
+      color: #0ea5e9 !important;
+      border-bottom-color: #0ea5e9 !important;
+    }
+    
+    /* Gradient backgrounds - Dark Mode adjustments */
+    [data-theme="dark"] .from-blue-50 {
+      background: linear-gradient(to bottom right, #1e3a5f, #0c2340) !important;
+    }
+    
+    [data-theme="dark"] .from-green-50 {
+      background: linear-gradient(to bottom right, #064e3b, #022c22) !important;
+    }
+    
+    [data-theme="dark"] .from-purple-50 {
+      background: linear-gradient(to bottom right, #581c87, #3b0764) !important;
+    }
+    
+    [data-theme="dark"] .from-orange-50 {
+      background: linear-gradient(to bottom right, #7c2d12, #431407) !important;
+    }
+    
+    [data-theme="dark"] .text-blue-700,
+    [data-theme="dark"] .text-blue-900 {
+      color: #93c5fd !important;
+    }
+    
+    [data-theme="dark"] .text-green-700,
+    [data-theme="dark"] .text-green-900 {
+      color: #86efac !important;
+    }
+    
+    [data-theme="dark"] .text-purple-700,
+    [data-theme="dark"] .text-purple-900 {
+      color: #d8b4fe !important;
+    }
+    
+    [data-theme="dark"] .text-orange-700,
+    [data-theme="dark"] .text-orange-900 {
+      color: #fdba74 !important;
+    }
+    
+    [data-theme="dark"] .text-blue-600 {
+      color: #60a5fa !important;
+    }
+    
+    [data-theme="dark"] .text-green-600 {
+      color: #4ade80 !important;
+    }
+    
+    [data-theme="dark"] .text-purple-600 {
+      color: #c084fc !important;
+    }
+    
+    [data-theme="dark"] .text-orange-600 {
+      color: #fb923c !important;
+    }
+    
+    [data-theme="dark"] .border-blue-200,
+    [data-theme="dark"] .border-green-200,
+    [data-theme="dark"] .border-purple-200,
+    [data-theme="dark"] .border-orange-200 {
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .bg-gray-50 {
+      background-color: #374151 !important;
+    }
+    
     [data-theme="dark"] .dataTables_wrapper {
       color: var(--text-primary);
     }
@@ -430,7 +568,35 @@
       border: 1px solid #4b5563;
       box-shadow: 0 18px 42px rgba(2,6,23,0.35);
     }
-    [data-theme="dark"] .modal-warning-body { color: #f8fafc !important; }
+    [data-theme="dark"] .modal-warning-body { 
+      color: #f8fafc !important; 
+    }
+    
+    [data-theme="dark"] .modal-warning-title {
+      color: #fca5a5 !important;
+    }
+    
+    [data-theme="dark"] .modal-warning-btn--muted {
+      background-color: #4b5563 !important;
+      color: #e5e7eb !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .modal-warning-btn--muted:hover {
+      background-color: #374151 !important;
+    }
+    
+    [data-theme="dark"] .modal-warning-btn--danger,
+    [data-theme="dark"] .modal-warning-btn--confirm {
+      background-color: #dc2626 !important;
+      color: white !important;
+      border-color: #dc2626 !important;
+    }
+    
+    [data-theme="dark"] .modal-warning-btn--danger:hover,
+    [data-theme="dark"] .modal-warning-btn--confirm:hover {
+      background-color: #b91c1c !important;
+    }
 
     .modal-warning-close {
       position: absolute;
@@ -598,6 +764,305 @@
       color: #7f1d1d !important;
       border: 1px solid transparent !important;
     }
+    
+    /* Bootstrap Nav Tabs - Dark Mode Support */
+    [data-theme="dark"] .nav-tabs {
+      border-bottom-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .nav-tabs .nav-link {
+      color: #9ca3af !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+    }
+    
+    [data-theme="dark"] .nav-tabs .nav-link:hover {
+      color: #e5e7eb !important;
+      border-color: #4b5563 #4b5563 transparent !important;
+      background-color: #374151 !important;
+    }
+    
+    [data-theme="dark"] .nav-tabs .nav-link.active {
+      color: #ffffff !important;
+      background-color: #0ea5e9 !important;
+      border-color: #0ea5e9 #0ea5e9 #1f2937 !important;
+    }
+    
+    /* Bootstrap Tab Content - Dark Mode */
+    [data-theme="dark"] .tab-content {
+      background-color: transparent !important;
+    }
+    
+    [data-theme="dark"] .tab-pane {
+      color: #f9fafb !important;
+    }
+    
+    /* Bootstrap Cards - Dark Mode */
+    [data-theme="dark"] .card {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    /* Preserve colored card backgrounds in dark mode */
+    [data-theme="dark"] .card.bg-primary {
+      background-color: #2563eb !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .card.bg-success {
+      background-color: #059669 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .card.bg-info {
+      background-color: #0891b2 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .card.bg-warning {
+      background-color: #f59e0b !important;
+      color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .card.bg-danger {
+      background-color: #dc2626 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .card-header,
+    [data-theme="dark"] .card-footer {
+      background-color: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .card-body {
+      color: #f9fafb !important;
+    }
+    
+    /* Preserve text color in colored cards */
+    [data-theme="dark"] .card.bg-primary .card-title,
+    [data-theme="dark"] .card.bg-primary .card-text,
+    [data-theme="dark"] .card.bg-success .card-title,
+    [data-theme="dark"] .card.bg-success .card-text,
+    [data-theme="dark"] .card.bg-info .card-title,
+    [data-theme="dark"] .card.bg-info .card-text,
+    [data-theme="dark"] .card.bg-danger .card-title,
+    [data-theme="dark"] .card.bg-danger .card-text {
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .card.bg-warning .card-title,
+    [data-theme="dark"] .card.bg-warning .card-text {
+      color: #1f2937 !important;
+    }
+    
+    /* Bootstrap Buttons - Preserve Colors in Dark Mode */
+    [data-theme="dark"] .btn-primary {
+      background-color: #2563eb !important;
+      border-color: #2563eb !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .btn-primary:hover {
+      background-color: #1d4ed8 !important;
+      border-color: #1d4ed8 !important;
+    }
+    
+    [data-theme="dark"] .btn-success {
+      background-color: #059669 !important;
+      border-color: #059669 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .btn-success:hover {
+      background-color: #047857 !important;
+      border-color: #047857 !important;
+    }
+    
+    [data-theme="dark"] .btn-info {
+      background-color: #0891b2 !important;
+      border-color: #0891b2 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .btn-info:hover {
+      background-color: #0e7490 !important;
+      border-color: #0e7490 !important;
+    }
+    
+    [data-theme="dark"] .btn-warning {
+      background-color: #f59e0b !important;
+      border-color: #f59e0b !important;
+      color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .btn-warning:hover {
+      background-color: #d97706 !important;
+      border-color: #d97706 !important;
+    }
+    
+    [data-theme="dark"] .btn-danger {
+      background-color: #dc2626 !important;
+      border-color: #dc2626 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .btn-danger:hover {
+      background-color: #b91c1c !important;
+      border-color: #b91c1c !important;
+    }
+    
+    [data-theme="dark"] .btn-secondary {
+      background-color: #4b5563 !important;
+      border-color: #4b5563 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .btn-secondary:hover {
+      background-color: #374151 !important;
+      border-color: #374151 !important;
+    }
+    
+    /* Bootstrap Alerts - Dark Mode */
+    [data-theme="dark"] .alert {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .alert-info {
+      background-color: #0c4a6e !important;
+      border-color: #075985 !important;
+      color: #bae6fd !important;
+    }
+    
+    [data-theme="dark"] .alert-warning {
+      background-color: #78350f !important;
+      border-color: #92400e !important;
+      color: #fef3c7 !important;
+    }
+    
+    [data-theme="dark"] .alert-success {
+      background-color: #064e3b !important;
+      border-color: #065f46 !important;
+      color: #d1fae5 !important;
+    }
+    
+    [data-theme="dark"] .alert-danger {
+      background-color: #7f1d1d !important;
+      border-color: #991b1b !important;
+      color: #fecaca !important;
+    }
+    
+    /* Bootstrap Badges - Dark Mode */
+    [data-theme="dark"] .badge {
+      background-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .badge-primary {
+      background-color: #2563eb !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .badge-success {
+      background-color: #059669 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .badge-info {
+      background-color: #0891b2 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .badge-warning {
+      background-color: #f59e0b !important;
+      color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .badge-danger {
+      background-color: #dc2626 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] .badge-light {
+      background-color: #6b7280 !important;
+      color: #f9fafb !important;
+    }
+    
+    /* Bootstrap Modals - Dark Mode */
+    [data-theme="dark"] .modal-content {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .modal-header {
+      background-color: #374151 !important;
+      border-bottom-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .modal-footer {
+      background-color: #374151 !important;
+      border-top-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .modal-title {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .close {
+      color: #f9fafb !important;
+      opacity: 0.8;
+    }
+    
+    [data-theme="dark"] .close:hover {
+      color: #e5e7eb !important;
+      opacity: 1;
+    }
+    
+    /* Bootstrap Form Controls - Dark Mode */
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select {
+      background-color: #1f2937 !important;
+      color: #f9fafb !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .form-control:focus,
+    [data-theme="dark"] .form-select:focus {
+      background-color: #111827 !important;
+      color: #f9fafb !important;
+      border-color: #60a5fa !important;
+      box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25) !important;
+    }
+    
+    [data-theme="dark"] .form-check-label {
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] .form-check-input {
+      background-color: #374151 !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .form-check-input:checked {
+      background-color: #0ea5e9 !important;
+      border-color: #0ea5e9 !important;
+    }
+    
+    [data-theme="dark"] hr {
+      border-color: #4b5563 !important;
+      opacity: 0.5;
+    }
+    
+    /* Bootstrap btn-close (X button in modals) - Dark Mode */
+    [data-theme="dark"] .btn-close {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
 
     /* Specific IDs used in lists */
     #deleteSelected, #deleteBtn {
@@ -630,6 +1095,398 @@
     }
     [data-theme="dark"] .border-gray-200 {
       border-color: var(--border-color) !important;
+    }
+    
+    [data-theme="dark"] .border-gray-300 {
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .bg-gradient-to-br {
+      border-color: #4b5563 !important;
+    }
+    
+    /* Bootstrap text utilities - Dark Mode */
+    [data-theme="dark"] .text-muted {
+      color: #9ca3af !important;
+    }
+    
+    [data-theme="dark"] .text-white {
+      color: #ffffff !important;
+    }
+    
+    [data-theme="dark"] .text-dark {
+      color: #1f2937 !important;
+    }
+    
+    /* Bootstrap background utilities */
+    [data-theme="dark"] .bg-light {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .bg-dark {
+      background-color: #111827 !important;
+      color: #f9fafb !important;
+    }
+    
+    /* Container and spacing utilities */
+    [data-theme="dark"] .container,
+    [data-theme="dark"] .container-fluid {
+      color: #f9fafb !important;
+    }
+  </style>
+
+  <style>
+    /* ========================================
+       COMPREHENSIVE MODAL DARK MODE SUPPORT
+       Targets all modals using Tailwind inline classes
+       ======================================== */
+    
+    /* All modal backdrop overlays */
+    [data-theme="dark"] .fixed.inset-0.bg-black\/40,
+    [data-theme="dark"] .fixed.inset-0.bg-black\/50,
+    [data-theme="dark"] [class*="bg-black/"] {
+      background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+    
+    /* All modal content panels (white backgrounds) */
+    [data-theme="dark"] .bg-white.rounded-lg,
+    [data-theme="dark"] .bg-white.rounded,
+    [data-theme="dark"] .bg-white.rounded-md,
+    [data-theme="dark"] .bg-white.rounded-xl,
+    [data-theme="dark"] div[id*="Modal"] .bg-white,
+    [data-theme="dark"] div[id*="modal"] .bg-white,
+    [data-theme="dark"] div[id*="Modal"] > div.bg-white,
+    [data-theme="dark"] div[id*="modal"] > div.bg-white {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border: 1px solid #4b5563 !important;
+    }
+    
+    /* Ensure direct child divs of modals also get dark background */
+    [data-theme="dark"] div[id*="Modal"] > .bg-white.rounded-lg.shadow-lg,
+    [data-theme="dark"] div[id*="modal"] > .bg-white.rounded-lg.shadow-lg,
+    [data-theme="dark"] div[id*="Modal"] > .bg-white.rounded-lg.shadow,
+    [data-theme="dark"] div[id*="modal"] > .bg-white.rounded-lg.shadow {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border: 1px solid #4b5563 !important;
+    }
+    
+    /* Modal shadow improvements in dark mode */
+    [data-theme="dark"] .shadow-lg,
+    [data-theme="dark"] .shadow-xl {
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+    }
+    
+    /* Modal headers with gradient backgrounds */
+    [data-theme="dark"] .bg-gradient-to-r,
+    [data-theme="dark"] .bg-gradient-to-br {
+      background: linear-gradient(to bottom right, #2563eb, #7c3aed) !important;
+      border-bottom: 1px solid #4b5563 !important;
+    }
+    
+    /* Modal close buttons (X) */
+    [data-theme="dark"] button.text-gray-500,
+    [data-theme="dark"] .text-gray-500.text-xl {
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] button.text-gray-500:hover,
+    [data-theme="dark"] .text-gray-500:hover {
+      color: #f9fafb !important;
+    }
+    
+    /* Modal section headers (h3, h4) */
+    [data-theme="dark"] div[id*="Modal"] h3,
+    [data-theme="dark"] div[id*="modal"] h3,
+    [data-theme="dark"] div[id*="Modal"] h4,
+    [data-theme="dark"] div[id*="modal"] h4 {
+      color: #f9fafb !important;
+    }
+    
+    /* Modal text labels and content */
+    [data-theme="dark"] div[id*="Modal"] strong,
+    [data-theme="dark"] div[id*="modal"] strong,
+    [data-theme="dark"] div[id*="Modal"] label,
+    [data-theme="dark"] div[id*="modal"] label {
+      color: #e5e7eb !important;
+    }
+    
+    /* Modal text content (divs, spans, paragraphs) */
+    [data-theme="dark"] div[id*="Modal"] div,
+    [data-theme="dark"] div[id*="modal"] div,
+    [data-theme="dark"] div[id*="Modal"] p,
+    [data-theme="dark"] div[id*="modal"] p,
+    [data-theme="dark"] div[id*="Modal"] span,
+    [data-theme="dark"] div[id*="modal"] span {
+      color: #f9fafb !important;
+    }
+    
+    /* Modal gray text utilities */
+    [data-theme="dark"] div[id*="Modal"] .text-gray-600,
+    [data-theme="dark"] div[id*="modal"] .text-gray-600,
+    [data-theme="dark"] div[id*="Modal"] .text-sm.text-gray-600,
+    [data-theme="dark"] div[id*="modal"] .text-sm.text-gray-600 {
+      color: #d1d5db !important;
+    }
+    
+    /* Modal form inputs, selects, textareas */
+    [data-theme="dark"] div[id*="Modal"] input[type="text"],
+    [data-theme="dark"] div[id*="modal"] input[type="text"],
+    [data-theme="dark"] div[id*="Modal"] input[type="number"],
+    [data-theme="dark"] div[id*="modal"] input[type="number"],
+    [data-theme="dark"] div[id*="Modal"] input[type="email"],
+    [data-theme="dark"] div[id*="modal"] input[type="email"],
+    [data-theme="dark"] div[id*="Modal"] select,
+    [data-theme="dark"] div[id*="modal"] select,
+    [data-theme="dark"] div[id*="Modal"] textarea,
+    [data-theme="dark"] div[id*="modal"] textarea {
+      background-color: #1f2937 !important;
+      color: #f9fafb !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] input:focus,
+    [data-theme="dark"] div[id*="modal"] input:focus,
+    [data-theme="dark"] div[id*="Modal"] select:focus,
+    [data-theme="dark"] div[id*="modal"] select:focus,
+    [data-theme="dark"] div[id*="Modal"] textarea:focus,
+    [data-theme="dark"] div[id*="modal"] textarea:focus {
+      background-color: #111827 !important;
+      border-color: #60a5fa !important;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+    }
+    
+    /* Modal checkboxes */
+    [data-theme="dark"] div[id*="Modal"] input[type="checkbox"],
+    [data-theme="dark"] div[id*="modal"] input[type="checkbox"] {
+      background-color: #374151 !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] input[type="checkbox"]:checked,
+    [data-theme="dark"] div[id*="modal"] input[type="checkbox"]:checked {
+      background-color: #0ea5e9 !important;
+      border-color: #0ea5e9 !important;
+    }
+    
+    /* Modal video/canvas (for QR scanner) */
+    [data-theme="dark"] div[id*="Modal"] video,
+    [data-theme="dark"] div[id*="modal"] video,
+    [data-theme="dark"] div[id*="Modal"] canvas,
+    [data-theme="dark"] div[id*="modal"] canvas {
+      border: 2px solid #4b5563 !important;
+      border-radius: 8px;
+      background-color: #111827 !important;
+    }
+    
+    /* Modal buttons - preserve their original colors */
+    [data-theme="dark"] div[id*="Modal"] button.bg-sky-600,
+    [data-theme="dark"] div[id*="modal"] button.bg-sky-600 {
+      background-color: #0ea5e9 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] button.bg-red-600,
+    [data-theme="dark"] div[id*="modal"] button.bg-red-600 {
+      background-color: #dc2626 !important;
+      color: white !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] button.bg-emerald-600,
+    [data-theme="dark"] div[id*="modal"] button.bg-emerald-600 {
+      background-color: #059669 !important;
+      color: white !important;
+    }
+    
+    /* Modal secondary/gray buttons */
+    [data-theme="dark"] div[id*="Modal"] button.bg-gray-200,
+    [data-theme="dark"] div[id*="modal"] button.bg-gray-200,
+    [data-theme="dark"] div[id*="Modal"] button.border.rounded,
+    [data-theme="dark"] div[id*="modal"] button.border.rounded {
+      background-color: #4b5563 !important;
+      color: #e5e7eb !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] button.bg-gray-200:hover,
+    [data-theme="dark"] div[id*="modal"] button.bg-gray-200:hover,
+    [data-theme="dark"] div[id*="Modal"] button.border.rounded:hover,
+    [data-theme="dark"] div[id*="modal"] button.border.rounded:hover {
+      background-color: #374151 !important;
+    }
+    
+    /* Modal tables (if any) */
+    [data-theme="dark"] div[id*="Modal"] table,
+    [data-theme="dark"] div[id*="modal"] table {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] table th,
+    [data-theme="dark"] div[id*="modal"] table th {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] table td,
+    [data-theme="dark"] div[id*="modal"] table td {
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] table tbody tr:hover,
+    [data-theme="dark"] div[id*="modal"] table tbody tr:hover {
+      background-color: #374151 !important;
+    }
+    
+    /* Modal info/warning boxes (colored backgrounds) */
+    [data-theme="dark"] div[id*="Modal"] .bg-blue-50,
+    [data-theme="dark"] div[id*="modal"] .bg-blue-50 {
+      background-color: #1e3a5f !important;
+      color: #93c5fd !important;
+      border-color: #2563eb !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .bg-yellow-50,
+    [data-theme="dark"] div[id*="modal"] .bg-yellow-50 {
+      background-color: #78350f !important;
+      color: #fef3c7 !important;
+      border-color: #f59e0b !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .bg-green-50,
+    [data-theme="dark"] div[id*="modal"] .bg-green-50 {
+      background-color: #064e3b !important;
+      color: #d1fae5 !important;
+      border-color: #059669 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .bg-red-50,
+    [data-theme="dark"] div[id*="modal"] .bg-red-50 {
+      background-color: #7f1d1d !important;
+      color: #fecaca !important;
+      border-color: #dc2626 !important;
+    }
+    
+    /* Modal gray backgrounds (for info sections) */
+    [data-theme="dark"] div[id*="Modal"] .bg-gray-50,
+    [data-theme="dark"] div[id*="modal"] .bg-gray-50,
+    [data-theme="dark"] div[id*="Modal"] .bg-gray-100,
+    [data-theme="dark"] div[id*="modal"] .bg-gray-100 {
+      background-color: #1f2937 !important;
+      color: #e5e7eb !important;
+      border-color: #4b5563 !important;
+    }
+    
+    /* Modal text color utilities */
+    [data-theme="dark"] div[id*="Modal"] .text-blue-600,
+    [data-theme="dark"] div[id*="modal"] .text-blue-600 {
+      color: #60a5fa !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .text-yellow-800,
+    [data-theme="dark"] div[id*="modal"] .text-yellow-800 {
+      color: #fef3c7 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .text-green-800,
+    [data-theme="dark"] div[id*="modal"] .text-green-800 {
+      color: #d1fae5 !important;
+    }
+    
+    [data-theme="dark"] div[id*="Modal"] .text-red-800,
+    [data-theme="dark"] div[id*="modal"] .text-red-800 {
+      color: #fecaca !important;
+    }
+    
+    /* Modal border utilities */
+    [data-theme="dark"] div[id*="Modal"] .border-yellow-300,
+    [data-theme="dark"] div[id*="modal"] .border-yellow-300 {
+      border-color: #f59e0b !important;
+    }
+    
+    /* Global wait overlay dark mode */
+    [data-theme="dark"] #globalWait > div {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border: 1px solid #4b5563 !important;
+    }
+    
+    [data-theme="dark"] #globalWait .text-gray-400 {
+      color: #9ca3af !important;
+    }
+    
+    /* Specific modals by ID for extra coverage */
+    [data-theme="dark"] #summaryModal > div,
+    [data-theme="dark"] #repeatMappingModal > div,
+    [data-theme="dark"] #afmWarningModal > div,
+    [data-theme="dark"] #addModal > div,
+    [data-theme="dark"] #editModal > div,
+    [data-theme="dark"] #settingsModal > div,
+    [data-theme="dark"] #qrCameraModal > div,
+    [data-theme="dark"] #qrRemoteModal > div,
+    [data-theme="dark"] #userDetailModal > div,
+    [data-theme="dark"] #groupDetailModal > div,
+    [data-theme="dark"] #deleteModal > div,
+    [data-theme="dark"] #confirmDeleteModal > div,
+    [data-theme="dark"] #issuesModal > div,
+    [data-theme="dark"] #deleteCategoryModal > div,
+    [data-theme="dark"] #receiptsModal > div,
+    [data-theme="dark"] #credentialDeleteModal > div,
+    [data-theme="dark"] #credentialPermissionDeniedModal > div,
+    [data-theme="dark"] #dataBackupRestoreModal > div {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border: 1px solid #4b5563 !important;
+    }
+    
+    /* ========================================
+       MODAL TAB BUTTONS (e.g., settingsModal)
+       ======================================== */
+    
+    /* Tab buttons in modals - inactive state */
+    [data-theme="dark"] .tab-inactive,
+    [data-theme="dark"] button.tab-inactive {
+      background-color: #4b5563 !important;
+      color: #9ca3af !important;
+      border-color: #6b7280 !important;
+    }
+    
+    [data-theme="dark"] .tab-inactive:hover,
+    [data-theme="dark"] button.tab-inactive:hover {
+      background-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+    
+    /* Tab buttons in modals - active state */
+    [data-theme="dark"] .tab-active,
+    [data-theme="dark"] button.tab-active {
+      background-color: #0ea5e9 !important;
+      color: white !important;
+      border-color: #0ea5e9 !important;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+    }
+    
+    /* Light mode tab styles for consistency */
+    .tab-inactive {
+      background-color: #f3f4f6;
+      color: #6b7280;
+      border: 1px solid #d1d5db;
+    }
+    
+    .tab-inactive:hover {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+    
+    .tab-active {
+      background-color: #0ea5e9;
+      color: white;
+      border: 1px solid #0ea5e9;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
     }
   </style>
     

@@ -259,5 +259,38 @@
     "χαρακτηρισμός": "αποδειξακια",
     "created_at": "2025-11-12T11:47:53",
     "series": "ΑΛΠ"
+  },
+  {
+    "mark": "400000000000008",
+    "AA": "8350",
+    "AFM_issuer": "094439854",
+    "Name": "",
+    "issueDate": "11/10/2025",
+    "type_name": "ΑΠΟΔΕΙΞΗ",
+    "totalValue": "3,50",
+    "totalNetValue": "3,50",
+    "totalVatAmount": "",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "3,50",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vatCategory": ""
+      }
+    ],
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "category": "αποδειξακια",
+    "is_receipt": true,
+    "number": "8350",
+    "characteristic": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "MARK": "400000000000008",
+    "aa": "8350",
+    "progressive_aa": "8350",
+    "AFM": "094439854",
+    "created_at": "2025-11-17T17:44:55",
+    "series": "ΑΛΠ"
   }
 ]
