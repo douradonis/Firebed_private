@@ -220,6 +220,27 @@ def logout():
         # continue with logout even if sync fails
         pass
 
+    # Log logout activity
+    try:
+        from utils import log_user_activity
+        print(f"DEBUG: Logging logout for user {current_user.id}")
+        result = log_user_activity(
+            user_id=current_user.id,
+            group_name='system',
+            action='logout',
+            details={
+                'email': current_user.email,
+                'username': current_user.username
+            },
+            user_email=current_user.email,
+            user_username=current_user.username
+        )
+        print(f"DEBUG: Logout logging result: {result}")
+    except Exception as e:
+        logger.exception(f"Failed to log logout activity: {e}")
+        print(f"DEBUG: Exception in logout logging: {e}")
+        raise  # Re-raise to see the error
+
     logout_user()
     flash('Έχετε αποσυνδεθεί.', 'info')
     # clear any active client/credential selection and active group from session to avoid stale state

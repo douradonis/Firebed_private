@@ -8936,6 +8936,28 @@ def list_invoices():
 
     # download
     if request.args.get("download") and os.path.exists(excel_path):
+        # Log Excel download
+        try:
+            from utils import log_user_activity
+            from flask_login import current_user
+            from auth import get_active_group
+            file_size_mb = os.path.getsize(excel_path) / (1024 * 1024)
+            grp = get_active_group()
+            log_user_activity(
+                user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
+                group_name=grp.name if grp else 'unknown',
+                action='export_expenses',
+                details={
+                    'file_name': os.path.basename(excel_path),
+                    'file_size_mb': round(file_size_mb, 2),
+                    'vat': active.get('vat') if active else None
+                },
+                user_email=getattr(current_user, 'email', None),
+                user_username=getattr(current_user, 'username', None)
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to log Excel download: {e}")
+        
         return send_file(
             excel_path,
             as_attachment=True,
@@ -9135,9 +9157,11 @@ def export_fastimport_kinitseis():
         try:
             from utils import log_user_activity
             from flask_login import current_user
+            from auth import get_active_group
+            grp = get_active_group()
             log_user_activity(
                 user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
-                group_name=vat,
+                group_name=grp.name if grp else 'unknown',
                 action='export_bridge',
                 details={
                     'book_category': 'Β' if is_b_category else 'Γ',
@@ -9401,9 +9425,11 @@ def delete_invoices():
     try:
         from utils import log_user_activity
         from flask_login import current_user
+        from auth import get_active_group
+        grp = get_active_group()
         log_user_activity(
             user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
-            group_name=active.get('vat') if active else 'unknown',
+            group_name=grp.name if grp else 'unknown',
             action='delete_rows',
             details={
                 'marks': marks_to_delete,
@@ -9713,26 +9739,6 @@ def admin_settings_save():
     return redirect(url_for('admin_settings'))
 
 
-@app.route("/api/admin/activity-logs", methods=['GET'])
-@login_required
-def api_admin_activity_logs_filtered():
-    """API endpoint for filtered activity logs (JSON)"""
-    if not admin_panel.is_admin(current_user):
-        return jsonify({'error': 'Admin access required'}), 403
-    
-    group_name = request.args.get('group', '')
-    action_filter = request.args.get('action', '')
-    limit = request.args.get('limit', 100, type=int)
-    
-    logs = admin_panel.admin_get_activity_logs(group_name if group_name else None, limit)
-    
-    # Filter by action if provided
-    if action_filter:
-        logs = [log for log in logs if action_filter.lower() in (log.get('action') or '').lower()]
-    
-    return jsonify(logs)
-
-
 @app.route("/api/admin/users", methods=['GET'])
 @login_required
 def api_admin_users():
@@ -9741,7 +9747,7 @@ def api_admin_users():
         return jsonify({'error': 'Admin access required'}), 403
     
     users = admin_panel.admin_list_all_users()
-    return jsonify(users)
+    return jsonify({'users': users})
 
 
 @app.route("/api/admin/groups", methods=['GET'])
@@ -9752,7 +9758,7 @@ def api_admin_groups():
         return jsonify({'error': 'Admin access required'}), 403
     
     groups = admin_panel.admin_list_all_groups()
-    return jsonify(groups)
+    return jsonify({'groups': groups})
 
 
 @app.route("/api/admin/stats", methods=['GET'])
@@ -9777,7 +9783,7 @@ def api_admin_activity_logs():
     limit = request.args.get('limit', 100, type=int)
     
     logs = admin_panel.admin_get_activity_logs(group_name, limit)
-    return jsonify(logs)
+    return jsonify({'logs': logs})
 
 
 @app.route("/admin/send-email", methods=['GET', 'POST'])

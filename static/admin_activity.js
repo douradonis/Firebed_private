@@ -91,3 +91,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Auto-refresh activity logs every 60 seconds
+setInterval(() => {
+    performSearch();
+}, 60000);

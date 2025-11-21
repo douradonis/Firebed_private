@@ -751,6 +751,8 @@ def log_user_activity(user_id, group_name, action, details=None, user_email=None
         descriptions = {
             'login': 'Σύνδεση χρήστη',
             'logout': 'Αποσύνδεση χρήστη',
+            'user_login_attempt': 'Προσπάθεια σύνδεσης χρήστη',
+            'user_logged_in': 'Σύνδεση χρήστη',
             'backup_download': 'Λήψη αντιγράφου ασφαλείας',
             'backup_upload': 'Φόρτωση αντιγράφου ασφαλείας',
             'delete_rows': 'Διαγραφή γραμμών από πίνακα',

@@ -147,11 +147,31 @@
         <table id="activity-table" class="w-full text-sm display" style="width:100%">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="text-left px-4 py-3 font-medium">Ώρα</th>
+              <th class="text-left px-4 py-3 font-medium">Ημερομηνία</th>
               <th class="text-left px-4 py-3 font-medium">Χρήστης</th>
               <th class="text-left px-4 py-3 font-medium">Ομάδα</th>
               <th class="text-left px-4 py-3 font-medium">Ενέργεια</th>
               <th class="text-left px-4 py-3 font-medium">Λεπτομέρειες</th>
+            <script>
+            // Δυναμική ενημέρωση πλακιδίων dashboard
+            async function updateDashboardStats() {
+              try {
+                const res = await fetch('/api/admin/stats');
+                const stats = await res.json();
+                document.getElementById('stat-users').textContent = stats.total_users ?? '-';
+                document.getElementById('stat-groups').textContent = stats.total_groups ?? '-';
+                // Αν υπάρχει activity_24h ή παρόμοιο, αλλιώς βάζουμε "-"
+                document.getElementById('stat-activity').textContent = stats.activity_24h ?? (stats.total_activity ?? '-') ?? '-';
+                document.getElementById('stat-users-loading').style.display = 'none';
+                document.getElementById('stat-groups-loading').style.display = 'none';
+              } catch (e) {
+                document.getElementById('stat-users').textContent = '-';
+                document.getElementById('stat-groups').textContent = '-';
+                document.getElementById('stat-activity').textContent = '-';
+              }
+            }
+            document.addEventListener('DOMContentLoaded', updateDashboardStats);
+            </script>
             </tr>
           </thead>
           <tbody id="activity-tbody">
@@ -410,36 +430,39 @@ function showTab(tabName) {
 // ==================== OVERVIEW TAB ====================
 async function loadStats() {
   try {
-    const response = await fetch('/admin/api/users');
+    const response = await fetch('/api/admin/stats');
     const data = await response.json();
-    document.getElementById('stat-users').textContent = data.users ? data.users.length : 0;
+    document.getElementById('stat-users').textContent = data.total_users || 0;
     document.getElementById('stat-users-loading').style.display = 'none';
   } catch (err) {
     console.error('Error loading users stats:', err);
+    document.getElementById('stat-users').textContent = '-';
   }
 
   try {
-    const response = await fetch('/admin/api/groups');
+    const response = await fetch('/api/admin/stats');
     const data = await response.json();
-    document.getElementById('stat-groups').textContent = data.groups ? data.groups.length : 0;
+    document.getElementById('stat-groups').textContent = data.total_groups || 0;
     document.getElementById('stat-groups-loading').style.display = 'none';
   } catch (err) {
     console.error('Error loading groups stats:', err);
+    document.getElementById('stat-groups').textContent = '-';
   }
 
   try {
-    const response = await fetch('/admin/api/activity-logs?limit=100');
+    const response = await fetch('/api/admin/stats');
     const data = await response.json();
-    document.getElementById('stat-activity').textContent = data.logs ? data.logs.length : 0;
+    document.getElementById('stat-activity').textContent = data.activity_24h || 0;
     loadRecentActivity();
   } catch (err) {
     console.error('Error loading activity stats:', err);
+    document.getElementById('stat-activity').textContent = '-';
   }
 }
 
 async function loadRecentActivity() {
   try {
-    const response = await fetch('/admin/api/activity-logs?limit=5');
+    const response = await fetch('/api/admin/activity-logs?limit=5');
     const data = await response.json();
     const container = document.getElementById('recent-activity');
     
@@ -450,8 +473,8 @@ async function loadRecentActivity() {
 
     container.innerHTML = data.logs.map(log => `
       <div class="p-3 border rounded bg-gray-50">
-        <div class="text-xs text-gray-500">${new Date(log.timestamp).toLocaleString('el-GR')}</div>
-        <div class="text-sm font-medium">${log.user_id || 'System'}</div>
+        <div class="text-xs text-gray-500">${log.timestamp || '-'}</div>
+        <div class="text-sm font-medium">${log.user || 'System'}</div>
         <div class="text-sm text-gray-700">${log.action}</div>
         <div class="text-xs text-gray-600">${log.group || '-'}</div>
       </div>
@@ -460,6 +483,9 @@ async function loadRecentActivity() {
     console.error('Error loading recent activity:', err);
   }
 }
+
+// Auto-refresh recent activity every 30 seconds
+setInterval(loadRecentActivity, 30000);
 
 // ==================== USERS TAB ====================
 async function loadUsers() {
@@ -719,7 +745,7 @@ async function loadActivity() {
       }
     }
     
-    const response = await fetch('/admin/api/activity-logs?limit=500');
+    const response = await fetch('/api/admin/activity-logs?limit=500');
     const data = await response.json();
     
     if (!data.logs) {
@@ -766,7 +792,7 @@ async function loadActivity() {
       }
       
       return [
-        new Date(log.timestamp).toLocaleString('el-GR'),
+        log.timestamp || '-',
         userDisplay,
         groupDisplay,
         actionDisplay,
@@ -1507,6 +1533,9 @@ window.addEventListener('load', function() {
   loadUsers();
   loadEmailConfiguration();
   loadEmailProviderSettings();
+  
+  // Auto-refresh stats every 30 seconds
+  setInterval(loadStats, 30000);
 });
 </script>
 

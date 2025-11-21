@@ -274,6 +274,19 @@ def firebase_log_activity(user_id: str, group_name: str, action: str, details: O
             'details': details or {}
         }
 
+        # Determine the folder to use for logs
+        # Try to get data_folder from Group model if group_name matches a group
+        folder_name = group_name
+        try:
+            # Lazy import to avoid circular dependencies
+            from models import Group
+            grp = Group.query.filter_by(name=group_name).first()
+            if grp and getattr(grp, 'data_folder', None):
+                folder_name = grp.data_folder
+        except Exception:
+            # If we can't query, fall back to group_name
+            pass
+
         wrote_any = False
 
         # Attempt to write to Firebase if enabled
@@ -282,7 +295,7 @@ def firebase_log_activity(user_id: str, group_name: str, action: str, details: O
                 # Write to activity log under /activity_logs/{group}/{timestamp}
                 # Replace special characters in timestamp for Firebase path compatibility
                 safe_timestamp = timestamp.replace(":", "-").replace("+", "_").replace(".", "-")
-                path = f'/activity_logs/{group_name}/{safe_timestamp}'
+                path = f'/activity_logs/{folder_name}/{safe_timestamp}'
                 if firebase_write_data(path, log_entry):
                     wrote_any = True
         except Exception:
@@ -293,7 +306,8 @@ def firebase_log_activity(user_id: str, group_name: str, action: str, details: O
         try:
             data_dir = os.path.join(os.getcwd(), 'data')
             os.makedirs(data_dir, exist_ok=True)
-            group_dir = os.path.join(data_dir, str(group_name) if group_name else 'global')
+            
+            group_dir = os.path.join(data_dir, str(folder_name) if folder_name else 'global')
             os.makedirs(group_dir, exist_ok=True)
             activity_path = os.path.join(group_dir, 'activity.log')
             with open(activity_path, 'a', encoding='utf-8') as fh:
