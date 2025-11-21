@@ -1305,14 +1305,17 @@ def api_restore_backup_by_path(backup_path):
                 current_admin=current_user
             )
         else:
-            # For local backups, find the first available group to restore to
-            groups = admin_panel.admin_list_all_groups()
-            if not groups:
-                return jsonify({'success': False, 'error': 'No groups available for restore'}), 400
+            # For local backups, use the specified target group or find first available
+            target_group_id = data.get('target_group_id')
+            if not target_group_id:
+                groups = admin_panel.admin_list_all_groups()
+                if not groups:
+                    return jsonify({'success': False, 'error': 'No groups available for restore'}), 400
+                target_group_id = groups[0]['id']
             
             result = admin_panel.admin_restore_backup(
                 backup_path, 
-                groups[0]['id'],  # Use first available group
+                target_group_id,
                 current_user
             )
         

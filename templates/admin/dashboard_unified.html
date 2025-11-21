@@ -203,9 +203,15 @@
             💾 Backup Όλων των Δεδομένων
           </button>
           <div class="flex gap-2">
-            <select id="group-select" class="flex-1 px-3 py-2 border rounded">
-              <option value="">-- Επιλέξτε Ομάδα --</option>
-            </select>
+            <div class="flex-1 relative">
+              <input type="text" id="group-search" class="w-full px-3 py-2 border rounded" placeholder="Αναζήτηση ομάδας..." autocomplete="off">
+              <select id="group-select" class="absolute inset-0 w-full px-3 py-2 border rounded opacity-0 cursor-pointer">
+                <option value="">-- Επιλέξτε Ομάδα --</option>
+              </select>
+              <div id="group-dropdown" class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-b shadow-lg max-h-48 overflow-y-auto hidden z-10">
+                <!-- Options will be populated here -->
+              </div>
+            </div>
             <button onclick="backupSpecificGroup()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
               📁 Backup
             </button>
@@ -891,10 +897,83 @@ function startActivityAutoRefresh() {
 }
 
 // ==================== BACKUPS TAB ====================
+async function loadGroupsForBackup() {
+  try {
+    const response = await fetch('/admin/api/groups');
+    const data = await response.json();
+    populateGroupSelect(data.groups || []);
+  } catch (err) {
+    console.error('Error loading groups for backup:', err);
+  }
+}
+
 function populateGroupSelect(groups) {
   const select = document.getElementById('group-select');
-  select.innerHTML = '<option value="">-- Επιλέξτε Ομάδα --</option>' + 
-    (groups || []).map(g => `<option value="${g.id}">${g.name || g.group_name}</option>`).join('');
+  const dropdown = document.getElementById('group-dropdown');
+  const searchInput = document.getElementById('group-search');
+  
+  // Clear existing options
+  select.innerHTML = '<option value="">-- Επιλέξτε Ομάδα --</option>';
+  dropdown.innerHTML = '';
+  
+  // Add options to both select and dropdown
+  (groups || []).forEach(g => {
+    const optionValue = g.id;
+    const optionText = g.name || g.group_name;
+    
+    // Add to hidden select
+    const option = document.createElement('option');
+    option.value = optionValue;
+    option.textContent = optionText;
+    select.appendChild(option);
+    
+    // Add to visible dropdown
+    const dropdownItem = document.createElement('div');
+    dropdownItem.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer group-option';
+    dropdownItem.setAttribute('data-value', optionValue);
+    dropdownItem.textContent = optionText;
+    dropdownItem.onclick = () => selectGroup(optionValue, optionText);
+    dropdown.appendChild(dropdownItem);
+  });
+  
+  // Setup search functionality
+  searchInput.oninput = () => {
+    const query = searchInput.value.toLowerCase();
+    const options = dropdown.querySelectorAll('.group-option');
+    let hasVisible = false;
+    
+    options.forEach(option => {
+      const text = option.textContent.toLowerCase();
+      const visible = text.includes(query);
+      option.style.display = visible ? 'block' : 'none';
+      if (visible) hasVisible = true;
+    });
+    
+    dropdown.style.display = hasVisible && query ? 'block' : 'none';
+  };
+  
+  searchInput.onfocus = () => {
+    if (searchInput.value) {
+      dropdown.style.display = 'block';
+    }
+  };
+  
+  // Hide dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+function selectGroup(value, text) {
+  const select = document.getElementById('group-select');
+  const searchInput = document.getElementById('group-search');
+  const dropdown = document.getElementById('group-dropdown');
+  
+  select.value = value;
+  searchInput.value = text;
+  dropdown.style.display = 'none';
 }
 
 function showBackupTab(type) {
@@ -926,6 +1005,8 @@ function showBackupTab(type) {
 }
 
 async function loadBackups() {
+  // Load groups first to populate the dropdown
+  await loadGroupsForBackup();
   // Load both local and remote backups, starting with local
   showBackupTab('local');
 }
@@ -1220,14 +1301,27 @@ async function backupSpecificGroup() {
 }
 
 async function restoreBackup(backupName) {
-  if (!await showModalConfirm('Επιβεβαίωση Restore', 'Είστε σίγουρος ότι θέλετε να κάνετε restore αυτό το backup;', 'Restore', 'Άκυρο')) return;
+  const targetGroupId = document.getElementById('group-select').value;
+  if (!targetGroupId) {
+    showErrorModal('❌ Σφάλμα', 'Παρακαλώ επιλέξτε ομάδα για restore');
+    return;
+  }
+  
+  if (!await showModalConfirm('Επιβεβαίωση Restore', `Είστε σίγουρος ότι θέλετε να κάνετε restore του backup "${backupName}" στην ομάδα "${document.getElementById('group-search').value}"?`, 'Restore', 'Άκυρο')) return;
   
   try {
-    const response = await fetch(`/admin/backups/restore/${backupName}`, { method: 'POST' });
+    const response = await fetch(`/admin/backups/restore/${backupName}`, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        type: 'local',
+        target_group_id: parseInt(targetGroupId)
+      })
+    });
     const data = await response.json();
     
-    if (data.ok) {
-      showModalAlert('Επιτυχία', '✅ Backup εφαρμόστηκε');
+    if (data.success) {
+      showModalAlert('Επιτυχία', '✅ Backup εφαρμόστηκε επιτυχώς');
       loadBackups();
     } else {
       showErrorModal('❌ Σφάλμα', 'Σφάλμα: ' + (data.error || 'Unknown'));
