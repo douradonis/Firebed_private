@@ -29,35 +29,6 @@
     "_updated_at": "2025-10-29T10:50:26.904252+00:00"
   },
   {
-    "mark": "400011576793993",
-    "issueDate": "31/10/2025",
-    "series": "ΑΛΠ",
-    "aa": "130739",
-    "AA": "130739",
-    "type": "ΑΠΟΔΕΙΞΗ",
-    "vatCategory": "",
-    "totalNetValue": "2,60",
-    "totalVatAmount": "",
-    "totalValue": "2,60",
-    "classification": "",
-    "category": "αποδειξακια",
-    "χαρακτηρισμός": "αποδειξακια",
-    "characteristic": "αποδειξακια",
-    "AFM_issuer": "998345385",
-    "Name_issuer": "",
-    "AFM": "998345385",
-    "lines": [
-      {
-        "id": "r0",
-        "description": "",
-        "amount": "2,60",
-        "vat": "",
-        "category": "αποδειξακια",
-        "vat_category": ""
-      }
-    ]
-  },
-  {
     "mark": "400011615024455",
     "issueDate": "11/11/2025",
     "series": "TΔA",

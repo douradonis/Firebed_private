@@ -656,6 +656,96 @@ def admin_restore_backup(backup_name: str, target_group_id: int, current_admin: 
 # Activity & Traffic Logs
 # ============================================================================
 
+def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
+    """Create detailed description in Greek for activity logs"""
+    try:
+        if action == 'export_bridge':
+            # Handle nested details structure for bridge exports
+            actual_details = details.get('details', details)
+            book_category = actual_details.get('book_category', 'Άγνωστο')
+            rows_count = actual_details.get('rows_count', 0)
+            file_size_mb = actual_details.get('file_size_mb', 0)
+            file_name = actual_details.get('file_name', 'Άγνωστο')
+            includes_b_kat = actual_details.get('includes_b_kat', False)
+            
+            category_name = {
+                'A': 'Αρχείο Εσόδων',
+                'B': 'Βιβλίο Εσόδων',
+                'C': 'Βιβλίο Εξόδων',
+                'D': 'Αρχείο Εξόδων',
+                'E': 'Βιβλίο Παγίων'
+            }.get(book_category, f'Κατηγορία {book_category}')
+            
+            b_kat_text = " (συμπεριλαμβάνει Β' Κατηγορία)" if includes_b_kat else ""
+            
+            return f"Λήψη γέφυρας {category_name}{b_kat_text}. Αρχείο: {file_name}, {rows_count} γραμμές, μέγεθος {file_size_mb:.2f} MB"
+        
+        elif action in ['user_logged_in', 'login']:
+            ip_address = details.get('ip_address', 'Άγνωστο')
+            return f"Σύνδεση από IP: {ip_address}"
+        
+        elif action == 'logout':
+            ip_address = details.get('ip_address', 'Άγνωστο')
+            return f"Αποσύνδεση από IP: {ip_address}"
+        
+        elif action in ['user_signup_complete', 'user_registered']:
+            ip_address = details.get('ip_address', 'Άγνωστο')
+            return f"Εγγραφή νέου χρήστη από IP: {ip_address}"
+        
+        elif action == 'password_changed':
+            return "Αλλαγή κωδικού πρόσβασης"
+        
+        elif action == 'password_reset_completed':
+            return "Ολοκλήρωση επαναφοράς κωδικού μέσω email"
+        
+        elif action == 'verification_email_sent':
+            return "Αποστολή email επαλήθευσης λογαριασμού"
+        
+        elif action in ['delete_user', 'admin_delete_user']:
+            target_user = details.get('target_user_email') or details.get('deleted_user') or 'Άγνωστος'
+            admin_text = " (από admin)" if action.startswith('admin_') else ""
+            return f"Διαγραφή χρήστη: {target_user}{admin_text}"
+        
+        elif action in ['delete_backup', 'admin_delete_backup']:
+            backup_name = details.get('backup_name') or 'Άγνωστο'
+            admin_text = " (από admin)" if action.startswith('admin_') else ""
+            return f"Διαγραφή backup: {backup_name}{admin_text}"
+        
+        elif action in ['send_email', 'admin_send_email']:
+            recipient_count = details.get('recipient_count') or details.get('recipients', [])
+            if isinstance(recipient_count, list):
+                recipient_count = len(recipient_count)
+            admin_text = " (από admin)" if action.startswith('admin_') else ""
+            return f"Αποστολή email σε {recipient_count} παραλήπτες{admin_text}"
+        
+        elif action == 'group_deleted':
+            group_name = details.get('group_name') or 'Άγνωστο'
+            return f"Διαγραφή ομάδας: {group_name}"
+        
+        elif action == 'group_restored':
+            group_name = details.get('group_name') or 'Άγνωστο'
+            return f"Επαναφορά ομάδας: {group_name}"
+        
+        elif action == 'backup_deleted':
+            backup_name = details.get('backup_name') or 'Άγνωστο'
+            return f"Διαγραφή backup: {backup_name}"
+        
+        elif action == 'user_deleted':
+            return "Διαγραφή λογαριασμού χρήστη"
+        
+        # Default fallback
+        description = details.get('description', '')
+        if description:
+            return description
+        
+        # If no specific handling, return a generic description
+        return f"Ενέργεια: {action}"
+        
+    except Exception as e:
+        logger.error(f"Error creating detailed description for {action}: {e}")
+        return f"Ενέργεια: {action}"
+
+
 def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
     """Get activity logs from Firebase"""
     try:
@@ -733,32 +823,53 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                 user = details.get('user_email') or details.get('user_username') or entry.get('user_id') or '-'
                 action = details.get('action') or details.get('description') or entry.get('action') or '-'
                 group = details.get('group') or entry.get('group') or '-'
-                details_text = details.get('details', '')
+                # Create detailed description in Greek
+                details_text = _create_detailed_description(action, details)
             else:
                 # Handle local logs or simple structure
                 user = entry.get('user_email') or entry.get('user_id') or entry.get('username') or '-'
                 action = entry.get('action') or entry.get('message') or entry.get('event') or '-'
                 group = entry.get('group') or entry.get('group_name') or '-'
-                details_text = entry.get('details','')
+                details_obj = entry.get('details', {})
+                if isinstance(details_obj, dict):
+                    details_text = _create_detailed_description(action, details_obj)
+                else:
+                    details_text = str(details_obj) if details_obj else ''
             
-            # Translate actions to Greek
+            # Translate actions to Greek (keep simple for display)
             action_descriptions = {
-                'user_login_attempt': 'Προσπάθεια σύνδεσης χρήστη',
+                'user_login_attempt': 'Προσπάθεια σύνδεσης',
                 'user_logged_in': 'Σύνδεση χρήστη',
-                'user_signup_complete': 'Ολοκλήρωση εγγραφής χρήστη',
+                'user_signup_complete': 'Εγγραφή χρήστη',
                 'password_changed': 'Αλλαγή κωδικού',
-                'password_reset_completed': 'Ολοκλήρωση επαναφοράς κωδικού',
+                'password_reset_completed': 'Επαναφορά κωδικού',
                 'user_joined_group': 'Συμμετοχή σε ομάδα',
                 'user_left_group': 'Αποχώρηση από ομάδα',
+                'login': 'Σύνδεση',
+                'logout': 'Αποσύνδεση',
+                'user_registered': 'Εγγραφή χρήστη',
+                'verification_email_sent': 'Αποστολή email επαλήθευσης',
+                'delete_user': 'Διαγραφή χρήστη',
+                'delete_backup': 'Διαγραφή backup',
+                'admin_delete_user': 'Διαγραφή χρήστη (admin)',
+                'admin_delete_backup': 'Διαγραφή backup (admin)',
+                'send_email': 'Αποστολή email',
+                'admin_send_email': 'Αποστολή email (admin)',
+                'group_deleted': 'Διαγραφή ομάδας',
+                'backup_deleted': 'Διαγραφή backup',
+                'group_restored': 'Επαναφορά ομάδας',
+                'export_bridge': 'Λήψη γέφυρας',
+                'user_deleted': 'Διαγραφή χρήστη',
             }
             action = action_descriptions.get(action, action)
             
             formatted.append({
                 'timestamp': entry.get('timestamp_fmt', entry.get('timestamp','')),
-                'user': user,
+                'user_email': user,  # Changed from 'user' to 'user_email' to match template expectations
                 'group': group,
-                'action': action,
-                'details': details_text
+                'action': action,  # This is already the translated Greek action
+                'summary': action,  # Add summary field for template compatibility
+                'details': details_text  # This is already the detailed Greek description
             })
         
         # If firebase returned no logs (or not configured) fall back to local activity.log files
@@ -781,13 +892,15 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                                         entry = json.loads(ln)
                                         # Extract nested details if present
                                         if 'details' in entry and isinstance(entry['details'], dict):
-                                            user_email = entry['details'].get('user_email') or entry['details'].get('email') or entry.get('user_id')
-                                            action = entry['details'].get('action') or entry.get('action')
-                                            description = entry['details'].get('description', '')
+                                            details = entry['details']
+                                            user_email = details.get('user_email') or details.get('email') or entry.get('user_id')
+                                            action = details.get('action') or entry.get('action')
+                                            # Create detailed description in Greek
+                                            details_text = _create_detailed_description(action, details)
                                         else:
                                             user_email = entry.get('user_id')
                                             action = entry.get('action')
-                                            description = ''
+                                            details_text = entry.get('details', '')
                                         
                                         ts = entry.get('timestamp', '')
                                         # Parse and format timestamp
@@ -805,25 +918,41 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                                         if group_name == "802576637":
                                             group_name = "tony"
                                         
-                                        local_logs.append({
-                                            'timestamp': timestamp_fmt,
-                                            'user': user_email or '-',
-                                            'group': group_name,
-                                            'action': description or action or '-',
-                                            'details': entry.get('details', '')
-                                        })
-                                        
-                                        # Translate action to Greek
+                                        # Translate actions to Greek (keep simple for display)
                                         action_descriptions = {
-                                            'user_login_attempt': 'Προσπάθεια σύνδεσης χρήστη',
+                                            'user_login_attempt': 'Προσπάθεια σύνδεσης',
                                             'user_logged_in': 'Σύνδεση χρήστη',
-                                            'user_signup_complete': 'Ολοκλήρωση εγγραφής χρήστη',
+                                            'user_signup_complete': 'Εγγραφή χρήστη',
                                             'password_changed': 'Αλλαγή κωδικού',
-                                            'password_reset_completed': 'Ολοκλήρωση επαναφοράς κωδικού',
+                                            'password_reset_completed': 'Επαναφορά κωδικού',
                                             'user_joined_group': 'Συμμετοχή σε ομάδα',
                                             'user_left_group': 'Αποχώρηση από ομάδα',
+                                            'login': 'Σύνδεση',
+                                            'logout': 'Αποσύνδεση',
+                                            'user_registered': 'Εγγραφή χρήστη',
+                                            'verification_email_sent': 'Αποστολή email επαλήθευσης',
+                                            'delete_user': 'Διαγραφή χρήστη',
+                                            'delete_backup': 'Διαγραφή backup',
+                                            'admin_delete_user': 'Διαγραφή χρήστη (admin)',
+                                            'admin_delete_backup': 'Διαγραφή backup (admin)',
+                                            'send_email': 'Αποστολή email',
+                                            'admin_send_email': 'Αποστολή email (admin)',
+                                            'group_deleted': 'Διαγραφή ομάδας',
+                                            'backup_deleted': 'Διαγραφή backup',
+                                            'group_restored': 'Επαναφορά ομάδας',
+                                            'export_bridge': 'Λήψη γέφυρας',
+                                            'user_deleted': 'Διαγραφή χρήστη',
                                         }
-                                        local_logs[-1]['action'] = action_descriptions.get(local_logs[-1]['action'], local_logs[-1]['action'])
+                                        action_display = action_descriptions.get(action, action)
+                                        
+                                        local_logs.append({
+                                            'timestamp': timestamp_fmt,
+                                            'user_email': user_email or '-',  # Changed from 'user' to 'user_email'
+                                            'group': group_name,
+                                            'action': action_display,
+                                            'summary': action_display,  # Add summary field
+                                            'details': details_text
+                                        })
                                     except json.JSONDecodeError:
                                         # Not JSON, try to parse as plain log line
                                         parts = ln.split(' - ', 1)

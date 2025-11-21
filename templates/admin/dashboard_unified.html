@@ -764,10 +764,14 @@ async function loadActivity() {
       // Action: use summary from API (already formatted in Greek)
       const actionDisplay = log.summary || log.description || log.action || log.event_type || '-';
       
-      // Details: extract key fields from nested details
+      // Details: use the pre-formatted details from API, or extract from nested details
       let detailsDisplay = '-';
       const detailsObj = log.details || {};
-      if (typeof detailsObj === 'object' && Object.keys(detailsObj).length > 0) {
+      
+      // If details is already a string (pre-formatted), use it directly
+      if (typeof detailsObj === 'string' && detailsObj.trim() !== '') {
+        detailsDisplay = detailsObj;
+      } else if (typeof detailsObj === 'object' && Object.keys(detailsObj).length > 0) {
         // Get actual action details (might be nested)
         const actionDetails = detailsObj.details || detailsObj;
         
