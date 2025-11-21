@@ -4,7 +4,15 @@ Validates Greek VAT numbers and retrieves business information
 """
 
 import logging
+import os
 from typing import Optional, Dict, Any
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    DOTENV_AVAILABLE = True
+except ImportError:
+    DOTENV_AVAILABLE = False
 
 try:
     from zeep import Client
@@ -12,6 +20,12 @@ try:
     ZEEP_AVAILABLE = True
 except ImportError:
     ZEEP_AVAILABLE = False
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +124,16 @@ class VATValidator:
             result['error'] = f'Unexpected error: {error_msg}'
             log.exception(f"Unexpected error validating VAT {clean_vat}")
         
+        # If VIES failed, try Business Portal API as fallback
+        if not result['valid'] and result['error']:
+            log.info(f"VIES validation failed for {clean_vat}, trying Business Portal API fallback")
+            fallback_result = self._validate_with_business_portal(clean_vat)
+            if fallback_result['valid']:
+                result.update(fallback_result)
+                log.info(f"Business Portal fallback successful for {clean_vat}: {result['name']}")
+            else:
+                log.warning(f"Business Portal fallback also failed for {clean_vat}: {fallback_result.get('error', 'Unknown error')}")
+        
         return result
     
     def _clean_vat_number(self, vat_number: str) -> Optional[str]:
@@ -152,6 +176,93 @@ class VATValidator:
         cleaned = ' '.join(text.split())
         
         return cleaned if cleaned else None
+    
+    def _validate_with_business_portal(self, vat_number: str) -> Dict[str, Any]:
+        """
+        Fallback validation using Business Portal API
+        
+        Args:
+            vat_number: Clean VAT number (9 digits)
+            
+        Returns:
+            Dictionary with validation result
+        """
+        result = {
+            'valid': False,
+            'vat_number': vat_number,
+            'name': None,
+            'address': None,
+            'error': None
+        }
+        
+        # Check if requests is available
+        if not REQUESTS_AVAILABLE:
+            result['error'] = 'Business Portal fallback not available (requests library not installed)'
+            return result
+        
+        # Get API key from environment
+        api_key = os.getenv('BUSINESS_PORTAL_KEY')
+        if not api_key:
+            result['error'] = 'Business Portal API key not configured (BUSINESS_PORTAL_KEY)'
+            return result
+        
+        try:
+            # Prepare API request
+            url = 'https://opendata-api.businessportal.gr/api/opendata/v1/companies'
+            headers = {
+                'accept': 'application/json',
+                'api_key': api_key
+            }
+            params = {
+                'afm': vat_number.zfill(9),  # Ensure 9 digits with leading zeros
+                'resultsSortBy': '+arGemi',
+                'resultsOffset': 0,
+                'resultsSize': 10
+            }
+            
+            # Make API request
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            # Parse response
+            data = response.json()
+            
+            # Check if we got results
+            search_results = data.get('searchResults', [])
+            if not search_results:
+                result['error'] = 'VAT number not found in Business Portal database'
+                return result
+            
+            # Get the first result
+            company = search_results[0]
+            company_name = company.get('coNameEl')
+            
+            if company_name:
+                result['valid'] = True
+                result['name'] = self._clean_text(company_name)
+                result['address'] = None  # Business Portal doesn't provide address in this endpoint
+                log.info(f"Business Portal validation successful for {vat_number}: {result['name']}")
+            else:
+                result['error'] = 'Company name not found in Business Portal response'
+                
+        except requests.exceptions.Timeout:
+            result['error'] = 'Business Portal API timeout'
+            log.error(f"Business Portal timeout for {vat_number}")
+            
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response else 'unknown'
+            result['error'] = f'Business Portal HTTP error {status_code}: {str(e)}'
+            log.error(f"Business Portal HTTP error for {vat_number}: {status_code}")
+            
+        except requests.exceptions.RequestException as e:
+            result['error'] = f'Business Portal network error: {str(e)}'
+            log.error(f"Business Portal network error for {vat_number}: {str(e)}")
+            
+        except Exception as e:
+            result['error'] = f'Business Portal unexpected error: {str(e)}'
+            log.exception(f"Business Portal unexpected error for {vat_number}")
+        
+        return result
 
 
 # Singleton instance
