@@ -678,7 +678,15 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
             
             b_kat_text = " (συμπεριλαμβάνει Β' Κατηγορία)" if includes_b_kat else ""
             
-            return f"Λήψη γέφυρας {category_name}{b_kat_text}. Αρχείο: {file_name}, {rows_count} γραμμές, μέγεθος {file_size_mb:.2f} MB"
+            return f"Λήψη εξοδολογίου {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {file_size_mb:.2f} MB, όνομα αρχείου: {file_name}"
+        
+        elif action == 'delete_rows':
+            # Handle delete rows action
+            actual_details = details.get('details', details)
+            count = actual_details.get('count', 0)
+            excel_path = actual_details.get('excel_path', 'Άγνωστο αρχείο')
+            
+            return f"Διαγραφή {count} γραμμών από αρχείο: {excel_path}"
         
         elif action in ['user_logged_in', 'login']:
             ip_address = details.get('ip_address', 'Άγνωστο')
@@ -733,9 +741,17 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
         elif action == 'user_deleted':
             return "Διαγραφή λογαριασμού χρήστη"
         
-        # Default fallback
+        elif action == 'delete_rows':
+            # Handle delete rows action
+            actual_details = details.get('details', details)
+            count = actual_details.get('count', 0)
+            excel_path = actual_details.get('excel_path', 'Άγνωστο αρχείο')
+            
+            return f"Διαγραφή {count} γραμμών από αρχείο: {excel_path}"
+        
+        # Default fallback - only use existing description if no custom handling
         description = details.get('description', '')
-        if description:
+        if description and action not in ['export_bridge']:  # Don't use existing description for actions we handle
             return description
         
         # If no specific handling, return a generic description
