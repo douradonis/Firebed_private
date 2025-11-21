@@ -141,6 +141,14 @@
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
         <h2 class="text-lg font-bold">📋 Δραστηριότητα Συστήματος</h2>
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-gray-600">
+            <span id="activity-count-24h" class="font-bold text-sky-600">-</span> δραστηριότητες (24ώρου)
+          </span>
+          <button onclick="loadActivity()" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700">
+            🔄 Ανανέωση
+          </button>
+        </div>
       </div>
       
       <div class="overflow-x-auto">
@@ -422,7 +430,10 @@ function showTab(tabName) {
   // Load data for specific tabs
   if (tabName === 'users') loadUsers();
   else if (tabName === 'groups') loadGroups();
-  else if (tabName === 'activity') loadActivity();
+  else if (tabName === 'activity') {
+    loadActivity();
+    startActivityAutoRefresh(); // Start auto-refresh when activity tab is shown
+  }
   else if (tabName === 'backups') loadBackups();
   else if (tabName === 'email') loadEmailUsers();
 }
@@ -753,6 +764,24 @@ async function loadActivity() {
       return;
     }
     
+    // Calculate 24h activity count
+    const now = new Date();
+    const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+    const activity24h = data.logs.filter(log => {
+      try {
+        const logDate = new Date(log.timestamp);
+        return logDate >= oneDayAgo;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+    
+    // Update 24h count display
+    const countElement = document.getElementById('activity-count-24h');
+    if (countElement) {
+      countElement.textContent = activity24h;
+    }
+    
     // Prepare data for DataTable
     const tableData = data.logs.map(log => {
       // User display: prefer email/username from API
@@ -841,6 +870,24 @@ async function loadActivity() {
     console.error('Error loading activity:', error);
     showErrorModal('Σφάλμα', 'Αποτυχία φόρτωσης δραστηριότητας');
   }
+}
+
+// Auto-refresh activity table every 30 seconds
+let activityRefreshInterval = null;
+
+function startActivityAutoRefresh() {
+  // Clear any existing interval
+  if (activityRefreshInterval) {
+    clearInterval(activityRefreshInterval);
+  }
+  // Set new interval to refresh every 30 seconds
+  activityRefreshInterval = setInterval(() => {
+    // Only refresh if the activity tab is visible
+    const activityTab = document.getElementById('activity');
+    if (activityTab && !activityTab.classList.contains('hidden')) {
+      loadActivity();
+    }
+  }, 30000); // 30 seconds
 }
 
 // ==================== BACKUPS TAB ====================

@@ -14,3 +14,4 @@
 {"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-20T11:27:47.181767+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-20T11:27:36_151546+00:00"}}
 {"user_id": 5, "group": "admin", "action": "backup_deleted", "timestamp": "2025-11-20T11:30:58.178640+00:00", "details": {"backup_path": "/backups/full_backup/2025-11-17T17:23:05_770432+00:00"}}
 {"user_id": 5, "group": "admin", "action": "group_restored", "timestamp": "2025-11-20T11:31:10.202772+00:00", "details": {"group_id": 2, "group_name": "tony", "backup_name": "tony_backup_20251120_112732"}}
+{"user_id": 5, "group": "admin", "action": "group_deleted", "timestamp": "2025-11-21T22:05:39.245274+00:00", "details": {"group_id": 3, "group_name": "Test Company (999999999)", "backup_path": "/workspaces/ScanmyData_private/data/_backups/999999999_backup_20251121_220539"}}

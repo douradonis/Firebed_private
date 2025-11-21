@@ -768,82 +768,92 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
         if group_name:
             logs = firebase_config.firebase_get_group_activity_logs(group_name, limit)
         else:
-            logs = firebase_config.firebase_read_data('/activity_logs') or {}
-            flat_logs = []
-            for group, entries in logs.items():
-                if isinstance(entries, dict):
-                    for _, entry in entries.items():
-                        # Always use full group name if possible
-                        group_val = entry.get('group_name') or entry.get('group') or group
-                        
-                        # Fix known VAT numbers to proper group names
-                        if group_val == "802576637":
-                            group_val = "tony"
-                        
-                        # Try to get client name from entry details if not present
-                        client_name = entry.get('client_name')
-                        if not client_name and isinstance(entry.get('details'), dict):
-                            client_name = entry['details'].get('client_name') or entry['details'].get('name')
-                        if client_name:
-                            group_val = f"{group_val} | {client_name}"
-                        entry['group'] = group_val
-                        # Format timestamp
-                        ts = entry.get('timestamp', '')
-                        dt = None
-                        entry['timestamp_fmt'] = ''
-                        if ts:
-                            # Try ISO8601
-                            try:
-                                dt = datetime.fromisoformat(ts.replace('Z','+00:00'))
-                            except Exception:
-                                pass
-                            # Try unix timestamp (int/float)
-                            if not dt:
-                                try:
-                                    dt = datetime.fromtimestamp(float(ts))
-                                except Exception:
-                                    pass
-                            # Try common string formats (including timezone offset like +0200)
-                            if not dt:
-                                for fmt in (
-                                    "%Y-%m-%d %H:%M:%S%z",         # 2025-11-20 13:00:58+0200
-                                    "%Y-%m-%d %H:%M:%S",           # 2025-11-20 13:00:58
-                                    "%d/%m/%Y, %I:%M:%S %p",       # 20/11/2025, 01:00:58 PM
-                                    "%Y-%m-%d"                     # 2025-11-20
-                                ):
-                                    try:
-                                        dt = datetime.strptime(ts, fmt)
-                                        break
-                                    except Exception:
-                                        continue
-                        if dt:
-                            # Convert to Greek timezone (EET/EEST)
-                            from datetime import timezone, timedelta
-                            eet = timezone(timedelta(hours=2))  # EET is UTC+2, EEST is UTC+3
-                            dt = dt.astimezone(eet)
-                            entry['timestamp_fmt'] = dt.strftime('%d/%m/%Y, %-I:%M:%S %p').replace('AM','π.μ.').replace('PM','μ.μ.')
-                        elif ts and 'Invalid' not in ts:
-                            entry['timestamp_fmt'] = ts
-                        else:
-                            entry['timestamp_fmt'] = '-'
-                        flat_logs.append(entry)
-            flat_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-            logs = flat_logs[:limit]
-        # Reformat for admin panel columns
+            # Get all activity logs from all groups
+            all_logs = []
+            try:
+                # First try to get the old format (flat structure)
+                old_logs = firebase_config.firebase_read_data('/activity_logs') or {}
+                if isinstance(old_logs, dict):
+                    for group, entries in old_logs.items():
+                        if isinstance(entries, dict):
+                            for _, entry in entries.items():
+                                if isinstance(entry, dict):
+                                    all_logs.append(entry)
+            except Exception as e:
+                logger.debug(f"Could not read old format logs: {e}")
+
+            # Now get logs from new format (nested by group)
+            try:
+                # Get all groups to know which folders to check
+                from models import Group
+                groups = Group.query.all()
+                for group in groups:
+                    folder_name = getattr(group, 'data_folder', None) or group.name
+                    if folder_name:
+                        group_logs = firebase_config.firebase_get_group_activity_logs(folder_name, limit)
+                        all_logs.extend(group_logs)
+            except Exception as e:
+                logger.debug(f"Could not read new format logs: {e}")
+
+            # Sort all logs by timestamp descending and limit
+            all_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            logs = all_logs[:limit]
+
+        # Format timestamps for all logs
+        for entry in logs:
+            ts = entry.get('timestamp', '')
+            dt = None
+            entry['timestamp_fmt'] = ''
+            if ts:
+                # Try ISO8601
+                try:
+                    dt = datetime.fromisoformat(ts.replace('Z','+00:00'))
+                except Exception:
+                    pass
+                # Try unix timestamp (int/float)
+                if not dt:
+                    try:
+                        dt = datetime.fromtimestamp(float(ts))
+                    except Exception:
+                        pass
+                # Try common string formats (including timezone offset like +0200)
+                if not dt:
+                    for fmt in (
+                        "%Y-%m-%d %H:%M:%S%z",         # 2025-11-20 13:00:58+0200
+                        "%Y-%m-%d %H:%M:%S",           # 2025-11-20 13:00:58
+                        "%d/%m/%Y, %I:%M:%S %p",       # 20/11/2025, 01:00:58 PM
+                        "%Y-%m-%d"                     # 2025-11-20
+                    ):
+                        try:
+                            dt = datetime.strptime(ts, fmt)
+                            break
+                        except Exception:
+                            continue
+                if dt:
+                    # Convert to Greek timezone (EET/EEST)
+                    from datetime import timezone, timedelta
+                    eet = timezone(timedelta(hours=2))  # EET is UTC+2, EEST is UTC+3
+                    dt = dt.astimezone(eet)
+                    entry['timestamp_fmt'] = dt.strftime('%d/%m/%Y, %-I:%M:%S %p').replace('AM','π.μ.').replace('PM','μ.μ.')
+                elif ts and 'Invalid' not in ts:
+                    entry['timestamp_fmt'] = ts
+                else:
+                    entry['timestamp_fmt'] = '-'
+
+        # Create formatted logs with Greek details
         formatted = []
         for entry in logs:
-            # Always try to get user/email, action, group name
-            # Handle Firebase logs with nested details structure
-            if isinstance(entry.get('details'), dict):
+            # Extract user and group info
+            if 'details' in entry and isinstance(entry['details'], dict):
                 details = entry['details']
-                user = details.get('user_email') or details.get('user_username') or entry.get('user_id') or '-'
-                action = details.get('action') or details.get('description') or entry.get('action') or '-'
+                user_email = details.get('user_email') or details.get('email') or entry.get('user_id') or '-'
                 group = details.get('group') or entry.get('group') or '-'
+                action = details.get('action') or entry.get('action') or '-'
                 # Create detailed description in Greek
                 details_text = _create_detailed_description(action, details)
             else:
-                # Handle local logs or simple structure
-                user = entry.get('user_email') or entry.get('user_id') or entry.get('username') or '-'
+                # Handle simple structure
+                user_email = entry.get('user_email') or entry.get('user_id') or entry.get('username') or '-'
                 action = entry.get('action') or entry.get('message') or entry.get('event') or '-'
                 group = entry.get('group') or entry.get('group_name') or '-'
                 details_obj = entry.get('details', {})
@@ -876,123 +886,21 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                 'group_restored': 'Επαναφορά ομάδας',
                 'export_bridge': 'Λήψη γέφυρας',
                 'user_deleted': 'Διαγραφή χρήστη',
+                'delete_rows': 'Διαγραφή γραμμών',
             }
-            action = action_descriptions.get(action, action)
+            action_display = action_descriptions.get(action, action)
             
             formatted.append({
                 'timestamp': entry.get('timestamp_fmt', entry.get('timestamp','')),
-                'user_email': user,  # Changed from 'user' to 'user_email' to match template expectations
+                'user_email': user_email,
                 'group': group,
-                'action': action,  # This is already the translated Greek action
-                'summary': action,  # Add summary field for template compatibility
-                'details': details_text  # This is already the detailed Greek description
+                'action': action_display,  # This is the translated Greek action
+                'summary': action_display,  # Add summary field for template compatibility
+                'details': details_text  # This is the detailed Greek description
             })
         
-        # If firebase returned no logs (or not configured) fall back to local activity.log files
-        if not formatted:
-            local_logs = []
-            data_dir = os.path.join(os.getcwd(), 'data')
-            if os.path.exists(data_dir):
-                for root, dirs, files in os.walk(data_dir):
-                    if 'activity.log' in files:
-                        path = os.path.join(root, 'activity.log')
-                        try:
-                            with open(path, 'r', encoding='utf-8') as fh:
-                                lines = fh.readlines()[-limit:]
-                                for ln in lines:
-                                    ln = ln.strip()
-                                    if not ln:
-                                        continue
-                                    # Try to parse as JSON (user activity log)
-                                    try:
-                                        entry = json.loads(ln)
-                                        # Extract nested details if present
-                                        if 'details' in entry and isinstance(entry['details'], dict):
-                                            details = entry['details']
-                                            user_email = details.get('user_email') or details.get('email') or entry.get('user_id')
-                                            action = details.get('action') or entry.get('action')
-                                            # Create detailed description in Greek
-                                            details_text = _create_detailed_description(action, details)
-                                        else:
-                                            user_email = entry.get('user_id')
-                                            action = entry.get('action')
-                                            details_text = entry.get('details', '')
-                                        
-                                        ts = entry.get('timestamp', '')
-                                        # Parse and format timestamp
-                                        dt = None
-                                        if ts:
-                                            try:
-                                                dt = datetime.fromisoformat(ts.replace('Z','+00:00'))
-                                            except Exception:
-                                                pass
-                                        
-                                        timestamp_fmt = dt.strftime('%d/%m/%Y, %-I:%M:%S %p').replace('AM','π.μ.').replace('PM','μ.μ.') if dt else ts
-                                        
-                                        group_name = entry.get('group', os.path.basename(root))
-                                        # Fix known VAT numbers to proper group names
-                                        if group_name == "802576637":
-                                            group_name = "tony"
-                                        
-                                        # Translate actions to Greek (keep simple for display)
-                                        action_descriptions = {
-                                            'user_login_attempt': 'Προσπάθεια σύνδεσης',
-                                            'user_logged_in': 'Σύνδεση χρήστη',
-                                            'user_signup_complete': 'Εγγραφή χρήστη',
-                                            'password_changed': 'Αλλαγή κωδικού',
-                                            'password_reset_completed': 'Επαναφορά κωδικού',
-                                            'user_joined_group': 'Συμμετοχή σε ομάδα',
-                                            'user_left_group': 'Αποχώρηση από ομάδα',
-                                            'login': 'Σύνδεση',
-                                            'logout': 'Αποσύνδεση',
-                                            'user_registered': 'Εγγραφή χρήστη',
-                                            'verification_email_sent': 'Αποστολή email επαλήθευσης',
-                                            'delete_user': 'Διαγραφή χρήστη',
-                                            'delete_backup': 'Διαγραφή backup',
-                                            'admin_delete_user': 'Διαγραφή χρήστη (admin)',
-                                            'admin_delete_backup': 'Διαγραφή backup (admin)',
-                                            'send_email': 'Αποστολή email',
-                                            'admin_send_email': 'Αποστολή email (admin)',
-                                            'group_deleted': 'Διαγραφή ομάδας',
-                                            'backup_deleted': 'Διαγραφή backup',
-                                            'group_restored': 'Επαναφορά ομάδας',
-                                            'export_bridge': 'Λήψη γέφυρας',
-                                            'user_deleted': 'Διαγραφή χρήστη',
-                                        }
-                                        action_display = action_descriptions.get(action, action)
-                                        
-                                        local_logs.append({
-                                            'timestamp': timestamp_fmt,
-                                            'user_email': user_email or '-',  # Changed from 'user' to 'user_email'
-                                            'group': group_name,
-                                            'action': action_display,
-                                            'summary': action_display,  # Add summary field
-                                            'details': details_text
-                                        })
-                                    except json.JSONDecodeError:
-                                        # Not JSON, try to parse as plain log line
-                                        parts = ln.split(' - ', 1)
-                                        ts = parts[0] if parts else ''
-                                        msg = parts[1] if len(parts) > 1 else ln
-                                        # Skip INFO/DEBUG/ERROR system logs
-                                        if any(level in ln for level in ['INFO', 'DEBUG', 'ERROR', 'WARNING']):
-                                            continue
-                                        local_logs.append({
-                                            'timestamp': ts,
-                                            'group': os.path.basename(root),
-                                            'user': '-',
-                                            'action': 'log_entry',
-                                            'details': {'message': msg}
-                                        })
-                        except Exception as e:
-                            logger.error(f"Failed to read activity log {path}: {e}")
-                            continue
-            # sort local logs and limit
-            local_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-            formatted = local_logs[:limit]
-        
         return formatted
-    
+
     except Exception as e:
         logger.error(f"Failed to get activity logs: {e}")
         return []
