@@ -1530,7 +1530,8 @@
             </div>
           </div>
 
-          <!-- 2η γραμμή: Ενεργός πελάτης + Fiscal year selector -->
+          <!-- 2η γραμμή: Ενεργός πελάτης + Fiscal year selector (only for logged in users) -->
+          {% if current_user.is_authenticated %}
           <div class="layout-header__year-row flex items-center gap-4 w-max">
             <div class="layout-header__active-customer flex items-center gap-2">
               <span class="text-sm text-gray-500">Ενεργός πελάτης:</span>
@@ -1559,6 +1560,7 @@
             <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
             <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
           </div>
+          {% endif %}
         </div>
       </div>
     </header>
@@ -1640,6 +1642,22 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
+    
+    <!-- FOOTER -->
+    <footer class="mt-8 pt-6 pb-4 border-t border-gray-200 dark:border-gray-700">
+      <div class="text-center text-sm text-gray-500 dark:text-gray-400">
+        <p class="mb-2">
+          © {{ now.year if now else 2025 }} ScanmyData - Σάρωση & Καταχώρηση
+        </p>
+        <p class="flex items-center justify-center gap-4 flex-wrap">
+          <a href="/terms" class="text-sky-600 dark:text-sky-400 hover:underline">Όροι Χρήσης</a>
+          <span class="text-gray-300 dark:text-gray-600">|</span>
+          <a href="/privacy" class="text-sky-600 dark:text-sky-400 hover:underline">Πολιτική Απορρήτου</a>
+          <span class="text-gray-300 dark:text-gray-600">|</span>
+          <span>GDPR Compliant</span>
+        </p>
+      </div>
+    </footer>
   </div>
 
   <!-- WAIT OVERLAY (global) -->

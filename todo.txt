@@ -1,1 +1,5 @@
-γραφει λαθος την στηλη ομαδες στο activity log.
+REQUESTDOCS ΠΕΡΙΛΑΜΒΑΝΕΙ αναλυση τιμολογιου στο <invoiceDetails> και τα ειδη ειναι στα <itemDescr>, <dispatchDate>, <quantity>
+curl -v \
+  "https://mydatapi.aade.gr/myDATA/RequestDocs?mark=400011161858608" \
+  -H "aade-user-id: tester97" \
+  -H "Ocp-Apim-Subscription-Key: 614aa5de28548ac726679355d84b36d4" εντολη για να δουλεψει σωστα
