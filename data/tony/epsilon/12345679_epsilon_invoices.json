@@ -87,35 +87,6 @@
     ]
   },
   {
-    "mark": "400000000000003",
-    "issueDate": "08/10/2025",
-    "series": "ΑΛΠ",
-    "aa": "87920",
-    "AA": "87920",
-    "type": "ΑΠΟΔΕΙΞΗ",
-    "vatCategory": "",
-    "totalNetValue": "70,00",
-    "totalVatAmount": "",
-    "totalValue": "70,00",
-    "classification": "",
-    "category": "αποδειξακια",
-    "χαρακτηρισμός": "αποδειξακια",
-    "characteristic": "αποδειξακια",
-    "AFM_issuer": "082657798",
-    "Name_issuer": "ΝΙΚΟΛΑΟΥ ΙΩΑΝΝΗΣ ΚΑΙ ΣΙΑ ΟΕ",
-    "AFM": "082657798",
-    "lines": [
-      {
-        "id": "r0",
-        "description": "",
-        "amount": "70,00",
-        "vat": "",
-        "category": "αποδειξακια",
-        "vat_category": ""
-      }
-    ]
-  },
-  {
     "mark": "400000000000004",
     "issueDate": "24/07/2024",
     "series": "ΑΛΠ",

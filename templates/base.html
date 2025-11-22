@@ -172,11 +172,45 @@
       min-width: 0;
     }
 
-    .flash-banner { border-radius: 8px; padding: 10px 14px; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .flash-banner { 
+      border-radius: 8px; 
+      padding: 10px 14px; 
+      font-weight: 500; 
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      position: relative;
+      z-index: 1;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      max-width: 100%;
+    }
     .flash-success { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
     .flash-error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
     .flash-warning { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
     .flash-info    { background:#e0f2fe; color:#075985; border:1px solid #bae6fd; }
+    
+    #flashContainer {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 1rem;
+    }
+    
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50 !important;
+      background: white;
+    }
+    
+    [data-theme="dark"] header {
+      background: #111827;
+    }
+    
+    .container {
+      padding-top: 140px;
+    }
     
     /* Dark mode overrides for flash messages */
     [data-theme="dark"] .flash-success { background:#064e3b; color:#d1fae5; border-color:#065f46; }
@@ -1881,21 +1915,21 @@
               <span class="text-sm text-gray-500">Ενεργός πελάτης:</span>
               {% if active_credential %}
                 {% if active_credential_vat %}
-                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }} ({{ active_credential_vat }})</span>
+                  <a href="{{ url_for('credentials') }}" class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white hover:bg-sky-700 transition-colors cursor-pointer">{{ active_credential }} ({{ active_credential_vat }})</a>
                 {% else %}
-                  <span class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white">{{ active_credential }}</span>
+                  <a href="{{ url_for('credentials') }}" class="px-3 py-1 rounded-full text-sm font-medium bg-sky-600 text-white hover:bg-sky-700 transition-colors cursor-pointer">{{ active_credential }}</a>
                 {% endif %}
               {% else %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+                <a href="{{ url_for('credentials') }}" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer" title="Επιλέξτε πελάτη">—</a>
               {% endif %}
             </div>
 
             <div class="layout-header__active-group flex items-center gap-2">
               <span class="text-sm text-gray-500">Ενεργή ομάδα:</span>
               {% if active_group %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-emerald-600 text-white">{{ active_group }}</span>
+                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded-full text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer">{{ active_group }}</a>
               {% else %}
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">—</span>
+                <a href="{{ url_for('auth.list_groups') }}" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer" title="Επιλέξτε ομάδα">—</a>
               {% endif %}
             </div>
 
