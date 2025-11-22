@@ -481,3 +481,39 @@ Traceback (most recent call last):
     raise NotFound() from None
 werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 
+2025-11-23 00:37:16+0200 ERROR Receipt scraper failed for mark None
+Traceback (most recent call last):
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\app.py", line 6606, in search
+    rd = detect_and_scrape_receipt(mark)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\scraper_receipt.py", line 1378, in detect_and_scrape
+    if "www1.aade.gr" in domain:
+       ^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'
+2025-11-23 00:37:55+0200 ERROR Receipt scraper failed for mark None
+Traceback (most recent call last):
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\app.py", line 6606, in search
+    rd = detect_and_scrape_receipt(mark)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\scraper_receipt.py", line 1378, in detect_and_scrape
+    if "www1.aade.gr" in domain:
+       ^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'
+2025-11-23 00:38:17+0200 ERROR Receipt scraper failed for mark None
+Traceback (most recent call last):
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\app.py", line 6606, in search
+    rd = detect_and_scrape_receipt(mark)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\scraper_receipt.py", line 1378, in detect_and_scrape
+    if "www1.aade.gr" in domain:
+       ^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'
+2025-11-23 00:39:09+0200 ERROR Receipt scraper failed for mark None
+Traceback (most recent call last):
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\app.py", line 6606, in search
+    rd = detect_and_scrape_receipt(mark)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Antonis\Documents\firebed\Firebed_private\scraper_receipt.py", line 1378, in detect_and_scrape
+    if "www1.aade.gr" in domain:
+       ^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'

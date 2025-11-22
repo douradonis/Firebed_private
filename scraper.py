@@ -324,6 +324,7 @@ def scrape_wedoconnect(url, timeout=20, debug=False):
 def scrape_mydatapi(url):
     """
     Επιστρέφει dict όπως προηγουμένως: MARK, Είδος Παραστατικού, ΑΦΜ Πελάτη
+    Τα δεδομένα είναι σε JavaScript variables, όχι σε HTML inputs.
     """
     try:
         r = requests.get(url, headers=HEADERS, timeout=15)
@@ -333,14 +334,56 @@ def scrape_mydatapi(url):
         print(f"[RequestError] {e}")
         return {}
 
-    soup = BeautifulSoup(r.text, "html.parser")
-    mark = soup.find("input", id="tmark")
-    doc_type = soup.find("input", id="dtype")
-    afm = soup.find("input", id="crvatnumber")
+    html = r.text
+    
+    # Τα δεδομένα είναι σε JavaScript variables μέσα σε <script> tags
+    # Ψάχνουμε για patterns όπως: var mark = "400011490687468";
+    mark = None
+    doc_type = None
+    afm = None
+    
+    # Pattern 1: JavaScript variable assignments
+    mark_match = re.search(r'(?:var\s+)?(?:mark|tmark|MARK)\s*[=:]\s*["\']([0-9]{15})["\']', html, re.I)
+    if mark_match:
+        mark = mark_match.group(1)
+    
+    # Pattern 2: Direct 15-digit number in scripts (fallback)
+    if not mark:
+        for script in BeautifulSoup(html, "html.parser").find_all("script"):
+            script_text = script.string or script.get_text() or ""
+            m = re.search(r'\b([0-9]{15})\b', script_text)
+            if m:
+                mark = m.group(1)
+                break
+    
+    # Pattern 3: ΑΦΜ Πελάτη - ψάχνουμε για crvatnumber, vatNumber, κλπ
+    afm_match = re.search(r'(?:var\s+)?(?:crvatnumber|vatNumber|counterpartVat|afm)\s*[=:]\s*["\']?([0-9]{9})["\']?', html, re.I)
+    if afm_match:
+        afm = afm_match.group(1)
+    
+    # Pattern 4: Είδος Παραστατικού
+    dtype_match = re.search(r'(?:var\s+)?(?:dtype|docType|invoiceType)\s*[=:]\s*["\']([^"\']+)["\']', html, re.I)
+    if dtype_match:
+        doc_type = dtype_match.group(1)
+    
+    # Fallback: Αν δεν βρήκαμε τίποτα, ψάξε για οποιοδήποτε 15ψήφιο και 9ψήφιο αριθμό
+    if not mark:
+        m = re.search(r'\b([0-9]{15})\b', html)
+        if m:
+            mark = m.group(1)
+    
+    if not afm:
+        # Βρες όλα τα 9ψήφια και πάρε το τελευταίο (συνήθως είναι του πελάτη, όχι του εκδότη)
+        all_vats = re.findall(r'\b([0-9]{9})\b', html)
+        if len(all_vats) >= 2:
+            afm = all_vats[-1]  # Τελευταίο είναι συνήθως ο πελάτης
+        elif all_vats:
+            afm = all_vats[0]
+    
     return {
-        "MARK": mark.get("value").strip() if mark else "N/A",
-        "Είδος Παραστατικού": doc_type.get("value").strip() if doc_type else "N/A",
-        "ΑΦΜ Πελάτη": afm.get("value").strip() if afm else "N/A"
+        "MARK": mark.strip() if mark else "N/A",
+        "Είδος Παραστατικού": doc_type.strip() if doc_type else "N/A",
+        "ΑΦΜ Πελάτη": afm.strip() if afm else "N/A"
     }
 
 

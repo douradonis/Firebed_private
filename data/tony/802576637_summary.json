@@ -1648,5 +1648,20 @@
     "classification": "αχαρακτηριστο",
     "AFM_issuer": "094439854",
     "Name_issuer": "ΤΡΑΚΑΔΑΣ Α.Ε."
+  },
+  {
+    "mark": "400011728100414",
+    "issueDate": "21/11/2025",
+    "series": "301Τ0101",
+    "aa": "000247127",
+    "AA": "000247127",
+    "type": "1.1",
+    "vatCategory": "1",
+    "totalNetValue": "27,09",
+    "totalVatAmount": "6,51",
+    "totalValue": "33,60",
+    "classification": "αχαρακτηριστο",
+    "AFM_issuer": "094317955",
+    "Name_issuer": ""
   }
 ]

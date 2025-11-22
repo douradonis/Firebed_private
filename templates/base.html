@@ -196,20 +196,41 @@
     }
     
     header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 50 !important;
-      background: white;
-    }
-    
-    [data-theme="dark"] header {
-      background: #111827;
+      margin-bottom: 1.5rem;
     }
     
     .container {
-      padding-top: 140px;
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 16px;
+    }
+    
+    /* Auth pages link styling for better visibility */
+    .content-wrap a[href*="login"],
+    .content-wrap a[href*="signup"],
+    .content-wrap a[href*="forgot"] {
+      color: #0369a1 !important;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+    
+    .content-wrap a[href*="login"]:hover,
+    .content-wrap a[href*="signup"]:hover,
+    .content-wrap a[href*="forgot"]:hover {
+      color: #075985 !important;
+      text-decoration: none;
+    }
+    
+    [data-theme="dark"] .content-wrap a[href*="login"],
+    [data-theme="dark"] .content-wrap a[href*="signup"],
+    [data-theme="dark"] .content-wrap a[href*="forgot"] {
+      color: #38bdf8 !important;
+    }
+    
+    [data-theme="dark"] .content-wrap a[href*="login"]:hover,
+    [data-theme="dark"] .content-wrap a[href*="signup"]:hover,
+    [data-theme="dark"] .content-wrap a[href*="forgot"]:hover {
+      color: #7dd3fc !important;
     }
     
     /* Dark mode overrides for flash messages */
