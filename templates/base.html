@@ -860,33 +860,36 @@
     }
     
     /* Side menu buttons - white background buttons */
-    /* Light mode - make text clearly visible */
+    /* Light mode - make text clearly visible with stronger colors */
     a.bg-white,
     button.bg-white {
       background-color: #ffffff !important;
-      color: #1f2937 !important;
-      border-color: #d1d5db !important;
+      color: #111827 !important;
+      border: 2px solid #374151 !important;
+      font-weight: 500 !important;
     }
     
     a.bg-white:hover,
     button.bg-white:hover {
-      background-color: #f9fafb !important;
-      color: #111827 !important;
+      background-color: #f3f4f6 !important;
+      color: #000000 !important;
+      border-color: #1f2937 !important;
     }
     
     /* Specific for unauthenticated nav.html buttons */
     nav a.bg-white,
     .content-wrap a.bg-white {
       background-color: #ffffff !important;
-      color: #1f2937 !important;
-      border: 2px solid #d1d5db !important;
+      color: #111827 !important;
+      border: 2px solid #374151 !important;
+      font-weight: 500 !important;
     }
     
     nav a.bg-white:hover,
     .content-wrap a.bg-white:hover {
-      background-color: #f9fafb !important;
-      color: #111827 !important;
-      border-color: #9ca3af !important;
+      background-color: #f3f4f6 !important;
+      color: #000000 !important;
+      border-color: #1f2937 !important;
     }
     
     /* Dark mode */
@@ -901,6 +904,107 @@
     [data-theme="dark"] button.bg-white:hover {
       background-color: #4b5563 !important;
       color: #ffffff !important;
+    }
+    
+    /* Fiscal Year Checkmark - visible in both light and dark mode */
+    #fiscalYearCheckmark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #fiscalYearCheckmark.hidden {
+      display: none !important;
+    }
+    
+    #fiscalYearCheckmark svg {
+      color: #0369a1 !important; /* Sky-700 for light mode */
+    }
+    
+    [data-theme="dark"] #fiscalYearCheckmark svg {
+      color: #0ea5e9 !important; /* Sky-500 for dark mode */
+    }
+    
+    /* Universal Login Button Styling - Strong visibility in light mode */
+    a[href*="login"],
+    a[href*="auth/login"],
+    a[href*="firebase-auth/login"],
+    button[onclick*="login"] {
+      background-color: #0369a1 !important; /* Darker sky blue */
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 4px rgba(3, 105, 161, 0.3) !important;
+    }
+    
+    a[href*="login"]:hover,
+    a[href*="auth/login"]:hover,
+    a[href*="firebase-auth/login"]:hover,
+    button[onclick*="login"]:hover {
+      background-color: #075985 !important; /* Even darker on hover */
+      box-shadow: 0 4px 6px rgba(3, 105, 161, 0.4) !important;
+    }
+    
+    /* Dark mode login buttons */
+    [data-theme="dark"] a[href*="login"],
+    [data-theme="dark"] a[href*="auth/login"],
+    [data-theme="dark"] a[href*="firebase-auth/login"],
+    [data-theme="dark"] button[onclick*="login"] {
+      background-color: #0ea5e9 !important;
+      color: #ffffff !important;
+    }
+    
+    [data-theme="dark"] a[href*="login"]:hover,
+    [data-theme="dark"] a[href*="auth/login"]:hover,
+    [data-theme="dark"] a[href*="firebase-auth/login"]:hover,
+    [data-theme="dark"] button[onclick*="login"]:hover {
+      background-color: #0284c7 !important;
+    }
+    
+    /* Specific rule for side menu login button */
+    #sideMenu a[href*="login"],
+    .side-menu a[href*="login"] {
+      background-color: #0369a1 !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 4px rgba(3, 105, 161, 0.3) !important;
+    }
+    
+    #sideMenu a[href*="login"]:hover,
+    .side-menu a[href*="login"]:hover {
+      background-color: #075985 !important;
+      box-shadow: 0 4px 6px rgba(3, 105, 161, 0.4) !important;
+    }
+    
+    [data-theme="dark"] #sideMenu a[href*="login"],
+    [data-theme="dark"] .side-menu a[href*="login"] {
+      background-color: #0ea5e9 !important;
+      color: #ffffff !important;
+    }
+    
+    [data-theme="dark"] #sideMenu a[href*="login"]:hover,
+    [data-theme="dark"] .side-menu a[href*="login"]:hover {
+      background-color: #0284c7 !important;
+    }
+    
+    /* CTA Section styling for light mode only */
+    .cta-section {
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
+    }
+    
+    .cta-section h2,
+    .cta-section p {
+      color: #ffffff !important;
+    }
+    
+    .cta-signup-btn {
+      background-color: #ffffff !important;
+      color: #0369a1 !important;
+      font-weight: 700 !important;
+    }
+    
+    .cta-signup-btn:hover {
+      background-color: #f0f9ff !important;
+      color: #075985 !important;
     }
     
     .logo-img {
@@ -1743,17 +1847,23 @@
         <div class="layout-header__right flex flex-col items-end gap-2">
           <!-- 1η γραμμή: Menu buttons + Active credential -->
           <div class="layout-header__top-row flex items-center gap-4">
+            {% if current_user.is_authenticated %}
             <nav class="layout-header__nav flex gap-3 items-center">
               <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">📥 Λήψη Παραστατικών</a>
               <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔍 Αναζήτηση MARK</a>
               <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔐 Credentials</a>
-              {% if current_user.is_authenticated and (current_user.is_admin or current_user.id == ADMIN_USER_ID) %}
+              {% if current_user.is_admin or current_user.id == ADMIN_USER_ID %}
                 <a href="{{ url_for('admin_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700">⚙️ Admin</a>
               {% endif %}
             </nav>
+            {% endif %}
 
-            <!-- Active credential badge moved to second row -->
+            <!-- Right side controls -->
             <div class="ml-4 flex items-center gap-3">
+              {% if not current_user.is_authenticated %}
+                <a href="/firebase-auth/login" class="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors shadow-sm">🔐 Σύνδεση</a>
+              {% endif %}
+              
               <!-- Dark mode toggle -->
               <label class="theme-switch" title="Σκούρο θέμα: Ενεργοποιήστε για να μειώσετε την κόπωση των ματιών σε συνθήκες χαμηλού φωτισμού">
                 <input type="checkbox" id="themeToggle">
@@ -1761,9 +1871,6 @@
               </label>
               
               <button id="sideMenuToggle" class="px-3 py-1 rounded text-sm bg-white border hover:bg-gray-100 text-gray-700">☰ Μενού</button>
-              {% if current_user.is_authenticated %}
-                <span class="text-sm text-gray-700 ml-2">{{ display_username or current_user.username }}</span>
-              {% endif %}
             </div>
           </div>
 
@@ -1794,8 +1901,12 @@
 
             <label for="fiscalYearSelect" class="text-sm text-gray-500">Χρήση:</label>
             <select id="fiscalYearSelect" class="px-2 py-1 rounded border text-sm"></select>
-            <button id="fiscalYearSaveBtn" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
-            <span id="fiscalYearMsg" class="text-sm text-gray-500 ml-2"></span>
+            <span id="fiscalYearCheckmark">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-sky-600">
+                <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+              </svg>
+            </span>
+            <button id="fiscalYearSaveBtn" class="hidden px-3 py-1 rounded bg-sky-600 text-white text-sm">Αποθήκευση</button>
           </div>
           {% endif %}
         </div>
@@ -1848,7 +1959,7 @@
         </div>
         {% else %}
         <div class="space-y-2">
-          <a href="{{ url_for('auth.login') }}" class="block px-4 py-2 rounded text-sm bg-sky-600 text-white hover:bg-sky-700 text-center">Σύνδεση</a>
+          <a href="{{ url_for('auth.login') }}" class="block px-4 py-2 rounded-md text-sm text-white text-center font-medium shadow-sm">Σύνδεση</a>
           <a href="{{ url_for('auth.signup') }}" class="block px-4 py-2 rounded text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 text-center">Δημιουργία λογαριασμού</a>
         </div>
         {% endif %}
@@ -2216,6 +2327,7 @@
   <script>
     (function(){
       const thisYear = new Date().getFullYear();
+      let initialFiscalYear = null;
 
       function populateFiscalSelect(selected){
         const sel = document.getElementById('fiscalYearSelect');
@@ -2230,23 +2342,53 @@
         }
       }
 
+      function toggleSaveButton(){
+        const select = document.getElementById('fiscalYearSelect');
+        const saveBtn = document.getElementById('fiscalYearSaveBtn');
+        const checkmark = document.getElementById('fiscalYearCheckmark');
+        
+        if (!select || !saveBtn || !checkmark) {
+          console.log('Elements not found:', {select, saveBtn, checkmark});
+          return;
+        }
+        
+        const currentValue = Number(select.value);
+        const hasChanged = initialFiscalYear !== null && currentValue !== initialFiscalYear;
+        
+        console.log('Toggle:', {currentValue, initialFiscalYear, hasChanged});
+        
+        if (hasChanged) {
+          // User changed the year - show save button, hide checkmark
+          saveBtn.classList.remove('hidden');
+          checkmark.classList.add('hidden');
+          console.log('Showing save button, hiding checkmark');
+        } else {
+          // Year is same as initial - hide save button, show checkmark
+          saveBtn.classList.add('hidden');
+          checkmark.classList.remove('hidden');
+          console.log('Hiding save button, showing checkmark');
+        }
+      }
+
       async function loadFiscalYearIntoUi(){
         try{
           const r = await fetch('/get_fiscal_year', { credentials:'same-origin' });
           const j = await r.json();
-          populateFiscalSelect(j.fiscal_year || thisYear);
-          const msg = document.getElementById('fiscalYearMsg');
-          if (msg) msg.textContent = j.fiscal_year ? `Ενεργό: ${j.fiscal_year}` : 'Δεν έχει οριστεί χρήση';
+          initialFiscalYear = j.fiscal_year || thisYear;
+          populateFiscalSelect(initialFiscalYear);
+          toggleSaveButton();
         } catch {
+          initialFiscalYear = thisYear;
           populateFiscalSelect(thisYear);
-          const msg = document.getElementById('fiscalYearMsg');
-          if (msg) msg.textContent = 'Σφάλμα ανάγνωσης χρήσης';
+          toggleSaveButton();
         }
       }
 
       async function saveFiscalYear(e){
         e.preventDefault();
         const year = Number(document.getElementById('fiscalYearSelect').value);
+        const checkmark = document.getElementById('fiscalYearCheckmark');
+        const saveBtn = document.getElementById('fiscalYearSaveBtn');
         try{
           const r = await fetch('/set_fiscal_year', {
             method: 'POST',
@@ -2256,21 +2398,24 @@
           });
           const j = await r.json();
           if (j.success){
-            location.reload(); // ξαναφορτώνουμε με τη νέα χρήση
-          } else {
-            const msg = document.getElementById('fiscalYearMsg');
-            if (msg) msg.textContent = j.message || 'Αποτυχία αποθήκευσης χρήσης';
+            initialFiscalYear = year;
+            if (saveBtn) saveBtn.classList.add('hidden');
+            if (checkmark) {
+              checkmark.classList.remove('hidden');
+              setTimeout(() => location.reload(), 500);
+            }
           }
         } catch {
-          const msg = document.getElementById('fiscalYearMsg');
-          if (msg) msg.textContent = 'Σφάλμα δικτύου';
+          // Keep button visible on error
         }
       }
 
       document.addEventListener('DOMContentLoaded', () => {
         loadFiscalYearIntoUi();
         const btn = document.getElementById('fiscalYearSaveBtn');
+        const select = document.getElementById('fiscalYearSelect');
         if (btn) btn.addEventListener('click', saveFiscalYear);
+        if (select) select.addEventListener('change', toggleSaveButton);
       });
     })();
   </script>
