@@ -17,13 +17,41 @@
         </div>
       </div>
       {% endif %}
-      <a class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition" href="{{ url_for('fetch') }}">⬅ Εισαγωγή / Ανάκτηση</a>
+      <a class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition" href="{{ url_for('fetch') }}">⬅ Λήψη Παραστατικών</a>
     </div>
   </div>
 
   <div class="flex items-center gap-3 mb-4">
     <input id="globalSearch" type="search" placeholder="🔎 Αναζήτηση..." class="p-2 border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-400">
           <style>
+          /* HIGHEST PRIORITY - Light mode table text visibility */
+          body .summary-table td,
+          body .summary-table tbody tr td,
+          body .summary-table tbody td,
+          body table.summary-table td {
+            color: #111827 !important;
+          }
+          
+          /* Light mode - explicit dark text for readability */
+          .summary-table thead th {
+            background-color: #0d6efd !important;
+            color: #ffffff !important;
+          }
+          
+          .summary-table tr td,
+          .summary-table tr th {
+            color: #111827 !important;
+            border-color: #e2e8f0 !important;
+          }
+          
+          .summary-table tr:nth-child(even) {
+            background-color: #f9fafb !important;
+          }
+          
+          .summary-table tr:hover {
+            background-color: #e6f0ff !important;
+          }
+          
           @media (prefers-color-scheme: dark) {
             /* Ensure XLSX download button remains blue in dark mode */
             #downloadToggle {
@@ -124,18 +152,46 @@
 </div>
 
 <style>
+/* Light mode - explicit colors for table */
 .summary-table th {
-  background-color: #0d6efd;
-  color: white;
+  background-color: #0d6efd !important;
+  color: white !important;
   border: 1px solid #ccc;
 }
 .summary-table td {
   border: 1px solid #e2e8f0;
+  color: #111827 !important; /* Dark text for light mode */
 }
-.summary-table tr:nth-child(even) { background-color: #f9fafb; }
-.summary-table tr:hover { background-color: #e6f0ff; }
+.summary-table tbody tr {
+  color: #111827 !important;
+}
+.summary-table tbody tr td {
+  color: #111827 !important;
+}
+.summary-table tr:nth-child(even) { 
+  background-color: #f9fafb !important; 
+}
+.summary-table tr:hover { 
+  background-color: #e6f0ff !important; 
+}
 .summary-table tfoot td {
-  background-color: #f1f5f9;
+  background-color: #f1f5f9 !important;
+  color: #1f2937 !important;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .summary-table td,
+[data-theme="dark"] .summary-table tbody tr,
+[data-theme="dark"] .summary-table tbody tr td {
+  color: #e5e7eb !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .summary-table td,
+  .summary-table tbody tr,
+  .summary-table tbody tr td {
+    color: #e5e7eb !important;
+  }
 }
 
 /* ——— Κρύψε ΠΛΗΡΩΣ το tfoot μέσα στο scrollBody χωρίς να αφήνει κενό ——— */

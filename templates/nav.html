@@ -5,8 +5,8 @@
 {% if current_user.is_authenticated %}
   <!-- Logged in users - show menu -->
   <div class="content-wrap">
-    <h1 class="text-3xl font-bold mb-4 text-gray-900 dark:text-white">ScanmyData - Κεντρικό Μενού</h1>
-    <p class="text-gray-600 dark:text-gray-300 mb-6">Επέλεξε λειτουργία:</p>
+    <h1 class="text-3xl font-bold mb-4">ScanmyData - Κεντρικό Μενού</h1>
+    <p class="mb-6">Επέλεξε λειτουργία:</p>
     <div class="flex flex-wrap gap-3">
       <a class="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors" href="{{ url_for('fetch') }}">📥 Λήψη Παραστατικών</a>
       <a class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors" href="{{ url_for('search') }}">🔍 Αναζήτηση MARK</a>
@@ -24,17 +24,17 @@
       <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
         ScanmyData
       </h1>
-      <p class="text-2xl text-gray-700 dark:text-gray-200 mb-2">
+      <p class="text-2xl mb-2">
         Ολοκληρωμένη Διαχείριση myDATA της AADE
       </p>
-      <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">
+      <p class="text-lg mb-8">
         Αυτοματοποιήστε τη λογιστική σας εργασία με ένα κλικ
       </p>
       <div class="flex gap-4 justify-center flex-wrap">
         <a href="/firebase-auth/signup" class="px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-lg transition-all transform hover:scale-105 shadow-lg">
           🚀 Ξεκινήστε Δωρεάν
         </a>
-        <a href="/firebase-auth/login" class="px-8 py-4 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-800 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded-lg font-bold text-lg transition-all">
+        <a href="/firebase-auth/login" class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 rounded-lg font-bold text-lg transition-all">
           🔐 Σύνδεση
         </a>
       </div>
@@ -43,28 +43,28 @@
     <!-- Features Grid -->
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
       
-      <!-- Feature 1: Bulk Fetch -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <!-- Feature 1: Λήψη Παραστατικών -->
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">📥</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Μαζική Ανάκτηση</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Λήψη Παραστατικών</h3>
+        <p class="mb-4">
           Κατεβάστε αυτόματα όλα τα παραστατικά σας από το myDATA με ένα κλικ. Υποστήριξη για πολλαπλά ΑΦΜ ταυτόχρονα.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-          <li>✓ Ανάκτηση ανά περίοδο</li>
+        <ul class="text-sm space-y-2">
+          <li>✓ Λήψη ανά περίοδο</li>
           <li>✓ Φίλτρα κατηγοριών</li>
-          <li>✓ Bulk download</li>
+          <li>✓ Μαζική λήψη</li>
         </ul>
       </div>
 
       <!-- Feature 2: Search -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">🔍</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Έξυπνη Αναζήτηση</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Έξυπνη Αναζήτηση</h3>
+        <p class="mb-4">
           Βρείτε παραστατικά με MARK, ΑΦΜ, ημερομηνία ή ποσό. Προηγμένα φίλτρα για άμεση πρόσβαση.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+        <ul class="text-sm space-y-2">
           <li>✓ Αναζήτηση MARK</li>
           <li>✓ Φίλτρα ημερομηνιών</li>
           <li>✓ Ταξινόμηση αποτελεσμάτων</li>
@@ -72,13 +72,13 @@
       </div>
 
       <!-- Feature 3: Excel Export -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">📊</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Εξαγωγή Excel</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Εξαγωγή Excel</h3>
+        <p class="mb-4">
           Εξάγετε τα δεδομένα σε Excel για επεξεργασία. Έτοιμα αρχεία για λογιστές και φοροτεχνικούς.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+        <ul class="text-sm space-y-2">
           <li>✓ Εξοδολόγιο Β' & Γ'</li>
           <li>✓ Γέφυρα Epsilon</li>
           <li>✓ Custom φίλτρα</li>
@@ -86,13 +86,13 @@
       </div>
 
       <!-- Feature 4: Multi-Client -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">👥</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Πολλαπλοί Πελάτες</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Πολλαπλοί Πελάτες</h3>
+        <p class="mb-4">
           Διαχειριστείτε πολλούς πελάτες από έναν λογαριασμό. Ιδανικό για λογιστές και φοροτεχνικούς.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+        <ul class="text-sm space-y-2">
           <li>✓ Πολλαπλά ΑΦΜ</li>
           <li>✓ Εναλλαγή πελατών</li>
           <li>✓ Ομαδική διαχείριση</li>
@@ -100,13 +100,13 @@
       </div>
 
       <!-- Feature 5: Backup -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">💾</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Αυτόματα Backups</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Αυτόματα Backups</h3>
+        <p class="mb-4">
           Ασφαλή αντίγραφα των δεδομένων σας στο cloud. Ανάκτηση με ένα κλικ οποιαδήποτε στιγμή.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+        <ul class="text-sm space-y-2">
           <li>✓ Cloud storage</li>
           <li>✓ Αυτόματη αποθήκευση</li>
           <li>✓ Εύκολη επαναφορά</li>
@@ -114,13 +114,13 @@
       </div>
 
       <!-- Feature 6: Security -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
+      <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
         <div class="text-4xl mb-4">🔒</div>
-        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Ασφάλεια & GDPR</h3>
-        <p class="text-gray-600 dark:text-gray-300 mb-4">
+        <h3 class="text-xl font-bold mb-3">Ασφάλεια & GDPR</h3>
+        <p class="mb-4">
           Πλήρης συμμόρφωση με GDPR. Κρυπτογράφηση δεδομένων και ασφαλής αποθήκευση.
         </p>
-        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+        <ul class="text-sm space-y-2">
           <li>✓ End-to-end encryption</li>
           <li>✓ GDPR compliant</li>
           <li>✓ 2FA authentication</li>
@@ -130,29 +130,29 @@
     </div>
 
     <!-- How it Works -->
-    <div class="bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-8 mb-16 border border-sky-200 dark:border-gray-700">
-      <h2 class="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">Πώς Λειτουργεί</h2>
+    <div class="bg-gradient-to-br from-sky-50 to-emerald-50 rounded-2xl p-8 mb-16 border border-sky-200">
+      <h2 class="text-3xl font-bold text-center mb-8">Πώς Λειτουργεί</h2>
       <div class="grid md:grid-cols-3 gap-6">
         <div class="text-center">
           <div class="bg-sky-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
-          <h3 class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Σύνδεση με myDATA</h3>
-          <p class="text-gray-600 dark:text-gray-300">Εισάγετε τα credentials AADE σας με ασφάλεια</p>
+          <h3 class="font-bold text-lg mb-2">Σύνδεση με myDATA</h3>
+          <p>Εισάγετε τα credentials AADE σας με ασφάλεια</p>
         </div>
         <div class="text-center">
           <div class="bg-emerald-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
-          <h3 class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Ανάκτηση Δεδομένων</h3>
-          <p class="text-gray-600 dark:text-gray-300">Κατεβάστε αυτόματα όλα τα παραστατικά σας</p>
+          <h3 class="font-bold text-lg mb-2">Λήψη Παραστατικών</h3>
+          <p>Κατεβάστε αυτόματα όλα τα παραστατικά σας</p>
         </div>
         <div class="text-center">
           <div class="bg-purple-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
-          <h3 class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Εξαγωγή & Διαχείριση</h3>
-          <p class="text-gray-600 dark:text-gray-300">Εξάγετε σε Excel ή συνεχίστε στο λογιστικό σας</p>
+          <h3 class="font-bold text-lg mb-2">Εξαγωγή & Διαχείριση</h3>
+          <p>Εξάγετε σε Excel ή συνεχίστε στο λογιστικό σας</p>
         </div>
       </div>
     </div>
 
     <!-- CTA Section -->
-    <div class="text-center bg-sky-600 dark:bg-sky-700 text-white rounded-2xl p-12 shadow-2xl">
+    <div class="text-center bg-sky-600 text-white rounded-2xl p-12 shadow-2xl">
       <h2 class="text-3xl font-bold mb-4">Έτοιμοι να Ξεκινήσετε;</h2>
       <p class="text-xl mb-8 opacity-90">Εγγραφείτε δωρεάν και αυτοματοποιήστε τη διαχείριση myDATA σήμερα!</p>
       <a href="/firebase-auth/signup" class="inline-block px-10 py-4 bg-white text-sky-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg">

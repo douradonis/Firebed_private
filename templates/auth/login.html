@@ -6,7 +6,7 @@
   <div class="content-wrap">
     <div class="max-w-md">
       <h1 class="text-2xl font-bold mb-2">🔐 Σύνδεση</h1>
-      <p class="text-gray-600 mb-6">Συνδεθείτε με το Firebase λογαριασμό σας</p>
+      <p class="mb-6">Συνδεθείτε με το Firebase λογαριασμό σας</p>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -30,12 +30,12 @@
 
       <form method="post" action="/firebase-auth/login" class="grid gap-4">
         <label class="block">
-          <span class="text-sm font-medium text-gray-700 mb-1 block">Email</span>
+          <span class="text-sm font-medium mb-1 block">Email</span>
           <input type="email" name="email" required class="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-sky-600" placeholder="your@email.com" />
         </label>
         
         <label class="block">
-          <span class="text-sm font-medium text-gray-700 mb-1 block">Κωδικός</span>
+          <span class="text-sm font-medium mb-1 block">Κωδικός</span>
           <div class="mt-1 relative">
             <input id="loginPassword" type="password" name="password" required class="px-3 py-2 border rounded w-full pr-10 focus:outline-none focus:ring-2 focus:ring-sky-600" autocomplete="current-password" />
             <button type="button" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" data-toggle-password="loginPassword" aria-label="Εναλλαγή εμφάνισης κωδικού" aria-pressed="false">
@@ -50,14 +50,14 @@
         </button>
       </form>
 
-      <div class="mt-6 pt-6 border-t border-gray-300 space-y-3">
-        <p class="text-center text-sm text-gray-600">
+      <div class="mt-6 pt-6 border-t space-y-3">
+        <p class="text-center text-sm">
           Δεν έχετε λογαριασμό;
           <a href="/firebase-auth/signup" class="font-semibold text-sky-600 hover:text-sky-700">
             Δημιουργία λογαριασμού
           </a>
         </p>
-        <p class="text-center text-sm text-gray-600">
+        <p class="text-center text-sm">
           <a href="/forgot-password" class="text-sky-600 hover:text-sky-700">
             Ξέχασατε τον κωδικό;
           </a>

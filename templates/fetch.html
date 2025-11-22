@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Bulk Fetch MYDATA{% endblock %}
+{% block title %}Λήψη Παραστατικών MYDATA{% endblock %}
 
 {% block content %}
 <style>
@@ -10,8 +10,8 @@
 <div class="max-w-14xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-800">Bulk Fetch MYDATA</h1>
-      <p class="text-sm text-gray-500">Κάνε fetch παραστατικών για διάστημα — preview των πρώτων 40 εγγραφών.</p>
+      <h1 class="text-2xl font-semibold text-gray-800">Λήψη Παραστατικών MYDATA</h1>
+      <p class="text-sm text-gray-500">Λήψη παραστατικών για διάστημα — preview των πρώτων 40 εγγραφών.</p>
     </div>
   </div>
 
@@ -45,7 +45,7 @@
           </select>
         </div>
         <div class="flex items-end justify-center">
-          <div id="lastFetchInfo" class="text-lg font-bold text-center text-gray-700" style="line-height: 1.3;">Τελευταίο fetch: —</div>
+          <div id="lastFetchInfo" class="text-lg font-bold text-center text-gray-700" style="line-height: 1.3;">Τελευταία λήψη: —</div>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function() {
   async function loadLastFetch() {
     const credentialName = credentialSelect.value;
     if (!credentialName) {
-      lastFetchInfo.textContent = 'Τελευταίο fetch: —';
+      lastFetchInfo.textContent = 'Τελευταία λήψη: —';
       return;
     }
     try {
@@ -149,18 +149,18 @@ document.addEventListener("DOMContentLoaded", function() {
       if (res.ok) {
         const data = await res.json();
         if (data.last_fetch_date) {
-          lastFetchInfo.textContent = 'Τελευταίο fetch: ' + data.last_fetch_date;
+          lastFetchInfo.textContent = 'Τελευταία λήψη: ' + data.last_fetch_date;
         } else {
-          lastFetchInfo.textContent = 'Τελευταίο fetch: δεν υπάρχει';
+          lastFetchInfo.textContent = 'Τελευταία λήψη: δεν υπάρχει';
         }
       }
     } catch(e) {
       console.warn('Failed to load last fetch date', e);
-      lastFetchInfo.textContent = 'Τελευταίο fetch: —';
+      lastFetchInfo.textContent = 'Τελευταία λήψη: —';
     }
   }
   
-  // Κλείδωσε το credential και φόρτωσε το τελευταίο fetch
+  // Κλείδωσε το credential και φόρτωσε την τελευταία λήψη
   lockCredentialToActive();
   loadLastFetch();
   

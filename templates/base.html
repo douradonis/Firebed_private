@@ -679,6 +679,230 @@
       transform: translateX(26px);
     }
     
+    /* Authentication pages styling - Universal rules for login, signup, forgot password, landing */
+    /* Light mode - dark text for readability */
+    body h1, body h2, body h3 {
+      color: #111827;
+    }
+    
+    body p, body span:not([class*="bg-"]), body small, body label span {
+      color: #1f2937;
+    }
+    
+    /* Dark mode - light text for readability */
+    [data-theme="dark"] h1, 
+    [data-theme="dark"] h2, 
+    [data-theme="dark"] h3 {
+      color: #f9fafb;
+    }
+    
+    [data-theme="dark"] p:not(.text-white):not([class*="text-sky"]):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="bg-"]), 
+    [data-theme="dark"] span:not(.text-white):not([class*="text-sky"]):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="bg-"]):not([class*="theme-slider"]), 
+    [data-theme="dark"] small:not(.text-white):not([class*="text-sky"]):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="bg-"]), 
+    [data-theme="dark"] label span {
+      color: #e5e7eb;
+    }
+    
+    /* Inputs and borders in dark mode */
+    [data-theme="dark"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]),
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background-color: #374151;
+      border-color: #4b5563;
+      color: #f9fafb;
+    }
+    
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: #9ca3af;
+    }
+    
+    [data-theme="dark"] .border-gray-300,
+    [data-theme="dark"] .border-t {
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .border-blue-200 {
+      border-color: #1e40af !important;
+    }
+    
+    [data-theme="dark"] .bg-blue-50 {
+      background-color: #1e3a8a33 !important;
+    }
+    
+    /* Feature cards in landing page */
+    [data-theme="dark"] .bg-white:not(.hover\:bg-gray-50):not(button) {
+      background-color: #1f2937 !important;
+    }
+    
+    [data-theme="dark"] .border-gray-200 {
+      border-color: #374151 !important;
+    }
+    
+    [data-theme="dark"] .bg-gradient-to-br {
+      background-image: linear-gradient(to bottom right, #1f2937, #111827) !important;
+    }
+    
+    /* CTA buttons in dark mode */
+    [data-theme="dark"] .bg-white.hover\:bg-gray-50 {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .bg-white.hover\:bg-gray-50:hover {
+      background-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] .bg-sky-600 {
+      background-color: #075985 !important;
+    }
+    
+    [data-theme="dark"] .bg-sky-600:hover,
+    [data-theme="dark"] .hover\:bg-sky-700:hover {
+      background-color: #0c4a6e !important;
+    }
+    
+    /* Table styling - Universal rules for all tables */
+    /* Light mode - dark text for readability */
+    table, table td, table th {
+      color: #111827 !important;
+    }
+    
+    table a {
+      color: #0369a1 !important;
+    }
+    
+    table a:hover {
+      color: #075985 !important;
+    }
+    
+    table th {
+      background-color: #f3f4f6 !important;
+      font-weight: 600;
+      color: #111827 !important;
+    }
+    
+    table tbody tr:nth-child(even) {
+      background-color: #f9fafb !important;
+    }
+    
+    table tbody tr:hover {
+      background-color: #f3f4f6 !important;
+    }
+    
+    /* Dark mode - light text for readability */
+    [data-theme="dark"] table,
+    [data-theme="dark"] table td,
+    [data-theme="dark"] table th {
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] table a {
+      color: #60a5fa !important;
+    }
+    
+    [data-theme="dark"] table a:hover {
+      color: #93c5fd !important;
+    }
+    
+    [data-theme="dark"] table thead,
+    [data-theme="dark"] table th {
+      background-color: #374151 !important;
+    }
+    
+    [data-theme="dark"] table tbody tr:nth-child(even) {
+      background-color: #1f293733 !important;
+    }
+    
+    [data-theme="dark"] table tbody tr:hover {
+      background-color: #37415133 !important;
+    }
+    
+    /* Logged-in landing page (nav.html when authenticated) */
+    /* Light mode - ensure readability */
+    .content-wrap h1,
+    .content-wrap h2,
+    .content-wrap h3 {
+      color: #111827 !important;
+    }
+    
+    .content-wrap p {
+      color: #1f2937 !important;
+    }
+    
+    .content-wrap a:not([class*="bg-"]) {
+      color: #0369a1 !important;
+    }
+    
+    .content-wrap a:not([class*="bg-"]):hover {
+      color: #075985 !important;
+    }
+    
+    /* Dark mode overrides for logged-in landing */
+    [data-theme="dark"] .content-wrap h1,
+    [data-theme="dark"] .content-wrap h2,
+    [data-theme="dark"] .content-wrap h3 {
+      color: #f9fafb !important;
+    }
+    
+    [data-theme="dark"] .content-wrap p {
+      color: #e5e7eb !important;
+    }
+    
+    [data-theme="dark"] .content-wrap a:not([class*="bg-"]) {
+      color: #60a5fa !important;
+    }
+    
+    [data-theme="dark"] .content-wrap a:not([class*="bg-"]):hover {
+      color: #93c5fd !important;
+    }
+    
+    /* Side menu buttons - white background buttons */
+    /* Light mode - make text clearly visible */
+    a.bg-white,
+    button.bg-white {
+      background-color: #ffffff !important;
+      color: #1f2937 !important;
+      border-color: #d1d5db !important;
+    }
+    
+    a.bg-white:hover,
+    button.bg-white:hover {
+      background-color: #f9fafb !important;
+      color: #111827 !important;
+    }
+    
+    /* Specific for unauthenticated nav.html buttons */
+    nav a.bg-white,
+    .content-wrap a.bg-white {
+      background-color: #ffffff !important;
+      color: #1f2937 !important;
+      border: 2px solid #d1d5db !important;
+    }
+    
+    nav a.bg-white:hover,
+    .content-wrap a.bg-white:hover {
+      background-color: #f9fafb !important;
+      color: #111827 !important;
+      border-color: #9ca3af !important;
+    }
+    
+    /* Dark mode */
+    [data-theme="dark"] a.bg-white,
+    [data-theme="dark"] button.bg-white {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+    }
+    
+    [data-theme="dark"] a.bg-white:hover,
+    [data-theme="dark"] button.bg-white:hover {
+      background-color: #4b5563 !important;
+      color: #ffffff !important;
+    }
+    
     .logo-img {
       height: 120px;
       width: auto;
@@ -1520,7 +1744,7 @@
           <!-- 1η γραμμή: Menu buttons + Active credential -->
           <div class="layout-header__top-row flex items-center gap-4">
             <nav class="layout-header__nav flex gap-3 items-center">
-              <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">📥 Bulk Fetch</a>
+              <a href="{{ url_for('fetch') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='fetch' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">📥 Λήψη Παραστατικών</a>
               <a href="{{ url_for('search') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='search' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔍 Αναζήτηση MARK</a>
               <a href="{{ url_for('credentials') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if active_page=='credentials' %}bg-sky-600 text-white{% else %}bg-white border hover:bg-gray-100 text-gray-700{% endif %}">🔐 Credentials</a>
               {% if current_user.is_authenticated and (current_user.is_admin or current_user.id == ADMIN_USER_ID) %}
@@ -1617,7 +1841,7 @@
           <p class="text-sm font-medium text-gray-700 mb-3">Σύνδεσμοι</p>
             <div class="space-y-2">
             <a href="{{ url_for('home') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🏠 Αρχική</a>
-            <a href="{{ url_for('fetch') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">📥 Bulk Fetch</a>
+            <a href="{{ url_for('fetch') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">📥 Λήψη Παραστατικών</a>
             <a href="{{ url_for('search') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🔍 Αναζήτηση</a>
             <a href="{{ url_for('credentials') }}" class="block px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700">🔐 Credentials</a>
           </div>

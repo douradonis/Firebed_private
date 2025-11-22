@@ -678,7 +678,13 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
             
             b_kat_text = " (συμπεριλαμβάνει Β' Κατηγορία)" if includes_b_kat else ""
             
-            return f"Λήψη εξοδολογίου {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {file_size_mb:.2f} MB, όνομα αρχείου: {file_name}"
+            # Safely format file_size_mb
+            try:
+                size_text = f"{float(file_size_mb):.2f}"
+            except (ValueError, TypeError):
+                size_text = str(file_size_mb)
+            
+            return f"Λήψη εξοδολογίου {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {size_text} MB, όνομα αρχείου: {file_name}"
         
         elif action == 'delete_rows':
             # Handle delete rows action
@@ -834,7 +840,10 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                     from datetime import timezone, timedelta
                     eet = timezone(timedelta(hours=2))  # EET is UTC+2, EEST is UTC+3
                     dt = dt.astimezone(eet)
-                    entry['timestamp_fmt'] = dt.strftime('%d/%m/%Y, %-I:%M:%S %p').replace('AM','π.μ.').replace('PM','μ.μ.')
+                    # Format without %-I (not supported on Windows)
+                    time_str = dt.strftime('%d/%m/%Y, %I:%M:%S %p').replace('AM','π.μ.').replace('PM','μ.μ.')
+                    # Remove leading zero from hour if present
+                    entry['timestamp_fmt'] = time_str.replace(' 0', ' ')
                 elif ts and 'Invalid' not in ts:
                     entry['timestamp_fmt'] = ts
                 else:
