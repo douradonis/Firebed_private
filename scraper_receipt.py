@@ -988,6 +988,8 @@ def scrape_epsilon(url, timeout=20, debug=False):
     Getfile-only approach for Epsilon DocViewer links.
     ΔΕΧΕΤΑΙ και fd-links (π.χ. .../fd/8d885db2d8c14cbc320608de01edd6d3:97)
     και τα μετατρέπει αυτόματα σε DocViewer/UUID.
+    
+    Λειτουργεί επίσης για srv.parochos.gr που χρησιμοποιεί το ίδιο API.
 
     Επιστρέφει dict με:
       issuer_vat, issue_date (dd/mm/YYYY), issuer_name,
@@ -1156,7 +1158,7 @@ def scrape_epsilon(url, timeout=20, debug=False):
         "issuer_vat": None, "issue_date": None, "issuer_name": None,
         "progressive_aa": None, "doc_type": None, "total_amount": None,
         "MARK": None, "is_invoice": False, "tried_url": None,
-        "source": "Epsilon-getfile-only"
+        "source": "Epsilon-getfile-only" if "epsilon" in parsed.netloc.lower() else "Parochos-getfile-only"
     }
 
     if not docid:
@@ -1256,6 +1258,159 @@ def scrape_epsilon(url, timeout=20, debug=False):
     if debug:
         print("scrape_epsilon (getfile-only) result:", out)
 
+    return out
+
+
+def scrape_einvoicing_gr(url, timeout=15, debug=False):
+    """
+    e-Invoicing.gr (PEPPOL) pages, π.χ. https://e-invoicing.gr/edocuments/ViewInvoice?ct=PEPPOL&id=...&s=A&h=...
+    1) Μετατρέπει το ViewInvoice URL σε API endpoint /api/GetInvoice
+    2) Εξάγει MARK και ΑΦΜ Πελάτη από το HTML response
+    """
+    out = {
+        "issuer_vat": None, "issue_date": None, "issuer_name": None,
+        "progressive_aa": None, "doc_type": None, "total_amount": None,
+        "is_invoice": False, "MARK": None, "source": "e-Invoicing.gr"
+    }
+
+    parsed = urlparse(url)
+    
+    # Αν είναι ήδη API URL, χρησιμοποίησέ το
+    if "/api/GetInvoice" in parsed.path:
+        api_url = url
+    else:
+        # Μετατροπή ViewInvoice → API endpoint
+        qs = parse_qs(parsed.query)
+        ct = qs.get("ct", [""])[0]
+        doc_id = qs.get("id", [""])[0]
+        source = qs.get("s", [""])[0]
+        hash_token = qs.get("h", [""])[0]
+        
+        if not all([ct, doc_id, source, hash_token]):
+            if debug: print("e-invoicing.gr: missing required parameters")
+            return out
+        
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        api_url = f"{base}/api/GetInvoice?contentType={ct}&id={doc_id}&source={source}&isPreview=True&hashToken={hash_token}"
+    
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
+    
+    try:
+        r = sess.get(api_url, timeout=timeout)
+        r.raise_for_status()
+        r.encoding = 'utf-8'
+        html = r.text
+    except Exception as e:
+        if debug: print("e-invoicing.gr fetch error:", e)
+        return out
+    
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # 1) MARK - Αναζήτηση στο HTML
+    mark = None
+    
+    # Pattern 1: Βρες το div με "M.AR.K:" ή "MARK:"
+    for row in soup.find_all("div", class_="row"):
+        row_text = row.get_text(" ", strip=True)
+        if "M.AR.K:" in row_text or "MARK:" in row_text:
+            cols = row.find_all("div", class_=lambda c: c and "col" in c)
+            if len(cols) >= 2:
+                mark_text = cols[-1].get_text(strip=True)
+                m = MARK_RE.search(mark_text)
+                if m:
+                    mark = m.group(0)
+                    break
+    
+    # Pattern 2: Regex fallback για 15ψήφιο
+    if not mark:
+        m = MARK_RE.search(html)
+        if m:
+            mark = m.group(0)
+    
+    out["MARK"] = mark
+    
+    # 2) ΑΦΜ Πελάτη - Αναζήτηση στο section "ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ"
+    counterpart_vat = None
+    
+    # Pattern 1: Βρες το section "ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ" και ψάξε για ΑΦΜ
+    customer_section = soup.find(string=re.compile(r"ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ", re.I))
+    if customer_section:
+        parent = customer_section.find_parent("div", class_=lambda c: c and "backgrey" in c)
+        if parent:
+            for row in parent.find_all("div", class_="row"):
+                row_text = row.get_text(" ", strip=True)
+                if "Α.Φ.Μ" in row_text or "ΑΦΜ" in row_text:
+                    cols = row.find_all("div", class_=lambda c: c and "col" in c)
+                    if len(cols) >= 2:
+                        afm_text = cols[-1].get_text(strip=True)
+                        m = VAT_RE.search(afm_text)
+                        if m:
+                            counterpart_vat = m.group(0)
+                            break
+    
+    # Pattern 2: Fallback - βρες όλα τα 9ψήφια
+    if not counterpart_vat:
+        all_vats = VAT_RE.findall(html)
+        # Το πρώτο ΑΦΜ είναι συνήθως του εκδότη, το δεύτερο του πελάτη
+        if len(all_vats) >= 2:
+            counterpart_vat = all_vats[1]
+        elif all_vats:
+            counterpart_vat = all_vats[0]
+    
+    out["issuer_vat"] = counterpart_vat
+    
+    # 3) Ημερομηνία - Αναζήτηση "Ημ/νία έκδοσης"
+    for div in soup.find_all("div", class_="fontSize8pt"):
+        div_text = div.get_text(" ", strip=True)
+        if re.search(r"Ημ/νία\s*έκδοσης", div_text, re.I):
+            # Το pattern είναι: "Ημ/νία έκδοσης: 16-10-2025"
+            m = re.search(r"Ημ/νία\s*έκδοσης:\s*(\d{2}-\d{2}-\d{4})", div_text, re.I)
+            if m:
+                out["issue_date"] = _fmt_date_to_ddmmyyyy(m.group(1))
+                break
+    
+    # 4) Επωνυμία εκδότη
+    supplier_section = soup.find("div", class_="BoldBlueHeader fontSize12pt")
+    if supplier_section:
+        out["issuer_name"] = supplier_section.get_text(strip=True)
+    
+    # 5) Αριθμός Παραστατικού (progressive_aa)
+    for div in soup.find_all("div", class_="fontSize8pt"):
+        div_text = div.get_text(" ", strip=True)
+        if re.search(r"Αρ\.\s*Παραστατικού", div_text, re.I):
+            # Το pattern είναι: "Αρ. Παραστατικού: ΤΔΑ-01208"
+            m = re.search(r"Αρ\.\s*Παραστατικού:\s*(.+?)(?:\s|$)", div_text, re.I)
+            if m:
+                out["progressive_aa"] = m.group(1).strip()
+                break
+    
+    # 6) Είδος Παραστατικού
+    doc_type_el = soup.find("div", class_="BoldBlueHeader fonSize10pt")
+    if doc_type_el:
+        doc_type_text = doc_type_el.get_text(strip=True)
+        out["doc_type"] = doc_type_text
+        if re.search(r"Τιμολόγιο", doc_type_text, re.I):
+            out["is_invoice"] = True
+    
+    # 7) Συνολικό ποσό
+    for row in soup.find_all("div", class_="row"):
+        row_text = row.get_text(" ", strip=True)
+        if re.search(r"ΤΕΛΙΚΟ ΠΟΣΟ|Συνολικ[όή].*ποσ[όo]", row_text, re.I):
+            cols = row.find_all("div", class_=lambda c: c and "col" in c)
+            if len(cols) >= 2:
+                amount_text = cols[-1].get_text(strip=True)
+                cleaned = _clean_amount_to_comma(amount_text)
+                if cleaned:
+                    out["total_amount"] = cleaned
+                    break
+    
+    # Fallback για ποσό: ψάξε για pattern με EUR
+    if not out["total_amount"]:
+        m = re.search(r"([0-9\.,]+)\s*EUR", html)
+        if m:
+            out["total_amount"] = _clean_amount_to_comma(m.group(1))
+    
     return out
 
 
@@ -1387,6 +1542,10 @@ def detect_and_scrape(url, timeout=20, debug=False):
         return scrape_impact(url, timeout=timeout, debug=debug)
     if "epsilonnet.gr" in domain or "epsilon" in domain:
         return scrape_epsilon(url, timeout=timeout, debug=debug)
+    if "parochos.gr" in domain:
+        return scrape_epsilon(url, timeout=timeout, debug=debug)  # Χρησιμοποιεί το ίδιο API
+    if "e-invoicing.gr" in domain:
+        return scrape_einvoicing_gr(url, timeout=timeout, debug=debug)
     # fallback: attempt generic wedoconnect-like scraping then page scanning
     return scrape_wedoconnect(url, timeout=timeout, debug=debug)
 

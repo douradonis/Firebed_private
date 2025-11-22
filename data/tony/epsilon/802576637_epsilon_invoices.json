@@ -64,5 +64,34 @@
         "vat_category": "ΦΠΑ 6%"
       }
     ]
+  },
+  {
+    "mark": "400011728100415",
+    "issueDate": "15/09/2025",
+    "series": "ΑΛΠ",
+    "aa": "61010",
+    "AA": "61010",
+    "type": "ΑΠΟΔΕΙΞΗ",
+    "vatCategory": "",
+    "totalNetValue": "14,9",
+    "totalVatAmount": "",
+    "totalValue": "14,9",
+    "classification": "",
+    "category": "αποδειξακια",
+    "χαρακτηρισμός": "αποδειξακια",
+    "characteristic": "αποδειξακια",
+    "AFM_issuer": "801466788",
+    "Name_issuer": "",
+    "AFM": "801466788",
+    "lines": [
+      {
+        "id": "r0",
+        "description": "",
+        "amount": "14,9",
+        "vat": "",
+        "category": "αποδειξακια",
+        "vat_category": ""
+      }
+    ]
   }
 ]

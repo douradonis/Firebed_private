@@ -650,6 +650,98 @@ def scrape_impact(url):
     full_text = soup.get_text(" ", strip=True)
     m = MARK_RE.search(full_text)
     return (m.group(0) if m else None), None
+# -------------------- E-INVOICING.GR (PEPPOL) --------------------
+def scrape_einvoicing_gr(url):
+    """
+    Επιστρέφει (mark, counterpart_vat)
+    Για URLs όπως: https://e-invoicing.gr/edocuments/ViewInvoice?ct=PEPPOL&id=...&s=A&h=...
+    Μετατρέπει σε API endpoint και εξάγει δεδομένα από το HTML response.
+    """
+    parsed = urlparse(url)
+    
+    # Αν είναι ήδη API URL, χρησιμοποίησέ το
+    if "/api/GetInvoice" in parsed.path:
+        api_url = url
+    else:
+        # Μετατροπή ViewInvoice → API endpoint
+        qs = parse_qs(parsed.query)
+        ct = qs.get("ct", [""])[0]
+        doc_id = qs.get("id", [""])[0]
+        source = qs.get("s", [""])[0]
+        hash_token = qs.get("h", [""])[0]
+        
+        if not all([ct, doc_id, source, hash_token]):
+            return None, None
+        
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        api_url = f"{base}/api/GetInvoice?contentType={ct}&id={doc_id}&source={source}&isPreview=True&hashToken={hash_token}"
+    
+    sess = requests.Session()
+    sess.headers.update(HEADERS)
+    
+    try:
+        r = sess.get(api_url, timeout=15)
+        r.raise_for_status()
+        r.encoding = 'utf-8'
+    except Exception as e:
+        print(f"[RequestError] {e}")
+        return None, None
+    
+    html = r.text
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # 1) MARK - Αναζήτηση στο HTML
+    mark = None
+    
+    # Pattern 1: Βρες το div με "M.AR.K:"
+    for row in soup.find_all("div", class_="row"):
+        row_text = row.get_text(" ", strip=True)
+        if "M.AR.K:" in row_text or "MARK:" in row_text:
+            # Πάρε το επόμενο col
+            cols = row.find_all("div", class_=lambda c: c and "col" in c)
+            if len(cols) >= 2:
+                mark = cols[-1].get_text(strip=True)
+                break
+    
+    # Pattern 2: Regex fallback για 15ψήφιο
+    if not mark:
+        m = re.search(r'\b([0-9]{15})\b', html)
+        if m:
+            mark = m.group(1)
+    
+    # 2) ΑΦΜ Πελάτη - Αναζήτηση στο HTML
+    counterpart_vat = None
+    
+    # Pattern 1: Βρες το section "ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ" και μετά "Α.Φ.Μ:"
+    customer_section = soup.find(string=re.compile(r"ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ", re.I))
+    if customer_section:
+        # Βρες το parent div και ψάξε για ΑΦΜ
+        parent = customer_section.find_parent("div", class_=lambda c: c and "backgrey" in c)
+        if parent:
+            for row in parent.find_all("div", class_="row"):
+                row_text = row.get_text(" ", strip=True)
+                if "Α.Φ.Μ" in row_text or "ΑΦΜ" in row_text:
+                    cols = row.find_all("div", class_=lambda c: c and "col" in c)
+                    if len(cols) >= 2:
+                        afm_text = cols[-1].get_text(strip=True)
+                        m = re.search(r'([0-9]{9})', afm_text)
+                        if m:
+                            counterpart_vat = m.group(1)
+                            break
+    
+    # Pattern 2: Fallback - βρες όλα τα 9ψήφια και πάρε το πρώτο που ΔΕΝ είναι το ΑΦΜ εκδότη
+    if not counterpart_vat:
+        all_vats = re.findall(r'\b([0-9]{9})\b', html)
+        # Το πρώτο ΑΦΜ είναι συνήθως του εκδότη
+        if len(all_vats) >= 2:
+            # Πάρε το δεύτερο (πελάτη)
+            counterpart_vat = all_vats[1]
+        elif all_vats:
+            counterpart_vat = all_vats[0]
+    
+    return mark, counterpart_vat
+
+
 # -------------------- EPSILON --------------------
 def scrape_epsilon(url):
     # --- ΝΕΟ: κανονικοποίηση fd → DocViewer/UUID ---
@@ -760,6 +852,16 @@ def main():
         mark, counterpart_vat, info = scrape_epsilon(url)
         marks = [mark] if mark else []
 
+    elif "parochos.gr" in domain:
+        source = "Parochos (myData)"
+        mark, counterpart_vat, info = scrape_epsilon(url)
+        marks = [mark] if mark else []
+
+    elif "e-invoicing.gr" in domain:
+        source = "e-Invoicing.gr (PEPPOL)"
+        mark, counterpart_vat = scrape_einvoicing_gr(url)
+        marks = [mark] if mark else []
+
     else:
         print("Άγνωστο URL. Δεν μπορεί να γίνει scrape.")
         return
@@ -793,6 +895,16 @@ def main():
     if source == "Epsilon (myData)":
         if counterpart_vat:
             print("counterpart VAT:", counterpart_vat)
+
+    if source == "Parochos (myData)":
+        if counterpart_vat:
+            print("counterpart VAT:", counterpart_vat)
+
+    if source == "e-Invoicing.gr (PEPPOL)":
+        if counterpart_vat:
+            print("ΑΦΜ Πελάτη:", counterpart_vat)
+        else:
+            print("Δεν βρέθηκε ΑΦΜ πελάτη.")
 
 
 if __name__ == "__main__":
