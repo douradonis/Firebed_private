@@ -9068,13 +9068,32 @@ def epsilon_preview():
             category_labels.update(_category_labels_for_client(cred_for_labels))
         except Exception:
             current_app.logger.exception("Failed to build category labels for epsilon preview")
+    
+    # Έλεγχος για book_category
+    book_category = ""
+    try:
+        creds = _safe_json_read(credentials_path_for_request(), default=[])
+        cl = creds if isinstance(creds, list) else [creds]
+        active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
+        book_category = str((active or {}).get("book_category") or "").strip().upper()
+    except Exception:
+        pass
+    
+    is_g_category = book_category == "Γ" or book_category == "G"
+    
+    # Επιλογή του κατάλληλου module
+    if is_g_category:
+        from epsilon_bridge_g_category import build_preview_rows_for_ui_g as build_preview_func
+    else:
+        from epsilon_bridge_multiclient_strict import build_preview_rows_for_ui as build_preview_func
+    
     client_db_path = _resolve_client_db_path(vat)
-    rows, issues, _ok = build_preview_rows_for_ui(
+    rows, issues, _ok = build_preview_func(
         vat=vat,
         credentials_json=credentials_path_for_request(),
         cred_settings_json=settings_file_path(),
-        invoices_json=None,         # θα λυθεί path αυτόματα: data/epsilon/{vat}_epsilon_invoices.json
-        client_db=client_db_path,             # θα βρει client_db*.xls(x) (και θα φτιάξει _sanitized.xlsx αν χρειαστεί)
+        invoices_json=None,
+        client_db=client_db_path,
         base_invoices_dir=group_path("epsilon"),
     )
     # πέρασέ τα στο template
@@ -9091,32 +9110,40 @@ def export_fastimport_kinitseis():
     vat = request.args.get("vat") or ""
     confirm = request.args.get("confirm_new_partners") == "1"
 
-    # Διάβασε active credential για να δούμε αν είμαστε σε AFM mode
+    # Διάβασε active credential για να δούμε αν είμαστε σε AFM mode και book_category
     apod_type = ""
     active_cred = None
+    book_category = ""
     try:
         creds = _safe_json_read(credentials_path_for_request(), default=[])
         cl = creds if isinstance(creds, list) else [creds]
         active = next((c for c in cl if str(c.get("vat")) == str(vat)), (cl[0] if cl else {}))
         active_cred = active if isinstance(active, dict) else {}
         apod_type = str((active or {}).get("apodeixakia_type", "")).lower()
+        book_category = str((active or {}).get("book_category") or "").strip().upper()
     except Exception:
         pass
 
-    book_category = ""
-    if isinstance(active_cred, dict):
-        try:
-            book_category = str(active_cred.get("book_category") or "").strip()
-        except Exception:
-            book_category = ""
-    is_b_category = book_category.upper() == "Β" or book_category.upper() == "B"
+    is_b_category = book_category == "Β" or book_category == "B"
+    is_g_category = book_category == "Γ" or book_category == "G"
 
     base_client_db = _resolve_client_db_path(vat)
-
     invoices_fallback = os.path.join("data", "epsilon", vat, f"{vat}_epsilon_invoices.json")
 
+    # Επιλογή του κατάλληλου module ανάλογα με την κατηγορία
+    if is_g_category:
+        # Χρήση Γ Κατηγορίας module
+        from epsilon_bridge_g_category import build_preview_strict_g_category as build_preview
+        from epsilon_bridge_g_category import export_g_category as export_func
+    else:
+        # Χρήση Β Κατηγορίας (default)
+        from epsilon_bridge_multiclient_strict import (
+            build_preview_strict_multiclient as build_preview,
+            export_multiclient_strict as export_func,
+        )
+
     # 1) Preview για να εντοπίσουμε receipts χωρίς CUSTID
-    preview = build_preview_strict_multiclient(
+    preview = build_preview(
         vat=vat,
         credentials_json=credentials_path_for_request(),
         cred_settings_json=settings_file_path(),
@@ -9149,8 +9176,8 @@ def export_fastimport_kinitseis():
                 invoices_fallback_json=invoices_fallback,
             )
 
-    # 3) Κανονικό export (ΧΩΡΙΣ να πειράζουμε τις υπόλοιπες λογικές)
-    ok, out_path, issues = export_multiclient_strict(
+    # 3) Κανονικό export (χρησιμοποιεί το σωστό module ανάλογα με book_category)
+    ok, out_path, issues = export_func(
         vat=vat,
         credentials_json=credentials_path_for_request(),
         cred_settings_json=settings_file_path(),
@@ -9185,11 +9212,12 @@ def export_fastimport_kinitseis():
                 group_name=grp.name if grp else 'unknown',
                 action='export_bridge',
                 details={
-                    'book_category': 'Β' if is_b_category else 'Γ',
+                    'book_category': book_category if book_category else ('Β' if is_b_category else 'Γ'),
                     'rows_count': rows_count,
                     'file_size_mb': round(file_size_mb, 2),
                     'file_name': os.path.basename(out_path),
                     'includes_b_kat': is_b_category and os.path.exists(os.path.join(BASE_DIR, "b_kat.ect")),
+                    'includes_g_kat': is_g_category and os.path.exists(os.path.join(BASE_DIR, "Γ.ect")),
                     'vat': vat
                 },
                 user_email=getattr(current_user, 'email', None),
@@ -9198,37 +9226,46 @@ def export_fastimport_kinitseis():
         except Exception as e:
             current_app.logger.error(f"Failed to log export activity: {e}")
         
+        # Bundling με .ect file ανάλογα με την κατηγορία
+        ect_file = None
         if is_b_category:
             bkat_path = os.path.join(BASE_DIR, "b_kat.ect")
             if os.path.exists(bkat_path):
-                fd, temp_path = tempfile.mkstemp(suffix=".zip")
-                os.close(fd)
-                zip_name_root, _ = os.path.splitext(os.path.basename(out_path))
-                if not zip_name_root:
-                    zip_name_root = "epsilon_bridge"
-                zip_filename = f"{zip_name_root}_with_b_kat.zip"
-                try:
-                    with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-                        zf.write(out_path, arcname=os.path.basename(out_path))
-                        zf.write(bkat_path, arcname="b_kat.ect")
+                ect_file = ("b_kat.ect", bkat_path)
+        elif is_g_category:
+            gkat_path = os.path.join(BASE_DIR, "Γ.ect")
+            if os.path.exists(gkat_path):
+                ect_file = ("Γ.ect", gkat_path)
+        
+        if ect_file:
+            ect_name, ect_path = ect_file
+            fd, temp_path = tempfile.mkstemp(suffix=".zip")
+            os.close(fd)
+            zip_name_root, _ = os.path.splitext(os.path.basename(out_path))
+            if not zip_name_root:
+                zip_name_root = "epsilon_bridge"
+            zip_filename = f"{zip_name_root}_with_{ect_name.replace('.ect', '')}.zip"
+            try:
+                with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                    zf.write(out_path, arcname=os.path.basename(out_path))
+                    zf.write(ect_path, arcname=ect_name)
 
-                    @after_this_request
-                    def _cleanup_temp_archive(response):
-                        try:
-                            os.remove(temp_path)
-                        except OSError:
-                            pass
-                        return response
-
-                    return send_file(temp_path, as_attachment=True, download_name=zip_filename)
-                except Exception:
-                    current_app.logger.exception("Failed to bundle b_kat.ect with bridge export")
+                @after_this_request
+                def _cleanup_temp_archive(response):
                     try:
                         os.remove(temp_path)
                     except OSError:
                         pass
-            else:
-                current_app.logger.warning("b_kat.ect file not found for Β category export")
+                    return response
+
+                return send_file(temp_path, as_attachment=True, download_name=zip_filename)
+            except Exception:
+                cat_label = "Β" if is_b_category else "Γ"
+                current_app.logger.exception(f"Failed to bundle {ect_name} with {cat_label} category export")
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
 
         return send_file(out_path, as_attachment=True)
 

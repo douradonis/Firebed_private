@@ -673,10 +673,16 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
                 'B': 'Βιβλίο Εσόδων',
                 'C': 'Βιβλίο Εξόδων',
                 'D': 'Αρχείο Εξόδων',
-                'E': 'Βιβλίο Παγίων'
+                'E': 'Βιβλίο Παγίων',
+                'Β': 'Β Κατηγορία',
+                'Γ': 'Γ Κατηγορία',
+                'G': 'Γ Κατηγορία'
             }.get(book_category, f'Κατηγορία {book_category}')
             
+            includes_g_kat = actual_details.get('includes_g_kat', False)
             b_kat_text = " (συμπεριλαμβάνει Β' Κατηγορία)" if includes_b_kat else ""
+            g_kat_text = " (συμπεριλαμβάνει Γ.ect)" if includes_g_kat else ""
+            kat_text = b_kat_text or g_kat_text
             
             # Safely format file_size_mb
             try:
@@ -684,7 +690,7 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
             except (ValueError, TypeError):
                 size_text = str(file_size_mb)
             
-            return f"Λήψη γέφυρας {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {size_text} MB, όνομα αρχείου: {file_name}"
+            return f"Λήψη γέφυρας {category_name}{kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {size_text} MB, όνομα αρχείου: {file_name}"
         
         elif action == 'export_expenses':
             # Handle export_expenses action with enhanced details
