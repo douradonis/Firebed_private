@@ -8941,8 +8941,27 @@ def list_invoices():
             from utils import log_user_activity
             from flask_login import current_user
             from auth import get_active_group
+            import pandas as pd
+            
             file_size_mb = os.path.getsize(excel_path) / (1024 * 1024)
             grp = get_active_group()
+            
+            # Get book category from active credential (same as export bridge)
+            book_category = ''
+            if active and isinstance(active, dict):
+                try:
+                    book_category = str(active.get("book_category") or "").strip()
+                except Exception:
+                    book_category = ''
+            
+            # Read Excel to count rows
+            rows_count = 0
+            try:
+                df = pd.read_excel(excel_path, engine="openpyxl")
+                rows_count = len(df)
+            except Exception as read_err:
+                current_app.logger.warning(f"Could not read Excel for row count: {read_err}")
+            
             log_user_activity(
                 user_id=getattr(current_user, 'id', None) or getattr(current_user, 'pw_hash', None),
                 group_name=grp.name if grp else 'unknown',
@@ -8950,6 +8969,8 @@ def list_invoices():
                 details={
                     'file_name': os.path.basename(excel_path),
                     'file_size_mb': round(file_size_mb, 2),
+                    'rows_count': rows_count,
+                    'book_category': book_category,
                     'vat': active.get('vat') if active else None
                 },
                 user_email=getattr(current_user, 'email', None),

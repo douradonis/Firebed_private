@@ -135,17 +135,25 @@ function allRowsValidExceptCust(api){
 }
 
 function ensureFlashContainer(){
+  // Use existing flashContainer from base.html (always present)
   let container = document.getElementById('flashContainer');
   if (container) return container;
-  const root = document.querySelector('.container') || document.body;
+  
+  // Fallback: create one if somehow missing, but insert AFTER nav/header
+  const contentBlock = document.querySelector('[data-content-area]') || document.querySelector('.container');
+  const insertPoint = contentBlock || document.body;
+  
   container = document.createElement('div');
   container.id = 'flashContainer';
   container.className = 'space-y-2 mb-4';
-  if (root.firstChild){
-    root.insertBefore(container, root.firstChild);
+  
+  if (contentBlock) {
+    // Insert at the beginning of content area, not at top of page
+    contentBlock.insertBefore(container, contentBlock.firstChild);
   } else {
-    root.appendChild(container);
+    insertPoint.appendChild(container);
   }
+  
   return container;
 }
 

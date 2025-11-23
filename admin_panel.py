@@ -684,7 +684,32 @@ def _create_detailed_description(action: str, details: Dict[str, Any]) -> str:
             except (ValueError, TypeError):
                 size_text = str(file_size_mb)
             
-            return f"Λήψη εξοδολογίου {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {size_text} MB, όνομα αρχείου: {file_name}"
+            return f"Λήψη γέφυρας {category_name}{b_kat_text}. {rows_count} γραμμές, κατηγορία βιβλίων {book_category}, μέγεθος {size_text} MB, όνομα αρχείου: {file_name}"
+        
+        elif action == 'export_expenses':
+            # Handle export_expenses action with enhanced details
+            actual_details = details.get('details', details)
+            rows_count = actual_details.get('rows_count', 0)
+            file_size_mb = actual_details.get('file_size_mb', 0)
+            file_name = actual_details.get('file_name', 'Άγνωστο')
+            book_category = actual_details.get('book_category', 'mixed')
+            
+            # Translate book_category to Greek
+            category_translations = {
+                'invoices': 'Τιμολόγια',
+                'expenses': 'Έξοδα',
+                'receipts': 'Αποδείξεις',
+                'mixed': 'Μικτό'
+            }
+            category_name = category_translations.get(book_category, book_category)
+            
+            # Safely format file_size_mb
+            try:
+                size_text = f"{float(file_size_mb):.2f}"
+            except (ValueError, TypeError):
+                size_text = str(file_size_mb)
+            
+            return f"Λήψη εξοδολογίου κατηγορίας {category_name} ({rows_count} γραμμές, {size_text} MB) - {file_name}"
         
         elif action == 'delete_rows':
             # Handle delete rows action
@@ -803,7 +828,25 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
 
             # Sort all logs by timestamp descending and limit
             all_logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-            logs = all_logs[:limit]
+            
+            # Deduplicate logs based on unique identifier (timestamp + user_id + action + group)
+            seen_keys = set()
+            deduped_logs = []
+            for log in all_logs:
+                # Create unique key from identifying fields
+                user_id = log.get('user_id') or log.get('details', {}).get('user_id', '')
+                action = log.get('action') or log.get('event_type', '')
+                group = log.get('group') or log.get('details', {}).get('group', '')
+                timestamp = log.get('timestamp', '')
+                
+                # Create composite key - use first 19 chars of timestamp to ignore milliseconds
+                key = f"{timestamp[:19]}_{user_id}_{action}_{group}"
+                
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    deduped_logs.append(log)
+            
+            logs = deduped_logs[:limit]
 
         # Format timestamps for all logs
         for entry in logs:
@@ -894,6 +937,7 @@ def admin_get_activity_logs(group_name: Optional[str] = None, limit: int = 100) 
                 'backup_deleted': 'Διαγραφή backup',
                 'group_restored': 'Επαναφορά ομάδας',
                 'export_bridge': 'Λήψη γέφυρας',
+                'export_expenses': 'Λήψη εξοδολογίου',
                 'user_deleted': 'Διαγραφή χρήστη',
                 'delete_rows': 'Διαγραφή γραμμών',
             }

@@ -2024,9 +2024,10 @@
     <!-- Side Menu Overlay (uses backdrop blur) -->
     <div id="sideMenuOverlay" class="fixed inset-0 bg-black/10 backdrop-blur-sm opacity-0 invisible z-40 transition-all duration-300"></div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="space-y-2 mb-4" id="flashContainer">
+    <!-- Flash Messages Container (always present for JavaScript to use) -->
+    <div class="space-y-2 mb-4" id="flashContainer">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
           {% for cat, msg in messages %}
             {% set normalized = (cat or '')|lower %}
             {% if normalized in ['error', 'danger'] %}
@@ -2040,9 +2041,9 @@
             {% endif %}
             <div class="flash-banner {{ flash_class }}" role="alert" data-flash data-ttl="6000">{{ msg|safe }}</div>
           {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+        {% endif %}
+      {% endwith %}
+    </div>
 
     {% block content %}{% endblock %}
     
